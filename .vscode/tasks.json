@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "type": "shell",
+        "label": "g++.exe build active file",
+        "command": "C:\\mingw-w64\\mingw64\\bin\\g++.exe",
+        "args": [
+            "-IC:/Libraries/GLFW/include",
+            "-IC:/Libraries/glm",
+            "-IC:/VulkanSDK/1.2.131.2/Include",
+            "-LC:/Libraries/GLFW/lib-mingw-w64",
+            "-LC:/VulkanSDK/1.2.131.2/Lib",
+            "-g",
+            "${file}",
+            "-o", "${fileDirname}\\${fileBasenameNoExtension}.exe",
+            "-lglfw3",
+            "-lvulkan-1",
+            "-lgdi32",
+        ],
+        "options": {
+        //   "cwd": "C:\\mingw-w64\\mingw64\\bin",
+        },
+        "problemMatcher": ["$gcc"],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      }
+    ]
+  }

@@ -1,0 +1,28 @@
+{
+    "env": {
+      "myDefaultIncludePath": ["${workspaceFolder}", "${workspaceFolder}/include"],
+      "myCompilerPath": "C:\\mingw-w64\\mingw64\\bin\\gcc.exe"
+    },
+    "configurations": [
+      {
+        "name": "Win32",
+        "intelliSenseMode": "gcc-x64",
+        "includePath": [
+            "${myDefaultIncludePath}",
+            "C:\\Libraries\\GLFW\\include",
+            "C:\\Libraries\\glm",
+            "C:\\VulkanSDK\\1.2.131.2\\Include"
+            ],
+        "compilerPath": "${myCompilerPath}",
+        "cStandard": "c11",
+        "cppStandard": "c++17",
+        "compileCommands": "",
+        "browse": {
+          "path": ["${workspaceFolder}"],
+          "limitSymbolsToIncludedHeaders": true,
+          "databaseFilename": ""
+        }
+      }
+    ],
+    "version": 4
+  }
