@@ -3,9 +3,10 @@
     "tasks": [
       {
         "type": "shell",
-        "label": "g++.exe build active file",
+        "label": "build",
         "command": "C:\\mingw-w64\\mingw64\\bin\\g++.exe",
         "args": [
+            "-std=c++17",
             "-IC:/Libraries/GLFW/include",
             "-IC:/Libraries/glm",
             "-IC:/VulkanSDK/1.2.131.2/Include",

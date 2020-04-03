@@ -1,6 +1,6 @@
 {
     "env": {
-      "myDefaultIncludePath": ["${workspaceFolder}", "${workspaceFolder}/include"],
+      "myDefaultIncludePath": ["${workspaceFolder}"],
       "myCompilerPath": "C:\\mingw-w64\\mingw64\\bin\\gcc.exe"
     },
     "configurations": [
