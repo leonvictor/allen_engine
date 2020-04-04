@@ -91,6 +91,7 @@ private:
     std::vector<VkImageView> swapchainImageViews;
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
 
     bool checkValidationLayersSupport() {
@@ -408,6 +409,34 @@ private:
             throw std::runtime_error("Failed to create pipeline layout.");
         }
 
+        // Finally create the graphics pipeline !
+        VkGraphicsPipelineCreateInfo pipelineInfo = {};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        
+        // Shader stages
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages; 
+        
+        // Fixed-functions states
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pColorBlendState = &colorBlendInfo;
+        pipelineInfo.pViewportState = &viewportStateInfo;
+        pipelineInfo.pRasterizationState = &rasterizerInfo;
+        pipelineInfo.pMultisampleState = &multisampleInfo;
+        pipelineInfo.pDepthStencilState = nullptr;
+        pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
+        pipelineInfo.pDynamicState = nullptr;
+
+        // Pipeline layout
+        pipelineInfo.layout = pipelineLayout;
+
+        // Render pass
+        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.subpass = 0;
+
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create Graphics pipeline");
+        }
 
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
@@ -704,9 +733,10 @@ private:
     }
 
     void cleanup() {
+        vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
-        
+
         for (auto imageView : swapchainImageViews) {
             vkDestroyImageView(device, imageView, nullptr);
         }
