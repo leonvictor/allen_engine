@@ -88,6 +88,8 @@ private:
     VkFormat swapchainImageFormat;
     VkExtent2D swapchainExtent;
 
+    std::vector<VkImageView> swapchainImageViews;
+
     bool checkValidationLayersSupport() {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -228,6 +230,7 @@ private:
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
+        createSwapchain();
     }
 
     void createSurface() {
@@ -236,7 +239,7 @@ private:
         }
     }
 
-    void createSwapChain() {
+    void createSwapchain() {
         SwapchainSupportDetails swapchainSupport = querySwapchainSupport(physicalDevice);
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
