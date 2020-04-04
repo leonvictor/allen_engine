@@ -231,6 +231,35 @@ private:
         pickPhysicalDevice();
         createLogicalDevice();
         createSwapchain();
+        createImageViews();
+    }
+
+    void createImageViews() {
+        swapchainImageViews.resize(swapchainImages.size());
+
+        for (size_t i = 0; i < swapchainImages.size(); i++) {
+            VkImageViewCreateInfo createInfo = {};
+            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            createInfo.image = swapchainImages[i];
+            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // How are image interpreted ? 1, 2, 3D Textures ? cube maps ?
+            createInfo.format = swapchainImageFormat;
+
+            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            
+            // What's the image purpose, which part of the image should be accessed ?
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // Our images are color targets
+            createInfo.subresourceRange.baseMipLevel = 0;
+            createInfo.subresourceRange.levelCount = 1;
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.layerCount = 1;
+
+            if (vkCreateImageView(device, &createInfo, nullptr, &swapchainImageViews[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create image views.");
+            }
+        }
     }
 
     void createSurface() {
@@ -483,6 +512,11 @@ private:
     }
 
     void cleanup() {
+        
+        for (auto imageView : swapchainImageViews) {
+            vkDestroyImageView(device, imageView, nullptr);
+        }
+
         vkDestroySwapchainKHR(device, swapchain, nullptr);
         vkDestroyDevice(device, nullptr);
 
