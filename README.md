@@ -13,3 +13,6 @@ SPIR-V is a bytecode format for shader code, as opposed to human readable syntax
 We can use this compiler viea glslangValidator.exe but we'll use glslc.exe instead. Provided by google, it has the advantage of using the same parameter format as GCC.
 
 We use a manual compile script  (shaders/compile.bat) in the tutorial, but it is possible to compile them from the code. See libshaderc. 
+
+Fences : Designed to synchronize the application itself with rendering (can be accessed from the prog)
+Semaphores : Synchronize operation within or accross command queues
