@@ -56,9 +56,9 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 const std::vector<Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
     {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 };
 
 #ifdef NDEBUG
@@ -67,7 +67,7 @@ const std::vector<Vertex> vertices = {
     const bool enableValidationLayers = true;
 #endif
 
-/** 
+/*
  * Proxy function that looks up the adress of the creation function and run it
  */
 VkResult CreateDebugUtilsMessengerExt(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -144,6 +144,8 @@ private:
     std::vector<VkFence> imagesInFlight;
 
     size_t currentFrame = 0;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 
     bool framebufferResized = false;
 
@@ -248,6 +250,8 @@ private:
     Helper function to read a file and return its content in a buffer.
     TODO: Move to "utils" 
     **/
+
+    /*Truc*/
     static std::vector<char> readFile(const std::string& filename) {
         // We start to read at the end of the file so we can use the read position to determine the size of the file to allocate a buffer
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -321,8 +325,63 @@ private:
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
+        createVertexBuffer();
         createCommandBuffers();
         createSyncObjects();
+    }
+
+    void createVertexBuffer() {
+        VkBufferCreateInfo bufferInfo = {};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(vertices[0]) * vertices.size(); // Byte size of the buffer = vertex size
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT; // This is a vertex buffer
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // Buffers can be shared between queues
+        bufferInfo.flags = 0; // Configure sparse buffer memory. Not used rn
+    
+        if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create vertex buffer.");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate memory for vertex buffer.");
+        }
+
+        vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+
+        // TODO : Shoud this be here ??
+        void* data;
+        vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+        memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+        vkUnmapMemory(device, vertexBufferMemory);
+    }
+
+    /* Combine memory requirements of a buffer, the app requirements and the physical device's property to find the right type of memory to use. 
+     * @args:
+     *      typeFilter : Suitable bit field of memory types
+     *      properties : Required properties
+     */
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+        
+        // TODO sometimes, consider heaps...
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if (typeFilter & (1 << i) && // Check if the memory type's bit is set to 1
+                (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { // We also need to be able to write our vertex data to the memory
+                return i;
+            }
+        }
+
+        throw std::runtime_error("Failed to find suitable memory type.");
+
     }
 
     void createSyncObjects() {
@@ -385,7 +444,12 @@ private:
             vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
             
             vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-            vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+            
+            VkBuffer vertexBuffers[] = {vertexBuffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+            
+            vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
             
             vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -1038,6 +1102,9 @@ private:
 
     void cleanup() {
         cleanupSwapchain();
+
+        vkDestroyBuffer(device, vertexBuffer, nullptr);
+        vkFreeMemory(device, vertexBufferMemory, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
