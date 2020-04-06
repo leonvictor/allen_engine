@@ -334,16 +334,19 @@ private:
         createSyncObjects();
     }
 
-    void createVertexBuffer() {
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProperties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+        // TODO: Move queues out of this function
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
         uint32_t queues[] = {queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.transferFamily.value()};
         
         VkBufferCreateInfo bufferInfo = {};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = sizeof(vertices[0]) * vertices.size(); // Byte size of the buffer = vertex size
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT; // This is a vertex buffer
+        bufferInfo.size = size; // Byte size of the buffer = vertex size
+        bufferInfo.usage = usage; // This is a vertex buffer
+        // TODO: We might have to pull this out aswell
         bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT; // Can buffers be shared between queues?
         bufferInfo.flags = 0; // Configure sparse buffer memory. Not used rn
+        
         bufferInfo.queueFamilyIndexCount = 2;
         bufferInfo.pQueueFamilyIndices = queues;
     
@@ -357,18 +360,23 @@ private:
         VkMemoryAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, memProperties);
 
         if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate memory for vertex buffer.");
         }
 
         vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+    }
+
+    void createVertexBuffer() {
+        VkDeviceSize  bufferSize = sizeof(vertices[0]) * vertices.size();
+        createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
 
         // TODO : Shoud this be here ??
         void* data;
-        vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-        memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+        vkMapMemory(device, vertexBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, vertices.data(), (size_t) bufferSize);
         vkUnmapMemory(device, vertexBufferMemory);
     }
 
