@@ -343,42 +343,93 @@ private:
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size; // Byte size of the buffer = vertex size
         bufferInfo.usage = usage; // This is a vertex buffer
-        // TODO: We might have to pull this out aswell
+        // TODO: We might have to pull this out as well
         bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT; // Can buffers be shared between queues?
         bufferInfo.flags = 0; // Configure sparse buffer memory. Not used rn
         
         bufferInfo.queueFamilyIndexCount = 2;
         bufferInfo.pQueueFamilyIndices = queues;
     
-        if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create vertex buffer.");
         }
 
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
+        vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 
         VkMemoryAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, memProperties);
 
-        if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate memory for vertex buffer.");
+        if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate memory for buffer.");
         }
 
-        vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+        vkBindBufferMemory(device, buffer, bufferMemory, 0);
     }
 
     void createVertexBuffer() {
         VkDeviceSize  bufferSize = sizeof(vertices[0]) * vertices.size();
-        createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
+        
+        // Move this out if we need to reference them later on.
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
         // TODO : Shoud this be here ??
         void* data;
-        vkMapMemory(device, vertexBufferMemory, 0, bufferSize, 0, &data);
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, vertices.data(), (size_t) bufferSize);
-        vkUnmapMemory(device, vertexBufferMemory);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        
+        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
+
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+        // TODO: Create a separate command pool for the temporary command buffer.
+        VkCommandBufferAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = transferCommandPool; // TODO: Check that transfercommandPool has TRANSIENT_BIT flag
+        allocInfo.commandBufferCount = 1;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+        // Immediately start recording
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        VkBufferCopy copyRegion = {};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
+
+        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+        vkEndCommandBuffer(commandBuffer);
+        
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+    
+        vkQueueSubmit(transferQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(transferQueue); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
+
+        vkFreeCommandBuffers(device, transferCommandPool, 1, &commandBuffer);
+    }
+
 
     /* Combine memory requirements of a buffer, the app requirements and the physical device's property to find the right type of memory to use. 
      * @args:
@@ -492,6 +543,7 @@ private:
 
         // Reuse the info to create transfer command pool
         createInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
+        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         
         if (vkCreateCommandPool(device, &createInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create transfer command pool.");
