@@ -112,9 +112,9 @@ struct QueueFamilyIndices {
 };
 
 struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 projection; 
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 projection; 
 };
 
 struct SwapchainSupportDetails {
@@ -152,8 +152,10 @@ private:
 
     std::vector<VkImageView> swapchainImageViews;
     VkRenderPass renderPass;
+    
     VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorSet descriptorSet; // Unused ?
+    std::vector<VkDescriptorSet> descriptorSets;
+
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
@@ -180,6 +182,7 @@ private:
 
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
+    VkDescriptorPool descriptorPool;
 
     bool framebufferResized = false;
 
@@ -362,6 +365,8 @@ private:
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
+        createDescriptorPool();
+        createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -511,6 +516,58 @@ private:
 
         endSingleTimeCommands(commandBuffer, transferCommandPool, transferQueue);
     }
+    void createDescriptorSets() {
+        std::vector<VkDescriptorSetLayout> layouts(swapchainImages.size(), descriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchainImages.size());
+        allocInfo.pSetLayouts = layouts.data();
+
+        descriptorSets.resize(swapchainImages.size());
+        if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor set.");
+        }
+
+        for (size_t i = 0; i < swapchainImages.size(); i++) {
+            // Describes the buffer and the region within it that contains the data for the descriptor
+            VkDescriptorBufferInfo bufferInfo = {};
+            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(UniformBufferObject);
+
+            VkWriteDescriptorSet writeDescriptor = {};
+            writeDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptor.dstSet = descriptorSets[i];
+            writeDescriptor.dstBinding = 0; // Binding index 
+            writeDescriptor.dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+            writeDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writeDescriptor.descriptorCount = 1;
+            writeDescriptor.pBufferInfo = &bufferInfo;
+
+            vkUpdateDescriptorSets(device, 1, &writeDescriptor, 0, nullptr);
+        }
+    }
+
+    void createDescriptorPool() {
+        std::array<VkDescriptorPoolSize, 2> poolSizes = {};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImages.size());
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImages.size());
+
+        VkDescriptorPoolCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        createInfo.pPoolSizes = poolSizes.data();
+        createInfo.maxSets = static_cast<uint32_t>(swapchainImages.size());
+
+        if (vkCreateDescriptorPool(device, &createInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create descriptor pool");
+        }
+    }
+
     void createDescriptorSetLayout() {
         VkDescriptorSetLayoutBinding uboLayoutBinding = {};
         uboLayoutBinding.binding = 0; // The binding used in the shader
@@ -519,11 +576,18 @@ private:
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // We're only referencing the descriptor from the vertex shader
         uboLayoutBinding.pImmutableSamplers = nullptr; // Image sampling related stuff.
 
+        VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+        samplerLayoutBinding.binding = 1;
+        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding.pImmutableSamplers = nullptr;
+        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //It's also possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
 
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
         VkDescriptorSetLayoutCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        createInfo.bindingCount = 1;
-        createInfo.pBindings = &uboLayoutBinding;
+        createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        createInfo.pBindings = bindings.data();
 
         if (vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor set layout.");
@@ -774,9 +838,11 @@ private:
             
             VkBuffer vertexBuffers[] = {vertexBuffer};
             VkDeviceSize offsets[] = {0};
+            
             vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16); // Repercute change to indices here
-
+            vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16); // Repercute change to indices type here
+            
+            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
             vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
             
@@ -949,7 +1015,7 @@ private:
         rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizerInfo.lineWidth = 1.0f;
         rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT; // Type of face culling
-        rasterizerInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         // The rasterizer can alter depth values.
         rasterizerInfo.depthBiasEnable = VK_FALSE;
 
@@ -983,7 +1049,7 @@ private:
         colorBlendInfo.logicOpEnable = VK_FALSE;
         colorBlendInfo.attachmentCount = 1;
         colorBlendInfo.pAttachments = &colorBlendAttachment;
-        // We can also define custom blend constants in colorBlendInfo.blendConstants[0] 
+        // We can also define custom blend constants in colorBlendInfo.blendConstants[0, 1, 2, 3] 
 
         // Dynamic state: some of the states can be modified without recreating a pipeline, but will require arguments to be provided at draw time.
 
@@ -1149,6 +1215,8 @@ private:
         createGraphicsPipeline();
         createFramebuffers();
         createUniformBuffers();
+        createDescriptorPool();
+        createDescriptorSets();
         createCommandBuffers();
     }
 
@@ -1449,6 +1517,8 @@ private:
             vkDestroyBuffer(device, uniformBuffers[i], nullptr);
             vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
         }
+
+        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     }
 
     void cleanup() {
