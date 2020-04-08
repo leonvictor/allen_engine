@@ -9,6 +9,7 @@
             "-std=c++17",
             "-IC:/Libraries/GLFW/include",
             "-IC:/Libraries/glm",
+            "-IC:/Libraries/stb",
             "-IC:/VulkanSDK/1.2.131.2/Include",
             "-LC:/Libraries/GLFW/lib-mingw-w64",
             "-LC:/VulkanSDK/1.2.131.2/Lib",
