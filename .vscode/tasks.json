@@ -11,6 +11,7 @@
             "-IC:/Libraries/glm",
             "-IC:/Libraries/stb",
             "-IC:/VulkanSDK/1.2.131.2/Include",
+            "-IC:/Libraries/tiny_obj_loader",
             "-LC:/Libraries/GLFW/lib-mingw-w64",
             "-LC:/VulkanSDK/1.2.131.2/Lib",
             "-g",
@@ -19,6 +20,7 @@
             "-lglfw3",
             "-lvulkan-1",
             "-lgdi32",
+            "-O3"
         ],
         "options": {
         //   "cwd": "C:\\mingw-w64\\mingw64\\bin",

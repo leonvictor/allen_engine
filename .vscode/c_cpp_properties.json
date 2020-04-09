@@ -12,7 +12,8 @@
             "C:\\Libraries\\GLFW\\include",
             "C:\\Libraries\\glm",
             "C:\\VulkanSDK\\1.2.131.2\\Include",
-            "C:\\Libraries\\stb"
+            "C:\\Libraries\\stb",
+            "C:\\Libraries\\tiny_obj_loader"
             ],
         "compilerPath": "${myCompilerPath}",
         "cStandard": "c11",
