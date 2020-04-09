@@ -24,6 +24,7 @@
 struct Vertex {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 texCoord;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription = {};
@@ -33,8 +34,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescription() {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescription = {};
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescription = {};
         attributeDescription[0].binding = 0;
         attributeDescription[0].location = 0;
         attributeDescription[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -45,6 +46,11 @@ struct Vertex {
         attributeDescription[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescription[1].offset = offsetof(Vertex, color);
 
+        attributeDescription[2].binding = 0;
+        attributeDescription[2].location = 2;
+        attributeDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescription[2].offset = offsetof(Vertex, texCoord);
+        
         return attributeDescription;
     }
 };
@@ -63,10 +69,10 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 
 // Vertices indices to avoid redundancy
@@ -591,16 +597,29 @@ private:
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkWriteDescriptorSet writeDescriptor = {};
-            writeDescriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptor.dstSet = descriptorSets[i];
-            writeDescriptor.dstBinding = 0; // Binding index 
-            writeDescriptor.dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
-            writeDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            writeDescriptor.descriptorCount = 1;
-            writeDescriptor.pBufferInfo = &bufferInfo;
+            VkDescriptorImageInfo imageInfo = {};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = textureImageView;
+            imageInfo.sampler = textureSampler;
 
-            vkUpdateDescriptorSets(device, 1, &writeDescriptor, 0, nullptr);
+            std::array<VkWriteDescriptorSet, 2> writeDescriptors = {};
+            writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptors[0].dstSet = descriptorSets[i];
+            writeDescriptors[0].dstBinding = 0; // Binding index 
+            writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+            writeDescriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writeDescriptors[0].descriptorCount = 1;
+            writeDescriptors[0].pBufferInfo = &bufferInfo;
+
+            writeDescriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptors[1].dstSet = descriptorSets[i];
+            writeDescriptors[1].dstBinding = 1; // Binding index 
+            writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+            writeDescriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptors[1].descriptorCount = 1;
+            writeDescriptors[1].pImageInfo = &imageInfo;
+
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
         }
     }
 
@@ -635,7 +654,7 @@ private:
         samplerLayoutBinding.descriptorCount = 1;
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //It's also possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
+        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
 
         std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
         VkDescriptorSetLayoutCreateInfo createInfo = {};
