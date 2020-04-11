@@ -28,60 +28,13 @@
 #include <unordered_map>
 #include <string.h>
 
-struct Vertex {
-    alignas(16) glm::vec3 pos;
-    alignas(16) glm::vec3 color;
-    alignas(16) glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription = {};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescription = {};
-        attributeDescription[0].binding = 0;
-        attributeDescription[0].location = 0;
-        attributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription[0].offset = offsetof(Vertex, pos);
-
-        attributeDescription[1].binding = 0;
-        attributeDescription[1].location = 1;
-        attributeDescription[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription[1].offset = offsetof(Vertex, color);
-
-        attributeDescription[2].binding = 0;
-        attributeDescription[2].location = 2;
-        attributeDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescription[2].offset = offsetof(Vertex, texCoord);
-        
-        return attributeDescription;
-    }
-
-    bool operator==(const Vertex& other) const {
-        return pos==other.pos && color == other.color && texCoord == other.texCoord;
-    }
-};
-
-namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
-            return (
-                (hash<glm::vec3>()(vertex.pos) ^ 
-                (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ 
-                (hash<glm::vec2>()(vertex.texCoord) << 1);    
-        }
-    };
-}
+#include "vertex.hpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-const std::string MODEL_PATH = "models/chalet.obj";
-const std::string TEXTURE_PATH = "textures/chalet.jpg";
+const std::string MODEL_PATH = "assets/models/chalet.obj";
+const std::string TEXTURE_PATH = "assets/textures/chalet.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -92,25 +45,6 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
-// const std::vector<Vertex> vertices = {
-//     {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-//     {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-//     {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-//     {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-//     {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-//     {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-//     {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-//     {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-// };
-
-// Vertices indices to avoid redundancy
-//TODO : Use uint32_t ? It will depend on the size of our models.
-// const std::vector<uint16_t> indices = {
-//     0, 1, 2, 2, 3, 0,
-//     4, 5, 6, 6, 7, 4
-// };
 
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
