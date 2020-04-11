@@ -1,7 +1,7 @@
 # vulkan_sandbox
 
 My experiments using Vulkan. I plan to make a simple renderer to begin with, then I'll switch my focus to tooling (especially Animation)
-For now i'm following a [tutorial](https://vulkan-tutorial.com/).
+The first raw edition of the program was developped following [this tutorial](https://vulkan-tutorial.com/).
 
 # TODO
  - Configure CMake
@@ -10,6 +10,19 @@ For now i'm following a [tutorial](https://vulkan-tutorial.com/).
  - "The right way to allocate memory for a large number of objects at the same time is to create a custom allocator that splits up a single allocation among many different objects by using the offset parameters that we've seen in many functions. You can either implement such an allocator yourself, or use the VulkanMemoryAllocator library provided by the GPUOpen initiative. However, for this tutorial it's okay to use a separate allocation for every resource, because we won't come close to hitting any of these limits for now.""
  - cont. [Store multiple buffers into a single VkBuffer and use offsets (aliasing)](https://developer.nvidia.com/vulkan-memory-management)
 
+Ideas of todos proposed by the tutorial :
+
+ - Push constants
+ - Instanced rendering
+ - Dynamic uniforms
+ - Separate images and sampler descriptors
+ - Pipeline cache
+ - Multi-threaded command buffer generation
+ - Multiple subpasses
+ - Compute shaders
+ - Post processing effects
+ - Shadow mapping
+ - Blinn-Phong lighting
 
 
 # My notes
