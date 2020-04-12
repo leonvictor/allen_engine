@@ -5,6 +5,7 @@ The first raw edition of the program was developped following [this tutorial](ht
 
 # TODO
  - Configure CMake
+ - Separate main.cpp in focused files
  - Use dynamic states for viewport and scissors to make window resizing more efficient
  - Improve shaders compilation (for now we have to do it manually beforehand)
  - "The right way to allocate memory for a large number of objects at the same time is to create a custom allocator that splits up a single allocation among many different objects by using the offset parameters that we've seen in many functions. You can either implement such an allocator yourself, or use the VulkanMemoryAllocator library provided by the GPUOpen initiative. However, for this tutorial it's okay to use a separate allocation for every resource, because we won't come close to hitting any of these limits for now.""
@@ -35,3 +36,10 @@ We use a manual compile script  (shaders/compile.bat) in the tutorial, but it is
 
 Fences : Designed to synchronize the application itself with rendering (can be accessed from the prog)
 Semaphores : Synchronize operation within or accross command queues
+
+# Dependencies
+ - Vulkan SDK
+ - glm
+ - glfw
+ - tinyobjloader
+ - stb

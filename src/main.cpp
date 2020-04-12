@@ -1,4 +1,5 @@
-#define GLFW_INCLUDE_VULKAN
+// #define GLFW_INCLUDE_VULKAN
+#include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
@@ -287,8 +288,7 @@ private:
         return extensions;
     }
 
-    /**
-    Helper function to read a file and return its content in a buffer.
+    /** Helper function to read a file and return its content in a buffer.
     TODO: Move to "utils" 
     **/
     static std::vector<char> readFile(const std::string& filename) {
@@ -296,7 +296,7 @@ private:
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
-            throw std::runtime_error("Failed to open file.");
+            throw std::runtime_error("Failed to open file: " + filename);
         }
 
         size_t fileSize = (size_t) file.tellg();
