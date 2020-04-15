@@ -175,6 +175,13 @@ private:
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     bool framebufferResized = false;
+    bool leftMouseButtonPressed = false;
+    bool RightMouseButtonPressed = false;
+    glm::vec2 lastMousePos;
+
+    glm::vec3 sceneCameraPos = glm::vec3(0.0f, -2.0f, 0.0f);
+    glm::vec3 sceneCameraFront = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 sceneCameraUp = glm::vec3(0.0f, 1.0f, 1.0f);
 
     VkSampleCountFlagBits getMaxUsableSampleCount() {
         VkPhysicalDeviceProperties phyiscalDeviceProperties;
@@ -347,9 +354,42 @@ private:
     void initWindow() {
         glfwInit(); // Init glfw
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
+
+        // if (glfwRawMouseMotionSupported()) {
+        //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        // }
+
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
+        glfwSetMouseButtonCallback(window, mouseButtonCallback);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+    }
+
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        app->lastMousePos = {xpos, ypos};
+
+
+        switch (button) {
+            case GLFW_MOUSE_BUTTON_LEFT:
+                // Set button pressed
+                if (action == GLFW_PRESS) {
+                    app->leftMouseButtonPressed = true;
+                } else if (action == GLFW_RELEASE) {
+                    app->leftMouseButtonPressed = false;
+                }
+                break;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                // Set button pressed
+                if (action == GLFW_PRESS) {
+                    app->RightMouseButtonPressed = true;
+                } else if (action == GLFW_RELEASE) {
+                    app->RightMouseButtonPressed = false;
+                }
+                break;
+        }
     }
 
     void initVulkan() {
@@ -893,18 +933,16 @@ private:
         }
     }
 
-    void updateUniformBuffers(uint32_t currentImage) { 
-        static auto startTime = std::chrono::high_resolution_clock::now();
+    void updateUniformBuffers(uint32_t currentImage, UniformBufferObject ubo) { 
+        // static auto startTime = std::chrono::high_resolution_clock::now();
 
-
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-        UniformBufferObject ubo = {};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation of 90 degrees per second around z axis
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // eye position, center position, up axis
-        ubo.projection = glm::perspective(glm::radians(45.0f), swapchainExtent.width / (float) swapchainExtent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
+        // // auto currentTime = std::chrono::high_resolution_clock::now();
+        // // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        // UniformBufferObject ubo = {};
+        // ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation of 90 degrees per second around z axis
+        // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // eye/camera position, center position, up axis
+        // ubo.projection = glm::perspective(glm::radians(45.0f), swapchainExtent.width / (float) swapchainExtent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        // ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
 
         void* data;
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -1708,13 +1746,63 @@ private:
     void mainLoop() {
         while(!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            drawFrame();
+            if (RightMouseButtonPressed || leftMouseButtonPressed) {
+                double dX, dY;
+                // x = cursor x coordinate relative to left window edge
+                // y = relative to top edge
+                getMouseMotionDelta(&dX, &dY);
+                // std::cout << "("+ dX +", "+dY+")" << std::endl;
+                if (dX != 0. || dY != 0.) {
+                    printf("(%f, %f)\n", dX, dY);
+                    
+                    // sceneCameraPos += glm::vec3(dX, -dY, 0.0f);
+                }
+
+            }
+            auto imageIndex = beginDrawFrame();
+            
+            processKeyboardInput(window);
+            std::cout << sceneCameraPos.x << std::endl;
+            UniformBufferObject ubo = {};
+            // ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation of 90 degrees per second around z axis
+            ubo.model = glm::mat4(1.0f);
+            // ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation of 90 degrees per second around z axis
+            // ubo.view = glm::lookAt(sceneCameraPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // eye/camera position, center position, up axis
+            ubo.view = glm::lookAt(sceneCameraPos, sceneCameraPos + sceneCameraFront, sceneCameraUp); // eye/camera position, center position, up axis
+            
+            ubo.projection = glm::perspective(glm::radians(45.0f), swapchainExtent.width / (float) swapchainExtent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+            ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
+            
+            updateUniformBuffers(imageIndex, ubo);
+
+            endDrawFrame(imageIndex);
         }
 
         vkDeviceWaitIdle(device);
     }
 
-    void drawFrame() {
+    void processKeyboardInput(GLFWwindow *window) {
+        const float cameraSpeed = 0.1f; // adjust accordingly
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            sceneCameraPos += cameraSpeed * sceneCameraFront;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            sceneCameraPos -= cameraSpeed * sceneCameraFront;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            sceneCameraPos -= glm::normalize(glm::cross(sceneCameraFront, sceneCameraUp)) * cameraSpeed;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            sceneCameraPos += glm::normalize(glm::cross(sceneCameraFront, sceneCameraUp)) * cameraSpeed;
+    }
+
+    void getMouseMotionDelta(double *dX, double *dY) {
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        *dX = xpos - lastMousePos.x;
+        *dY = ypos - lastMousePos.y;
+        lastMousePos = {xpos, ypos}; 
+        // lastMousePos = glm::normalize(lastMousePos);
+    }
+
+    uint8_t beginDrawFrame() {
         // Wait for the fence
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -1736,9 +1824,10 @@ private:
 
         // Mark the image as now being in use by this frame
         imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+        return imageIndex;
+    }
 
-        updateUniformBuffers(imageIndex);
-
+    void endDrawFrame(uint32_t imageIndex) {
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         
@@ -1774,7 +1863,7 @@ private:
         presentInfo.pWaitSemaphores = signalSemaphores;
         presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
 
-        result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
+        VkResult result = vkQueuePresentKHR(graphicsQueue, &presentInfo);
         
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = true;
