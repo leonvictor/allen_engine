@@ -365,7 +365,14 @@ private:
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetMouseButtonCallback(window, mouseButtonCallback);
+        glfwSetScrollCallback(window, scrollCallback);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+    }
+
+    static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
+        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        double smoothing = 0.05f;
+        app->sceneCameraPos.y += yoffset;
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -1755,7 +1762,7 @@ private:
                 float sensitivity = 0.01f;
                 dX *= sensitivity;
                 dY *= sensitivity;
-                sceneCameraPos += glm::vec3(dX,0.0f, dY);
+                sceneCameraPos -= glm::vec3(dX, 0.0f, dY);
             }
             float currentFrameTime = glfwGetTime();
             deltaTime = currentFrameTime - lastFrameTime;
