@@ -176,12 +176,27 @@ private:
 
     bool framebufferResized = false;
     bool leftMouseButtonPressed = false;
-    bool RightMouseButtonPressed = false;
+    bool rightMouseButtonPressed = false;
+    bool middleMouseButtonPressed = false;
     glm::vec2 lastMousePos;
 
-    glm::vec3 sceneCameraPos = glm::vec3(0.0f, -2.0f, 0.0f);
-    glm::vec3 sceneCameraFront = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 sceneCameraUp = glm::vec3(0.0f, 1.0f, 1.0f);
+
+    const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
+    const glm::vec3 WORLD_BACKWARD = glm::vec3(0.0f, 0.0f, -1.0f);
+    const glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
+    const glm::vec3 WORLD_LEFT = glm::vec3(-1.0f, 0.0f, 0.0f);
+    const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
+    const glm::vec3 WORLD_DOWN = glm::vec3(0.0f, -1.0f, 0.0f);
+
+    glm::vec3 sceneCameraPos = WORLD_BACKWARD * 2.0f;
+    glm::vec3 sceneCameraFront = WORLD_FORWARD;
+    glm::vec3 sceneCameraUp = WORLD_UP;
+
+
+    // Camera orientation. TODO: Move that somewhere else
+    float yaw = 90.0f;
+    float pitch = 0.0f;
+    float roll = 0.0f;
 
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
@@ -372,19 +387,19 @@ private:
     static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
         double smoothing = 0.05f;
-        app->sceneCameraPos.y += yoffset;
+        app->sceneCameraPos += (app->sceneCameraFront * (float) yoffset);
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        
+        //TODO: This doesn't need to happen when pressing every buttons, only the ones that handle camera motion
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
         app->lastMousePos = {xpos, ypos};
 
-
         switch (button) {
             case GLFW_MOUSE_BUTTON_LEFT:
-                // Set button pressed
                 if (action == GLFW_PRESS) {
                     app->leftMouseButtonPressed = true;
                 } else if (action == GLFW_RELEASE) {
@@ -392,13 +407,18 @@ private:
                 }
                 break;
             case GLFW_MOUSE_BUTTON_RIGHT:
-                // Set button pressed
                 if (action == GLFW_PRESS) {
-                    app->RightMouseButtonPressed = true;
+                    app->rightMouseButtonPressed = true;
                 } else if (action == GLFW_RELEASE) {
-                    app->RightMouseButtonPressed = false;
+                    app->rightMouseButtonPressed = false;
                 }
                 break;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                if (action == GLFW_PRESS) {
+                    app->middleMouseButtonPressed = true;
+                } else if (action == GLFW_RELEASE) {
+                    app->middleMouseButtonPressed = false;
+                }
         }
     }
 
@@ -1756,13 +1776,30 @@ private:
     void mainLoop() {
         while(!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            if (RightMouseButtonPressed || leftMouseButtonPressed) {
+            if (middleMouseButtonPressed) {
                 double dX, dY;
                 getMouseMotionDelta(&dX, &dY);
                 float sensitivity = 0.01f;
                 dX *= sensitivity;
                 dY *= sensitivity;
-                sceneCameraPos -= glm::vec3(dX, 0.0f, dY);
+                sceneCameraPos -= glm::vec3(dX, dY, 0.0f);
+            }
+            if (rightMouseButtonPressed) {
+                double dX, dY;
+                getMouseMotionDelta(&dX, &dY);
+                float sensitivity = 0.1f;
+                dX *= sensitivity;
+                dY *= sensitivity;
+                yaw += dX;
+                pitch += dY;
+
+                glm::vec3 direction;
+                direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+                direction.y = sin(glm::radians(pitch));
+                direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+                sceneCameraFront = glm::normalize(direction);
+                printf("Front: (%f, %f, %f)\n", sceneCameraFront.x, sceneCameraFront.y, sceneCameraFront.z);
+
             }
             float currentFrameTime = glfwGetTime();
             deltaTime = currentFrameTime - lastFrameTime;
