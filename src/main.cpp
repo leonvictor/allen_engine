@@ -379,8 +379,7 @@ private:
 
     static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-        double smoothing = 0.05f;
-        app->camera.position += (app->camera.forward * (float) yoffset); // TODO: Move that to camera ?
+        app->camera.zoom(yoffset);
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -819,6 +818,7 @@ private:
 
         endSingleTimeCommands(commandBuffer, transferCommandPool, transferQueue);
     }
+
     void createDescriptorSets() {
         std::vector<VkDescriptorSetLayout> layouts(swapchainImages.size(), descriptorSetLayout);
 
@@ -957,16 +957,6 @@ private:
     }
 
     void updateUniformBuffers(uint32_t currentImage, UniformBufferObject ubo) { 
-        // static auto startTime = std::chrono::high_resolution_clock::now();
-
-        // // auto currentTime = std::chrono::high_resolution_clock::now();
-        // // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-        // UniformBufferObject ubo = {};
-        // ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation of 90 degrees per second around z axis
-        // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // eye/camera position, center position, up axis
-        // ubo.projection = glm::perspective(glm::radians(45.0f), swapchainExtent.width / (float) swapchainExtent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        // ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
-
         void* data;
         vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
@@ -1770,29 +1760,14 @@ private:
         while(!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             if (middleMouseButtonPressed) {
-                // TODO: Delegate to camera class
                 double xoffset, yoffset;
                 getMouseMotionDelta(&xoffset, &yoffset);
-                float sensitivity = 0.01f;
-                xoffset *= sensitivity;
-                yoffset *= sensitivity;
-                camera.position -= glm::vec3(xoffset, yoffset, 0.0f);
+                camera.move(xoffset, yoffset);
             }
             if (rightMouseButtonPressed) {
                 double xoffset, yoffset;
                 getMouseMotionDelta(&xoffset, &yoffset);
-                // TODO: Delegate to camera class
-                float sensitivity = 0.1f;
-                xoffset *= sensitivity;
-                yoffset *= sensitivity;
-                camera.yaw += xoffset;
-                camera.pitch += yoffset;
-
-                glm::vec3 direction;
-                direction.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
-                direction.y = sin(glm::radians(camera.pitch));
-                direction.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
-                camera.forward = glm::normalize(direction);
+                camera.rotate(xoffset, yoffset);
             }
             float currentFrameTime = glfwGetTime();
             deltaTime = currentFrameTime - lastFrameTime;
@@ -1819,13 +1794,13 @@ private:
     void processKeyboardInput(GLFWwindow *window) {
         const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            camera.position += cameraSpeed * camera.forward;
+            camera.zoom(cameraSpeed);
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            camera.position -= cameraSpeed * camera.forward;
+            camera.zoom(-cameraSpeed);
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            camera.position -= glm::normalize(glm::cross(camera.forward, camera.up)) * cameraSpeed;
+            camera.move(-cameraSpeed, 0.0f);
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            camera.position += glm::normalize(glm::cross(camera.forward, camera.up)) * cameraSpeed;
+            camera.move(cameraSpeed, 0.0f);
     }
 
     void getMouseMotionDelta(double *dX, double *dY) {
