@@ -183,6 +183,9 @@ private:
     glm::vec3 sceneCameraFront = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 sceneCameraUp = glm::vec3(0.0f, 1.0f, 1.0f);
 
+    float deltaTime = 0.0f;
+    float lastFrameTime = 0.0f;
+
     VkSampleCountFlagBits getMaxUsableSampleCount() {
         VkPhysicalDeviceProperties phyiscalDeviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &phyiscalDeviceProperties);
@@ -1759,6 +1762,10 @@ private:
                 }
 
             }
+            float currentFrameTime = glfwGetTime();
+            deltaTime = currentFrameTime - lastFrameTime;
+            lastFrameTime = currentFrameTime;
+
             auto imageIndex = beginDrawFrame();
             
             processKeyboardInput(window);
@@ -1782,7 +1789,7 @@ private:
     }
 
     void processKeyboardInput(GLFWwindow *window) {
-        const float cameraSpeed = 0.1f; // adjust accordingly
+        const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             sceneCameraPos += cameraSpeed * sceneCameraFront;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
