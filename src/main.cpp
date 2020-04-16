@@ -1751,16 +1751,11 @@ private:
             glfwPollEvents();
             if (RightMouseButtonPressed || leftMouseButtonPressed) {
                 double dX, dY;
-                // x = cursor x coordinate relative to left window edge
-                // y = relative to top edge
                 getMouseMotionDelta(&dX, &dY);
-                // std::cout << "("+ dX +", "+dY+")" << std::endl;
-                if (dX != 0. || dY != 0.) {
-                    printf("(%f, %f)\n", dX, dY);
-                    
-                    // sceneCameraPos += glm::vec3(dX, -dY, 0.0f);
-                }
-
+                float sensitivity = 0.01f;
+                dX *= sensitivity;
+                dY *= sensitivity;
+                sceneCameraPos += glm::vec3(dX,0.0f, dY);
             }
             float currentFrameTime = glfwGetTime();
             deltaTime = currentFrameTime - lastFrameTime;
@@ -1769,14 +1764,10 @@ private:
             auto imageIndex = beginDrawFrame();
             
             processKeyboardInput(window);
-            std::cout << sceneCameraPos.x << std::endl;
+
             UniformBufferObject ubo = {};
-            // ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation of 90 degrees per second around z axis
             ubo.model = glm::mat4(1.0f);
-            // ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotation of 90 degrees per second around z axis
-            // ubo.view = glm::lookAt(sceneCameraPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // eye/camera position, center position, up axis
             ubo.view = glm::lookAt(sceneCameraPos, sceneCameraPos + sceneCameraFront, sceneCameraUp); // eye/camera position, center position, up axis
-            
             ubo.projection = glm::perspective(glm::radians(45.0f), swapchainExtent.width / (float) swapchainExtent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
             ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
             
@@ -1806,7 +1797,6 @@ private:
         *dX = xpos - lastMousePos.x;
         *dY = ypos - lastMousePos.y;
         lastMousePos = {xpos, ypos}; 
-        // lastMousePos = glm::normalize(lastMousePos);
     }
 
     uint8_t beginDrawFrame() {
