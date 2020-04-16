@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "vertex.hpp"
+#include "camera.cpp" // TODO: Create .h
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -188,15 +189,7 @@ private:
     const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
     const glm::vec3 WORLD_DOWN = glm::vec3(0.0f, -1.0f, 0.0f);
 
-    glm::vec3 sceneCameraPos = WORLD_BACKWARD * 2.0f;
-    glm::vec3 sceneCameraFront = WORLD_FORWARD;
-    glm::vec3 sceneCameraUp = WORLD_UP;
-
-
-    // Camera orientation. TODO: Move that somewhere else
-    float yaw = 90.0f;
-    float pitch = 0.0f;
-    float roll = 0.0f;
+    Camera camera = Camera(WORLD_BACKWARD * 2.0f, WORLD_UP, 90.0f, 0.0f, 0.0f);
 
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
@@ -387,7 +380,7 @@ private:
     static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
         double smoothing = 0.05f;
-        app->sceneCameraPos += (app->sceneCameraFront * (float) yoffset);
+        app->camera.position += (app->camera.forward * (float) yoffset); // TODO: Move that to camera ?
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
@@ -1777,29 +1770,29 @@ private:
         while(!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             if (middleMouseButtonPressed) {
-                double dX, dY;
-                getMouseMotionDelta(&dX, &dY);
+                // TODO: Delegate to camera class
+                double xoffset, yoffset;
+                getMouseMotionDelta(&xoffset, &yoffset);
                 float sensitivity = 0.01f;
-                dX *= sensitivity;
-                dY *= sensitivity;
-                sceneCameraPos -= glm::vec3(dX, dY, 0.0f);
+                xoffset *= sensitivity;
+                yoffset *= sensitivity;
+                camera.position -= glm::vec3(xoffset, yoffset, 0.0f);
             }
             if (rightMouseButtonPressed) {
-                double dX, dY;
-                getMouseMotionDelta(&dX, &dY);
+                double xoffset, yoffset;
+                getMouseMotionDelta(&xoffset, &yoffset);
+                // TODO: Delegate to camera class
                 float sensitivity = 0.1f;
-                dX *= sensitivity;
-                dY *= sensitivity;
-                yaw += dX;
-                pitch += dY;
+                xoffset *= sensitivity;
+                yoffset *= sensitivity;
+                camera.yaw += xoffset;
+                camera.pitch += yoffset;
 
                 glm::vec3 direction;
-                direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-                direction.y = sin(glm::radians(pitch));
-                direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-                sceneCameraFront = glm::normalize(direction);
-                printf("Front: (%f, %f, %f)\n", sceneCameraFront.x, sceneCameraFront.y, sceneCameraFront.z);
-
+                direction.x = cos(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+                direction.y = sin(glm::radians(camera.pitch));
+                direction.z = sin(glm::radians(camera.yaw)) * cos(glm::radians(camera.pitch));
+                camera.forward = glm::normalize(direction);
             }
             float currentFrameTime = glfwGetTime();
             deltaTime = currentFrameTime - lastFrameTime;
@@ -1811,7 +1804,7 @@ private:
 
             UniformBufferObject ubo = {};
             ubo.model = glm::mat4(1.0f);
-            ubo.view = glm::lookAt(sceneCameraPos, sceneCameraPos + sceneCameraFront, sceneCameraUp); // eye/camera position, center position, up axis
+            ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
             ubo.projection = glm::perspective(glm::radians(45.0f), swapchainExtent.width / (float) swapchainExtent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
             ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
             
@@ -1826,13 +1819,13 @@ private:
     void processKeyboardInput(GLFWwindow *window) {
         const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            sceneCameraPos += cameraSpeed * sceneCameraFront;
+            camera.position += cameraSpeed * camera.forward;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            sceneCameraPos -= cameraSpeed * sceneCameraFront;
+            camera.position -= cameraSpeed * camera.forward;
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            sceneCameraPos -= glm::normalize(glm::cross(sceneCameraFront, sceneCameraUp)) * cameraSpeed;
+            camera.position -= glm::normalize(glm::cross(camera.forward, camera.up)) * cameraSpeed;
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            sceneCameraPos += glm::normalize(glm::cross(sceneCameraFront, sceneCameraUp)) * cameraSpeed;
+            camera.position += glm::normalize(glm::cross(camera.forward, camera.up)) * cameraSpeed;
     }
 
     void getMouseMotionDelta(double *dX, double *dY) {
