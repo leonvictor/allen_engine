@@ -96,7 +96,7 @@ struct SwapchainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-class HelloTriangleApplication {
+class Engine {
 public:
     void run() {
         initWindow();
@@ -239,9 +239,9 @@ private:
         // Populate the ApplicationInfo struct. Optionnal but may provide useful info to the driver
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Hello Triange";
+        appInfo.pApplicationName = "Not-so-poopy game editor";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
+        appInfo.pEngineName = "Not-so-poopy engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
@@ -358,7 +358,7 @@ private:
     }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     } 
 
@@ -378,12 +378,12 @@ private:
     }
 
     static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
         app->camera.zoom(yoffset);
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
         
         //TODO: This doesn't need to happen when pressing every buttons, only the ones that handle camera motion
         double xpos, ypos;
@@ -1958,7 +1958,7 @@ private:
 };
 
 int main() {
-    HelloTriangleApplication app;
+    Engine app;
 
     try {
         app.run();
