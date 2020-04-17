@@ -2,10 +2,12 @@
 #include<unordered_map>
 
 #include "vertex.hpp"
+
+#define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
 
-class Model {
+class Mesh {
     public:
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
@@ -14,9 +16,9 @@ class Model {
             return modelMatrix;
         }
 
-        static Model fromObj(std::string path) {
+        static Mesh fromObj(std::string path) {
 
-            Model model = {};
+            Mesh mesh = {};
 
             tinyobj::attrib_t attrib;
             std::vector<tinyobj::shape_t> shapes;
@@ -47,18 +49,16 @@ class Model {
                     vertex.color = {1.0f, 1.0f, 1.0f};
                     
                     if (uniqueVertices.count(vertex) == 0) {
-                        uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                        model.vertices.push_back(vertex);
+                        uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size());
+                        mesh.vertices.push_back(vertex);
                     }
                     
-                    model.indices.push_back(uniqueVertices[vertex]);
+                    mesh.indices.push_back(uniqueVertices[vertex]);
                 }
-
-                return model;
             }
-
+            return mesh;
         }
 
     private:
-        glm::mat4 modelMatrix;
+        glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
 };
