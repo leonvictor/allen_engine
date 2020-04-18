@@ -15,6 +15,7 @@ class Vertex {
         alignas(16) glm::vec3 pos;
         alignas(16) glm::vec3 color;
         alignas(16) glm::vec2 texCoord;
+        alignas(16) glm::vec3 normal;
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription = {};
@@ -24,8 +25,8 @@ class Vertex {
             return bindingDescription;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
-            std::array<VkVertexInputAttributeDescription, 3> attributeDescription = {};
+        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescription() {
+            std::array<VkVertexInputAttributeDescription, 4> attributeDescription = {};
             attributeDescription[0].binding = 0;
             attributeDescription[0].location = 0;
             attributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -38,6 +39,10 @@ class Vertex {
             attributeDescription[2].location = 2;
             attributeDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
             attributeDescription[2].offset = offsetof(Vertex, texCoord);
+            attributeDescription[3].binding = 0;
+            attributeDescription[3].location = 3;
+            attributeDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescription[3].offset = offsetof(Vertex, normal);
             return attributeDescription;
         }
 
