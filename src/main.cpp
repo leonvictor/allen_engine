@@ -255,12 +255,8 @@ private:
 
     void initVulkan() {
         context.createContext();
-        // createInstance();
-        // setupDebugMessenger();
         createSurface();
-        // pickPhysicalDevice();
         device = core::VulkanDevice(context.instance, surface); // TODO: We juste cast for now
-        // createLogicalDevice();
         createSwapchain();
         createImageViews();
         createRenderPass();
@@ -1595,12 +1591,13 @@ private:
 
         vkDestroyDevice(device, nullptr);
 
-        if (enableValidationLayers) {
-            DestroyDebugUtilsMessengerEXT(context.instance, context.debugMessenger, nullptr);
-        }
+        // if (enableValidationLayers) {
+        //     DestroyDebugUtilsMessengerEXT(context.instance, context.debugMessenger, nullptr);
+        // }
 
         vkDestroySurfaceKHR(context.instance, surface, nullptr);
-        vkDestroyInstance(context.instance, nullptr);
+        // vkDestroyInstance(context.instance, nullptr);
+        context.destroy();
         
         glfwDestroyWindow(window);
         glfwTerminate();

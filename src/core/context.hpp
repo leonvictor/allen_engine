@@ -25,6 +25,14 @@ namespace core {
             setupDebugMessenger();
         }
 
+        void destroy() {
+            if (enableValidationLayers) {
+                vk::DispatchLoaderDynamic instanceLoader(instance, vkGetInstanceProcAddr);
+                instance.destroyDebugUtilsMessengerEXT(debugMessenger, nullptr, instanceLoader);
+            }
+            instance.destroy();
+        }
+
     private:
         void createInstance(){
             if (enableValidationLayers && !checkValidationLayersSupport()){
@@ -40,11 +48,7 @@ namespace core {
                 VK_API_VERSION_1_0
             );
 
-            // InstanceCreateInfo, mandatory
             auto extensions = getRequiredExtensions();
-            for (auto ext : extensions) {
-                printf(ext, "\n");
-            }
             vk::InstanceCreateInfo iCreateInfo;
             
             iCreateInfo.pApplicationInfo = &appInfo,
@@ -137,7 +141,6 @@ namespace core {
 
         void setupDebugMessenger() {
             if (!enableValidationLayers) return;
-
             vk::DispatchLoaderDynamic instanceLoader(instance, vkGetInstanceProcAddr);
             const vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo = getDebugMessengerCreateInfo();
             debugMessenger = instance.createDebugUtilsMessengerEXT(dCreateInfo, nullptr, instanceLoader);
