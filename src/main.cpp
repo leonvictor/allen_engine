@@ -74,27 +74,11 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
     }
 }
 
-// struct QueueFamilyIndices {
-//     std::optional<uint32_t> graphicsFamily;
-//     std::optional<uint32_t> presentFamily;
-//     std::optional<uint32_t> transferFamily;
-    
-//     bool isComplete() {
-//         return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
-//     }
-// };
-
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 projection; 
 };
-
-// struct SwapchainSupportDetails {
-//     VkSurfaceCapabilitiesKHR capabilities;
-//     std::vector<VkSurfaceFormatKHR> formats;
-//     std::vector<VkPresentModeKHR> presentModes;
-// };
 
 class Engine {
 public:
@@ -112,14 +96,7 @@ private:
     VkDebugUtilsMessengerEXT debugMessenger;
     vk::SurfaceKHR surface;
 
-    // VkPhysicalDevice physicalDevice = VK_NULL_HANDLE; // Implictly destroyed with VkInstance
-    // VkDevice device;
-
     core::VulkanDevice device;
-
-    // VkQueue graphicsQueue;
-    // VkQueue presentQueue;
-    // VkQueue transferQueue;
 
     VkSwapchainKHR swapchain;
     std::vector<VkImage> swapchainImages;
@@ -176,8 +153,6 @@ private:
     VkDeviceMemory colorImageMemory;
     VkImageView colorImageView;
 
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-
     bool framebufferResized = false;
     bool leftMouseButtonPressed = false;
     bool rightMouseButtonPressed = false;
@@ -205,21 +180,6 @@ private:
         glm::vec3(-1.5f, -2.2f, -2.5f)
     };
 
-    VkSampleCountFlagBits getMaxUsableSampleCount() {
-        // TODO: Move to device.hpp
-        VkPhysicalDeviceProperties phyiscalDeviceProperties;
-        vkGetPhysicalDeviceProperties(device.physicalDevice, &phyiscalDeviceProperties);
-
-        // TODO: Beurk
-        VkSampleCountFlags counts = phyiscalDeviceProperties.limits.framebufferColorSampleCounts & phyiscalDeviceProperties.limits.framebufferDepthSampleCounts;
-        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-        return VK_SAMPLE_COUNT_1_BIT;
-    }
 
     bool checkValidationLayersSupport() {
         uint32_t layerCount;
@@ -463,7 +423,7 @@ private:
     void createDepthResources() {
         VkFormat format = findDepthFormat();
         
-        createImage(swapchainExtent.width, swapchainExtent.height, 1, msaaSamples,  format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        createImage(swapchainExtent.width, swapchainExtent.height, 1, VkSampleCountFlagBits(device.msaaSamples),  format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         depthImage, depthImageMemory);
 
         depthImageView = createImageView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
@@ -584,7 +544,7 @@ private:
     void createColorResources() {
         VkFormat colorFormat = swapchainImageFormat;
 
-        createImage(swapchainExtent.width, swapchainExtent.height, 1, msaaSamples, colorFormat,
+        createImage(swapchainExtent.width, swapchainExtent.height, 1, VkSampleCountFlagBits(device.msaaSamples), colorFormat,
             VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
             colorImage, colorImageMemory);
@@ -1187,7 +1147,7 @@ private:
     void createRenderPass() {
         VkAttachmentDescription colorAttachment = {};
         colorAttachment.format = swapchainImageFormat;
-        colorAttachment.samples = msaaSamples;
+        colorAttachment.samples = VkSampleCountFlagBits(device.msaaSamples);
         // Color and depth data
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // What to do with the data before ...
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // ... and after rendering
@@ -1204,7 +1164,7 @@ private:
 
         VkAttachmentDescription depthAttachment = {};
         depthAttachment.format = findDepthFormat();
-        depthAttachment.samples = msaaSamples;
+        depthAttachment.samples = VkSampleCountFlagBits(device.msaaSamples);
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // Depth data is not used after drawing has finished
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -1339,7 +1299,7 @@ private:
         multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampleInfo.sampleShadingEnable = VK_TRUE;
         multisampleInfo.minSampleShading = .2f;
-        multisampleInfo.rasterizationSamples = msaaSamples;
+        multisampleInfo.rasterizationSamples = VkSampleCountFlagBits(device.msaaSamples);
 
         // Depth and stencil testing. Required when using a depth or stencil buffer.
         // Not implemented for now.
@@ -1533,71 +1493,6 @@ private:
         createCommandBuffers();
     }
 
-    // void createLogicalDevice() {
-    //     QueueFamilyIndices indices = findQueueFamilies(device.physicalDevice);
-
-    //     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    //     // Added transfer as a separate queue
-    //     std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value(), indices.transferFamily.value()};
-        
-    //     float queuePriority = 1.0f; // We can assign a priority (float [0,1]) to queue families. Needed even if we have only one
-        
-    //     for (uint32_t queueFamily : uniqueQueueFamilies) {    
-    //         VkDeviceQueueCreateInfo queueCreateInfo = {};
-    //         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    //         queueCreateInfo.queueFamilyIndex = queueFamily;
-    //         queueCreateInfo.queueCount = 1;
-    //         queueCreateInfo.pQueuePriorities = &queuePriority;
-    //         queueCreateInfos.push_back(queueCreateInfo);
-    //     }
-
-    //     VkPhysicalDeviceFeatures deviceFeatures = {}; // Necessary features
-    //     deviceFeatures.samplerAnisotropy = VK_TRUE;
-    //     deviceFeatures.sampleRateShading = VK_TRUE;
-
-    //     VkDeviceCreateInfo deviceCreateInfo = {};
-    //     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    //     deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-    //     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-    //     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-        
-    //     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    //     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-    //     if (enableValidationLayers) {
-    //         deviceCreateInfo.enabledLayerCount = static_cast<uint_fast32_t>(validationLayers.size());
-    //         deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-    //     } else {
-    //         deviceCreateInfo.enabledLayerCount = 0;
-    //     }
-
-    //     if (vkCreateDevice(device.physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS) {
-    //         throw std::runtime_error("Logical device creation failed.");
-    //     }
-
-    //     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    //     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-    //     vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &transferQueue);
-    // }
-    
-    // bool isDeviceSuitable(VkPhysicalDevice device){
-    //     QueueFamilyIndices familyIndices = findQueueFamilies(device);
-    //     bool extensionsSupported = checkDeviceExtensionsSupport(device);
-
-    //     bool swapChainAdequate = false;
-    //     if (extensionsSupported) {
-    //         SwapchainSupportDetails swapChainSupport = querySwapchainSupport(device);
-    //         // In this tutorial a device is adequate as long as it supports at least one image format and one supported presentation mode.
-    //         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-    //     }
-
-    //     // TODO : Instead of enforcing features, we can disable its usage if its not available
-    //     VkPhysicalDeviceFeatures supportedFeatures;
-    //     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-
-    //     return familyIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-    // }
-
     vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
         for (const auto& format : availableFormats){
             // Return the first format that supports SRGB color space in 8bit by channels
@@ -1639,81 +1534,6 @@ private:
         }
     }
 
-    // bool checkDeviceExtensionsSupport(VkPhysicalDevice device) {
-    //     // Populate available extensions list
-    //     uint32_t extensionCount;
-    //     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-    //     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    //     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-
-    //     // Compare against required ones
-    //     std::set<std::string> requiredExtentions(deviceExtensions.begin(), deviceExtensions.end());
-    //     for (const auto& extension : availableExtensions) {
-    //         requiredExtentions.erase(extension.extensionName);
-    //     }
-
-    //     return requiredExtentions.empty();
-    // }
-
-    // QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
-    //     QueueFamilyIndices indices;
-    //     // Assign index to queue families that could be found
-    //     uint32_t queueFamilyCount = 0;
-    //     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-    //     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    //     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-    //     int i = 0;
-    //     for (const auto& queueFamily : queueFamilies) {
-    //         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-    //             indices.graphicsFamily = i;
-    //         } else if (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) {
-    //             indices.transferFamily = i;
-    //         }
-
-    //         VkBool32 presentSupport = false;
-    //         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-
-    //         if (presentSupport) {
-    //             indices.presentFamily = i;
-    //         }
-
-    //         //TODO : It's very likely that the queue family that has the "present" capability is the same as
-    //         // the one that has "graphics". In the tutorial they are treated as if they were separate for a uniform approach.
-    //         // We can add logic to explicitly prefer physical devices that support both drawing and presentation in the same queue
-    //         // for improved performance.        
-
-    //         if (indices.isComplete()) {
-    //             break;
-    //         }
-    //         i++;
-    //     }
-    //     return indices;
-    // }
-
-    // SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice physicalDevice) {
-    //     SwapchainSupportDetails details;
-    //     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
-        
-    //     uint32_t formatCount = 0;
-    //     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-
-    //     if (formatCount > 0) {
-    //         details.formats.resize(formatCount);
-    //         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
-    //     }
-
-    //     uint32_t presentModeCount = 0;
-    //     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
-
-    //     if (presentModeCount > 0) {
-    //         details.presentModes.resize(presentModeCount);
-    //         vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.presentModes.data());
-    //     }
-
-    //     return details;
-    // }
-
     void mainLoop() {
         while(!glfwWindowShouldClose(window)) {
             glfwPollEvents();
@@ -1735,7 +1555,7 @@ private:
             
             processKeyboardInput(window);
 
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 1; i++) { // TODO: Just one to display smth
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
                 UniformBufferObject ubo = {};

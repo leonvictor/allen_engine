@@ -73,24 +73,14 @@ public:
     vk::PhysicalDeviceFeatures features;
     vk::PhysicalDeviceMemoryProperties memoryProperties;
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties;
-    std::vector<const char*> extensions;
+    std::vector<const char*> extensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    }; // TODO: This is == to the reqExtensions parameters everywhere
     vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
 
     vk::Queue graphicsQueue, presentQueue, transferQueue;
 
     VulkanDevice() {};
-    // VulkanDevice(vk::PhysicalDevice device, std::vector<std::string> requiredExtensions) {
-    //     physicalDevice = device;
-    //     initProperties();
-
-    //     // TODO: Maybe move required extensions somewhere else ?
-    //     // std::vector<vk::ExtensionProperties> availableExtensions = physicalDevice.enumerateDeviceExtensionProperties();
-    //     // for (vk::ExtensionProperties ext : availableExtensions) {
-    //         // std::string name = ext.extensionName;
-    //         // extensions.push_back(name.c_str());
-    //     // }
-        
-    // };
 
     void initProperties() {
         properties = physicalDevice.getProperties();
@@ -171,10 +161,6 @@ public:
         for (const auto d : devices) {
             if (isDeviceSuitable(d, surface, reqExtensions)) {
                 return d;
-                // physicalDevice = device; // Pick the first available physical device
-                // // TODO: Extract this
-                // msaaSamples = getMaxUsableSampleCount();
-                // break;
             }
         }
         throw std::runtime_error("Failed to find a suitable GPU.");
