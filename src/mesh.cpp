@@ -8,17 +8,20 @@
 
 
 class Mesh {
-    public:
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
+public:
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+    glm::vec3 position; // TODO: This doesn't belong here
+    glm::vec3 rotation; // Neither does this
 
-        glm::mat4 getModelMatrix() {
-            return modelMatrix;
-        }
+    glm::mat4 getModelMatrix() {
+        return glm::translate(modelMatrix, position);
+    }
 
-        static Mesh fromObj(std::string path) {
+    static Mesh fromObj(std::string path, glm::vec3 position = glm::vec3(0.0f)) {
 
             Mesh mesh = {};
+            mesh.position = position; // Initially place the object at the center of the scene
 
             tinyobj::attrib_t attrib;
             std::vector<tinyobj::shape_t> shapes;
@@ -67,8 +70,29 @@ class Mesh {
                 }
             }
             return mesh;
-        }
+    }
 
-    private:
-        glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
+    // void createVertexBuffer() {
+    //     VkDeviceSize  bufferSize = sizeof(vertices[0]) * vertices.size();
+        
+    //     VkBuffer stagingBuffer;
+    //     VkDeviceMemory stagingBufferMemory;
+
+    //     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    //     void* data;
+    //     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    //     memcpy(data, model.vertices.data(), (size_t) bufferSize);
+    //     vkUnmapMemory(device, stagingBufferMemory);
+
+    //     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        
+    //     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+    //     vkDestroyBuffer(device, stagingBuffer, nullptr);
+    //     vkFreeMemory(device, stagingBufferMemory, nullptr);
+    // }
+    
+private:
+    glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
 };
