@@ -33,6 +33,7 @@
 #include "core/vulkanDevice.hpp"
 #include "core/context.hpp"
 #include "core/swapchain.cpp"
+#include "core/renderpass.hpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -83,7 +84,7 @@ private:
 
     core::Swapchain swapchain;
 
-    VkRenderPass renderPass;
+    core::RenderPass renderPass;
     
     VkDescriptorSetLayout descriptorSetLayout;
     std::vector<VkDescriptorSet> descriptorSets;
@@ -251,9 +252,9 @@ private:
         context.createContext();
         swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
         // but surface is contained in swapchain which require device to be initialized.
-        device = core::VulkanDevice(context.instance, swapchain.surface); // TODO: We juste cast for now
-        swapchain.init(context, device, window);
-        createRenderPass();
+        device = core::VulkanDevice(context.instance, swapchain.surface);
+        swapchain.init(context, device, window); // TODO: Swapchain are part of a Context
+        renderPass.init(device, swapchain);
         createDescriptorSetLayout();
         createGraphicsPipeline();
         createColorResources();
@@ -285,7 +286,8 @@ private:
 
         depthImageView = createImageView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }
-    
+
+    // TODO: This has already been moved to renderpass    
     VkFormat findDepthFormat() {
         return findSupportedFormat(
             {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
@@ -1002,84 +1004,6 @@ private:
 
     }
 
-    void createRenderPass() {
-        VkAttachmentDescription colorAttachment = {};
-        colorAttachment.format = VkFormat(swapchain.imageFormat);
-        colorAttachment.samples = VkSampleCountFlagBits(device.msaaSamples);
-        // Color and depth data
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // What to do with the data before ...
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // ... and after rendering
-        // Stencil data
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // We don't have stencils for now
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        // Images need to be transitioned to specific layout that are suitable for the op that they're going to be involved in next.
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference colorAttachmentRef = {};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription depthAttachment = {};
-        depthAttachment.format = findDepthFormat();
-        depthAttachment.samples = VkSampleCountFlagBits(device.msaaSamples);
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // Depth data is not used after drawing has finished
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = 1;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription colorAttachmentResolve = {};
-        colorAttachmentResolve.format = VkFormat(swapchain.imageFormat); // Just cast for now
-        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-        VkAttachmentReference colorAttachmentResolveRef = {};
-        colorAttachmentResolveRef.attachment = 2;
-        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass = {};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef; // The index of the attachment is directly referenced in the fragment shader ( layout(location = 0) )...
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
-        subpass.pResolveAttachments = &colorAttachmentResolveRef;
-        
-        // Add a subpass dependency to ensure the render pass will wait for the right stage
-        // We need to wait for the image to be acquired before transitionning to it
-        VkSubpassDependency subpassDependency = {};
-        subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL; // The implicit subpass before or after the render pass
-        subpassDependency.dstSubpass = 0; // Target subpass index (we have only one)
-        subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // Stage to wait on
-        subpassDependency.srcAccessMask = 0;
-        subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
-        VkRenderPassCreateInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        renderPassInfo.pAttachments = attachments.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &subpassDependency;
-
-        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create Render Pass");
-        }
-    }
-
     void createGraphicsPipeline() {
         auto vertShaderCode = readFile("shaders/vert.spv");
         auto fragShaderCode = readFile("shaders/frag.spv");
@@ -1267,7 +1191,8 @@ private:
 
         cleanupSwapchain();
         swapchain.init(context, device, window);
-        createRenderPass();
+        renderPass.init(device, swapchain);
+        // createRenderPass();
         createGraphicsPipeline();
         createColorResources();
         createDepthResources();

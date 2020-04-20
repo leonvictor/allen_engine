@@ -37,9 +37,22 @@ namespace core {
             assert(surface);
             createSwapchain(device, window);
             createImages(device);
+
+            initialized = true;
         } 
 
+        void destroy() {
+            //TODO
+            initialized = false;
+        }
+
+        bool isInitialized() {
+            return initialized;
+        }
+
     private:
+        bool initialized = false;
+
         void createSwapchain(core::VulkanDevice device, GLFWwindow *window) {
             core::SwapchainSupportDetails swapchainSupport = core::querySwapchainSupport(device.physicalDevice, surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
