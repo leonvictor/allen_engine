@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vulkan/vulkan.hpp>
 #include <set>
 #include <assert.h>
@@ -69,18 +71,25 @@ class VulkanDevice  {
 public:
     vk::PhysicalDevice physicalDevice;
     vk::Device logicalDevice;
+    
     vk::PhysicalDeviceProperties properties;
     vk::PhysicalDeviceFeatures features;
     vk::PhysicalDeviceMemoryProperties memoryProperties;
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties;
+    
     std::vector<const char*> extensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     }; // TODO: This is == to the reqExtensions parameters everywhere
+    
     vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
 
     vk::Queue graphicsQueue, presentQueue, transferQueue;
 
     VulkanDevice() {};
+
+    void destroy() {
+        // TODO
+    }
 
     void initProperties() {
         properties = physicalDevice.getProperties();
@@ -88,10 +97,9 @@ public:
         queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
     }
 
-    VulkanDevice(vk::Instance instance, vk::SurfaceKHR surface, std::vector<const char *> reqExtensions) {
+    VulkanDevice(vk::Instance instance, vk::SurfaceKHR surface) {
         // Pick a suitable device
-        // this->surface = surface;
-        physicalDevice = pickPhysicalDevice(instance, surface, reqExtensions);
+        physicalDevice = pickPhysicalDevice(instance, surface);
         initProperties();
         // Create logical device
         createLogicalDevice(surface);
@@ -114,12 +122,6 @@ public:
 
         features.samplerAnisotropy = VK_TRUE;
         features.sampleRateShading = VK_TRUE;
-
-        // vk::DeviceCreateInfo deviceCreateInfo({},
-        //     queueCreateInfos.size(), &queueCreateInfos,
-        //     0, nullptr,
-        //     supportedExtensions.size(), &supportedExtensions,
-        //     features, );
 
         vk::DeviceCreateInfo deviceCreateInfo = {};
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
@@ -151,7 +153,7 @@ public:
     /** @brief Typecast to vk::Device */
     operator vk::Device() {return logicalDevice; };
 
-    vk::PhysicalDevice pickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface, std::vector<const char *> reqExtensions) {
+    vk::PhysicalDevice pickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface) {
         std::vector<vk::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
 
         if (devices.size() == 0) {
@@ -159,16 +161,16 @@ public:
         }
 
         for (const auto d : devices) {
-            if (isDeviceSuitable(d, surface, reqExtensions)) {
+            if (isDeviceSuitable(d, surface)) {
                 return d;
             }
         }
         throw std::runtime_error("Failed to find a suitable GPU.");
     }
 
-    bool isDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface, std::vector<const char *> reqExtensions) {
+    bool isDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
         core::QueueFamilyIndices familyIndices = core::findQueueFamilies(device, surface);
-        bool extensionsSupported = checkDeviceExtensionsSupport(device, reqExtensions);
+        bool extensionsSupported = checkDeviceExtensionsSupport(device);
 
         bool swapChainAdequate = false;
         if (extensionsSupported) {
@@ -177,19 +179,17 @@ public:
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
-        // TODO : Instead of enforcing features, we can disable its usage if its not available
-        VkPhysicalDeviceFeatures supportedFeatures;
-        vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-
+        // TODO : Instead of enforcing features, we can disable their usage if not available
+        vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
         return familyIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
     }
 
-    bool checkDeviceExtensionsSupport(vk::PhysicalDevice dev, std::vector<const char *> reqExtensions) {
+    bool checkDeviceExtensionsSupport(vk::PhysicalDevice dev) {
         // Populate available extensions list
         std::vector<vk::ExtensionProperties> availableExtensions = dev.enumerateDeviceExtensionProperties();
 
         // Compare against required ones
-        std::set<std::string> requiredExtentions(reqExtensions.begin(), reqExtensions.end());
+        std::set<std::string> requiredExtentions(extensions.begin(), extensions.end());
         for (const auto& extension : availableExtensions) {
             requiredExtentions.erase(extension.extensionName);
         }
@@ -209,6 +209,39 @@ public:
         if (counts & vk::SampleCountFlagBits::e4) { return vk::SampleCountFlagBits::e4; }
         if (counts & vk::SampleCountFlagBits::e2) { return vk::SampleCountFlagBits::e2; }
         return vk::SampleCountFlagBits::e1;
+    }
+
+    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+        auto memProperties = physicalDevice.getMemoryProperties();
+        
+        // TODO sometimes, consider heaps...
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if (typeFilter & (1 << i) && // Check if the memory type's bit is set to 1
+                (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { // We also need to be able to write our vertex data to the memory
+                return i;
+            }
+        }
+        throw std::runtime_error("Failed to find suitable memory type.");
+    }
+
+    vk::Format findDepthFormat() {
+        return findSupportedFormat(
+            {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+            vk::ImageTiling::eOptimal,
+            vk::FormatFeatureFlagBits::eDepthStencilAttachment
+        );
+    }
+
+    vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
+        for (vk::Format format : candidates) {
+            vk::FormatProperties formatProperties = physicalDevice.getFormatProperties(format);
+            if (tiling == vk::ImageTiling::eLinear && (formatProperties.linearTilingFeatures & features) == features) {
+                return format;
+            } else if (tiling == vk::ImageTiling::eOptimal && (formatProperties.optimalTilingFeatures & features) == features) {
+                return format;
+            }
+        }
+        throw std::runtime_error("Failed to find a supported format.");
     }
 };
 }

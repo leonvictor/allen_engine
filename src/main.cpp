@@ -69,9 +69,11 @@ struct UniformBufferObject {
 
 class Engine {
 public:
-    void run() {
+    Engine() {
         initWindow();
         initVulkan();
+    }
+    void run() {
         mainLoop();
         cleanup();
     }
@@ -122,10 +124,6 @@ private:
     VkImageView textureImageView;
     VkDeviceMemory textureImageMemory;
     VkSampler textureSampler;
-
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
 
     VkDescriptorPool descriptorPool;
 
@@ -258,7 +256,6 @@ private:
         createDescriptorSetLayout();
         createGraphicsPipeline();
         createColorResources();
-        createDepthResources();
         createFramebuffers();
         createCommandPools();
         createTextureImage();
@@ -276,15 +273,6 @@ private:
 
     void loadModel() {
         model = Mesh::fromObj(MODEL_PATH);
-    }
-
-    void createDepthResources() {
-        VkFormat format = findDepthFormat();
-        
-        createImage(swapchain.extent.width, swapchain.extent.height, 1, VkSampleCountFlagBits(device.msaaSamples),  format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        depthImage, depthImageMemory);
-
-        depthImageView = createImageView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }
 
     // TODO: This has already been moved to renderpass    
@@ -852,6 +840,7 @@ private:
         endSingleTimeCommands(commandBuffer, transferCommandPool, device.transferQueue);
     }
 
+    // Moved to device
     /* Combine memory requirements of a buffer, the app requirements and the physical device's property to find the right type of memory to use. 
      * @args:
      *      typeFilter : Suitable bit field of memory types
@@ -984,7 +973,7 @@ private:
         for (size_t i = 0; i < swapchain.images.size(); i++) {
             std::array<VkImageView, 3> attachments = {
                 colorImageView,
-                depthImageView, 
+                swapchain.depthImage.view, 
                 swapchain.images[i].imageView
             };
 
@@ -1195,7 +1184,7 @@ private:
         // createRenderPass();
         createGraphicsPipeline();
         createColorResources();
-        createDepthResources();
+        // createDepthResources();
         createFramebuffers();
         createUniformBuffers();
         createDescriptorPool();
@@ -1341,9 +1330,10 @@ private:
         vkDestroyImage(device, colorImage, nullptr);
         vkFreeMemory(device, colorImageMemory, nullptr);
 
-        vkDestroyImageView(device, depthImageView, nullptr);
-        vkDestroyImage(device, depthImage, nullptr);
-        vkFreeMemory(device, depthImageMemory, nullptr);
+        // TODO: Move this out
+        vkDestroyImageView(device, swapchain.depthImage.view, nullptr);
+        vkDestroyImage(device, swapchain.depthImage.image, nullptr);
+        vkFreeMemory(device, swapchain.depthImage.memory, nullptr);
 
         for (auto framebuffer : swapchainFramebuffers) {
             vkDestroyFramebuffer(device, framebuffer, nullptr);

@@ -3,6 +3,9 @@
 #include <vulkan/vulkan.hpp>
 #include "vulkanDevice.hpp"
 #include "context.hpp"
+#include "image.cpp"
+#include <memory>
+
 #include <GLFW/glfw3.h>
 
 namespace core {
@@ -23,6 +26,13 @@ namespace core {
         vk::Format imageFormat;
         vk::Extent2D extent;
 
+        core::Image depthImage;
+        core::Image colorImage;
+
+        Swapchain() {
+            //TODO
+        }
+        
         void createSurface(core::Context context, GLFWwindow *window) {
             VkSurfaceKHR pSurface = VkSurfaceKHR(surface);
             if (glfwCreateWindowSurface(context.instance, window, nullptr, &pSurface) != VK_SUCCESS) {
@@ -37,6 +47,7 @@ namespace core {
             assert(surface);
             createSwapchain(device, window);
             createImages(device);
+            createDepthResources(device);
 
             initialized = true;
         } 
@@ -145,24 +156,37 @@ namespace core {
             for (size_t i = 0; i < imgs.size(); i++) {
                 images[i] = {
                     imgs[i],
-                    createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1),
+                    core::Image::createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1),
                     nullptr //TODO: Initialize fences 
                 };
             }
         }
 
-        vk::ImageView createImageView(core::VulkanDevice device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
-            vk::ImageViewCreateInfo createInfo;
-            createInfo.format = format;
-            createInfo.image = image;
-            createInfo.viewType = vk::ImageViewType::e2D;
-            createInfo.subresourceRange.aspectMask = aspectMask;
-            createInfo.subresourceRange.layerCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.levelCount = mipLevels;
-            createInfo.subresourceRange.baseMipLevel = 0;
+        //TODO: WIP : requires color and depth imageviews
+        // void createFramebuffers(vk::ImageView view) {
+        //     std::array<vk::ImageView, 3> attachments = {
+        //         colorImage.view,
+        //         depthImage.view, 
+        //         view
+        //     };
+        //     vk::FramebufferCreateInfo framebufferInfo;
+        //     framebufferInfo.renderPass = renderPass; //TODO: Requires a ref to renderpass.
+        //     framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        //     framebufferInfo.pAttachments = attachments.data();
+        //     framebufferInfo.width = extent.width;
+        //     framebufferInfo.height = extent.height;
+        //     framebufferInfo.layers = 1; // Nb of layers in image array.
+        //     return device.logicalDevice.createFrameBuffer(frameBufferInfo);
+        // }
+        
+        void createDepthResources(core::VulkanDevice device) {
+            vk::Format format = device.findDepthFormat();
 
-            return device.logicalDevice.createImageView(createInfo);      
-        }
+            depthImage = core::Image(device, extent.width, extent.height, 1, device.msaaSamples, 
+                format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                vk::ImageAspectFlagBits::eDepth);
+
+            // depthImageView = createImageView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+        }   
     };
 };

@@ -52,7 +52,7 @@ private:
         colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
         vk::AttachmentDescription depthAttachment;
-        depthAttachment.format = findDepthFormat();
+        depthAttachment.format = device->findDepthFormat();
         depthAttachment.samples = device->msaaSamples;
         depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
         depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare; // Depth data is not used after drawing has finished
@@ -106,27 +106,6 @@ private:
         renderPassInfo.pDependencies = &subpassDependency;
 
         renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
-    }
-
-    vk::Format findDepthFormat() {
-        return findSupportedFormat(
-            {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
-            vk::ImageTiling::eOptimal,
-            vk::FormatFeatureFlagBits::eDepthStencilAttachment
-        );
-    }
-
-    vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
-        assert(device);
-        for (vk::Format format : candidates) {
-            vk::FormatProperties formatProperties = device->physicalDevice.getFormatProperties(format);
-            if (tiling == vk::ImageTiling::eLinear && (formatProperties.linearTilingFeatures & features) == features) {
-                return format;
-            } else if (tiling == vk::ImageTiling::eOptimal && (formatProperties.optimalTilingFeatures & features) == features) {
-                return format;
-            }
-        }
-        throw std::runtime_error("Failed to find a supported format.");
     }
 };
 };
