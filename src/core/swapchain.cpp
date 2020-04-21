@@ -48,6 +48,7 @@ namespace core {
             createSwapchain(device, window);
             createImages(device);
             createDepthResources(device);
+            createColorResources(device);
 
             initialized = true;
         } 
@@ -64,7 +65,7 @@ namespace core {
     private:
         bool initialized = false;
 
-        void createSwapchain(core::VulkanDevice device, GLFWwindow *window) {
+        void createSwapchain(core::Device device, GLFWwindow *window) {
             core::SwapchainSupportDetails swapchainSupport = core::querySwapchainSupport(device.physicalDevice, surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
             vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
@@ -148,7 +149,7 @@ namespace core {
             }
         }
 
-        void createImages(core::VulkanDevice device) {
+        void createImages(core::Device device) {
             std::vector<vk::Image> imgs = device.logicalDevice.getSwapchainImagesKHR(swapchain);
 
             images.resize(imgs.size());
@@ -179,14 +180,18 @@ namespace core {
         //     return device.logicalDevice.createFrameBuffer(frameBufferInfo);
         // }
         
-        void createDepthResources(core::VulkanDevice device) {
+        void createDepthResources(core::Device device) {
             vk::Format format = device.findDepthFormat();
 
             depthImage = core::Image(device, extent.width, extent.height, 1, device.msaaSamples, 
                 format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eDepth);
+        }
 
-            // depthImageView = createImageView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-        }   
+        void createColorResources(core::Device device) {
+            colorImage = core::Image(device, extent.width, extent.height, 1, device.msaaSamples, this->imageFormat,
+                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                vk::ImageAspectFlagBits::eColor);
+        }
     };
 };

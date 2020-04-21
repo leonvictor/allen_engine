@@ -127,9 +127,9 @@ private:
 
     VkDescriptorPool descriptorPool;
 
-    VkImage colorImage;
-    VkDeviceMemory colorImageMemory;
-    VkImageView colorImageView;
+    // VkImage colorImage;
+    // VkDeviceMemory colorImageMemory;
+    // VkImageView colorImageView;
 
     bool framebufferResized = false;
     bool leftMouseButtonPressed = false;
@@ -255,7 +255,7 @@ private:
         renderPass.init(device, swapchain);
         createDescriptorSetLayout();
         createGraphicsPipeline();
-        createColorResources();
+        // createColorResources();
         createFramebuffers();
         createCommandPools();
         createTextureImage();
@@ -389,16 +389,16 @@ private:
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
-    void createColorResources() {
-        VkFormat colorFormat = VkFormat(swapchain.imageFormat); // Just cast for now
+    // void createColorResources() {
+    //     VkFormat colorFormat = VkFormat(swapchain.imageFormat); // Just cast for now
 
-        createImage(swapchain.extent.width, swapchain.extent.height, 1, VkSampleCountFlagBits(device.msaaSamples), colorFormat,
-            VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-            colorImage, colorImageMemory);
+    //     createImage(swapchain.extent.width, swapchain.extent.height, 1, VkSampleCountFlagBits(device.msaaSamples), colorFormat,
+    //         VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    //         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+    //         colorImage, colorImageMemory);
 
-            colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-    }
+    //         colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    // }
 
     /* Generate the mipmap chain of an image. 
     TODO: We shouldn't do this at runtime anyway.
@@ -972,7 +972,7 @@ private:
 
         for (size_t i = 0; i < swapchain.images.size(); i++) {
             std::array<VkImageView, 3> attachments = {
-                colorImageView,
+                swapchain.colorImage.view,
                 swapchain.depthImage.view, 
                 swapchain.images[i].imageView
             };
@@ -1183,7 +1183,7 @@ private:
         renderPass.init(device, swapchain);
         // createRenderPass();
         createGraphicsPipeline();
-        createColorResources();
+        // createColorResources();
         // createDepthResources();
         createFramebuffers();
         createUniformBuffers();
@@ -1326,9 +1326,9 @@ private:
     }
 
     void cleanupSwapchain() {
-        vkDestroyImageView(device, colorImageView, nullptr);
-        vkDestroyImage(device, colorImage, nullptr);
-        vkFreeMemory(device, colorImageMemory, nullptr);
+        vkDestroyImageView(device, swapchain.colorImage.view, nullptr);
+        vkDestroyImage(device, swapchain.colorImage.image, nullptr);
+        vkFreeMemory(device, swapchain.colorImage.memory, nullptr);
 
         // TODO: Move this out
         vkDestroyImageView(device, swapchain.depthImage.view, nullptr);
