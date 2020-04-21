@@ -127,16 +127,11 @@ private:
 
     VkDescriptorPool descriptorPool;
 
-    // VkImage colorImage;
-    // VkDeviceMemory colorImageMemory;
-    // VkImageView colorImageView;
-
     bool framebufferResized = false;
     bool leftMouseButtonPressed = false;
     bool rightMouseButtonPressed = false;
     bool middleMouseButtonPressed = false;
     glm::vec2 lastMousePos;
-
 
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
     const glm::vec3 WORLD_BACKWARD = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -388,18 +383,7 @@ private:
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
-
-    // void createColorResources() {
-    //     VkFormat colorFormat = VkFormat(swapchain.imageFormat); // Just cast for now
-
-    //     createImage(swapchain.extent.width, swapchain.extent.height, 1, VkSampleCountFlagBits(device.msaaSamples), colorFormat,
-    //         VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-    //         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-    //         colorImage, colorImageMemory);
-
-    //         colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-    // }
-
+    
     /* Generate the mipmap chain of an image. 
     TODO: We shouldn't do this at runtime anyway.
     TODO: Implement resizing.
