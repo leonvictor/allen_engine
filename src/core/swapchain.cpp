@@ -29,6 +29,8 @@ namespace core {
         core::Image depthImage;
         core::Image colorImage;
 
+        std::shared_ptr<core::Device> device;
+
         Swapchain() {
             //TODO
         }
@@ -41,14 +43,16 @@ namespace core {
             surface = vk::SurfaceKHR(pSurface);
         }
 
-        void init(core::Context context, core::Device device, GLFWwindow *window) {
+        void init(core::Context context, std::shared_ptr<core::Device> device, GLFWwindow *window) {
             // TODO: Should device and context be application wide ?
             // Store a pointer to them ?
+            this->device = device;
+
             assert(surface);
-            createSwapchain(device, window);
-            createImages(device);
-            createDepthResources(device);
-            createColorResources(device);
+            createSwapchain(window);
+            createImages();
+            createDepthResources();
+            createColorResources();
 
             initialized = true;
         } 
@@ -65,8 +69,8 @@ namespace core {
     private:
         bool initialized = false;
 
-        void createSwapchain(core::Device device, GLFWwindow *window) {
-            core::SwapchainSupportDetails swapchainSupport = core::querySwapchainSupport(device.physicalDevice, surface);
+        void createSwapchain(GLFWwindow *window) {
+            core::SwapchainSupportDetails swapchainSupport = core::querySwapchainSupport(device->physicalDevice, surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
             vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
             vk::Extent2D extent = chooseSwapExtent(swapchainSupport.capabilities, window);
@@ -87,7 +91,7 @@ namespace core {
             sCreateInfo.presentMode = presentMode; // TODO: We're juste casting for now.
             sCreateInfo.clipped = VK_TRUE; // We don't care about the color of obscured pixels (ex: if another window is on top)
             
-            core::QueueFamilyIndices indices = core::findQueueFamilies(device.physicalDevice, surface);
+            core::QueueFamilyIndices indices = core::findQueueFamilies(device->physicalDevice, surface);
             uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
             if (indices.graphicsFamily != indices.presentFamily) {
@@ -104,7 +108,7 @@ namespace core {
             sCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
             sCreateInfo.oldSwapchain = {(VkSwapchainKHR_T *)0}; // TODO : Pass the old swapchain to reuse most of the info.
 
-            swapchain = device.logicalDevice.createSwapchainKHR(sCreateInfo);
+            swapchain = device->logicalDevice.createSwapchainKHR(sCreateInfo);
 
             this->extent = extent;
             imageFormat = surfaceFormat.format;
@@ -149,8 +153,8 @@ namespace core {
             }
         }
 
-        void createImages(core::Device device) {
-            std::vector<vk::Image> imgs = device.logicalDevice.getSwapchainImagesKHR(swapchain);
+        void createImages() {
+            std::vector<vk::Image> imgs = device->logicalDevice.getSwapchainImagesKHR(swapchain);
 
             images.resize(imgs.size());
 
@@ -177,19 +181,19 @@ namespace core {
         //     framebufferInfo.width = extent.width;
         //     framebufferInfo.height = extent.height;
         //     framebufferInfo.layers = 1; // Nb of layers in image array.
-        //     return device.logicalDevice.createFrameBuffer(frameBufferInfo);
+        //     return device->logicalDevice.createFrameBuffer(frameBufferInfo);
         // }
         
-        void createDepthResources(core::Device device) {
-            vk::Format format = device.findDepthFormat();
+        void createDepthResources() {
+            vk::Format format = device->findDepthFormat();
 
-            depthImage = core::Image(device, extent.width, extent.height, 1, device.msaaSamples, 
+            depthImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, 
                 format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eDepth);
         }
 
-        void createColorResources(core::Device device) {
-            colorImage = core::Image(device, extent.width, extent.height, 1, device.msaaSamples, this->imageFormat,
+        void createColorResources() {
+            colorImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, this->imageFormat,
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eColor);
         }

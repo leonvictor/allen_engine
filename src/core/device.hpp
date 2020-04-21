@@ -28,6 +28,7 @@ struct SwapchainSupportDetails {
     std::vector<vk::PresentModeKHR> presentModes;
 };
 
+// TODO: Move to inside device
 static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
         QueueFamilyIndices indices;
         // Assign index to queue families that could be found
@@ -75,6 +76,7 @@ public:
     vk::PhysicalDeviceProperties properties;
     vk::PhysicalDeviceFeatures features;
     vk::PhysicalDeviceMemoryProperties memoryProperties;
+    core::QueueFamilyIndices queueFamilyIndices;
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties;
     
     std::vector<const char*> extensions = {
@@ -91,6 +93,11 @@ public:
         // TODO
     }
 
+    /* Placeolder function while we work on translating to c++. TODO: Remove when we're done */
+    VkDevice getCDevice() {
+        return VkDevice(logicalDevice);
+    }
+    
     void initProperties() {
         properties = physicalDevice.getProperties();
         memoryProperties = physicalDevice.getMemoryProperties();
@@ -107,11 +114,11 @@ public:
     }
 
     void createLogicalDevice(vk::SurfaceKHR surface, bool enableValidationLayers = true) {
-        core::QueueFamilyIndices indices = core::findQueueFamilies(physicalDevice, surface);
+        queueFamilyIndices = core::findQueueFamilies(physicalDevice, surface);
 
         std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
         // Added transfer as a separate queue
-        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value(), indices.transferFamily.value()};
+        std::set<uint32_t> uniqueQueueFamilies = {queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.presentFamily.value(), queueFamilyIndices.transferFamily.value()};
         
         float queuePriority = 1.0f; // We can assign a priority (float [0,1]) to queue families. Needed even if we have only one
         
@@ -141,9 +148,9 @@ public:
         logicalDevice = physicalDevice.createDevice(deviceCreateInfo);
         
         // TODO: Move queues out
-        graphicsQueue = logicalDevice.getQueue(indices.graphicsFamily.value(), 0);
-        presentQueue = logicalDevice.getQueue(indices.presentFamily.value(), 0);
-        transferQueue = logicalDevice.getQueue(indices.transferFamily.value(), 0);
+        graphicsQueue = logicalDevice.getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
+        presentQueue = logicalDevice.getQueue(queueFamilyIndices.presentFamily.value(), 0);
+        transferQueue = logicalDevice.getQueue(queueFamilyIndices.transferFamily.value(), 0);
 
     }
     
