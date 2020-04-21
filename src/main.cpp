@@ -30,7 +30,7 @@
 #include "vertex.hpp"
 #include "camera.cpp" // TODO: Create .h
 #include "mesh.cpp" // TODO: create.h
-#include "core/vulkanDevice.hpp"
+#include "core/device.hpp"
 #include "core/context.hpp"
 #include "core/swapchain.cpp"
 #include "core/renderpass.hpp"
@@ -82,7 +82,7 @@ private:
     GLFWwindow* window;
     core::Context context;
     
-    core::VulkanDevice device;
+    core::Device device;
 
     core::Swapchain swapchain;
 
@@ -250,7 +250,7 @@ private:
         context.createContext();
         swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
         // but surface is contained in swapchain which require device to be initialized.
-        device = core::VulkanDevice(context.instance, swapchain.surface);
+        device = core::Device(context.instance, swapchain.surface);
         swapchain.init(context, device, window); // TODO: Swapchain are part of a Context
         renderPass.init(device, swapchain);
         createDescriptorSetLayout();

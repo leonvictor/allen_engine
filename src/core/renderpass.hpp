@@ -1,6 +1,6 @@
 #include <vulkan/vulkan.hpp>
 #include "swapchain.cpp"
-#include "vulkanDevice.hpp"
+#include "device.hpp"
 
 namespace core {
 class RenderPass {
@@ -8,7 +8,7 @@ public:
 
     vk::RenderPass renderPass;
 
-    void init(core::VulkanDevice device, core::Swapchain swapchain) {
+    void init(core::Device device, core::Swapchain swapchain) {
         this->device = &device;
         this->swapchain = &swapchain;
         
@@ -26,7 +26,7 @@ public:
     operator VkRenderPass() { return VkRenderPass(renderPass); }
 
 private:
-    core::VulkanDevice *device;
+    core::Device *device;
     core::Swapchain *swapchain;
 
     void createRenderPass() {

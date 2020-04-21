@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
-#include "vulkanDevice.hpp"
+#include "device.hpp"
 #include "context.hpp"
 #include "image.cpp"
 #include <memory>
@@ -41,7 +41,7 @@ namespace core {
             surface = vk::SurfaceKHR(pSurface);
         }
 
-        void init(core::Context context, core::VulkanDevice device, GLFWwindow *window) {
+        void init(core::Context context, core::Device device, GLFWwindow *window) {
             // TODO: Should device and context be application wide ?
             // Store a pointer to them ?
             assert(surface);

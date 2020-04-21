@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
-#include "vulkanDevice.hpp"
+#include "device.hpp"
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -10,7 +10,7 @@ namespace core {
     class Context {
     public:
         vk::Instance instance;
-        core::VulkanDevice device;
+        core::Device device;
         vk::DebugUtilsMessengerEXT debugMessenger;
 
 

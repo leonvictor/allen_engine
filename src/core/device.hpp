@@ -67,7 +67,7 @@ static SwapchainSupportDetails querySwapchainSupport(vk::PhysicalDevice physical
         return details;
     };
 
-class VulkanDevice  {
+class Device  {
 public:
     vk::PhysicalDevice physicalDevice;
     vk::Device logicalDevice;
@@ -85,7 +85,7 @@ public:
 
     vk::Queue graphicsQueue, presentQueue, transferQueue;
 
-    VulkanDevice() {};
+    Device() {};
 
     void destroy() {
         // TODO
@@ -97,7 +97,7 @@ public:
         queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
     }
 
-    VulkanDevice(vk::Instance instance, vk::SurfaceKHR surface) {
+    Device(vk::Instance instance, vk::SurfaceKHR surface) {
         // Pick a suitable device
         physicalDevice = pickPhysicalDevice(instance, surface);
         initProperties();

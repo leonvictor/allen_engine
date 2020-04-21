@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.hpp>
 #include <memory>
 
-#include "vulkanDevice.hpp"
+#include "device.hpp"
 
 namespace core {
     class Image {
@@ -15,7 +15,7 @@ namespace core {
         /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
         Image() {}
 
-        Image(core::VulkanDevice &device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+        Image(core::Device &device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
                 vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask) {
 
             initImage(device, width, height, mipLevels, numSamples, format, tiling, usage);
@@ -24,7 +24,7 @@ namespace core {
             
         }
 
-        Image(core::VulkanDevice &device, vk::Image image, vk::MemoryPropertyFlags memProperties) {
+        Image(core::Device &device, vk::Image image, vk::MemoryPropertyFlags memProperties) {
             this->image = image; // TODO: shared_ptr ?
             initMemory(device, memProperties);
         }
@@ -40,7 +40,7 @@ namespace core {
         * @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places. 
         * If so what would be a good place ? Inside device ?
         */
-        static vk::ImageView createImageView(core::VulkanDevice &device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
+        static vk::ImageView createImageView(core::Device &device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
             vk::ImageViewCreateInfo createInfo;
             createInfo.format = format;
             createInfo.image = image;
@@ -56,7 +56,7 @@ namespace core {
 
     private:
         // std::shared_ptr<core::VulkanDevice> device; // TODO
-        void initImage(core::VulkanDevice &device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+        void initImage(core::Device &device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
             vk::ImageUsageFlags usage) {
 
             vk::ImageCreateInfo imageInfo;
@@ -76,7 +76,7 @@ namespace core {
             image = device.logicalDevice.createImage(imageInfo);
         }
 
-        void initMemory(core::VulkanDevice &device, vk::MemoryPropertyFlags memProperties) {
+        void initMemory(core::Device &device, vk::MemoryPropertyFlags memProperties) {
             auto memRequirements = device.logicalDevice.getImageMemoryRequirements(image);
 
             vk::MemoryAllocateInfo allocInfo = {};
@@ -87,7 +87,7 @@ namespace core {
             device.logicalDevice.bindImageMemory(image, memory, 0);
         }
 
-        void initView(core::VulkanDevice &device, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
+        void initView(core::Device &device, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
             view = createImageView(device, this->image, format, aspectMask, mipLevels);
         }
     };
