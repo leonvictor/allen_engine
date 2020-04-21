@@ -35,6 +35,7 @@
 #include "core/swapchain.cpp"
 #include "core/renderpass.hpp"
 #include "core/buffer.cpp"
+#include "core/descriptor.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -89,8 +90,9 @@ private:
 
     core::RenderPass renderPass;
     
+    core::Descriptor descriptor;
     VkDescriptorPool descriptorPool;
-    VkDescriptorSetLayout descriptorSetLayout;
+    // VkDescriptorSetLayout descriptorSetLayout;
     std::vector<VkDescriptorSet> descriptorSets;
 
     VkPipelineLayout pipelineLayout;
@@ -109,6 +111,9 @@ private:
     std::vector<VkFence> imagesInFlight;
 
     size_t currentFrame = 0;
+    
+    // core::Buffer vertexBuffer;
+
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
@@ -251,7 +256,10 @@ private:
         device = std::make_shared<core::Device>(context.instance, swapchain.surface);
         swapchain.init(context, device, window); // TODO: Swapchain are part of a Context
         renderPass.init(device, swapchain);
-        createDescriptorSetLayout();
+        // createDescriptorSetLayout();
+        descriptor = core::Descriptor(device, static_cast<uint32_t>(swapchain.images.size()));
+        descriptor.createDescriptorSetLayout();
+
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPools();
@@ -599,7 +607,8 @@ private:
     }
 
     void createDescriptorSets() {
-        std::vector<VkDescriptorSetLayout> layouts(swapchain.images.size(), descriptorSetLayout);
+        // std::vector<VkDescriptorSetLayout> layouts(swapchain.images.size(), descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(swapchain.images.size(), descriptor.setLayout);
 
         VkDescriptorSetAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -684,7 +693,9 @@ private:
         createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         createInfo.pBindings = bindings.data();
 
-        if (vkCreateDescriptorSetLayout(device->getCDevice(), &createInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+        // if (vkCreateDescriptorSetLayout(device->getCDevice(), &createInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+        auto l = VkDescriptorSetLayout(descriptor.setLayout);
+        if (vkCreateDescriptorSetLayout(device->getCDevice(), &createInfo, nullptr, &l) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor set layout.");
         }
     }
@@ -765,6 +776,29 @@ private:
         vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
     }
 
+    /* c++ version. Doesnt work for now, requires command buffer in c++ as well TODO ! */
+    // void createVertexBuffer() {
+    //     vk::DeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
+        
+    //     core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    //     stagingBuffer.map(0, bufferSize);
+    //     stagingBuffer.copy(model.vertices.data(), (size_t) bufferSize);
+    //     stagingBuffer.unmap();
+
+    //     vertexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    //     // void* data;
+    //     // vkMapMemory(device->getCDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+    //     // memcpy(data, model.vertices.data(), (size_t) bufferSize);
+    //     // vkUnmapMemory(device->getCDevice(), stagingBufferMemory);
+
+    //     // createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        
+    //     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+    //     // vkDestroyBuffer(device->getCDevice(), stagingBuffer, nullptr);
+    //     // vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
+    // }
+
     void createIndexBuffer() {
         VkDeviceSize  bufferSize = sizeof(model.indices[0]) * model.indices.size();
         
@@ -833,6 +867,19 @@ private:
         copyRegion.size = size;
 
         vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+        endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
+    }
+
+    void copyBuffer(core::Buffer srcBuffer, core::Buffer dstBuffer, vk::DeviceSize size) {
+        auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
+
+        VkBufferCopy copyRegion = {};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
+
+        vkCmdCopyBuffer(commandBuffer, VkBuffer(srcBuffer), VkBuffer(dstBuffer), 1, &copyRegion);
 
         endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
     }
@@ -924,7 +971,7 @@ private:
             
             vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
             
-            VkBuffer vertexBuffers[] = {vertexBuffer};
+            VkBuffer vertexBuffers[] = {VkBuffer(vertexBuffer)}; // TODO
             VkDeviceSize offsets[] = {0};
             
             vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
@@ -1112,7 +1159,9 @@ private:
         VkPipelineLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layoutInfo.setLayoutCount = 1;
-        layoutInfo.pSetLayouts = &descriptorSetLayout;
+        // layoutInfo.pSetLayouts = &descriptorSetLayout;
+        auto l = VkDescriptorSetLayout(descriptor.setLayout);
+        layoutInfo.pSetLayouts = &l;
 
         if (vkCreatePipelineLayout(device->getCDevice(), &layoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create pipeline layout.");
@@ -1366,7 +1415,8 @@ private:
         // vkFreeMemory(device->getCDevice(), textureImage.memory, nullptr);
         // ~textureImage();
 
-        vkDestroyDescriptorSetLayout(device->getCDevice(), descriptorSetLayout, nullptr);
+        // vkDestroyDescriptorSetLayout(device->getCDevice(), descriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(device->getCDevice(), descriptor.setLayout, nullptr);
 
         vkDestroyBuffer(device->getCDevice(), vertexBuffer, nullptr);
         vkFreeMemory(device->getCDevice(), vertexBufferMemory, nullptr);
