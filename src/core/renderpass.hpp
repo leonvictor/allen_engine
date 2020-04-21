@@ -3,6 +3,8 @@
 #include "device.hpp"
 #include <memory>
 
+/* TODO : If renderpass only holds the vk::renderpass object we might wanna leave it plain in the parent class */
+
 namespace core {
 class RenderPass {
 public:
