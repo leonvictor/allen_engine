@@ -36,15 +36,16 @@ namespace core {
             //TODO
         }
         
-        void createSurface(core::Context context, GLFWwindow *window) {
+        void createSurface(std::shared_ptr<core::Context> context, GLFWwindow *window) {
             VkSurfaceKHR pSurface = VkSurfaceKHR(surface);
-            if (glfwCreateWindowSurface(context.instance, window, nullptr, &pSurface) != VK_SUCCESS) {
+            if (glfwCreateWindowSurface(context->instance.get(), window, nullptr, &pSurface) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create window surface.");
             }
             surface = vk::SurfaceKHR(pSurface);
         }
 
-        void init(core::Context context, std::shared_ptr<core::Device> device, GLFWwindow *window) {
+        // TODO: const context ?
+        void init(std::shared_ptr<core::Device> device, GLFWwindow *window) {
             // TODO: Should device and context be application wide ?
             // Store a pointer to them ?
             this->device = device;

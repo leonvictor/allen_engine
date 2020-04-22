@@ -12,7 +12,7 @@
 namespace core {
     class Context {
     public:
-        vk::Instance instance;
+        vk::UniqueInstance instance;
         std::shared_ptr<core::Device> device;
 
         core::CommandPool graphicsCommandPool;
@@ -20,26 +20,27 @@ namespace core {
 
         vk::DebugUtilsMessengerEXT debugMessenger;
 
-
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation",
         };
 
         bool enableValidationLayers = true; // TODO: Move that somewhere else (global config)
 
-        Context() {} // TODO: We shouldn't need this.
-        
-        void createContext() {
+        Context() {
             createInstance();
             setupDebugMessenger();
         }
+        // void createContext() {
+            // createInstance();
+            // setupDebugMessenger();
+        // }
 
         void destroy() {
             if (enableValidationLayers) {
-                vk::DispatchLoaderDynamic instanceLoader(instance, vkGetInstanceProcAddr);
-                instance.destroyDebugUtilsMessengerEXT(debugMessenger, nullptr, instanceLoader);
+                vk::DispatchLoaderDynamic instanceLoader(instance.get(), vkGetInstanceProcAddr);
+                instance->destroyDebugUtilsMessengerEXT(debugMessenger, nullptr, instanceLoader);
             }
-            instance.destroy();
+            instance->destroy();
         }
 
         void createCommandPools(std::shared_ptr<core::Device> device) {
@@ -82,7 +83,8 @@ namespace core {
                 iCreateInfo.pNext = nullptr;
             }
             
-            instance = vk::createInstance(iCreateInfo);
+            auto inst = vk::createInstanceUnique(iCreateInfo);
+            instance = std::move(inst);
         };
 
         bool checkValidationLayersSupport() {
@@ -156,9 +158,9 @@ namespace core {
 
         void setupDebugMessenger() {
             if (!enableValidationLayers) return;
-            vk::DispatchLoaderDynamic instanceLoader(instance, vkGetInstanceProcAddr);
+            vk::DispatchLoaderDynamic instanceLoader(*instance, vkGetInstanceProcAddr);
             const vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo = getDebugMessengerCreateInfo();
-            debugMessenger = instance.createDebugUtilsMessengerEXT(dCreateInfo, nullptr, instanceLoader);
+            debugMessenger = instance->createDebugUtilsMessengerEXT(dCreateInfo, nullptr, instanceLoader);
         }
     };   
 };

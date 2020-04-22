@@ -104,7 +104,7 @@ public:
         queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
     }
 
-    Device(vk::Instance instance, vk::SurfaceKHR surface) {
+    Device(const vk::Instance& instance, vk::SurfaceKHR surface) {
         // Pick a suitable device
         physicalDevice = pickPhysicalDevice(instance, surface);
         initProperties();
@@ -160,7 +160,7 @@ public:
     /** @brief Typecast to vk::Device */
     operator vk::Device() {return logicalDevice; };
 
-    vk::PhysicalDevice pickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface) {
+    vk::PhysicalDevice pickPhysicalDevice(const vk::Instance& instance, vk::SurfaceKHR surface) {
         std::vector<vk::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
 
         if (devices.size() == 0) {

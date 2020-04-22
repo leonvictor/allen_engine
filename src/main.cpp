@@ -83,7 +83,7 @@ public:
 
 private:
     GLFWwindow* window;
-    core::Context context;
+    std::shared_ptr<core::Context> context;
     
     std::shared_ptr<core::Device> device;
 
@@ -217,11 +217,12 @@ private:
     }
 
     void initVulkan() {
-        context.createContext();
+        context = std::make_shared<core::Context>();
+        // .createContext();
         swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
         // but surface is contained in swapchain which require device to be initialized.
-        device = std::make_shared<core::Device>(context.instance, swapchain.surface);
-        swapchain.init(context, device, window); // TODO: Swapchain are part of a Context
+        device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
+        swapchain.init(device, window); // TODO: Swapchain are part of a Context
         renderPass.init(device, swapchain);
         descriptor = core::Descriptor(device, static_cast<uint32_t>(swapchain.images.size()));
         descriptor.createDescriptorSetLayout(); // The layout is used by the graphics pipeline
@@ -229,7 +230,7 @@ private:
         graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
         swapchain.initFramebuffers(renderPass.renderPass);
         // createCommandPools();
-        context.createCommandPools(device);
+        context->createCommandPools(device);
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
@@ -384,7 +385,7 @@ private:
         }
 
         // VkCommandBuffer commandBuffer = beginSingleTimeCommands(graphicsCommandPool);
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(context.graphicsCommandPool);
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(context->graphicsCommandPool);
 
         VkImageMemoryBarrier barrier = {};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -458,7 +459,7 @@ private:
         1, &barrier);
         
         // endSingleTimeCommands(commandBuffer, graphicsCommandPool, device->graphicsQueue);
-        endSingleTimeCommands(commandBuffer, VkCommandPool(context.graphicsCommandPool), device->graphicsQueue);
+        endSingleTimeCommands(commandBuffer, VkCommandPool(context->graphicsCommandPool), device->graphicsQueue);
     }
 
     // Moved to image
@@ -531,7 +532,7 @@ private:
             
             queue = &device->transferQueue;
             // commandPool = &transferCommandPool;
-            auto cp = VkCommandPool(context.transferCommandPool);
+            auto cp = VkCommandPool(context->transferCommandPool);
             commandPool = &cp;
 
         } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
@@ -543,7 +544,7 @@ private:
 
             queue = &device->graphicsQueue;
             // commandPool = &graphicsCommandPool;
-            auto cp = VkCommandPool(context.graphicsCommandPool);
+            auto cp = VkCommandPool(context->graphicsCommandPool);
             commandPool = &cp;
         } else {
             throw std::invalid_argument("Unsupported layout transition.");
@@ -563,7 +564,7 @@ private:
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
         // VkCommandBuffer commandBuffer = beginSingleTimeCommands(transferCommandPool);
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(VkCommandPool(context.transferCommandPool));
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(VkCommandPool(context->transferCommandPool));
         
         VkBufferImageCopy copy = {};
         copy.bufferOffset = 0;
@@ -579,7 +580,7 @@ private:
         vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 
         // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
-        endSingleTimeCommands(commandBuffer, VkCommandPool(context.transferCommandPool), device->transferQueue);
+        endSingleTimeCommands(commandBuffer, VkCommandPool(context->transferCommandPool), device->transferQueue);
     }
 
     void createDescriptorSets() {
@@ -810,7 +811,7 @@ private:
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
         // auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
-        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context.transferCommandPool));
+        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context->transferCommandPool));
 
         VkBufferCopy copyRegion = {};
         copyRegion.srcOffset = 0;
@@ -820,12 +821,12 @@ private:
         vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
         // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
-        endSingleTimeCommands(commandBuffer, context.transferCommandPool, device->transferQueue);
+        endSingleTimeCommands(commandBuffer, context->transferCommandPool, device->transferQueue);
     }
 
     void copyBuffer(core::Buffer srcBuffer, core::Buffer dstBuffer, vk::DeviceSize size) {
         // auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
-        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context.transferCommandPool));
+        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context->transferCommandPool));
 
         VkBufferCopy copyRegion = {};
         copyRegion.srcOffset = 0;
@@ -835,7 +836,7 @@ private:
         vkCmdCopyBuffer(commandBuffer, VkBuffer(srcBuffer), VkBuffer(dstBuffer), 1, &copyRegion);
 
         // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
-        endSingleTimeCommands(commandBuffer, VkCommandPool(context.transferCommandPool), device->transferQueue);
+        endSingleTimeCommands(commandBuffer, VkCommandPool(context->transferCommandPool), device->transferQueue);
     }
 
     // Moved to device
@@ -891,7 +892,7 @@ private:
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         // allocInfo.commandPool = graphicsCommandPool;
-        allocInfo.commandPool = VkCommandPool(context.graphicsCommandPool);
+        allocInfo.commandPool = VkCommandPool(context->graphicsCommandPool);
         allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; // Or secondary
 
@@ -1019,7 +1020,7 @@ private:
         vkDeviceWaitIdle(device->getCDevice());
 
         cleanupSwapchain();
-        swapchain.init(context, device, window);
+        swapchain.init(device, window);
         renderPass.init(device, swapchain);
         // createRenderPass();
         graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
@@ -1184,7 +1185,7 @@ private:
         }
         
         // vkFreeCommandBuffers(device->getCDevice(), graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-        vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context.graphicsCommandPool), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+        vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context->graphicsCommandPool), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
         vkDestroyPipeline(device->getCDevice(), graphicsPipeline.graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device->getCDevice(), graphicsPipeline.layout, nullptr);
@@ -1229,13 +1230,13 @@ private:
             vkDestroyFence(device->getCDevice(), inFlightFences[i], nullptr);
         }
 
-        vkDestroyCommandPool(device->getCDevice(), context.graphicsCommandPool, nullptr);
-        vkDestroyCommandPool(device->getCDevice(), context.transferCommandPool, nullptr);
+        vkDestroyCommandPool(device->getCDevice(), context->graphicsCommandPool, nullptr);
+        vkDestroyCommandPool(device->getCDevice(), context->transferCommandPool, nullptr);
 
         vkDestroyDevice(device->getCDevice(), nullptr);
 
-        vkDestroySurfaceKHR(context.instance, swapchain.surface, nullptr);
-        context.destroy();
+        vkDestroySurfaceKHR(context->instance.get(), swapchain.surface, nullptr);
+        // context.destroy();
         
         glfwDestroyWindow(window);
         glfwTerminate();

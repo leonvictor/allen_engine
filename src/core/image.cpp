@@ -4,6 +4,8 @@
 #include <memory>
 
 #include "device.hpp"
+#include "context.hpp"
+#include "commandpool.cpp"
 
 namespace core {
     class Image {
@@ -13,6 +15,7 @@ namespace core {
         vk::DeviceMemory memory;
         
         std::shared_ptr<core::Device> device;
+        std::shared_ptr<core::Context> context;
 
         /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
         Image() {}
@@ -38,6 +41,79 @@ namespace core {
             // device->logicalDevice.destroyImage(image);
             // device->logicalDevice.freeMemory(memory);
         }
+
+        /* TODO 
+        * - Is this the same format ? If so, move it to an attribute 
+        * - Is this the same mipLevels ? //
+        * 
+        */
+        void transitionLayout(vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels) {                
+            vk::ImageMemoryBarrier memoryBarrier = {};
+            memoryBarrier.oldLayout = oldLayout;
+            memoryBarrier.newLayout = newLayout;
+            //TODO: Specify transferQueue here ?
+            memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            memoryBarrier.image = image;
+            memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+            memoryBarrier.subresourceRange.layerCount = 1;
+            memoryBarrier.subresourceRange.baseArrayLayer = 0;
+            memoryBarrier.subresourceRange.levelCount = mipLevels;
+            memoryBarrier.subresourceRange.baseMipLevel = 0;
+            memoryBarrier.srcAccessMask = vk::AccessFlags(); // TODO: Which operations must happen before the barrier
+            memoryBarrier.dstAccessMask = vk::AccessFlags(); // ... and after
+
+            
+            vk::Queue *queue;
+            // vk::Queue queue;
+            // // std::unique_ptr<core::CommandPool> commandPool;
+            // VkCommandPool *commandPool;
+            core::CommandPool *commandPool;
+            vk::PipelineStageFlagBits srcStage;
+            vk::PipelineStageFlagBits dstStage;
+            
+            // Specify transition support. See https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#synchronization-access-types-supported
+            // if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal) {
+                memoryBarrier.srcAccessMask = vk::AccessFlags();
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+                
+                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+                dstStage = vk::PipelineStageFlagBits::eTransfer;
+                
+                queue = &device->transferQueue;
+                // commandPool = &transferCommandPool;
+                commandPool = &context->transferCommandPool;
+
+            } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+                memoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+                srcStage = vk::PipelineStageFlagBits::eTransfer;
+                dstStage = vk::PipelineStageFlagBits::eFragmentShader;
+
+                queue = &device->graphicsQueue;
+                // commandPool = &graphicsCommandPool;
+                commandPool = &context->graphicsCommandPool;
+            } else {
+                throw std::invalid_argument("Unsupported layout transition.");
+            }
+
+            // VkCommandBuffer commandBuffer = beginSingleTimeCommands(*commandPool);
+            auto commandBuffers = commandPool->beginSingleTimeCommands();
+
+            // TODO: Finish this
+            // commandBuffers[0].cmdPipelineBarrier(srcStage, dstStage, memoryBarrier);
+            // vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage,
+                // 0,
+                // 0, nullptr, 
+                // 0, nullptr, 
+                // 1, &memoryBarrier
+            // );
+
+            commandPool->endSingleTimeCommands(commandBuffers, *queue);
+            // endSingleTimeCommands(commandBuffer, *commandPool, *queue);
+    }
 
         /* helper function to create image views
         * @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places. 
