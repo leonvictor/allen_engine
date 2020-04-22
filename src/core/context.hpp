@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>
 #include "device.hpp"
 #include <GLFW/glfw3.h>
+#include <memory>
 
 #include <iostream>
 
@@ -10,7 +11,11 @@ namespace core {
     class Context {
     public:
         vk::Instance instance;
-        core::Device device;
+        std::shared_ptr<core::Device> device;
+
+        vk::CommandPool graphicsCommandPool;
+        vk::CommandPool transferCommandPool;
+
         vk::DebugUtilsMessengerEXT debugMessenger;
 
 
@@ -33,6 +38,20 @@ namespace core {
             instance.destroy();
         }
 
+        void createCommandPools(std::shared_ptr<core::Device> device) {
+            this-> device = device; // TODO: This HAS to be somewhere else.
+            vk::CommandPoolCreateInfo createInfo;
+            createInfo.queueFamilyIndex = device->queueFamilyIndices.graphicsFamily.value();
+
+            graphicsCommandPool = device->logicalDevice.createCommandPool(createInfo);
+
+            // Reuse the info to create transfer command pool
+            createInfo.queueFamilyIndex = device->queueFamilyIndices.transferFamily.value();
+            createInfo.flags = vk::CommandPoolCreateFlagBits::eTransient;
+            
+            transferCommandPool = device->logicalDevice.createCommandPool(createInfo);
+        }
+        
     private:
         void createInstance(){
             if (enableValidationLayers && !checkValidationLayersSupport()){

@@ -99,8 +99,8 @@ private:
 
     // std::vector<VkFramebuffer> swapchainFramebuffers;
 
-    VkCommandPool graphicsCommandPool;
-    VkCommandPool transferCommandPool;
+    // VkCommandPool graphicsCommandPool;
+    // VkCommandPool transferCommandPool;
 
     std::vector<VkCommandBuffer> commandBuffers;
 
@@ -228,7 +228,8 @@ private:
 
         graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
         swapchain.initFramebuffers(renderPass.renderPass);
-        createCommandPools();
+        // createCommandPools();
+        context.createCommandPools(device);
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
@@ -382,7 +383,8 @@ private:
             throw std::runtime_error("Texture image format does not support linear blitting.");
         }
 
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(graphicsCommandPool);
+        // VkCommandBuffer commandBuffer = beginSingleTimeCommands(graphicsCommandPool);
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(context.graphicsCommandPool);
 
         VkImageMemoryBarrier barrier = {};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -455,7 +457,8 @@ private:
         0, nullptr,
         1, &barrier);
         
-        endSingleTimeCommands(commandBuffer, graphicsCommandPool, device->graphicsQueue);
+        // endSingleTimeCommands(commandBuffer, graphicsCommandPool, device->graphicsQueue);
+        endSingleTimeCommands(commandBuffer, VkCommandPool(context.graphicsCommandPool), device->graphicsQueue);
     }
 
     // Moved to image
@@ -527,7 +530,9 @@ private:
             dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             
             queue = &device->transferQueue;
-            commandPool = &transferCommandPool;
+            // commandPool = &transferCommandPool;
+            auto cp = VkCommandPool(context.transferCommandPool);
+            commandPool = &cp;
 
         } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -537,7 +542,9 @@ private:
             dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
             queue = &device->graphicsQueue;
-            commandPool = &graphicsCommandPool;
+            // commandPool = &graphicsCommandPool;
+            auto cp = VkCommandPool(context.graphicsCommandPool);
+            commandPool = &cp;
         } else {
             throw std::invalid_argument("Unsupported layout transition.");
         }
@@ -555,7 +562,8 @@ private:
     }
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(transferCommandPool);
+        // VkCommandBuffer commandBuffer = beginSingleTimeCommands(transferCommandPool);
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(VkCommandPool(context.transferCommandPool));
         
         VkBufferImageCopy copy = {};
         copy.bufferOffset = 0;
@@ -570,7 +578,8 @@ private:
 
         vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 
-        endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
+        // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
+        endSingleTimeCommands(commandBuffer, VkCommandPool(context.transferCommandPool), device->transferQueue);
     }
 
     void createDescriptorSets() {
@@ -782,7 +791,7 @@ private:
         return commandBuffer;
     }
 
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool &commandPool, vk::Queue &queue) {
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, vk::Queue &queue) {
         //TODO : Move some more info as parameters (commandPool) ?
         vkEndCommandBuffer(commandBuffer);
         
@@ -798,7 +807,8 @@ private:
     }
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-        auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
+        // auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
+        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context.transferCommandPool));
 
         VkBufferCopy copyRegion = {};
         copyRegion.srcOffset = 0;
@@ -807,11 +817,13 @@ private:
 
         vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-        endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
+        // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
+        endSingleTimeCommands(commandBuffer, context.transferCommandPool, device->transferQueue);
     }
 
     void copyBuffer(core::Buffer srcBuffer, core::Buffer dstBuffer, vk::DeviceSize size) {
-        auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
+        // auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
+        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context.transferCommandPool));
 
         VkBufferCopy copyRegion = {};
         copyRegion.srcOffset = 0;
@@ -820,7 +832,8 @@ private:
 
         vkCmdCopyBuffer(commandBuffer, VkBuffer(srcBuffer), VkBuffer(dstBuffer), 1, &copyRegion);
 
-        endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
+        // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
+        endSingleTimeCommands(commandBuffer, VkCommandPool(context.transferCommandPool), device->transferQueue);
     }
 
     // Moved to device
@@ -875,7 +888,8 @@ private:
 
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = graphicsCommandPool;
+        // allocInfo.commandPool = graphicsCommandPool;
+        allocInfo.commandPool = VkCommandPool(context.graphicsCommandPool);
         allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; // Or secondary
 
@@ -932,26 +946,26 @@ private:
         }
     }
 
-    void createCommandPools() {
-        vk::SurfaceKHR pSurface = vk::SurfaceKHR(swapchain.surface);
-        core::QueueFamilyIndices queueFamilyIndices = core::findQueueFamilies(device->physicalDevice, pSurface);
+    // void createCommandPools() {
+    //     vk::SurfaceKHR pSurface = vk::SurfaceKHR(swapchain.surface);
+    //     core::QueueFamilyIndices queueFamilyIndices = core::findQueueFamilies(device->physicalDevice, pSurface);
 
-        VkCommandPoolCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        createInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    //     VkCommandPoolCreateInfo createInfo = {};
+    //     createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    //     createInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-        if (vkCreateCommandPool(device->getCDevice(), &createInfo, nullptr, &graphicsCommandPool) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create graphics command pool.");
-        }
+    //     if (vkCreateCommandPool(device->getCDevice(), &createInfo, nullptr, &graphicsCommandPool) != VK_SUCCESS) {
+    //         throw std::runtime_error("Failed to create graphics command pool.");
+    //     }
 
-        // Reuse the info to create transfer command pool
-        createInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
-        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    //     // Reuse the info to create transfer command pool
+    //     createInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
+    //     createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         
-        if (vkCreateCommandPool(device->getCDevice(), &createInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create transfer command pool.");
-        }
-    }
+    //     if (vkCreateCommandPool(device->getCDevice(), &createInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
+    //         throw std::runtime_error("Failed to create transfer command pool.");
+    //     }
+    // }
 
     // void createFramebuffers() {
     //     swapchainFramebuffers.resize(swapchain.images.size());
@@ -1167,7 +1181,8 @@ private:
             vkDestroyFramebuffer(device->getCDevice(), img.framebuffer, nullptr);
         }
         
-        vkFreeCommandBuffers(device->getCDevice(), graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+        // vkFreeCommandBuffers(device->getCDevice(), graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+        vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context.graphicsCommandPool), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
         vkDestroyPipeline(device->getCDevice(), graphicsPipeline.graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device->getCDevice(), graphicsPipeline.layout, nullptr);
@@ -1212,8 +1227,8 @@ private:
             vkDestroyFence(device->getCDevice(), inFlightFences[i], nullptr);
         }
 
-        vkDestroyCommandPool(device->getCDevice(), graphicsCommandPool, nullptr);
-        vkDestroyCommandPool(device->getCDevice(), transferCommandPool, nullptr);
+        vkDestroyCommandPool(device->getCDevice(), context.graphicsCommandPool, nullptr);
+        vkDestroyCommandPool(device->getCDevice(), context.transferCommandPool, nullptr);
 
         vkDestroyDevice(device->getCDevice(), nullptr);
 
