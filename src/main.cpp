@@ -1214,7 +1214,6 @@ private:
         vkDestroyImageView(device->getCDevice(), textureImageView, nullptr);
         vkDestroyImage(device->getCDevice(), textureImage, nullptr);
         vkFreeMemory(device->getCDevice(), textureImageMemory, nullptr);
-        // ~textureImage();
 
         vkDestroyDescriptorSetLayout(device->getCDevice(), descriptor.setLayout, nullptr);
 
@@ -1236,7 +1235,6 @@ private:
         vkDestroyDevice(device->getCDevice(), nullptr);
 
         vkDestroySurfaceKHR(context->instance.get(), swapchain.surface, nullptr);
-        // context.destroy();
         
         glfwDestroyWindow(window);
         glfwTerminate();
