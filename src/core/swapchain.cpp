@@ -13,6 +13,7 @@ namespace core {
         vk::Image image;
         vk::ImageView imageView;
         vk::Fence fence;
+        vk::Framebuffer framebuffer;
     };
 
     class Swapchain {
@@ -55,7 +56,14 @@ namespace core {
             createColorResources();
 
             initialized = true;
-        } 
+        }
+
+        void initFramebuffers(vk::RenderPass renderpass) {
+           
+            for (int i = 0; i < images.size(); i++) {
+                images[i].framebuffer = createFramebuffer(images[i].imageView, renderpass);;
+            }
+        }
 
         void destroy() {
             //TODO
@@ -159,30 +167,35 @@ namespace core {
             images.resize(imgs.size());
 
             for (size_t i = 0; i < imgs.size(); i++) {
+
+                auto view = core::Image::createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1);
                 images[i] = {
                     imgs[i],
-                    core::Image::createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1),
-                    nullptr //TODO: Initialize fences 
+                    view,
+                    nullptr, //TODO: Initialize fences
+                    nullptr // Framebuffers are initialized after the renderpass TODO: This is bad practice
                 };
             }
         }
 
-        //TODO: WIP : requires color and depth imageviews
-        // void createFramebuffers(vk::ImageView view) {
-        //     std::array<vk::ImageView, 3> attachments = {
-        //         colorImage.view,
-        //         depthImage.view, 
-        //         view
-        //     };
-        //     vk::FramebufferCreateInfo framebufferInfo;
-        //     framebufferInfo.renderPass = renderPass; //TODO: Requires a ref to renderpass.
-        //     framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        //     framebufferInfo.pAttachments = attachments.data();
-        //     framebufferInfo.width = extent.width;
-        //     framebufferInfo.height = extent.height;
-        //     framebufferInfo.layers = 1; // Nb of layers in image array.
-        //     return device->logicalDevice.createFrameBuffer(frameBufferInfo);
-        // }
+
+
+        // TODO: WIP : requires color and depth imageviews
+        vk::Framebuffer createFramebuffer(vk::ImageView view, vk::RenderPass renderPass) {
+            std::array<vk::ImageView, 3> attachments = {
+                colorImage.view,
+                depthImage.view, 
+                view
+            };
+            vk::FramebufferCreateInfo framebufferInfo;
+            framebufferInfo.renderPass = renderPass; //TODO: Requires a ref to renderpass.
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = extent.width;
+            framebufferInfo.height = extent.height;
+            framebufferInfo.layers = 1; // Nb of layers in image array.
+            return device->logicalDevice.createFramebuffer(framebufferInfo);
+        }
         
         void createDepthResources() {
             vk::Format format = device->findDepthFormat();

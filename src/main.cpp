@@ -97,7 +97,7 @@ private:
 
     core::Pipeline graphicsPipeline;
 
-    std::vector<VkFramebuffer> swapchainFramebuffers;
+    // std::vector<VkFramebuffer> swapchainFramebuffers;
 
     VkCommandPool graphicsCommandPool;
     VkCommandPool transferCommandPool;
@@ -223,13 +223,11 @@ private:
         device = std::make_shared<core::Device>(context.instance, swapchain.surface);
         swapchain.init(context, device, window); // TODO: Swapchain are part of a Context
         renderPass.init(device, swapchain);
-        // createDescriptorSetLayout();
         descriptor = core::Descriptor(device, static_cast<uint32_t>(swapchain.images.size()));
-        descriptor.createDescriptorSetLayout();
+        descriptor.createDescriptorSetLayout(); // The layout is used by the graphics pipeline
 
         graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
-        // createGraphicsPipeline();
-        createFramebuffers();
+        swapchain.initFramebuffers(renderPass.renderPass);
         createCommandPools();
         createTextureImage();
         createTextureImageView();
@@ -460,6 +458,7 @@ private:
         endSingleTimeCommands(commandBuffer, graphicsCommandPool, device->graphicsQueue);
     }
 
+    // Moved to image
     void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
                      VkImageUsageFlags usage, VkMemoryPropertyFlags memProperties, VkImage& image, VkDeviceMemory& imageMemory) {
 
@@ -871,7 +870,8 @@ private:
     }
 
     void createCommandBuffers() {
-        commandBuffers.resize(swapchainFramebuffers.size());
+        // commandBuffers.resize(swapchainFramebuffers.size());
+        commandBuffers.resize(swapchain.images.size());
 
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -896,8 +896,9 @@ private:
             // Start a render pass. TODO: Why is that here ?
             VkRenderPassBeginInfo renderPassInfo = {};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = renderPass;
-            renderPassInfo.framebuffer = swapchainFramebuffers[i];
+            renderPassInfo.renderPass = renderPass.renderPass;
+            // renderPassInfo.framebuffer = swapchainFramebuffers[i];
+            renderPassInfo.framebuffer = swapchain.images[i].framebuffer;
             renderPassInfo.renderArea.extent = swapchain.extent;
             renderPassInfo.renderArea.offset = {0, 0};
 
@@ -952,31 +953,31 @@ private:
         }
     }
 
-    void createFramebuffers() {
-        swapchainFramebuffers.resize(swapchain.images.size());
+    // void createFramebuffers() {
+    //     swapchainFramebuffers.resize(swapchain.images.size());
 
-        for (size_t i = 0; i < swapchain.images.size(); i++) {
-            std::array<VkImageView, 3> attachments = {
-                swapchain.colorImage.view,
-                swapchain.depthImage.view, 
-                swapchain.images[i].imageView
-            };
+    //     for (size_t i = 0; i < swapchain.images.size(); i++) {
+    //         std::array<VkImageView, 3> attachments = {
+    //             swapchain.colorImage.view,
+    //             swapchain.depthImage.view, 
+    //             swapchain.images[i].imageView
+    //         };
 
-            VkFramebufferCreateInfo framebufferInfo = {};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass;
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = swapchain.extent.width;
-            framebufferInfo.height = swapchain.extent.height;
-            framebufferInfo.layers = 1; // Nb of layers in image array.
+    //         VkFramebufferCreateInfo framebufferInfo = {};
+    //         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    //         framebufferInfo.renderPass = renderPass;
+    //         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    //         framebufferInfo.pAttachments = attachments.data();
+    //         framebufferInfo.width = swapchain.extent.width;
+    //         framebufferInfo.height = swapchain.extent.height;
+    //         framebufferInfo.layers = 1; // Nb of layers in image array.
 
-            if (vkCreateFramebuffer(device->getCDevice(), &framebufferInfo, nullptr, &swapchainFramebuffers[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create Framebuffer.");
-            }
-        }
+    //         if (vkCreateFramebuffer(device->getCDevice(), &framebufferInfo, nullptr, &swapchainFramebuffers[i]) != VK_SUCCESS) {
+    //             throw std::runtime_error("Failed to create Framebuffer.");
+    //         }
+    //     }
 
-    }
+    // }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {
         VkShaderModuleCreateInfo createInfo = {};
@@ -1006,7 +1007,9 @@ private:
         renderPass.init(device, swapchain);
         // createRenderPass();
         graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
-        createFramebuffers();
+        // createFramebuffers();
+        swapchain.initFramebuffers(renderPass.renderPass);
+
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -1156,8 +1159,12 @@ private:
         vkDestroyImage(device->getCDevice(), swapchain.depthImage.image, nullptr);
         vkFreeMemory(device->getCDevice(), swapchain.depthImage.memory, nullptr);
 
-        for (auto framebuffer : swapchainFramebuffers) {
-            vkDestroyFramebuffer(device->getCDevice(), framebuffer, nullptr);
+        // for (auto framebuffer : swapchainFramebuffers) {
+        //     vkDestroyFramebuffer(device->getCDevice(), framebuffer, nullptr);
+        // }
+
+        for (auto img : swapchain.images) {
+            vkDestroyFramebuffer(device->getCDevice(), img.framebuffer, nullptr);
         }
         
         vkFreeCommandBuffers(device->getCDevice(), graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
