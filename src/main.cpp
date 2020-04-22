@@ -768,6 +768,7 @@ private:
         vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
     }
 
+    /* @note: Moved to cpp in commandpool*/
     VkCommandBuffer beginSingleTimeCommands(VkCommandPool commandPool) {
         // TODO: Move some of the info as parameters (commandPool)
         // TODO: Create a separate command pool for the temporary command buffer.
@@ -791,6 +792,7 @@ private:
         return commandBuffer;
     }
 
+    /* Moved to cpp in commandpool*/
     void endSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, vk::Queue &queue) {
         //TODO : Move some more info as parameters (commandPool) ?
         vkEndCommandBuffer(commandBuffer);
