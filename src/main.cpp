@@ -99,12 +99,8 @@ private:
 
     size_t currentFrame = 0;
     
-    // core::Buffer vertexBuffer;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-
+    std::shared_ptr<core::Buffer> vertexBuffer;
+    std::shared_ptr<core::Buffer> indexBuffer;
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
@@ -229,15 +225,6 @@ private:
         model = Mesh::fromObj(MODEL_PATH);
     }
 
-    // TODO: This has already been moved to renderpass    
-    VkFormat findDepthFormat() {
-        return findSupportedFormat(
-            {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-        );
-    }
-
     bool hasStencilComponent(VkFormat format) {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
@@ -257,90 +244,6 @@ private:
         }
         VkFormat truc;
         return truc;
-    }
-
-    // void createTextureSampler() {
-    //     VkSamplerCreateInfo samplerInfo = {};
-    //     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    //     samplerInfo.magFilter = VK_FILTER_LINEAR; // How to interpolate texels that are magnified...
-    //     samplerInfo.minFilter = VK_FILTER_LINEAR; // or minified
-    //     // Addressing mode per axis
-    //     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; // x
-    //     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; // y
-    //     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT; // z
-    //     samplerInfo.anisotropyEnable = VK_TRUE;
-    //     samplerInfo.maxAnisotropy = 16;
-    //     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    //     samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    //     samplerInfo.compareEnable = VK_FALSE;
-    //     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    //     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    //     samplerInfo.mipLodBias = 0;
-    //     samplerInfo.maxLod = static_cast<uint32_t>(textureMipLevels);
-    //     samplerInfo.minLod = 0;
-
-    //     if (vkCreateSampler(device->getCDevice(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-    //         throw std::runtime_error("Failed to create texture sampler.");
-    //     }
-    // }
-
-    /* @note : the cpp version is in swapchain (but should be elsewhere) */
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask, uint32_t mipLevels) {
-        VkImageViewCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.format = format;
-        createInfo.image = image;
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.subresourceRange.aspectMask = aspectMask;
-        createInfo.subresourceRange.layerCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.levelCount = mipLevels;
-        createInfo.subresourceRange.baseMipLevel = 0;
-    
-        VkImageView imageView;
-        if (vkCreateImageView(device->getCDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create texture image view");
-        }
-        
-        return imageView;
-    }
-
-    // Moved to image
-    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
-                     VkImageUsageFlags usage, VkMemoryPropertyFlags memProperties, VkImage& image, VkDeviceMemory& imageMemory) {
-
-        VkImageCreateInfo imageInfo = {};
-        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imageInfo.imageType = VK_IMAGE_TYPE_2D; 
-        imageInfo.extent.width = static_cast<uint32_t>(width);
-        imageInfo.extent.height = static_cast<uint32_t>(height);
-        imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = mipLevels;
-        imageInfo.arrayLayers = 1;
-        imageInfo.format = format;
-        imageInfo.tiling = tiling;
-        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // The very first iteration will discard the texels
-        imageInfo.usage = usage;
-        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // TODO: Ok ? We need to use both transfer and graphics queues
-        imageInfo.samples = numSamples;
-
-        if (vkCreateImage(device->getCDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create texture image.");
-        } 
-
-        VkMemoryRequirements memRequirements;
-        vkGetImageMemoryRequirements(device->getCDevice(), image, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, memProperties);
-
-        if (vkAllocateMemory(device->getCDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate texture image memory.");
-        }
-
-        vkBindImageMemory(device->getCDevice(), image, imageMemory, 0);
     }
 
     void createDescriptorSets() {
@@ -465,140 +368,36 @@ private:
     }   
 
     void createVertexBuffer() {
-        VkDeviceSize  bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
+        vk::DeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
         
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
+        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        stagingBuffer.map(0, bufferSize);
+        stagingBuffer.copy(model.vertices.data(), (size_t) bufferSize);
+        stagingBuffer.unmap();
 
-        void* data;
-        vkMapMemory(device->getCDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, model.vertices.data(), (size_t) bufferSize);
-        vkUnmapMemory(device->getCDevice(), stagingBufferMemory);
-
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-        
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-        vkDestroyBuffer(device->getCDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
+        vertexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
+        context->copyBuffer(stagingBuffer, *vertexBuffer, bufferSize);
     }
-
-    /* c++ version. Doesnt work for now, requires command buffer in c++ as well TODO ! */
-    // void createVertexBuffer() {
-    //     vk::DeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
-        
-    //     core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-    //     stagingBuffer.map(0, bufferSize);
-    //     stagingBuffer.copy(model.vertices.data(), (size_t) bufferSize);
-    //     stagingBuffer.unmap();
-
-    //     vertexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    //     // void* data;
-    //     // vkMapMemory(device->getCDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-    //     // memcpy(data, model.vertices.data(), (size_t) bufferSize);
-    //     // vkUnmapMemory(device->getCDevice(), stagingBufferMemory);
-
-    //     // createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-        
-    //     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-    //     // vkDestroyBuffer(device->getCDevice(), stagingBuffer, nullptr);
-    //     // vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
-    // }
 
     void createIndexBuffer() {
-        VkDeviceSize  bufferSize = sizeof(model.indices[0]) * model.indices.size();
+        vk::DeviceSize  bufferSize = sizeof(model.indices[0]) * model.indices.size();
         
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
+        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        stagingBuffer.map(0, bufferSize);
+        stagingBuffer.copy(model.indices.data(), (size_t) bufferSize);
+        stagingBuffer.unmap();
 
-        void* data;
-        vkMapMemory(device->getCDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, model.indices.data(), (size_t) bufferSize);
-        vkUnmapMemory(device->getCDevice(), stagingBufferMemory);
+        // createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+        indexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
+        context->copyBuffer(stagingBuffer, *indexBuffer, bufferSize);
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-        
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-        vkDestroyBuffer(device->getCDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
+        // vkDestroyBuffer(device->getCDevice(), stagingBuffer, nullptr);
+        // vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
     }
 
-    /* @note: Moved to cpp in commandpool*/
-    VkCommandBuffer beginSingleTimeCommands(VkCommandPool commandPool) {
-        // TODO: Move some of the info as parameters (commandPool)
-        // TODO: Create a separate command pool for the temporary command buffer.
-
-        VkCommandBufferAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = commandPool; // TODO: Check that transfercommandPool has TRANSIENT_BIT flag
-        allocInfo.commandBufferCount = 1;
-
-        VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(device->getCDevice(), &allocInfo, &commandBuffer);
-
-        // Immediately start recording
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
-        
-        return commandBuffer;
-    }
-
-    /* Moved to cpp in commandpool*/
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool commandPool, vk::Queue &queue) {
-        //TODO : Move some more info as parameters (commandPool) ?
-        vkEndCommandBuffer(commandBuffer);
-        
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
     
-        vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(queue); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
-
-        vkFreeCommandBuffers(device->getCDevice(), commandPool, 1, &commandBuffer);
-    }
-
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-        // auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
-        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context->transferCommandPool));
-
-        VkBufferCopy copyRegion = {};
-        copyRegion.srcOffset = 0;
-        copyRegion.dstOffset = 0;
-        copyRegion.size = size;
-
-        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-        // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
-        endSingleTimeCommands(commandBuffer, context->transferCommandPool, device->transferQueue);
-    }
-
-    void copyBuffer(core::Buffer srcBuffer, core::Buffer dstBuffer, vk::DeviceSize size) {
-        // auto commandBuffer = beginSingleTimeCommands(transferCommandPool);
-        auto commandBuffer = beginSingleTimeCommands(VkCommandPool(context->transferCommandPool));
-
-        VkBufferCopy copyRegion = {};
-        copyRegion.srcOffset = 0;
-        copyRegion.dstOffset = 0;
-        copyRegion.size = size;
-
-        vkCmdCopyBuffer(commandBuffer, VkBuffer(srcBuffer), VkBuffer(dstBuffer), 1, &copyRegion);
-
-        // endSingleTimeCommands(commandBuffer, transferCommandPool, device->transferQueue);
-        endSingleTimeCommands(commandBuffer, VkCommandPool(context->transferCommandPool), device->transferQueue);
-    }
-
     // Moved to device
     /* Combine memory requirements of a buffer, the app requirements and the physical device's property to find the right type of memory to use. 
      * @args:
@@ -689,11 +488,12 @@ private:
             
             vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.graphicsPipeline);
             
-            VkBuffer vertexBuffers[] = {VkBuffer(vertexBuffer)}; // TODO
+            // VkBuffer vertexBuffers[] = {VkBuffer(vertexBuffer)}; // TODO
+            VkBuffer vertexBuffers[] = {VkBuffer(vertexBuffer->buffer)}; // TODO
             VkDeviceSize offsets[] = {0};
             
             vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
             
             // vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
             vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.layout, 0, 1, &descriptorSets[i], 0, nullptr);
@@ -708,53 +508,6 @@ private:
 
         }
     }
-
-    // void createCommandPools() {
-    //     vk::SurfaceKHR pSurface = vk::SurfaceKHR(swapchain.surface);
-    //     core::QueueFamilyIndices queueFamilyIndices = core::findQueueFamilies(device->physicalDevice, pSurface);
-
-    //     VkCommandPoolCreateInfo createInfo = {};
-    //     createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    //     createInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-    //     if (vkCreateCommandPool(device->getCDevice(), &createInfo, nullptr, &graphicsCommandPool) != VK_SUCCESS) {
-    //         throw std::runtime_error("Failed to create graphics command pool.");
-    //     }
-
-    //     // Reuse the info to create transfer command pool
-    //     createInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
-    //     createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        
-    //     if (vkCreateCommandPool(device->getCDevice(), &createInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
-    //         throw std::runtime_error("Failed to create transfer command pool.");
-    //     }
-    // }
-
-    // void createFramebuffers() {
-    //     swapchainFramebuffers.resize(swapchain.images.size());
-
-    //     for (size_t i = 0; i < swapchain.images.size(); i++) {
-    //         std::array<VkImageView, 3> attachments = {
-    //             swapchain.colorImage.view,
-    //             swapchain.depthImage.view, 
-    //             swapchain.images[i].imageView
-    //         };
-
-    //         VkFramebufferCreateInfo framebufferInfo = {};
-    //         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    //         framebufferInfo.renderPass = renderPass;
-    //         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    //         framebufferInfo.pAttachments = attachments.data();
-    //         framebufferInfo.width = swapchain.extent.width;
-    //         framebufferInfo.height = swapchain.extent.height;
-    //         framebufferInfo.layers = 1; // Nb of layers in image array.
-
-    //         if (vkCreateFramebuffer(device->getCDevice(), &framebufferInfo, nullptr, &swapchainFramebuffers[i]) != VK_SUCCESS) {
-    //             throw std::runtime_error("Failed to create Framebuffer.");
-    //         }
-    //     }
-
-    // }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {
         VkShaderModuleCreateInfo createInfo = {};
@@ -977,11 +730,11 @@ private:
 
         vkDestroyDescriptorSetLayout(device->getCDevice(), descriptor.setLayout, nullptr);
 
-        vkDestroyBuffer(device->getCDevice(), vertexBuffer, nullptr);
-        vkFreeMemory(device->getCDevice(), vertexBufferMemory, nullptr);
+        // vkDestroyBuffer(device->getCDevice(), vertexBuffer->buffer, nullptr);
+        // vkFreeMemory(device->getCDevice(), vertexBuffer->memory, nullptr);
 
-        vkDestroyBuffer(device->getCDevice(), indexBuffer, nullptr);
-        vkFreeMemory(device->getCDevice(), indexBufferMemory, nullptr);
+        // vkDestroyBuffer(device->getCDevice(), indexBuffer->buffer, nullptr);
+        // vkFreeMemory(device->getCDevice(), indexBuffer->memory, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device->getCDevice(), imageAvailableSemaphores[i], nullptr);

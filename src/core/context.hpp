@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>
 #include "device.hpp"
 #include "commandpool.cpp"
+#include "buffer.cpp"
 #include <GLFW/glfw3.h>
 #include <memory>
 
@@ -18,8 +19,9 @@ namespace core {
         core::CommandPool graphicsCommandPool;
         core::CommandPool transferCommandPool;
 
-        // vk::DebugUtilsMessengerEXT debugMessenger;
         vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> debugMessenger;
+
+        const std::string TEXTURE_PATH = "assets/textures/camel.jpg"; // TODO: Nope ! Chuck testa
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation",
@@ -37,6 +39,42 @@ namespace core {
             graphicsCommandPool = core::CommandPool(device, device->queueFamilyIndices.graphicsFamily.value());
             transferCommandPool = core::CommandPool(device, device->queueFamilyIndices.transferFamily.value(), vk::CommandPoolCreateFlagBits::eTransient);
         }
+
+        // TODO: Where does this belong ?
+        /* Requires a ref to : command pool, queue
+         * Context is the usual suspect *but* it would be better if buffers had no knowledge of the context they're part of
+         * CommandPools on the other hand could hold a ref to the queue they're attached to.
+         */
+        void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) {
+            auto commandBuffer = transferCommandPool.beginSingleTimeCommands();
+            
+            vk::BufferImageCopy copy;
+            copy.bufferOffset = 0;
+            copy.bufferRowLength = 0;
+            copy.bufferImageHeight = 0;
+            copy.imageExtent = vk::Extent3D{width, height, 1};
+            copy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+            copy.imageSubresource.baseArrayLayer = 0;
+            copy.imageSubresource.layerCount = 1;
+            copy.imageSubresource.mipLevel = 0;
+            copy.imageOffset = vk::Offset3D{0, 0, 0};
+
+            commandBuffer[0].copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
+
+            transferCommandPool.endSingleTimeCommands(commandBuffer, device->transferQueue);
+        }
+
+        void copyBuffer(const core::Buffer& srcBuffer, const core::Buffer& dstBuffer, vk::DeviceSize size) {
+            auto commandBuffers = transferCommandPool.beginSingleTimeCommands();
+
+            vk::BufferCopy copyRegion;
+            copyRegion.srcOffset = 0;
+            copyRegion.dstOffset = 0;
+            copyRegion.size = size;
+
+            commandBuffers[0].copyBuffer(srcBuffer.buffer, dstBuffer.buffer, copyRegion);
+            transferCommandPool.endSingleTimeCommands(commandBuffers, device->transferQueue);
+    }
 
     private:
         void createInstance(){
@@ -154,10 +192,6 @@ namespace core {
                 nullptr,
                 vk::DispatchLoaderDynamic{ *instance , vkGetInstanceProcAddr}
                 );
-
-            // vk::DispatchLoaderDynamic instanceLoader(*instance, vkGetInstanceProcAddr);
-            // const vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo = getDebugMessengerCreateInfo();
-            // debugMessenger = instance->createDebugUtilsMessengerEXT(dCreateInfo, nullptr, instanceLoader);
         }
     };   
 };

@@ -65,7 +65,7 @@ namespace core {
             bufferInfo.usage = usage; // This is a vertex buffer
             // TODO: We might have to pull this out as well
             bufferInfo.sharingMode = vk::SharingMode::eConcurrent; // Can buffers be shared between queues?
-            bufferInfo.flags = vk::BufferCreateFlags{0}; // Configure sparse buffer memory. Not used rn
+            bufferInfo.flags = vk::BufferCreateFlags(); // Configure sparse buffer memory. Not used rn
             
             bufferInfo.queueFamilyIndexCount = 2;
             bufferInfo.pQueueFamilyIndices = queues;
