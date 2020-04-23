@@ -57,14 +57,6 @@ const std::vector<const char*> validationLayers = {
     const bool enableValidationLayers = true;
 #endif
 
-// Equivalent proxy function to destroy the debug messenger
-// void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-//     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-//     if (func != nullptr) {
-//         func(instance, debugMessenger, pAllocator);
-//     }
-// }
-
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
@@ -98,11 +90,6 @@ private:
 
     core::Pipeline graphicsPipeline;
 
-    // std::vector<VkFramebuffer> swapchainFramebuffers;
-
-    // VkCommandPool graphicsCommandPool;
-    // VkCommandPool transferCommandPool;
-
     std::vector<VkCommandBuffer> commandBuffers;
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
@@ -113,7 +100,6 @@ private:
     size_t currentFrame = 0;
     
     // core::Buffer vertexBuffer;
-
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
@@ -129,7 +115,7 @@ private:
 
     std::shared_ptr<core::Texture> texture;
 
-    VkSampler textureSampler;
+    // VkSampler textureSampler;
 
     bool framebufferResized = false;
     bool leftMouseButtonPressed = false;
@@ -170,7 +156,7 @@ private:
         //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
         // }
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetMouseButtonCallback(window, mouseButtonCallback);
         glfwSetScrollCallback(window, scrollCallback);
@@ -216,7 +202,6 @@ private:
 
     void initVulkan() {
         context = std::make_shared<core::Context>();
-        // .createContext();
         swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
         // but surface is contained in swapchain which require device to be initialized.
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
@@ -229,7 +214,7 @@ private:
         swapchain.initFramebuffers(renderPass.renderPass);
         context->createCommandPools(device);
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
-        createTextureSampler();
+        // createTextureSampler();
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
@@ -274,30 +259,30 @@ private:
         return truc;
     }
 
-    void createTextureSampler() {
-        VkSamplerCreateInfo samplerInfo = {};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR; // How to interpolate texels that are magnified...
-        samplerInfo.minFilter = VK_FILTER_LINEAR; // or minified
-        // Addressing mode per axis
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; // x
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; // y
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT; // z
-        samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = 16;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.mipLodBias = 0;
-        samplerInfo.maxLod = static_cast<uint32_t>(textureMipLevels);
-        samplerInfo.minLod = 0;
+    // void createTextureSampler() {
+    //     VkSamplerCreateInfo samplerInfo = {};
+    //     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    //     samplerInfo.magFilter = VK_FILTER_LINEAR; // How to interpolate texels that are magnified...
+    //     samplerInfo.minFilter = VK_FILTER_LINEAR; // or minified
+    //     // Addressing mode per axis
+    //     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; // x
+    //     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; // y
+    //     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT; // z
+    //     samplerInfo.anisotropyEnable = VK_TRUE;
+    //     samplerInfo.maxAnisotropy = 16;
+    //     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    //     samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    //     samplerInfo.compareEnable = VK_FALSE;
+    //     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    //     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    //     samplerInfo.mipLodBias = 0;
+    //     samplerInfo.maxLod = static_cast<uint32_t>(textureMipLevels);
+    //     samplerInfo.minLod = 0;
 
-        if (vkCreateSampler(device->getCDevice(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create texture sampler.");
-        }
-    }
+    //     if (vkCreateSampler(device->getCDevice(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+    //         throw std::runtime_error("Failed to create texture sampler.");
+    //     }
+    // }
 
     /* @note : the cpp version is in swapchain (but should be elsewhere) */
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask, uint32_t mipLevels) {
@@ -383,7 +368,7 @@ private:
             VkDescriptorImageInfo imageInfo = {};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = texture->image.view;
-            imageInfo.sampler = textureSampler;
+            imageInfo.sampler = texture->sampler;
 
             std::array<VkWriteDescriptorSet, 2> writeDescriptors = {};
             writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -985,7 +970,7 @@ private:
     void cleanup() {
         cleanupSwapchain();
 
-        vkDestroySampler(device->getCDevice(), textureSampler, nullptr);
+        vkDestroySampler(device->getCDevice(), texture->sampler, nullptr);
         vkDestroyImageView(device->getCDevice(), texture->image.view, nullptr);
         vkDestroyImage(device->getCDevice(), texture->image, nullptr);
         vkFreeMemory(device->getCDevice(), texture->image.memory, nullptr);

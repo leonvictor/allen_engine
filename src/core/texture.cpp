@@ -16,6 +16,7 @@ namespace core {
     class Texture {
     public:
         core::Image image;
+        vk::Sampler sampler; // TODO: Does each image have a sampler or do they share it ?
         int mipLevels;
         std::shared_ptr<core::Device> device;
         std::shared_ptr<core::Context> context;
@@ -25,6 +26,7 @@ namespace core {
             this->device = device;
 
             createTextureImage(context, device, path);
+            createSampler();
         }
 
     private:
@@ -144,6 +146,28 @@ namespace core {
             );
             
             context->graphicsCommandPool.endSingleTimeCommands(commandBuffers, device->graphicsQueue);
+        }
+        
+        void createSampler() {
+            vk::SamplerCreateInfo samplerInfo;
+            samplerInfo.magFilter = vk::Filter::eLinear; // How to interpolate texels that are magnified...
+            samplerInfo.minFilter = vk::Filter::eLinear; // or minified
+            // Addressing mode per axis
+            samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat; // x
+            samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat; // y
+            samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat; // z
+            samplerInfo.anisotropyEnable = VK_TRUE;
+            samplerInfo.maxAnisotropy = 16;
+            samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+            samplerInfo.unnormalizedCoordinates = VK_FALSE;
+            samplerInfo.compareEnable = VK_FALSE;
+            samplerInfo.compareOp = vk::CompareOp::eAlways;
+            samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+            samplerInfo.mipLodBias = 0;
+            samplerInfo.maxLod = static_cast<uint32_t>(mipLevels);
+            samplerInfo.minLod = 0;
+
+            sampler = device->logicalDevice.createSampler(samplerInfo);
         }
     };
 }
