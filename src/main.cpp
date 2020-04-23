@@ -730,6 +730,8 @@ private:
 
         vkDestroyDescriptorSetLayout(device->getCDevice(), descriptor.setLayout, nullptr);
 
+        vertexBuffer.reset();
+        indexBuffer.reset();
         // vkDestroyBuffer(device->getCDevice(), vertexBuffer->buffer, nullptr);
         // vkFreeMemory(device->getCDevice(), vertexBuffer->memory, nullptr);
 
