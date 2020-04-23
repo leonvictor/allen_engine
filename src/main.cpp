@@ -101,7 +101,8 @@ private:
     
     std::shared_ptr<core::Buffer> vertexBuffer;
     std::shared_ptr<core::Buffer> indexBuffer;
-    std::vector<VkBuffer> uniformBuffers;
+    // std::vector<VkBuffer> uniformBuffers;
+    std::vector<std::shared_ptr<core::Buffer>> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
     VkBuffer lightUniformBuffer;
@@ -264,7 +265,7 @@ private:
         for (size_t i = 0; i < swapchain.images.size(); i++) {
             // Describes the buffer and the region within it that contains the data for the descriptor
             VkDescriptorBufferInfo bufferInfo = {};
-            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.buffer = *uniformBuffers[i];
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -349,22 +350,39 @@ private:
         vkBindBufferMemory(device->getCDevice(), buffer, bufferMemory, 0);
     }
 
+    // void createUniformBuffers() {
+    //     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+        
+    //     uniformBuffers.resize(swapchain.images.size());
+    //     uniformBuffersMemory.resize(swapchain.images.size());
+
+    //     for (size_t i = 0; i < swapchain.images.size(); i++) {
+    //         createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+    //     }
+    // }
+
+    /* TODO: Where should this go ?  There is one for each swapchain image so probably in the swapchain ? */
     void createUniformBuffers() {
-        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+        vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
         
         uniformBuffers.resize(swapchain.images.size());
-        uniformBuffersMemory.resize(swapchain.images.size());
+        // uniformBuffersMemory.resize(swapchain.images.size());
 
         for (size_t i = 0; i < swapchain.images.size(); i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+            // createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+            uniformBuffers[i] = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
         }
     }
 
     void updateUniformBuffers(uint32_t currentImage, UniformBufferObject ubo) { 
-        void* data;
-        vkMapMemory(device->getCDevice(), uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
-        vkUnmapMemory(device->getCDevice(), uniformBuffersMemory[currentImage]); // TODO: this is unefficient. Use push constants to pass a small buffer of data to shaders
+        uniformBuffers[currentImage]->map(0, sizeof(ubo));
+        uniformBuffers[currentImage]->copy(&ubo, sizeof(ubo));
+        uniformBuffers[currentImage]->unmap();
+        
+        // void* data;
+        // vkMapMemory(device->getCDevice(), uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+        // memcpy(data, &ubo, sizeof(ubo));
+        // vkUnmapMemory(device->getCDevice(), uniformBuffersMemory[currentImage]); // TODO: this is unefficient. Use push constants to pass a small buffer of data to shaders
     }   
 
     void createVertexBuffer() {
@@ -389,12 +407,8 @@ private:
         stagingBuffer.copy(model.indices.data(), (size_t) bufferSize);
         stagingBuffer.unmap();
 
-        // createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
         indexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         context->copyBuffer(stagingBuffer, *indexBuffer, bufferSize);
-
-        // vkDestroyBuffer(device->getCDevice(), stagingBuffer, nullptr);
-        // vkFreeMemory(device->getCDevice(), stagingBufferMemory, nullptr);
     }
 
     
@@ -713,8 +727,10 @@ private:
 
         // Should this be before swap chain destruction ?
         for (size_t i = 0; i < swapchain.images.size(); i++) {
-            vkDestroyBuffer(device->getCDevice(), uniformBuffers[i], nullptr);
-            vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
+            // TODO: Not good!
+            uniformBuffers[i].reset();
+            // vkDestroyBuffer(device->getCDevice(), *uniformBuffers[i], nullptr);
+            // vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
         }
 
         vkDestroyDescriptorPool(device->getCDevice(), descriptorPool, nullptr);
@@ -730,6 +746,10 @@ private:
 
         vkDestroyDescriptorSetLayout(device->getCDevice(), descriptor.setLayout, nullptr);
 
+        /* TODO: shared_ptr buffers use RAII and free their memory when they're deleted. In our current flow this happens 
+        * when the Engine is released. Unfortunately, when freeing Device in the cleanup() function buffers have to be already freed aswell 
+        * I think there's a better way to handle all that...
+        */
         vertexBuffer.reset();
         indexBuffer.reset();
         // vkDestroyBuffer(device->getCDevice(), vertexBuffer->buffer, nullptr);
