@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vulkan/vulkan.hpp>
 #include "device.hpp"
 
@@ -8,10 +10,12 @@ namespace core {
     public:
         vk::Buffer buffer;
         vk::DeviceMemory memory;
-        void *mapped;
+        void *mapped{nullptr};
 
         std::shared_ptr<core::Device> device;
         
+        Buffer() {} // Empty ctor is required for now. Todo: Remove when we can 
+
         Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memProperties) {
             this->device = device;
 
@@ -40,9 +44,16 @@ namespace core {
         }
 
         // Examples also has an offset.
-        inline void copy(void* data, size_t size) {
-            memcpy(data, mapped, size);
+        inline void copy(const void* data, size_t size) {
+            memcpy(mapped, data, size);
         }
+
+        operator vk::Buffer() {
+            return buffer;
+        }
+
+        /* Helper function to cast to C vulkan buffer. Remove when no longer necessary */
+        operator VkBuffer() { return VkBuffer(buffer); }
 
     private:
         void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage) {

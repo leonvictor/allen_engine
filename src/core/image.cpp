@@ -15,7 +15,7 @@ namespace core {
         vk::DeviceMemory memory;
         
         std::shared_ptr<core::Device> device;
-        std::shared_ptr<core::Context> context;
+        // std::shared_ptr<core::Context> context;
 
         /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
         Image() {}
@@ -24,6 +24,7 @@ namespace core {
                 vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask) {
 
             this->device = device;
+
             initImage(width, height, mipLevels, numSamples, format, tiling, usage);
             initMemory(memProperties);
             initView(format, aspectMask, mipLevels); // TODO: Directly use 
@@ -36,19 +37,32 @@ namespace core {
             initMemory(memProperties);
         }
 
-        ~Image() { 
-            // device->logicalDevice.destroyImageView(view);
-            // device->logicalDevice.destroyImage(image);
-            // device->logicalDevice.freeMemory(memory);
+        /* Creates an image but leave the view unitilialized. */
+        Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+                vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties) {
+
+            this->device = device;
+            
+            initImage(width, height, mipLevels, numSamples, format, tiling, usage);
+            initMemory(memProperties);    
+            }
+
+        void initView(vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
+            assert(!view && "Image view is already initialized.");
+            view = createImageView(device, this->image, format, aspectMask, mipLevels);
         }
+
+        operator vk::Image() { return image; }
+
+        operator VkImage() { return VkImage(image); } // Legacy operator. // TODO: Remove 
 
         /* TODO 
         * - Is this the same format ? If so, move it to an attribute 
         * - Is this the same mipLevels ? //
         * 
         */
-        void transitionLayout(vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels) {                
-            vk::ImageMemoryBarrier memoryBarrier = {};
+        void transitionLayout(std::shared_ptr<core::Context> context, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels) {                
+            vk::ImageMemoryBarrier memoryBarrier;
             memoryBarrier.oldLayout = oldLayout;
             memoryBarrier.newLayout = newLayout;
             //TODO: Specify transferQueue here ?
@@ -62,18 +76,13 @@ namespace core {
             memoryBarrier.subresourceRange.baseMipLevel = 0;
             memoryBarrier.srcAccessMask = vk::AccessFlags(); // TODO: Which operations must happen before the barrier
             memoryBarrier.dstAccessMask = vk::AccessFlags(); // ... and after
-
             
             vk::Queue *queue;
-            // vk::Queue queue;
-            // // std::unique_ptr<core::CommandPool> commandPool;
-            // VkCommandPool *commandPool;
             core::CommandPool *commandPool;
             vk::PipelineStageFlagBits srcStage;
             vk::PipelineStageFlagBits dstStage;
             
             // Specify transition support. See https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#synchronization-access-types-supported
-            // if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
             if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal) {
                 memoryBarrier.srcAccessMask = vk::AccessFlags();
                 memoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
@@ -82,7 +91,6 @@ namespace core {
                 dstStage = vk::PipelineStageFlagBits::eTransfer;
                 
                 queue = &device->transferQueue;
-                // commandPool = &transferCommandPool;
                 commandPool = &context->transferCommandPool;
 
             } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
@@ -93,26 +101,22 @@ namespace core {
                 dstStage = vk::PipelineStageFlagBits::eFragmentShader;
 
                 queue = &device->graphicsQueue;
-                // commandPool = &graphicsCommandPool;
                 commandPool = &context->graphicsCommandPool;
             } else {
                 throw std::invalid_argument("Unsupported layout transition.");
             }
 
-            // VkCommandBuffer commandBuffer = beginSingleTimeCommands(*commandPool);
             auto commandBuffers = commandPool->beginSingleTimeCommands();
 
-            // TODO: Finish this
-            // commandBuffers[0].cmdPipelineBarrier(srcStage, dstStage, memoryBarrier);
-            // vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage,
-                // 0,
-                // 0, nullptr, 
-                // 0, nullptr, 
-                // 1, &memoryBarrier
-            // );
+            commandBuffers[0].pipelineBarrier(
+                srcStage, dstStage, 
+                vk::DependencyFlags(),
+                nullptr,
+                nullptr,
+                memoryBarrier
+            );
 
             commandPool->endSingleTimeCommands(commandBuffers, *queue);
-            // endSingleTimeCommands(commandBuffer, *commandPool, *queue);
     }
 
         /* helper function to create image views
@@ -164,10 +168,6 @@ namespace core {
 
             memory = device->logicalDevice.allocateMemory(allocInfo);
             device->logicalDevice.bindImageMemory(image, memory, 0);
-        }
-
-        void initView(vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
-            view = createImageView(device, this->image, format, aspectMask, mipLevels);
         }
     };
 }
