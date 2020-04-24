@@ -3,13 +3,24 @@
 #include <vulkan/vulkan.hpp>
 #include <array>
 #include <memory>
+#include "texture.cpp"
 
 #include "device.hpp"
 
 namespace core {
+
+    /* Uniform buffer wrapper 
+     * TODO: Move that somewhere else
+    */
+    struct UniformBufferObject {
+        alignas(16) glm::mat4 model;
+        alignas(16) glm::mat4 view;
+        alignas(16) glm::mat4 projection; 
+    };
+
     class Descriptor {
     public:
-        vk::DescriptorPool descriptorPool;
+        vk::DescriptorPool pool;
         vk::DescriptorSetLayout setLayout;
         std::vector<vk::DescriptorSet> sets;
 
@@ -51,7 +62,7 @@ namespace core {
 
             setLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
         }
-    private:
+
         void createDescriptorPool(int nImages) {
             // TODO: pass nImages // TODO: static cast uint32 ?
             std::array<vk::DescriptorPoolSize, 2> poolSizes;;
@@ -65,57 +76,51 @@ namespace core {
             createInfo.pPoolSizes = poolSizes.data();
             createInfo.maxSets = nImages;
 
-            device->logicalDevice.createDescriptorPool(createInfo);
+            pool = device->logicalDevice.createDescriptorPool(createInfo);
         }
 
-        /* WIP : Requires :
-        * - UniformBufferObjects
-        * - Texture
-        * - Texture Sampler 
-        * 
-        */
-        void createDescriptorSets(int nImages) {
+        void createDescriptorSets(int nImages, std::vector<std::shared_ptr<core::Buffer>> uniformBuffers, const core::Texture &texture) {
             // TODO: Make sure setLayout is already initialized
-            // std::vector<VkDescriptorSetLayout> layouts(nImages, setLayout);
+            std::vector<vk::DescriptorSetLayout> layouts(nImages, setLayout);
 
-            // VkDescriptorSetAllocateInfo allocInfo = {};
-            // allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            // allocInfo.descriptorPool = descriptorPool;
-            // allocInfo.descriptorSetCount = static_cast<uint32_t>(nImages);
-            // allocInfo.pSetLayouts = layouts.data();
+            vk::DescriptorSetAllocateInfo allocInfo;
+            allocInfo.descriptorPool = pool;
+            allocInfo.descriptorSetCount = static_cast<uint32_t>(nImages);
+            allocInfo.pSetLayouts = layouts.data();
 
-            // // .data() ?
-            // sets = device->logicalDevice.allocateDescriptorSets(allocInfo);
+            // .data() ?
+            sets = device->logicalDevice.allocateDescriptorSets(allocInfo);
 
-            // for (size_t i = 0; i < nImages; i++) {
-            //     // Describes the buffer and the region within it that contains the data for the descriptor
-            //     vk::DescriptorBufferInfo bufferInfo = {};
-            //     bufferInfo.buffer = uniformBuffers[i];
-            //     bufferInfo.offset = 0;
-            //     bufferInfo.range = sizeof(UniformBufferObject);
+            for (size_t i = 0; i < nImages; i++) {
+                // Describes the buffer and the region within it that contains the data for the descriptor
+                vk::DescriptorBufferInfo bufferInfo;
+                bufferInfo.buffer = uniformBuffers[i]->buffer;
+                bufferInfo.offset = 0;
+                bufferInfo.range = sizeof(core::UniformBufferObject);
 
-            //     vk::DescriptorImageInfo imageInfo = {};
-            //     imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            //     imageInfo.imageView = textureImageView;
-            //     imageInfo.sampler = textureSampler;
+                vk::DescriptorImageInfo imageInfo = {};
+                imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+                imageInfo.imageView = texture.image.view;
+                imageInfo.sampler = texture.sampler;
 
-            //     std::array<vk::WriteDescriptorSet, 2> writeDescriptors = {};
-            //     writeDescriptors[0].dstSet = sets[i];
-            //     writeDescriptors[0].dstBinding = 0; // Binding index 
-            //     writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
-            //     writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
-            //     writeDescriptors[0].descriptorCount = 1;
-            //     writeDescriptors[0].pBufferInfo = &bufferInfo;
+                std::array<vk::WriteDescriptorSet, 2> writeDescriptors = {};
+                writeDescriptors[0].dstSet = sets[i];
+                writeDescriptors[0].dstBinding = 0; // Binding index 
+                writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+                writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+                writeDescriptors[0].descriptorCount = 1;
+                writeDescriptors[0].pBufferInfo = &bufferInfo;
 
-            //     writeDescriptors[1].dstSet = sets[i];
-            //     writeDescriptors[1].dstBinding = 1; // Binding index 
-            //     writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
-            //     writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-            //     writeDescriptors[1].descriptorCount = 1;
-            //     writeDescriptors[1].pImageInfo = &imageInfo;
+                writeDescriptors[1].dstSet = sets[i];
+                writeDescriptors[1].dstBinding = 1; // Binding index 
+                writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+                writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+                writeDescriptors[1].descriptorCount = 1;
+                writeDescriptors[1].pImageInfo = &imageInfo;
 
-            //     device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
-            // }
+                device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+            }
         }
+    private:
     };
 }

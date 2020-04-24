@@ -85,8 +85,6 @@ private:
     core::RenderPass renderPass;
     
     core::Descriptor descriptor;
-    VkDescriptorPool descriptorPool;
-    std::vector<VkDescriptorSet> descriptorSets;
 
     core::Pipeline graphicsPipeline;
 
@@ -101,7 +99,6 @@ private:
     
     std::shared_ptr<core::Buffer> vertexBuffer;
     std::shared_ptr<core::Buffer> indexBuffer;
-    // std::vector<VkBuffer> uniformBuffers;
     std::vector<std::shared_ptr<core::Buffer>> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
@@ -111,8 +108,6 @@ private:
     uint32_t textureMipLevels;
 
     std::shared_ptr<core::Texture> texture;
-
-    // VkSampler textureSampler;
 
     bool framebufferResized = false;
     bool leftMouseButtonPressed = false;
@@ -216,8 +211,9 @@ private:
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
-        createDescriptorPool();
-        createDescriptorSets();
+        // createDescriptorPool();
+        descriptor.createDescriptorPool(swapchain.images.size());
+        descriptor.createDescriptorSets(swapchain.images.size(), uniformBuffers, *texture);
         createCommandBuffers();
         createSyncObjects();
     }
@@ -247,129 +243,13 @@ private:
         return truc;
     }
 
-    void createDescriptorSets() {
-        // std::vector<VkDescriptorSetLayout> layouts(swapchain.images.size(), descriptorSetLayout);
-        std::vector<VkDescriptorSetLayout> layouts(swapchain.images.size(), descriptor.setLayout);
-
-        VkDescriptorSetAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchain.images.size());
-        allocInfo.pSetLayouts = layouts.data();
-
-        descriptorSets.resize(swapchain.images.size());
-        if (vkAllocateDescriptorSets(device->getCDevice(), &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate descriptor set.");
-        }
-
-        for (size_t i = 0; i < swapchain.images.size(); i++) {
-            // Describes the buffer and the region within it that contains the data for the descriptor
-            VkDescriptorBufferInfo bufferInfo = {};
-            bufferInfo.buffer = *uniformBuffers[i];
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
-
-            VkDescriptorImageInfo imageInfo = {};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = texture->image.view;
-            imageInfo.sampler = texture->sampler;
-
-            std::array<VkWriteDescriptorSet, 2> writeDescriptors = {};
-            writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptors[0].dstSet = descriptorSets[i];
-            writeDescriptors[0].dstBinding = 0; // Binding index 
-            writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
-            writeDescriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            writeDescriptors[0].descriptorCount = 1;
-            writeDescriptors[0].pBufferInfo = &bufferInfo;
-
-            writeDescriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptors[1].dstSet = descriptorSets[i];
-            writeDescriptors[1].dstBinding = 1; // Binding index 
-            writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
-            writeDescriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writeDescriptors[1].descriptorCount = 1;
-            writeDescriptors[1].pImageInfo = &imageInfo;
-
-            vkUpdateDescriptorSets(device->getCDevice(), static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
-        }
-    }
-
-    void createDescriptorPool() {
-        std::array<VkDescriptorPoolSize, 2> poolSizes = {};
-        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchain.images.size());
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchain.images.size());
-
-        VkDescriptorPoolCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        createInfo.pPoolSizes = poolSizes.data();
-        createInfo.maxSets = static_cast<uint32_t>(swapchain.images.size());
-
-        if (vkCreateDescriptorPool(device->getCDevice(), &createInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create descriptor pool");
-        }
-    }
-
-    /* TODO : Moved to buffer.cpp, remove when done transfering */
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProperties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-        // TODO: Move queues out of this function
-        vk::SurfaceKHR pSurface = vk::SurfaceKHR(swapchain.surface);
-        core::QueueFamilyIndices queueFamilyIndices = core::findQueueFamilies(device->physicalDevice, pSurface);
-        uint32_t queues[] = {queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.transferFamily.value()};
-        
-        VkBufferCreateInfo bufferInfo = {};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size; // Byte size of the buffer = vertex size
-        bufferInfo.usage = usage; // This is a vertex buffer
-        // TODO: We might have to pull this out as well
-        bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT; // Can buffers be shared between queues?
-        bufferInfo.flags = 0; // Configure sparse buffer memory. Not used rn
-        
-        bufferInfo.queueFamilyIndexCount = 2;
-        bufferInfo.pQueueFamilyIndices = queues;
-    
-        if (vkCreateBuffer(device->getCDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create vertex buffer.");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device->getCDevice(), buffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, memProperties);
-
-        if (vkAllocateMemory(device->getCDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate memory for buffer.");
-        }
-
-        vkBindBufferMemory(device->getCDevice(), buffer, bufferMemory, 0);
-    }
-
-    // void createUniformBuffers() {
-    //     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-        
-    //     uniformBuffers.resize(swapchain.images.size());
-    //     uniformBuffersMemory.resize(swapchain.images.size());
-
-    //     for (size_t i = 0; i < swapchain.images.size(); i++) {
-    //         createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-    //     }
-    // }
-
     /* TODO: Where should this go ?  There is one for each swapchain image so probably in the swapchain ? */
     void createUniformBuffers() {
         vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
         
         uniformBuffers.resize(swapchain.images.size());
-        // uniformBuffersMemory.resize(swapchain.images.size());
 
         for (size_t i = 0; i < swapchain.images.size(); i++) {
-            // createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
             uniformBuffers[i] = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
         }
     }
@@ -378,11 +258,6 @@ private:
         uniformBuffers[currentImage]->map(0, sizeof(ubo));
         uniformBuffers[currentImage]->copy(&ubo, sizeof(ubo));
         uniformBuffers[currentImage]->unmap();
-        
-        // void* data;
-        // vkMapMemory(device->getCDevice(), uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-        // memcpy(data, &ubo, sizeof(ubo));
-        // vkUnmapMemory(device->getCDevice(), uniformBuffersMemory[currentImage]); // TODO: this is unefficient. Use push constants to pass a small buffer of data to shaders
     }   
 
     void createVertexBuffer() {
@@ -510,7 +385,9 @@ private:
             vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
             
             // vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
-            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.layout, 0, 1, &descriptorSets[i], 0, nullptr);
+            auto set = VkDescriptorSet(descriptor.sets[i]);
+            // vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.layout, 0, 1, descriptor.sets[i], 0, nullptr);
+            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.layout, 0, 1, &set, 0, nullptr);
 
             vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(model.indices.size()), 1, 0, 0, 0);
             
@@ -549,14 +426,12 @@ private:
         cleanupSwapchain();
         swapchain.init(device, window);
         renderPass.init(device, swapchain);
-        // createRenderPass();
         graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
-        // createFramebuffers();
         swapchain.initFramebuffers(renderPass.renderPass);
 
         createUniformBuffers();
-        createDescriptorPool();
-        createDescriptorSets();
+        descriptor.createDescriptorPool(swapchain.images.size());
+        descriptor.createDescriptorSets(swapchain.images.size(), uniformBuffers, *texture);
         createCommandBuffers();
     }
 
@@ -733,7 +608,8 @@ private:
             // vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
         }
 
-        vkDestroyDescriptorPool(device->getCDevice(), descriptorPool, nullptr);
+        // TODO: Move.
+        vkDestroyDescriptorPool(device->getCDevice(), descriptor.pool, nullptr);
     }
 
     void cleanup() {
