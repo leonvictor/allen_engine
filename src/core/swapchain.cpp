@@ -13,6 +13,8 @@
 #include <array>
 #include <GLFW/glfw3.h>
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 namespace core {
     struct SwapchainImage {
         vk::Image image;
@@ -39,6 +41,10 @@ namespace core {
         vk::RenderPass renderPass;
 
         std::shared_ptr<core::Device> device;
+
+        std::vector<vk::Semaphore> imageAvailableSemaphores;
+        std::vector<vk::Semaphore> renderFinishedSemaphores;
+        std::vector<vk::Fence> inFlightFences;
 
         Swapchain() {
             //TODO
@@ -201,6 +207,22 @@ namespace core {
             }
         }
 
+        void createSyncObjects() {
+        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+        
+        vk::SemaphoreCreateInfo semaphoreInfo;
+
+        vk::FenceCreateInfo fenceInfo;
+        fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled; // Create fences in the signaled state
+        
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            imageAvailableSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
+            renderFinishedSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
+            inFlightFences[i] = device->logicalDevice.createFence(fenceInfo, nullptr);
+        }
+    }
     private:
         bool initialized = false;
 
@@ -299,7 +321,7 @@ namespace core {
                 images[i] = {
                     imgs[i],
                     view,
-                    nullptr, //TODO: Initialize fences
+                    vk::Fence(), // TODO: make sure this is nullptr
                     nullptr // Framebuffers are initialized after the renderpass TODO: This is bad practice
                 };
             }

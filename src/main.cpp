@@ -44,8 +44,6 @@ const int HEIGHT = 600;
 const std::string MODEL_PATH = "assets/models/cube.obj";
 const std::string TEXTURE_PATH = "assets/textures/camel.jpg";
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
 }; // TODO: Remove when we've put this in a final location
@@ -85,10 +83,10 @@ private:
 
     core::Pipeline graphicsPipeline;
 
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    std::vector<VkFence> imagesInFlight;
+    // std::vector<VkSemaphore> imageAvailableSemaphores;
+    // std::vector<VkSemaphore> renderFinishedSemaphores;
+    // std::vector<VkFence> inFlightFences;
+    // std::vector<VkFence> imagesInFlight;
 
     size_t currentFrame = 0;
     
@@ -207,7 +205,7 @@ private:
         descriptor.createDescriptorPool(swapchain.images.size());
         descriptor.createDescriptorSets(swapchain.images.size(), uniformBuffers, *texture);
         swapchain.createCommandBuffers(context->graphicsCommandPool, graphicsPipeline, *vertexBuffer, *indexBuffer, descriptor, model.indices.size());
-        createSyncObjects();
+        swapchain.createSyncObjects();
     }
 
     void loadModel() {
@@ -301,30 +299,6 @@ private:
 
     }
 
-    void createSyncObjects() {
-        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        imagesInFlight.resize(swapchain.images.size(), VK_NULL_HANDLE); // ?
-        
-        VkSemaphoreCreateInfo semaphoreInfo = {};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VkFenceCreateInfo fenceInfo = {};
-        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // Create them in the signaled state
-        
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-
-            if (vkCreateSemaphore(device->getCDevice(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(device->getCDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(device->getCDevice(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
-                
-                throw std::runtime_error("Failed to create sync objects for a frame.");
-            }
-        }
-    }
-
     VkShaderModule createShaderModule(const std::vector<char>& code) {
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -350,7 +324,6 @@ private:
 
         cleanupSwapchain();
         swapchain.init(device, window);
-        // renderPass.init(device, swapchain);
         graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
         swapchain.initFramebuffers(swapchain.renderPass);
 
@@ -421,12 +394,13 @@ private:
 
     uint8_t beginDrawFrame() {
         // Wait for the fence
-        vkWaitForFences(device->getCDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        auto f = VkFence(swapchain.inFlightFences[currentFrame]);
+        vkWaitForFences(device->getCDevice(), 1, &f, VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
 
-        VkResult result = vkAcquireNextImageKHR(device->getCDevice(), swapchain.swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(device->getCDevice(), swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
         
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapchain();
@@ -435,60 +409,49 @@ private:
         }
 
         // Check if a previous frame is using the image
-        if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-            vkWaitForFences(device->getCDevice(), 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+        if (swapchain.images[imageIndex].fence) {
+            device->logicalDevice.waitForFences(swapchain.images[imageIndex].fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
-        imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+        swapchain.images[imageIndex].fence = swapchain.inFlightFences[currentFrame];
         return imageIndex;
     }
 
     void endDrawFrame(uint32_t imageIndex) {
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        vk::SubmitInfo submitInfo;
         
         // At which stage should we wait for each semaphores (in the same order)
-        VkSemaphore waitSemaphores = {imageAvailableSemaphores[currentFrame]};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        vk::Semaphore waitSemaphores = {VkSemaphore(swapchain.imageAvailableSemaphores[currentFrame])};
+        vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
         
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
         submitInfo.pWaitDstStageMask = waitStages; // In which stage of the pipeline to wait 
         submitInfo.commandBufferCount = 1;
-        // submitInfo.pCommandBuffers = commandBuffers[imageIndex];
-        auto cb = VkCommandBuffer(swapchain.images[imageIndex].commandbuffer);
-        submitInfo.pCommandBuffers = &cb;
+        submitInfo.pCommandBuffers = &swapchain.images[imageIndex].commandbuffer;
         
         // Which semaphores to signal when job is done
-        VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+        vk::Semaphore signalSemaphores[] = {swapchain.renderFinishedSemaphores[currentFrame]};
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
+        submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
 
-        vkResetFences(device->getCDevice(), 1, &inFlightFences[currentFrame]); // Revert to unsignaled state
-        
-        if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to submit draw command buffer");
-        } 
+        device->logicalDevice.resetFences(swapchain.inFlightFences[currentFrame]);
+        device->graphicsQueue.submit(submitInfo, swapchain.inFlightFences[currentFrame]);
 
-        // Submit the result back to the swap chain
-        VkPresentInfoKHR presentInfo = {};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        VkSwapchainKHR swapchains[] = {swapchain.swapchain};
+        vk::PresentInfoKHR presentInfo;
         presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapchains;
+        presentInfo.pSwapchains = &swapchain.swapchain;
         presentInfo.pImageIndices = &imageIndex; 
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
+        presentInfo.pWaitSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
         presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
 
-        VkQueue pQueue = VkQueue(device->graphicsQueue); // TODO: We're just casting for now
-        VkResult result = vkQueuePresentKHR(pQueue, &presentInfo); 
-        
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+        vk::Result result = device->graphicsQueue.presentKHR(presentInfo);
+        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized) {
             framebufferResized = true;
             recreateSwapchain();
-        } else if (result != VK_SUCCESS) {
+        } else if (result != vk::Result::eSuccess) {
             throw std::runtime_error("Failed to present swap chain image.");
         }
 
@@ -564,9 +527,9 @@ private:
         // vkFreeMemory(device->getCDevice(), indexBuffer->memory, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroySemaphore(device->getCDevice(), imageAvailableSemaphores[i], nullptr);
-            vkDestroySemaphore(device->getCDevice(), renderFinishedSemaphores[i], nullptr);
-            vkDestroyFence(device->getCDevice(), inFlightFences[i], nullptr);
+            vkDestroySemaphore(device->getCDevice(), swapchain.imageAvailableSemaphores[i], nullptr);
+            vkDestroySemaphore(device->getCDevice(), swapchain.renderFinishedSemaphores[i], nullptr);
+            vkDestroyFence(device->getCDevice(), swapchain.inFlightFences[i], nullptr);
         }
 
         vkDestroyCommandPool(device->getCDevice(), context->graphicsCommandPool, nullptr);
