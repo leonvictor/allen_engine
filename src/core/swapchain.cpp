@@ -161,6 +161,46 @@ namespace core {
             renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
+        void createCommandBuffers(const core::CommandPool& commandPool, const core::Pipeline& pipeline,
+                core::Buffer& vertexBuffer, core::Buffer& indexBuffer, // TODO: Move this out. Maybe from a model ?
+                const core::Descriptor& descriptor, int nIndices) {
+
+            auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
+
+            for (size_t i = 0; i < images.size(); i++) {
+                commandBuffers[i].begin(vk::CommandBufferBeginInfo{});
+
+                // Start a render pass. TODO: Why is that here ?
+                vk::RenderPassBeginInfo renderPassInfo;
+                renderPassInfo.renderPass = renderPass;
+                renderPassInfo.framebuffer = images[i].framebuffer;
+                renderPassInfo.renderArea.extent = extent;
+                renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
+
+                std::array<vk::ClearValue, 2> clearValues = {};
+                clearValues[0].color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+                clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+                renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+                renderPassInfo.pClearValues = clearValues.data();
+
+                commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.graphicsPipeline);
+                
+                vk::Buffer vertexBuffers[] = {vertexBuffer.buffer}; // TODO
+                vk::DeviceSize offsets[] = {0};
+                
+                commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
+                commandBuffers[i].bindIndexBuffer(indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, 1, &descriptor.sets[i], 0, nullptr);
+
+                commandBuffers[i].drawIndexed(nIndices, 1, 0, 0, 0);
+                commandBuffers[i].endRenderPass();
+                commandBuffers[i].end();
+
+                images[i].commandbuffer = commandBuffers[i];
+            }
+        }
+
     private:
         bool initialized = false;
 
@@ -293,46 +333,6 @@ namespace core {
             colorImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, this->imageFormat,
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eColor);
-        }
-
-        void createCommandBuffers(const core::CommandPool& commandPool, const core::Pipeline& pipeline,
-                core::Buffer& vertexBuffer, core::Buffer& indexBuffer, // TODO: Move this out. Maybe from a model ?
-                const core::Descriptor& descriptor, int nIndices) {
-
-            auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
-
-            for (size_t i = 0; i < images.size(); i++) {
-                commandBuffers[i].begin(vk::CommandBufferBeginInfo{});
-
-                // Start a render pass. TODO: Why is that here ?
-                vk::RenderPassBeginInfo renderPassInfo;
-                renderPassInfo.renderPass = renderPass;
-                renderPassInfo.framebuffer = images[i].framebuffer;
-                renderPassInfo.renderArea.extent = extent;
-                renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
-
-                std::array<vk::ClearValue, 2> clearValues = {};
-                clearValues[0].color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
-                clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
-                renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-                renderPassInfo.pClearValues = clearValues.data();
-
-                commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.graphicsPipeline);
-                
-                vk::Buffer vertexBuffers[] = {vertexBuffer.buffer}; // TODO
-                vk::DeviceSize offsets[] = {0};
-                
-                commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
-                commandBuffers[i].bindIndexBuffer(indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, 1, &descriptor.sets[i], 0, nullptr);
-
-                commandBuffers[i].drawIndexed(nIndices, 1, 0, 0, 0);
-                commandBuffers[i].endRenderPass();
-                commandBuffers[i].end();
-
-                images[i].commandbuffer = commandBuffers[i];
-            }
         }
     };
 };
