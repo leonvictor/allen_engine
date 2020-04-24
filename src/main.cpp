@@ -33,7 +33,6 @@
 #include "core/device.hpp"
 #include "core/context.hpp"
 #include "core/swapchain.cpp"
-#include "core/renderpass.hpp"
 #include "core/buffer.cpp"
 #include "core/descriptor.cpp"
 #include "core/pipeline.cpp"
@@ -82,8 +81,6 @@ private:
 
     core::Swapchain swapchain;
 
-    core::RenderPass renderPass;
-    
     core::Descriptor descriptor;
 
     core::Pipeline graphicsPipeline;
@@ -198,20 +195,18 @@ private:
         // but surface is contained in swapchain which require device to be initialized.
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
         swapchain.init(device, window); // TODO: Swapchain are part of a Context
-        renderPass.init(device, swapchain);
+        // renderPass.init(device, swapchain);
         descriptor = core::Descriptor(device, static_cast<uint32_t>(swapchain.images.size()));
         descriptor.createDescriptorSetLayout(); // The layout is used by the graphics pipeline
 
-        graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
-        swapchain.initFramebuffers(renderPass.renderPass);
+        graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
+        swapchain.initFramebuffers(swapchain.renderPass);
         context->createCommandPools(device);
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
-        // createTextureSampler();
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
-        // createDescriptorPool();
         descriptor.createDescriptorPool(swapchain.images.size());
         descriptor.createDescriptorSets(swapchain.images.size(), uniformBuffers, *texture);
         createCommandBuffers();
@@ -333,8 +328,16 @@ private:
         }
     }
 
+    /* Command buffers associated with each swapchain image 
+     * Requires references to :
+     *  - graphics command pool
+     *  - render pass
+     *  - swapchain image framebuffer
+     *  - pipelines
+     *  - vertex and index buffers
+     *  - descriptors
+     */
     void createCommandBuffers() {
-        // commandBuffers.resize(swapchainFramebuffers.size());
         commandBuffers.resize(swapchain.images.size());
 
         VkCommandBufferAllocateInfo allocInfo = {};
@@ -361,7 +364,7 @@ private:
             // Start a render pass. TODO: Why is that here ?
             VkRenderPassBeginInfo renderPassInfo = {};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = renderPass.renderPass;
+            renderPassInfo.renderPass = swapchain.renderPass;
             // renderPassInfo.framebuffer = swapchainFramebuffers[i];
             renderPassInfo.framebuffer = swapchain.images[i].framebuffer;
             renderPassInfo.renderArea.extent = swapchain.extent;
@@ -377,7 +380,6 @@ private:
             
             vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.graphicsPipeline);
             
-            // VkBuffer vertexBuffers[] = {VkBuffer(vertexBuffer)}; // TODO
             VkBuffer vertexBuffers[] = {VkBuffer(vertexBuffer->buffer)}; // TODO
             VkDeviceSize offsets[] = {0};
             
@@ -386,7 +388,6 @@ private:
             
             // vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
             auto set = VkDescriptorSet(descriptor.sets[i]);
-            // vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.layout, 0, 1, descriptor.sets[i], 0, nullptr);
             vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.layout, 0, 1, &set, 0, nullptr);
 
             vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(model.indices.size()), 1, 0, 0, 0);
@@ -425,9 +426,9 @@ private:
 
         cleanupSwapchain();
         swapchain.init(device, window);
-        renderPass.init(device, swapchain);
-        graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, renderPass.renderPass);
-        swapchain.initFramebuffers(renderPass.renderPass);
+        // renderPass.init(device, swapchain);
+        graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
+        swapchain.initFramebuffers(swapchain.renderPass);
 
         createUniformBuffers();
         descriptor.createDescriptorPool(swapchain.images.size());
@@ -592,7 +593,7 @@ private:
         vkDestroyPipeline(device->getCDevice(), graphicsPipeline.graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device->getCDevice(), graphicsPipeline.layout, nullptr);
 
-        vkDestroyRenderPass(device->getCDevice(), renderPass, nullptr);
+        vkDestroyRenderPass(device->getCDevice(), swapchain.renderPass, nullptr);
 
         for (auto image : swapchain.images) {
             vkDestroyImageView(device->getCDevice(), image.imageView, nullptr);

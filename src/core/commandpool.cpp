@@ -28,6 +28,7 @@ namespace core {
         std::vector<vk::CommandBuffer> beginSingleTimeCommands() {
             assert(pool && "You are trying to use an unallocated command pool.");
 
+            // TODO: Replace w/ allocate fn
             vk::CommandBufferAllocateInfo allocInfo;
             allocInfo.level = vk::CommandBufferLevel::ePrimary;
             allocInfo.commandPool = pool;
@@ -61,6 +62,15 @@ namespace core {
             queue.waitIdle(); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
 
             device->logicalDevice.freeCommandBuffers(pool, commandBuffers);
+        }
+
+        std::vector<vk::CommandBuffer> allocateCommandBuffers(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const {
+            vk::CommandBufferAllocateInfo allocInfo;
+            allocInfo.commandPool = pool;
+            allocInfo.commandBufferCount = count;
+            allocInfo.level = level; // Or secondary
+
+            return device->logicalDevice.allocateCommandBuffers(allocInfo);
         }
     private:
     };
