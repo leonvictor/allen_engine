@@ -12,13 +12,22 @@ namespace core {
         vk::Pipeline graphicsPipeline; // TODO: Should be family-agnostic (i.e rename to "pipeline")
         vk::PipelineLayout layout;
 
-        Pipeline() {
+        Pipeline() {}
+
+        Pipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, vk::DescriptorSetLayout descriptorSetLayout, vk::RenderPass renderPass) {
             // TODO
+            this->device = device;
+            createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
         }
 
-        ~Pipeline() {
-            // TODO
+        void cleanup() {
+            
+            device->logicalDevice.destroyPipeline(graphicsPipeline);
+            device->logicalDevice.destroyPipelineLayout(layout);
         }
+        // ~Pipeline() {
+            // TODO
+        // }
 
         /* WIP : Requires some other classes to be moved first 
         * TODO: Move graphics specific stuff out ?
@@ -139,9 +148,6 @@ namespace core {
             layoutInfo.pSetLayouts = &descriptorSetLayout;
 
             this->layout = device->logicalDevice.createPipelineLayout(layoutInfo);
-            // if (vkCreatePipelineLayout(device, &layoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-                // throw std::runtime_error("Failed to create pipeline layout.");
-            // }
 
             // Finally create the graphics pipeline !
             vk::GraphicsPipelineCreateInfo pipelineInfo;
@@ -170,14 +176,9 @@ namespace core {
             pipelineInfo.basePipelineHandle = vk::Pipeline();
 
             graphicsPipeline = device->logicalDevice.createGraphicsPipeline(vk::PipelineCache(), pipelineInfo); // TODO
-            // if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-            //     throw std::runtime_error("Failed to create Graphics pipeline");
-            // }
 
             device->logicalDevice.destroyShaderModule(vertShaderModule);
             device->logicalDevice.destroyShaderModule(fragShaderModule);
-            // vkDestroyShaderModule(device, vertShaderModule, nullptr);
-            // vkDestroyShaderModule(device, fragShaderModule, nullptr);
         }
 
     private:

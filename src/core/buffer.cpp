@@ -23,15 +23,24 @@ namespace core {
             allocate(memProperties);
         }
 
-        ~Buffer() {
+        // ~Buffer() {
+        //     if (mapped) {
+        //         unmap();
+        //     }
+        //     if (memory) {
+        //         device->logicalDevice.destroyBuffer(buffer);
+        //         device->logicalDevice.freeMemory(memory);
+        //     }
+        // }
+        void cleanup() {
             if (mapped) {
                 unmap();
             }
-            if (memory) {
-                device->logicalDevice.destroyBuffer(buffer);
-                device->logicalDevice.freeMemory(memory);
-            }
+            device->logicalDevice.destroyBuffer(buffer);
+            device->logicalDevice.freeMemory(memory);
         }
+        // vkDestroyBuffer(device->getCDevice(), *uniformBuffers[i], nullptr);
+                // vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
 
         inline void* map(size_t offset, vk::DeviceSize size) {
             mapped = device->logicalDevice.mapMemory(memory, offset, size, vk::MemoryMapFlags());

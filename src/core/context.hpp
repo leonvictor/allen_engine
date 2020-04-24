@@ -1,13 +1,15 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include <GLFW/glfw3.h>
+
 #include "device.hpp"
 #include "commandpool.cpp"
 #include "buffer.cpp"
-#include <GLFW/glfw3.h>
-#include <memory>
 
+#include <memory>
 #include <iostream>
+
 
 
 namespace core {
@@ -21,7 +23,7 @@ namespace core {
 
         vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> debugMessenger;
 
-        const std::string TEXTURE_PATH = "assets/textures/camel.jpg"; // TODO: Nope ! Chuck testa
+        // const std::string TEXTURE_PATH = "assets/textures/camel.jpg"; // TODO: Nope ! Chuck testa
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation",

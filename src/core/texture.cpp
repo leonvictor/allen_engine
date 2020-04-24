@@ -55,6 +55,8 @@ namespace core {
             generateMipMaps(image, vk::Format::eR8G8B8A8Srgb, texWidth, texHeight, mipLevels);
 
             image.initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, mipLevels);
+
+            stagingBuffer.cleanup();
         }
 
         /* TODO :

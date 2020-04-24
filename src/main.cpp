@@ -54,12 +54,6 @@ const std::vector<const char*> validationLayers = {
     const bool enableValidationLayers = true;
 #endif
 
-struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 projection; 
-};
-
 class Engine {
 public:
     Engine() {
@@ -79,23 +73,10 @@ private:
 
     core::Swapchain swapchain;
 
-    core::Descriptor descriptor;
-
-    core::Pipeline graphicsPipeline;
-
-    // std::vector<VkSemaphore> imageAvailableSemaphores;
-    // std::vector<VkSemaphore> renderFinishedSemaphores;
-    // std::vector<VkFence> inFlightFences;
-    // std::vector<VkFence> imagesInFlight;
-
     size_t currentFrame = 0;
     
     std::shared_ptr<core::Buffer> vertexBuffer;
     std::shared_ptr<core::Buffer> indexBuffer;
-    std::vector<std::shared_ptr<core::Buffer>> uniformBuffers;
-
-    VkBuffer lightUniformBuffer;
-    VkDeviceMemory lightUniformBufferMemory;
 
     uint32_t textureMipLevels;
 
@@ -108,11 +89,11 @@ private:
     glm::vec2 lastMousePos;
 
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
-    const glm::vec3 WORLD_BACKWARD = glm::vec3(0.0f, 0.0f, -1.0f);
+    const glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
     const glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
-    const glm::vec3 WORLD_LEFT = glm::vec3(-1.0f, 0.0f, 0.0f);
+    const glm::vec3 WORLD_LEFT = -WORLD_RIGHT;
     const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
-    const glm::vec3 WORLD_DOWN = glm::vec3(0.0f, -1.0f, 0.0f);
+    const glm::vec3 WORLD_DOWN = -WORLD_UP;
 
     Camera camera = Camera(WORLD_BACKWARD * 2.0f, WORLD_UP, 90.0f, 0.0f, 0.0f);
 
@@ -191,64 +172,26 @@ private:
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
         swapchain.init(device, window); // TODO: Swapchain are part of a Context
         // renderPass.init(device, swapchain);
-        descriptor = core::Descriptor(device, static_cast<uint32_t>(swapchain.images.size()));
-        descriptor.createDescriptorSetLayout(); // The layout is used by the graphics pipeline
-
-        graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
-        swapchain.initFramebuffers(swapchain.renderPass);
+        // descriptor = core::Descriptor(device, static_cast<uint32_t>(swapchain.images.size()));
+        // descriptor.createDescriptorSetLayout(); // The layout is used by the graphics pipeline
+        // swapchain.createGraphicsPipeline();
+        // graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
+        // swapchain.initFramebuffers(swapchain.renderPass);
         context->createCommandPools(device);
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
-        createUniformBuffers();
-        descriptor.createDescriptorPool(swapchain.images.size());
-        descriptor.createDescriptorSets(swapchain.images.size(), uniformBuffers, *texture);
-        swapchain.createCommandBuffers(context->graphicsCommandPool, graphicsPipeline, *vertexBuffer, *indexBuffer, descriptor, model.indices.size());
-        swapchain.createSyncObjects();
+        // createUniformBuffers();
+        // descriptor.createDescriptorPool(swapchain.images.size());
+        swapchain.createDescriptorSets(*texture);
+        swapchain.createCommandBuffers(context->graphicsCommandPool, *vertexBuffer, *indexBuffer, model.indices.size());
+        // swapchain.createSyncObjects();
     }
 
     void loadModel() {
         model = Mesh::fromObj(MODEL_PATH);
     }
-
-    bool hasStencilComponent(VkFormat format) {
-        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-    }
-
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-        for (VkFormat format : candidates) {
-            VkFormatProperties formatProperties;
-            vkGetPhysicalDeviceFormatProperties(device->physicalDevice, format, &formatProperties);
-            if (tiling == VK_IMAGE_TILING_LINEAR && (formatProperties.linearTilingFeatures & features) == features) {
-                return format;
-            } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (formatProperties.optimalTilingFeatures & features) == features) {
-                return format;
-            }
-
-            throw std::runtime_error("Failed to find a supported format.");
-            
-        }
-        VkFormat truc;
-        return truc;
-    }
-
-    /* TODO: Where should this go ?  There is one for each swapchain image so probably in the swapchain ? */
-    void createUniformBuffers() {
-        vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-        
-        uniformBuffers.resize(swapchain.images.size());
-
-        for (size_t i = 0; i < swapchain.images.size(); i++) {
-            uniformBuffers[i] = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        }
-    }
-
-    void updateUniformBuffers(uint32_t currentImage, UniformBufferObject ubo) { 
-        uniformBuffers[currentImage]->map(0, sizeof(ubo));
-        uniformBuffers[currentImage]->copy(&ubo, sizeof(ubo));
-        uniformBuffers[currentImage]->unmap();
-    }   
 
     void createVertexBuffer() {
         vk::DeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
@@ -261,6 +204,8 @@ private:
 
         vertexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         context->copyBuffer(stagingBuffer, *vertexBuffer, bufferSize);
+
+        stagingBuffer.cleanup();
     }
 
     void createIndexBuffer() {
@@ -274,42 +219,8 @@ private:
 
         indexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         context->copyBuffer(stagingBuffer, *indexBuffer, bufferSize);
-    }
 
-    
-    // Moved to device
-    /* Combine memory requirements of a buffer, the app requirements and the physical device's property to find the right type of memory to use. 
-     * @args:
-     *      typeFilter : Suitable bit field of memory types
-     *      properties : Required properties
-     */
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(device->physicalDevice, &memProperties);
-        
-        // TODO sometimes, consider heaps...
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if (typeFilter & (1 << i) && // Check if the memory type's bit is set to 1
-                (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { // We also need to be able to write our vertex data to the memory
-                return i;
-            }
-        }
-
-        throw std::runtime_error("Failed to find suitable memory type.");
-
-    }
-
-    VkShaderModule createShaderModule(const std::vector<char>& code) {
-        VkShaderModuleCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(device->getCDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("ShaderModule creation failed.");
-        }
-        return shaderModule;
+        stagingBuffer.cleanup();
     }
 
     void recreateSwapchain() {
@@ -324,13 +235,13 @@ private:
 
         cleanupSwapchain();
         swapchain.init(device, window);
-        graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
-        swapchain.initFramebuffers(swapchain.renderPass);
+        // graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
+        // swapchain.initFramebuffers(swapchain.renderPass);
 
-        createUniformBuffers();
-        descriptor.createDescriptorPool(swapchain.images.size());
-        descriptor.createDescriptorSets(swapchain.images.size(), uniformBuffers, *texture);
-        swapchain.createCommandBuffers(context->graphicsCommandPool, graphicsPipeline, *vertexBuffer, *indexBuffer, descriptor, model.indices.size());
+        // createUniformBuffers();
+        // descriptor.createDescriptorPool(swapchain.images.size());
+        swapchain.createDescriptorSets(*texture);
+        swapchain.createCommandBuffers(context->graphicsCommandPool, *vertexBuffer, *indexBuffer, model.indices.size());
     }
 
     void mainLoop() {
@@ -357,14 +268,14 @@ private:
             for (int i = 0; i < 1; i++) { // TODO: Just one to display smth
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
-                UniformBufferObject ubo = {};
+                core::UniformBufferObject ubo = {};
                 // ubo.model = model.getModelMatrix();
                 ubo.model = modelMatrix;
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
                 
-                updateUniformBuffers(imageIndex, ubo);
+                swapchain.updateUniformBuffers(imageIndex, ubo);
             }
             endDrawFrame(imageIndex);
         }
@@ -394,17 +305,15 @@ private:
 
     uint8_t beginDrawFrame() {
         // Wait for the fence
-        auto f = VkFence(swapchain.inFlightFences[currentFrame]);
-        vkWaitForFences(device->getCDevice(), 1, &f, VK_TRUE, UINT64_MAX);
+        device->logicalDevice.waitForFences(swapchain.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
-
-        VkResult result = vkAcquireNextImageKHR(device->getCDevice(), swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        vk::Result result = device->logicalDevice.acquireNextImageKHR(swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
         
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        if (result == vk::Result::eErrorOutOfDateKHR) {
             recreateSwapchain();
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
             throw std::runtime_error("Failed to acquire swap chain image.");
         }
 
@@ -422,7 +331,7 @@ private:
         vk::SubmitInfo submitInfo;
         
         // At which stage should we wait for each semaphores (in the same order)
-        vk::Semaphore waitSemaphores = {VkSemaphore(swapchain.imageAvailableSemaphores[currentFrame])};
+        vk::Semaphore waitSemaphores = {swapchain.imageAvailableSemaphores[currentFrame]};
         vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
         
         submitInfo.waitSemaphoreCount = 1;
@@ -459,49 +368,7 @@ private:
     }
 
     void cleanupSwapchain() {
-        vkDestroyImageView(device->getCDevice(), swapchain.colorImage.view, nullptr);
-        vkDestroyImage(device->getCDevice(), swapchain.colorImage.image, nullptr);
-        vkFreeMemory(device->getCDevice(), swapchain.colorImage.memory, nullptr);
-
-        // TODO: Move this out
-        vkDestroyImageView(device->getCDevice(), swapchain.depthImage.view, nullptr);
-        vkDestroyImage(device->getCDevice(), swapchain.depthImage.image, nullptr);
-        vkFreeMemory(device->getCDevice(), swapchain.depthImage.memory, nullptr);
-
-        // for (auto framebuffer : swapchainFramebuffers) {
-        //     vkDestroyFramebuffer(device->getCDevice(), framebuffer, nullptr);
-        // }
-
-        for (auto img : swapchain.images) {
-            vkDestroyFramebuffer(device->getCDevice(), img.framebuffer, nullptr);
-            // vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context->graphicsCommandPool), 1, img.commandbuffer);
-        }
-        
-        // vkFreeCommandBuffers(device->getCDevice(), graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-        // vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context->graphicsCommandPool), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-        // vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context->graphicsCommandPool), static_cast<uint32_t>(swapchain.images.size()), commandBuffers.data());
-
-        vkDestroyPipeline(device->getCDevice(), graphicsPipeline.graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(device->getCDevice(), graphicsPipeline.layout, nullptr);
-
-        vkDestroyRenderPass(device->getCDevice(), swapchain.renderPass, nullptr);
-
-        for (auto image : swapchain.images) {
-            vkDestroyImageView(device->getCDevice(), image.imageView, nullptr);
-        }
-
-        vkDestroySwapchainKHR(device->getCDevice(), swapchain.swapchain, nullptr);
-
-        // Should this be before swap chain destruction ?
-        for (size_t i = 0; i < swapchain.images.size(); i++) {
-            // TODO: Not good!
-            uniformBuffers[i].reset();
-            // vkDestroyBuffer(device->getCDevice(), *uniformBuffers[i], nullptr);
-            // vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
-        }
-
-        // TODO: Move.
-        vkDestroyDescriptorPool(device->getCDevice(), descriptor.pool, nullptr);
+        swapchain.cleanup();
     }
 
     void cleanup() {
@@ -512,14 +379,14 @@ private:
         vkDestroyImage(device->getCDevice(), texture->image, nullptr);
         vkFreeMemory(device->getCDevice(), texture->image.memory, nullptr);
 
-        vkDestroyDescriptorSetLayout(device->getCDevice(), descriptor.setLayout, nullptr);
+        vkDestroyDescriptorSetLayout(device->getCDevice(), swapchain.descriptor.setLayout, nullptr);
 
         /* TODO: shared_ptr buffers use RAII and free their memory when they're deleted. In our current flow this happens 
         * when the Engine is released. Unfortunately, when freeing Device in the cleanup() function buffers have to be already freed aswell 
         * I think there's a better way to handle all that...
         */
-        vertexBuffer.reset();
-        indexBuffer.reset();
+        vertexBuffer->cleanup();
+        indexBuffer->cleanup();
         // vkDestroyBuffer(device->getCDevice(), vertexBuffer->buffer, nullptr);
         // vkFreeMemory(device->getCDevice(), vertexBuffer->memory, nullptr);
 

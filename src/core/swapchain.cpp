@@ -17,15 +17,31 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 namespace core {
     struct SwapchainImage {
+        vk::Framebuffer framebuffer;
+        vk::CommandBuffer commandbuffer;
         vk::Image image;
         vk::ImageView imageView;
         vk::Fence fence;
-        vk::Framebuffer framebuffer;
-        vk::CommandBuffer commandbuffer;
+        
+        void cleanup(vk::Device& device, const vk::CommandPool& commandPool) {
+            device.destroyFramebuffer(framebuffer);
+            device.freeCommandBuffers(commandPool, commandbuffer);
+
+            // After pipeline and renderPass ? 
+            device.destroyImageView(imageView);
+            
+            // device.logicalDevice.destroyImage(image);
+            // device.logicalDevice.freeMemory(memory);
+        }
     };
 
     class Swapchain {
     public:
+        core::Image colorImage;
+        core::Image depthImage;
+
+        core::Descriptor descriptor;
+        core::Pipeline graphicsPipeline;
         vk::SurfaceKHR surface;
         vk::SwapchainKHR swapchain;
         vk::PresentInfoKHR presentInfo;
@@ -35,12 +51,12 @@ namespace core {
         vk::Format imageFormat;
         vk::Extent2D extent;
 
-        core::Image depthImage;
-        core::Image colorImage;
+        std::vector<std::shared_ptr<core::Buffer>> uniformBuffers;
 
         vk::RenderPass renderPass;
 
         std::shared_ptr<core::Device> device;
+        core::CommandPool commandPool;
 
         std::vector<vk::Semaphore> imageAvailableSemaphores;
         std::vector<vk::Semaphore> renderFinishedSemaphores;
@@ -59,6 +75,7 @@ namespace core {
         }
 
         // TODO: const context ?
+        // TODO: Normalize object construction
         void init(std::shared_ptr<core::Device> device, GLFWwindow *window) {
             // TODO: Should device and context be application wide ?
             // Store a pointer to them ?
@@ -70,13 +87,20 @@ namespace core {
             createDepthResources();
             createColorResources();
             createRenderPass();
+            descriptor = core::Descriptor(device, static_cast<uint32_t>(images.size()));
+            descriptor.createDescriptorSetLayout();
+            graphicsPipeline.createGraphicsPipeline(device, extent, descriptor.setLayout, renderPass);
+            initFramebuffers();
+            createUniformBuffers();
+            createSyncObjects();
+            descriptor.createDescriptorPool(images.size());
 
             initialized = true;
         }
 
-        void initFramebuffers(vk::RenderPass renderpass) {  
+        void initFramebuffers() {  
             for (int i = 0; i < images.size(); i++) {
-                images[i].framebuffer = createFramebuffer(images[i].imageView, renderpass);;
+                images[i].framebuffer = createFramebuffer(images[i].imageView, renderPass);
             }
         }
 
@@ -87,6 +111,10 @@ namespace core {
 
         bool isInitialized() {
             return initialized;
+        }
+
+        void createDescriptorSets(const core::Texture &texture) {
+            descriptor.createDescriptorSets(images.size(), uniformBuffers, texture);
         }
 
         void createRenderPass() {
@@ -167,10 +195,11 @@ namespace core {
             renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
-        void createCommandBuffers(const core::CommandPool& commandPool, const core::Pipeline& pipeline,
+        void createCommandBuffers(const core::CommandPool& commandPool,
                 core::Buffer& vertexBuffer, core::Buffer& indexBuffer, // TODO: Move this out. Maybe from a model ?
-                const core::Descriptor& descriptor, int nIndices) {
+                int nIndices) {
 
+            this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
 
             for (size_t i = 0; i < images.size(); i++) {
@@ -190,14 +219,14 @@ namespace core {
                 renderPassInfo.pClearValues = clearValues.data();
 
                 commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.graphicsPipeline);
+                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline.graphicsPipeline);
                 
                 vk::Buffer vertexBuffers[] = {vertexBuffer.buffer}; // TODO
                 vk::DeviceSize offsets[] = {0};
                 
                 commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
                 commandBuffers[i].bindIndexBuffer(indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, 1, &descriptor.sets[i], 0, nullptr);
+                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, 1, &descriptor.sets[i], 0, nullptr);
 
                 commandBuffers[i].drawIndexed(nIndices, 1, 0, 0, 0);
                 commandBuffers[i].endRenderPass();
@@ -208,21 +237,66 @@ namespace core {
         }
 
         void createSyncObjects() {
-        imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        
-        vk::SemaphoreCreateInfo semaphoreInfo;
+            imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+            renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+            inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+            
+            vk::SemaphoreCreateInfo semaphoreInfo;
 
-        vk::FenceCreateInfo fenceInfo;
-        fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled; // Create fences in the signaled state
-        
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            imageAvailableSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
-            renderFinishedSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
-            inFlightFences[i] = device->logicalDevice.createFence(fenceInfo, nullptr);
+            vk::FenceCreateInfo fenceInfo;
+            fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled; // Create fences in the signaled state
+            
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                imageAvailableSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
+                renderFinishedSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
+                inFlightFences[i] = device->logicalDevice.createFence(fenceInfo, nullptr);
+            }
         }
-    }
+
+            /* TODO: Where should this go ?  There is one for each swapchain image so probably in the swapchain ? */
+        void createUniformBuffers() {
+            vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+            
+            uniformBuffers.resize(images.size());
+
+            for (size_t i = 0; i < images.size(); i++) {
+                uniformBuffers[i] = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+            }
+        }
+
+        void updateUniformBuffers(uint32_t currentImage, UniformBufferObject ubo) { 
+            uniformBuffers[currentImage]->map(0, sizeof(ubo));
+            uniformBuffers[currentImage]->copy(&ubo, sizeof(ubo));
+            uniformBuffers[currentImage]->unmap();
+        }
+
+        void cleanup() {
+            colorImage.cleanup();
+            depthImage.cleanup();
+
+            for (auto img : images) {
+                // vkDestroyFramebuffer(device->getCDevice(), img.framebuffer, nullptr);
+                img.cleanup(device->logicalDevice, commandPool.pool);
+                // vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context->graphicsCommandPool), 1, img.commandbuffer);
+            }
+            
+            graphicsPipeline.cleanup();
+            device->logicalDevice.destroyRenderPass(renderPass);
+
+            device->logicalDevice.destroySwapchainKHR(swapchain);
+
+            // Should this be before swap chain destruction ?
+            for (size_t i = 0; i < uniformBuffers.size(); i++) {
+                // TODO: Not good!
+                uniformBuffers[i]->cleanup();
+                // vkDestroyBuffer(device->getCDevice(), *uniformBuffers[i], nullptr);
+                // vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
+            }
+
+            // TODO: Move.
+            device->logicalDevice.destroyDescriptorPool(descriptor.pool);
+            // vkDestroyDescriptorPool(device->getCDevice(), descriptor.pool, nullptr);
+        }
     private:
         bool initialized = false;
 
@@ -319,10 +393,11 @@ namespace core {
 
                 auto view = core::Image::createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1);
                 images[i] = {
+                    nullptr,
+                    nullptr, // Framebuffers are initialized after the renderpass TODO: This is bad practice
                     imgs[i],
                     view,
-                    vk::Fence(), // TODO: make sure this is nullptr
-                    nullptr // Framebuffers are initialized after the renderpass TODO: This is bad practice
+                    vk::Fence() // TODO: make sure this is nullptr
                 };
             }
         }

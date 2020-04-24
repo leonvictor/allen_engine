@@ -52,6 +52,20 @@ namespace core {
             view = createImageView(device, this->image, format, aspectMask, mipLevels);
         }
 
+        // ~Image() {
+        //     // TODO: We might not need this with Unique stuff ?
+        //     device->logicalDevice.destroyImageView(view);
+        //     device->logicalDevice.destroyImage(image);
+        //     device->logicalDevice.freeMemory(memory);
+        // }
+
+        void cleanup() {
+            // TODO: We might not need this with Unique stuff ?
+            device->logicalDevice.destroyImageView(view);
+            device->logicalDevice.destroyImage(image);
+            device->logicalDevice.freeMemory(memory);
+        }
+
         operator vk::Image() { return image; }
 
         operator VkImage() { return VkImage(image); } // Legacy operator. // TODO: Remove 
