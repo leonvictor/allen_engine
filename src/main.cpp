@@ -169,24 +169,22 @@ private:
         context = std::make_shared<core::Context>();
         swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
         // but surface is contained in swapchain which require device to be initialized.
+        
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
-        swapchain.init(device, window); // TODO: Swapchain are part of a Context
-        // renderPass.init(device, swapchain);
-        // descriptor = core::Descriptor(device, static_cast<uint32_t>(swapchain.images.size()));
-        // descriptor.createDescriptorSetLayout(); // The layout is used by the graphics pipeline
-        // swapchain.createGraphicsPipeline();
-        // graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
-        // swapchain.initFramebuffers(swapchain.renderPass);
         context->createCommandPools(device);
+
+        swapchain.init(device, window); // TODO: Swapchain are part of a Context
+        
+
+        /* Model attributes */
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
-        // createUniformBuffers();
-        // descriptor.createDescriptorPool(swapchain.images.size());
+
+        /* Swapchain components that rely on model parameters */
         swapchain.createDescriptorSets(*texture);
         swapchain.createCommandBuffers(context->graphicsCommandPool, *vertexBuffer, *indexBuffer, model.indices.size());
-        // swapchain.createSyncObjects();
     }
 
     void loadModel() {
@@ -226,6 +224,7 @@ private:
     void recreateSwapchain() {
         int width = 0, height = 0;
         glfwGetFramebufferSize(window, &width, &height);
+        
         while (width == 0 || height == 0) { // While the window is minimized,
             glfwGetFramebufferSize(window, &width, &height);
             glfwWaitEvents(); // Pause the app.
@@ -234,12 +233,8 @@ private:
         vkDeviceWaitIdle(device->getCDevice());
 
         cleanupSwapchain();
-        swapchain.init(device, window);
-        // graphicsPipeline.createGraphicsPipeline(device, swapchain.extent, descriptor.setLayout, swapchain.renderPass);
-        // swapchain.initFramebuffers(swapchain.renderPass);
-
-        // createUniformBuffers();
-        // descriptor.createDescriptorPool(swapchain.images.size());
+        
+        swapchain.recreate(window);
         swapchain.createDescriptorSets(*texture);
         swapchain.createCommandBuffers(context->graphicsCommandPool, *vertexBuffer, *indexBuffer, model.indices.size());
     }
@@ -268,8 +263,8 @@ private:
             for (int i = 0; i < 1; i++) { // TODO: Just one to display smth
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
-                core::UniformBufferObject ubo = {};
-                // ubo.model = model.getModelMatrix();
+                
+                core::UniformBufferObject ubo;;
                 ubo.model = modelMatrix;
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
@@ -356,8 +351,15 @@ private:
         presentInfo.pWaitSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
         presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
 
-        vk::Result result = device->graphicsQueue.presentKHR(presentInfo);
-        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized) {
+        bool recreationNeeded = false;
+        vk::Result result;
+        try {
+            result = device->graphicsQueue.presentKHR(presentInfo);
+        } catch (vk::OutOfDateKHRError const &e) {
+            result = vk::Result::eErrorOutOfDateKHR;
+        }
+
+        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized) { 
             framebufferResized = true;
             recreateSwapchain();
         } else if (result != vk::Result::eSuccess) {
@@ -368,7 +370,7 @@ private:
     }
 
     void cleanupSwapchain() {
-        swapchain.cleanup();
+        swapchain.destroyRefreshableObjects();
     }
 
     void cleanup() {
@@ -387,11 +389,6 @@ private:
         */
         vertexBuffer->cleanup();
         indexBuffer->cleanup();
-        // vkDestroyBuffer(device->getCDevice(), vertexBuffer->buffer, nullptr);
-        // vkFreeMemory(device->getCDevice(), vertexBuffer->memory, nullptr);
-
-        // vkDestroyBuffer(device->getCDevice(), indexBuffer->buffer, nullptr);
-        // vkFreeMemory(device->getCDevice(), indexBuffer->memory, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device->getCDevice(), swapchain.imageAvailableSemaphores[i], nullptr);

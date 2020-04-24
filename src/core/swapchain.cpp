@@ -29,9 +29,9 @@ namespace core {
 
             // After pipeline and renderPass ? 
             device.destroyImageView(imageView);
-            
-            // device.logicalDevice.destroyImage(image);
-            // device.logicalDevice.freeMemory(memory);
+            // if (fence) {
+            //     device.destroyFence(fence);
+            // }
         }
     };
 
@@ -74,7 +74,20 @@ namespace core {
             surface = vk::SurfaceKHR(pSurface);
         }
 
-        // TODO: const context ?
+        void recreate(GLFWwindow *window) {
+            createSwapchain(window);
+            createImages();
+            createRenderPass();
+            graphicsPipeline.createGraphicsPipeline(device, extent, descriptor.setLayout, renderPass);
+            createDepthResources();
+            createColorResources();
+            createFramebuffers();
+            createUniformBuffers();
+            descriptor.createDescriptorPool(images.size());
+
+            // TODO : Add descriptor sets and command buffers here
+        }
+
         // TODO: Normalize object construction
         void init(std::shared_ptr<core::Device> device, GLFWwindow *window) {
             // TODO: Should device and context be application wide ?
@@ -90,15 +103,13 @@ namespace core {
             descriptor = core::Descriptor(device, static_cast<uint32_t>(images.size()));
             descriptor.createDescriptorSetLayout();
             graphicsPipeline.createGraphicsPipeline(device, extent, descriptor.setLayout, renderPass);
-            initFramebuffers();
+            createFramebuffers();
             createUniformBuffers();
             createSyncObjects();
             descriptor.createDescriptorPool(images.size());
-
-            initialized = true;
         }
 
-        void initFramebuffers() {  
+        void createFramebuffers() {  
             for (int i = 0; i < images.size(); i++) {
                 images[i].framebuffer = createFramebuffer(images[i].imageView, renderPass);
             }
@@ -106,11 +117,6 @@ namespace core {
 
         void destroy() {
             //TODO
-            initialized = false;
-        }
-
-        bool isInitialized() {
-            return initialized;
         }
 
         void createDescriptorSets(const core::Texture &texture) {
@@ -270,36 +276,37 @@ namespace core {
             uniformBuffers[currentImage]->unmap();
         }
 
-        void cleanup() {
+        /* Destroy the parts we need to recreate */
+        void destroyRefreshableObjects() {
             colorImage.cleanup();
             depthImage.cleanup();
 
             for (auto img : images) {
-                // vkDestroyFramebuffer(device->getCDevice(), img.framebuffer, nullptr);
                 img.cleanup(device->logicalDevice, commandPool.pool);
-                // vkFreeCommandBuffers(device->getCDevice(), VkCommandPool(context->graphicsCommandPool), 1, img.commandbuffer);
             }
-            
+
             graphicsPipeline.cleanup();
             device->logicalDevice.destroyRenderPass(renderPass);
 
             device->logicalDevice.destroySwapchainKHR(swapchain);
-
-            // Should this be before swap chain destruction ?
+        
             for (size_t i = 0; i < uniformBuffers.size(); i++) {
-                // TODO: Not good!
                 uniformBuffers[i]->cleanup();
-                // vkDestroyBuffer(device->getCDevice(), *uniformBuffers[i], nullptr);
-                // vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
             }
 
-            // TODO: Move.
             device->logicalDevice.destroyDescriptorPool(descriptor.pool);
-            // vkDestroyDescriptorPool(device->getCDevice(), descriptor.pool, nullptr);
+        }
+
+        void cleanup() {
+            destroyRefreshableObjects();
+            
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
+                device->logicalDevice.destroySemaphore(renderFinishedSemaphores[i]);
+                device->logicalDevice.destroyFence(inFlightFences[i]);
+            }
         }
     private:
-        bool initialized = false;
-
         void createSwapchain(GLFWwindow *window) {
             core::SwapchainSupportDetails swapchainSupport = core::querySwapchainSupport(device->physicalDevice, surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
