@@ -29,7 +29,12 @@ namespace core {
             createSampler();
         }
 
-    private:
+        void destroy() {
+            device->logicalDevice.destroySampler(sampler);
+            image.destroy();
+        }
+        
+        private:
         void createTextureImage(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path) {
             
             int texWidth, texHeight, texChannels;
@@ -56,11 +61,10 @@ namespace core {
 
             image.initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, mipLevels);
 
-            stagingBuffer.cleanup();
+            stagingBuffer.destroy();
         }
 
         /* TODO :
-         * - Convert to vk.hpp
          * - Move to logical place
          */
         void generateMipMaps(vk::Image image, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels) {

@@ -20,8 +20,7 @@ namespace core {
             createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
         }
 
-        void cleanup() {
-            
+        void destroy() {
             device->logicalDevice.destroyPipeline(graphicsPipeline);
             device->logicalDevice.destroyPipelineLayout(layout);
         }

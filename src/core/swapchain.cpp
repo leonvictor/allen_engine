@@ -115,10 +115,6 @@ namespace core {
             }
         }
 
-        void destroy() {
-            //TODO
-        }
-
         void createDescriptorSets(const core::Texture &texture) {
             descriptor.createDescriptorSets(images.size(), uniformBuffers, texture);
         }
@@ -259,7 +255,6 @@ namespace core {
             }
         }
 
-            /* TODO: Where should this go ?  There is one for each swapchain image so probably in the swapchain ? */
         void createUniformBuffers() {
             vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
             
@@ -277,29 +272,31 @@ namespace core {
         }
 
         /* Destroy the parts we need to recreate */
-        void destroyRefreshableObjects() {
-            colorImage.cleanup();
-            depthImage.cleanup();
+        void cleanup() {
+            colorImage.destroy();
+            depthImage.destroy();
 
             for (auto img : images) {
                 img.cleanup(device->logicalDevice, commandPool.pool);
             }
 
-            graphicsPipeline.cleanup();
+            graphicsPipeline.destroy();
             device->logicalDevice.destroyRenderPass(renderPass);
 
             device->logicalDevice.destroySwapchainKHR(swapchain);
         
             for (size_t i = 0; i < uniformBuffers.size(); i++) {
-                uniformBuffers[i]->cleanup();
+                uniformBuffers[i]->destroy();
             }
 
             device->logicalDevice.destroyDescriptorPool(descriptor.pool);
         }
 
-        void cleanup() {
-            destroyRefreshableObjects();
+        void destroy() {
+            cleanup();
             
+            device->logicalDevice.destroyDescriptorSetLayout(descriptor.setLayout);
+
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
                 device->logicalDevice.destroySemaphore(renderFinishedSemaphores[i]);

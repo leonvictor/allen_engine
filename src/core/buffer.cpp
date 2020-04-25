@@ -32,7 +32,7 @@ namespace core {
         //         device->logicalDevice.freeMemory(memory);
         //     }
         // }
-        void cleanup() {
+        void destroy() {
             if (mapped) {
                 unmap();
             }

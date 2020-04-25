@@ -175,9 +175,10 @@ private:
 
         swapchain.init(device, window); // TODO: Swapchain are part of a Context
         
-
         /* Model attributes */
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
+        
+        /* Application related stuff. How do we handle multiple a complex scene with multiple models ? */
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
@@ -203,7 +204,7 @@ private:
         vertexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         context->copyBuffer(stagingBuffer, *vertexBuffer, bufferSize);
 
-        stagingBuffer.cleanup();
+        stagingBuffer.destroy();
     }
 
     void createIndexBuffer() {
@@ -218,7 +219,7 @@ private:
         indexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         context->copyBuffer(stagingBuffer, *indexBuffer, bufferSize);
 
-        stagingBuffer.cleanup();
+        stagingBuffer.destroy();
     }
 
     void recreateSwapchain() {
@@ -232,10 +233,11 @@ private:
 
         vkDeviceWaitIdle(device->getCDevice());
 
-        cleanupSwapchain();
+        swapchain.cleanup();
         
         swapchain.recreate(window);
-        swapchain.createDescriptorSets(*texture);
+        // TODO: Those two calls should be inside recreate() but require too many parameters for now...
+        swapchain.createDescriptorSets(*texture); 
         swapchain.createCommandBuffers(context->graphicsCommandPool, *vertexBuffer, *indexBuffer, model.indices.size());
     }
 
@@ -369,39 +371,21 @@ private:
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    void cleanupSwapchain() {
-        swapchain.destroyRefreshableObjects();
-    }
-
     void cleanup() {
-        cleanupSwapchain();
+        swapchain.destroy();
 
-        vkDestroySampler(device->getCDevice(), texture->sampler, nullptr);
-        vkDestroyImageView(device->getCDevice(), texture->image.view, nullptr);
-        vkDestroyImage(device->getCDevice(), texture->image, nullptr);
-        vkFreeMemory(device->getCDevice(), texture->image.memory, nullptr);
+        texture.destroy();
 
-        vkDestroyDescriptorSetLayout(device->getCDevice(), swapchain.descriptor.setLayout, nullptr);
-
-        /* TODO: shared_ptr buffers use RAII and free their memory when they're deleted. In our current flow this happens 
-        * when the Engine is released. Unfortunately, when freeing Device in the cleanup() function buffers have to be already freed aswell 
-        * I think there's a better way to handle all that...
-        */
-        vertexBuffer->cleanup();
-        indexBuffer->cleanup();
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroySemaphore(device->getCDevice(), swapchain.imageAvailableSemaphores[i], nullptr);
-            vkDestroySemaphore(device->getCDevice(), swapchain.renderFinishedSemaphores[i], nullptr);
-            vkDestroyFence(device->getCDevice(), swapchain.inFlightFences[i], nullptr);
-        }
+        vertexBuffer->destroy();
+        indexBuffer->destroy();
 
         vkDestroyCommandPool(device->getCDevice(), context->graphicsCommandPool, nullptr);
         vkDestroyCommandPool(device->getCDevice(), context->transferCommandPool, nullptr);
 
         vkDestroyDevice(device->getCDevice(), nullptr);
 
-        vkDestroySurfaceKHR(context->instance.get(), swapchain.surface, nullptr);
+        vkDestroySurfaceKHR(context->instance.get(), swapchain.surface, nullptr); // TODO: either destroy surface at the same time as the rest of the swap chain,
+        // or move it out.
         
         glfwDestroyWindow(window);
         glfwTerminate();
