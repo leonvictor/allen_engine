@@ -17,31 +17,60 @@ class Vertex {
         alignas(16) glm::vec2 texCoord;
         alignas(16) glm::vec3 normal;
 
-        static VkVertexInputBindingDescription getBindingDescription() {
-            VkVertexInputBindingDescription bindingDescription = {};
+        // static VkVertexInputBindingDescription getBindingDescription() {
+        //     VkVertexInputBindingDescription bindingDescription = {};
+        //     bindingDescription.binding = 0;
+        //     bindingDescription.stride = sizeof(Vertex);
+        //     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        //     return bindingDescription;
+        // }
+
+        static vk::VertexInputBindingDescription getBindingDescription() {
+            vk::VertexInputBindingDescription bindingDescription = {};
             bindingDescription.binding = 0;
             bindingDescription.stride = sizeof(Vertex);
-            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            bindingDescription.inputRate = vk::VertexInputRate::eVertex;
             return bindingDescription;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescription() {
-            std::array<VkVertexInputAttributeDescription, 4> attributeDescription = {};
+        // static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescription() {
+        //     std::array<VkVertexInputAttributeDescription, 4> attributeDescription = {};
+        //     attributeDescription[0].binding = 0;
+        //     attributeDescription[0].location = 0;
+        //     attributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        //     attributeDescription[0].offset = offsetof(Vertex, pos);
+        //     attributeDescription[1].binding = 0;
+        //     attributeDescription[1].location = 1;
+        //     attributeDescription[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        //     attributeDescription[1].offset = offsetof(Vertex, color);
+        //     attributeDescription[2].binding = 0;
+        //     attributeDescription[2].location = 2;
+        //     attributeDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
+        //     attributeDescription[2].offset = offsetof(Vertex, texCoord);
+        //     attributeDescription[3].binding = 0;
+        //     attributeDescription[3].location = 3;
+        //     attributeDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        //     attributeDescription[3].offset = offsetof(Vertex, normal);
+        //     return attributeDescription;
+        // }
+
+        static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescription() {
+            std::array<vk::VertexInputAttributeDescription, 4> attributeDescription = {};
             attributeDescription[0].binding = 0;
             attributeDescription[0].location = 0;
-            attributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescription[0].format = vk::Format::eR32G32B32Sfloat;
             attributeDescription[0].offset = offsetof(Vertex, pos);
             attributeDescription[1].binding = 0;
             attributeDescription[1].location = 1;
-            attributeDescription[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescription[1].format = vk::Format::eR32G32B32Sfloat;
             attributeDescription[1].offset = offsetof(Vertex, color);
             attributeDescription[2].binding = 0;
             attributeDescription[2].location = 2;
-            attributeDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
+            attributeDescription[2].format = vk::Format::eR32G32Sfloat;
             attributeDescription[2].offset = offsetof(Vertex, texCoord);
             attributeDescription[3].binding = 0;
             attributeDescription[3].location = 3;
-            attributeDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescription[3].format = vk::Format::eR32G32B32Sfloat;
             attributeDescription[3].offset = offsetof(Vertex, normal);
             return attributeDescription;
         }
