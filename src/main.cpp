@@ -173,7 +173,7 @@ private:
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
         context->createCommandPools(device);
 
-        swapchain.init(device, window); // TODO: Swapchain are part of a Context
+        swapchain.init(device, window); // TODO: Swapchain are part of a Context ?
         
         /* Model attributes */
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
@@ -381,7 +381,6 @@ private:
 
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
         device->logicalDevice.destroyCommandPool(context->transferCommandPool);
-
         device->logicalDevice.destroy();
 
         context->instance->destroySurfaceKHR(swapchain.surface);
@@ -404,4 +403,7 @@ int main() {
     }
 
     return EXIT_SUCCESS;
+    // TODO: There is an error when the app variable is released (i think). Why ?
+    // It seems to stumble onto a segfault.
+    // ideas: it might be due to one of the attributes to the Engine class not being destroyed properly. (resource already freed)
 }
