@@ -8,10 +8,6 @@
 #include "device.hpp"
 
 namespace core {
-
-    /* Uniform buffer wrapper 
-     * TODO: Move that somewhere else
-    */
     struct UniformBufferObject {
         alignas(16) glm::mat4 model;
         alignas(16) glm::mat4 view;

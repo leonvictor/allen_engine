@@ -231,7 +231,7 @@ private:
             glfwWaitEvents(); // Pause the app.
         }
 
-        vkDeviceWaitIdle(device->getCDevice());
+        device->logicalDevice.waitIdle();
 
         swapchain.cleanup();
         
@@ -277,7 +277,7 @@ private:
             endDrawFrame(imageIndex);
         }
 
-        vkDeviceWaitIdle(device->getCDevice());
+        device->logicalDevice.waitIdle();
     }
 
     void processKeyboardInput(GLFWwindow *window) {
@@ -374,17 +374,18 @@ private:
     void cleanup() {
         swapchain.destroy();
 
-        texture.destroy();
+        texture->destroy();
 
         vertexBuffer->destroy();
         indexBuffer->destroy();
 
-        vkDestroyCommandPool(device->getCDevice(), context->graphicsCommandPool, nullptr);
-        vkDestroyCommandPool(device->getCDevice(), context->transferCommandPool, nullptr);
+        device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
+        device->logicalDevice.destroyCommandPool(context->transferCommandPool);
 
-        vkDestroyDevice(device->getCDevice(), nullptr);
+        device->logicalDevice.destroy();
 
-        vkDestroySurfaceKHR(context->instance.get(), swapchain.surface, nullptr); // TODO: either destroy surface at the same time as the rest of the swap chain,
+        context->instance->destroySurfaceKHR(swapchain.surface);
+        // TODO: either destroy surface at the same time as the rest of the swap chain,
         // or move it out.
         
         glfwDestroyWindow(window);

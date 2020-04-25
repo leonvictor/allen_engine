@@ -33,7 +33,7 @@ namespace core {
             device->logicalDevice.destroySampler(sampler);
             image.destroy();
         }
-        
+
         private:
         void createTextureImage(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path) {
             
@@ -87,7 +87,7 @@ namespace core {
             for (uint32_t i = 1; i < mipLevels; i++) {
                 barrier.subresourceRange.baseMipLevel = i - 1;
                 barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
-                barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal; // TODO: DST or SRC ?
+                barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
                 barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
                 barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
 
@@ -137,7 +137,7 @@ namespace core {
             }
 
             barrier.subresourceRange.baseMipLevel = mipLevels - 1;
-            barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal; // TODO: dst or src ?
+            barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
             barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
             barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
             barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;

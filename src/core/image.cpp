@@ -13,10 +13,7 @@ namespace core {
         vk::Image image;
         vk::ImageView view;
         vk::DeviceMemory memory;
-        
-        std::shared_ptr<core::Device> device;
-        // std::shared_ptr<core::Context> context;
-
+    
         /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
         Image() {}
 
@@ -27,17 +24,17 @@ namespace core {
 
             initImage(width, height, mipLevels, numSamples, format, tiling, usage);
             initMemory(memProperties);
-            initView(format, aspectMask, mipLevels); // TODO: Directly use 
+            initView(format, aspectMask, mipLevels);
             
         }
 
         Image(std::shared_ptr<core::Device> device, vk::Image image, vk::MemoryPropertyFlags memProperties) {
             this->device = device;
-            this->image = image; // TODO: shared_ptr ?
+            this->image = image;
             initMemory(memProperties);
         }
 
-        /* Creates an image but leave the view unitilialized. */
+        /* Creates an image but leave the view uninitialized. */
         Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
                 vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties) {
 
@@ -45,7 +42,7 @@ namespace core {
             
             initImage(width, height, mipLevels, numSamples, format, tiling, usage);
             initMemory(memProperties);    
-            }
+        }
 
         void initView(vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels) {
             assert(!view && "Image view is already initialized.");
@@ -60,8 +57,6 @@ namespace core {
         }
 
         operator vk::Image() { return image; }
-
-        operator VkImage() { return VkImage(image); } // Legacy operator. // TODO: Remove 
 
         /* TODO 
         * - Is this the same format ? If so, move it to an attribute 
@@ -81,7 +76,7 @@ namespace core {
             memoryBarrier.subresourceRange.baseArrayLayer = 0;
             memoryBarrier.subresourceRange.levelCount = mipLevels;
             memoryBarrier.subresourceRange.baseMipLevel = 0;
-            memoryBarrier.srcAccessMask = vk::AccessFlags(); // TODO: Which operations must happen before the barrier
+            memoryBarrier.srcAccessMask = vk::AccessFlags(); // Which operations must happen before the barrier
             memoryBarrier.dstAccessMask = vk::AccessFlags(); // ... and after
             
             vk::Queue *queue;
@@ -145,7 +140,8 @@ namespace core {
         }
 
     private:
-        // std::shared_ptr<core::Device> device; // TODO
+        std::shared_ptr<core::Device> device;
+
         void initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
             vk::ImageUsageFlags usage) {
 
@@ -160,7 +156,7 @@ namespace core {
             imageInfo.tiling = tiling;
             imageInfo.initialLayout = vk::ImageLayout::eUndefined; // The very first iteration will discard the texels
             imageInfo.usage = usage;
-            imageInfo.sharingMode = vk::SharingMode::eExclusive; // TODO: Ok ? We need to use both transfer and graphics queues
+            imageInfo.sharingMode = vk::SharingMode::eExclusive;
             imageInfo.samples = numSamples;
 
             image = device->logicalDevice.createImage(imageInfo);

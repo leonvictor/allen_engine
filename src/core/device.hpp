@@ -21,7 +21,6 @@ const std::vector<const char*> validationLayers = {
 };
 
 
-// TODO: Move to swapchain ?
 struct SwapchainSupportDetails {
     vk::SurfaceCapabilitiesKHR capabilities;
     std::vector<vk::SurfaceFormatKHR> formats;
@@ -84,18 +83,12 @@ public:
     }; // TODO: This is == to the reqExtensions parameters everywhere
     
     vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
-
     vk::Queue graphicsQueue, presentQueue, transferQueue;
 
     Device() {};
 
     void destroy() {
         // TODO
-    }
-
-    /* Placeolder function while we work on translating to c++. TODO: Remove when we're done */
-    VkDevice getCDevice() {
-        return VkDevice(logicalDevice);
     }
     
     void initProperties() {
@@ -147,15 +140,11 @@ public:
 
         logicalDevice = physicalDevice.createDevice(deviceCreateInfo);
         
-        // TODO: Move queues out
         graphicsQueue = logicalDevice.getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
         presentQueue = logicalDevice.getQueue(queueFamilyIndices.presentFamily.value(), 0);
         transferQueue = logicalDevice.getQueue(queueFamilyIndices.transferFamily.value(), 0);
 
     }
-    
-    /**  @brief Typecast to VkDevice */
-	operator VkDevice() { return logicalDevice; };
     
     /** @brief Typecast to vk::Device */
     operator vk::Device() {return logicalDevice; };

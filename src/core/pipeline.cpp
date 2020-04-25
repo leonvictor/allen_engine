@@ -9,13 +9,12 @@
 namespace core {
     class Pipeline {
     public:
-        vk::Pipeline graphicsPipeline; // TODO: Should be family-agnostic (i.e rename to "pipeline")
+        vk::Pipeline graphicsPipeline; // Should be family-agnostic ? (i.e rename to "pipeline")
         vk::PipelineLayout layout;
 
         Pipeline() {}
 
         Pipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, vk::DescriptorSetLayout descriptorSetLayout, vk::RenderPass renderPass) {
-            // TODO
             this->device = device;
             createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
         }
@@ -24,14 +23,9 @@ namespace core {
             device->logicalDevice.destroyPipeline(graphicsPipeline);
             device->logicalDevice.destroyPipelineLayout(layout);
         }
-        // ~Pipeline() {
-            // TODO
-        // }
 
-        /* WIP : Requires some other classes to be moved first 
-        * TODO: Move graphics specific stuff out ?
+        /* 
         * TODO: Move shader files locations out
-        * TODO: Where does pipeline fit ? We could remove most of the required parameters i think
         * */
         void createGraphicsPipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, vk::DescriptorSetLayout descriptorSetLayout, vk::RenderPass renderPass) {
             this->device = device;

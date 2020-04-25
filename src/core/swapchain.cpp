@@ -62,9 +62,7 @@ namespace core {
         std::vector<vk::Semaphore> renderFinishedSemaphores;
         std::vector<vk::Fence> inFlightFences;
 
-        Swapchain() {
-            //TODO
-        }
+        Swapchain() {}
         
         void createSurface(std::shared_ptr<core::Context> context, GLFWwindow *window) {
             VkSurfaceKHR pSurface = VkSurfaceKHR(surface);
@@ -90,8 +88,6 @@ namespace core {
 
         // TODO: Normalize object construction
         void init(std::shared_ptr<core::Device> device, GLFWwindow *window) {
-            // TODO: Should device and context be application wide ?
-            // Store a pointer to them ?
             this->device = device;
 
             assert(surface);
@@ -207,7 +203,7 @@ namespace core {
             for (size_t i = 0; i < images.size(); i++) {
                 commandBuffers[i].begin(vk::CommandBufferBeginInfo{});
 
-                // Start a render pass. TODO: Why is that here ?
+                // Start a render pass.
                 vk::RenderPassBeginInfo renderPassInfo;
                 renderPassInfo.renderPass = renderPass;
                 renderPassInfo.framebuffer = images[i].framebuffer;
@@ -223,7 +219,7 @@ namespace core {
                 commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
                 commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline.graphicsPipeline);
                 
-                vk::Buffer vertexBuffers[] = {vertexBuffer.buffer}; // TODO
+                vk::Buffer vertexBuffers[] = {vertexBuffer.buffer};
                 vk::DeviceSize offsets[] = {0};
                 
                 commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
@@ -316,14 +312,14 @@ namespace core {
             }
 
             vk::SwapchainCreateInfoKHR sCreateInfo;
-            sCreateInfo.surface = surface; // TODO: Should surface be already created ? I think so
+            sCreateInfo.surface = surface;
             sCreateInfo.minImageCount = imageCount;
             sCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
             sCreateInfo.imageFormat = surfaceFormat.format;
             sCreateInfo.imageExtent = extent;
             sCreateInfo.imageArrayLayers = 1;
             sCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-            sCreateInfo.presentMode = presentMode; // TODO: We're juste casting for now.
+            sCreateInfo.presentMode = presentMode;
             sCreateInfo.clipped = VK_TRUE; // We don't care about the color of obscured pixels (ex: if another window is on top)
             
             core::QueueFamilyIndices indices = core::findQueueFamilies(device->physicalDevice, surface);
@@ -398,10 +394,10 @@ namespace core {
                 auto view = core::Image::createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1);
                 images[i] = {
                     nullptr,
-                    nullptr, // Framebuffers are initialized after the renderpass TODO: This is bad practice
+                    nullptr,
                     imgs[i],
                     view,
-                    vk::Fence() // TODO: make sure this is nullptr
+                    vk::Fence()
                 };
             }
         }
