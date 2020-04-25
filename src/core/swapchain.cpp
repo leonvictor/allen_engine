@@ -26,12 +26,7 @@ namespace core {
         void cleanup(vk::Device& device, const vk::CommandPool& commandPool) {
             device.destroyFramebuffer(framebuffer);
             device.freeCommandBuffers(commandPool, commandbuffer);
-
-            // After pipeline and renderPass ? 
             device.destroyImageView(imageView);
-            // if (fence) {
-            //     device.destroyFence(fence);
-            // }
         }
     };
 
@@ -300,10 +295,18 @@ namespace core {
             }
         }
     private:
+
+        void retrievePersistentContextInfo() {
+
+        }
+
         void createSwapchain(GLFWwindow *window) {
-            core::SwapchainSupportDetails swapchainSupport = core::querySwapchainSupport(device->physicalDevice, surface);
+
+            /* Swapchain parameters */
+            core::SwapchainSupportDetails swapchainSupport = device->getSwapchainSupport(surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
             vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
+            
             vk::Extent2D extent = chooseSwapExtent(swapchainSupport.capabilities, window);
 
             uint32_t imageCount = swapchainSupport.capabilities.minImageCount +1;
@@ -322,7 +325,7 @@ namespace core {
             sCreateInfo.presentMode = presentMode;
             sCreateInfo.clipped = VK_TRUE; // We don't care about the color of obscured pixels (ex: if another window is on top)
             
-            core::QueueFamilyIndices indices = core::findQueueFamilies(device->physicalDevice, surface);
+            core::QueueFamilyIndices indices = device->getQueueFamilyIndices();
             uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
             if (indices.graphicsFamily != indices.presentFamily) {

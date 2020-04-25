@@ -27,46 +27,6 @@ struct SwapchainSupportDetails {
     std::vector<vk::PresentModeKHR> presentModes;
 };
 
-// TODO: Move to inside device
-static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
-        QueueFamilyIndices indices;
-        // Assign index to queue families that could be found
-        uint32_t queueFamilyCount = 0;
-        std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
-
-        int i = 0;
-        for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
-                indices.graphicsFamily = i;
-            } else if (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer) {
-                indices.transferFamily = i;
-            }
-
-            if (device.getSurfaceSupportKHR(i, surface)) {
-                indices.presentFamily = i;
-            }
-            //TODO : It's very likely that the queue family that has the "present" capability is the same as
-            // the one that has "graphics". In the tutorial they are treated as if they were separate for a uniform approach.
-            // We can add logic to explicitly prefer physical devices that support both drawing and presentation in the same queue
-            // for improved performance.        
-
-            if (indices.isComplete()) {
-                break;
-            }
-            i++;
-        }
-        return indices;
-    }
-
-static SwapchainSupportDetails querySwapchainSupport(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface) {
-        SwapchainSupportDetails details;
-        details.capabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
-        details.formats = physicalDevice.getSurfaceFormatsKHR(surface);
-        uint32_t presentModeCount = 0;
-        details.presentModes = physicalDevice.getSurfacePresentModesKHR(surface);
-        return details;
-    };
-
 class Device  {
 public:
     vk::PhysicalDevice physicalDevice;
@@ -74,9 +34,9 @@ public:
     
     vk::PhysicalDeviceProperties properties;
     vk::PhysicalDeviceFeatures features;
-    vk::PhysicalDeviceMemoryProperties memoryProperties;
     core::QueueFamilyIndices queueFamilyIndices;
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties;
+    vk::PhysicalDeviceMemoryProperties memoryProperties;
     
     std::vector<const char*> extensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -87,17 +47,7 @@ public:
 
     Device() {};
 
-    void destroy() {
-        // TODO
-    }
-    
-    void initProperties() {
-        properties = physicalDevice.getProperties();
-        memoryProperties = physicalDevice.getMemoryProperties();
-        queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
-    }
-
-    Device(const vk::Instance& instance, vk::SurfaceKHR surface) {
+    Device(const vk::Instance& instance, const vk::SurfaceKHR& surface) {
         // Pick a suitable device
         physicalDevice = pickPhysicalDevice(instance, surface);
         initProperties();
@@ -106,8 +56,72 @@ public:
         msaaSamples = getMaxUsableSampleCount();
     }
 
-    void createLogicalDevice(vk::SurfaceKHR surface, bool enableValidationLayers = true) {
-        queueFamilyIndices = core::findQueueFamilies(physicalDevice, surface);
+    void destroy() {
+        // TODO
+    }
+
+    SwapchainSupportDetails getSwapchainSupport(const vk::SurfaceKHR &surface) {
+        /* TODO: Store support as class attribute ? */
+        return querySwapchainSupport(physicalDevice, surface);
+    }
+
+    QueueFamilyIndices getQueueFamilyIndices() {
+        return this->queueFamilyIndices;
+    }
+    
+    /** @brief Typecast to vk::Device */
+    operator vk::Device() {return logicalDevice; };
+
+    static bool checkDeviceExtensionsSupport(const vk::PhysicalDevice &dev, std::vector<const char*> requiredExtensions) {
+        // Populate available extensions list
+        std::vector<vk::ExtensionProperties> availableExtensions = dev.enumerateDeviceExtensionProperties();
+
+        // Compare against required ones
+        std::set<std::string> requiredExtentionsSet(requiredExtensions.begin(), requiredExtensions.end());
+        for (const auto& extension : availableExtensions) {
+            requiredExtentionsSet.erase(extension.extensionName);
+        }
+
+        return requiredExtentionsSet.empty();
+    }
+
+    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+        // auto memProperties = physicalDevice.getMemoryProperties();
+        
+        // TODO sometimes, consider heaps...
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
+            if (typeFilter & (1 << i) && // Check if the memory type's bit is set to 1
+                (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) { // We also need to be able to write our vertex data to the memory
+                return i;
+            }
+        }
+        throw std::runtime_error("Failed to find suitable memory type.");
+    }
+
+    vk::Format findDepthFormat() {
+        return findSupportedFormat(
+            {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+            vk::ImageTiling::eOptimal,
+            vk::FormatFeatureFlagBits::eDepthStencilAttachment
+        );
+    }
+
+    vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
+        for (vk::Format format : candidates) {
+            vk::FormatProperties formatProperties = physicalDevice.getFormatProperties(format);
+            if (tiling == vk::ImageTiling::eLinear && (formatProperties.linearTilingFeatures & features) == features) {
+                return format;
+            } else if (tiling == vk::ImageTiling::eOptimal && (formatProperties.optimalTilingFeatures & features) == features) {
+                return format;
+            }
+        }
+        throw std::runtime_error("Failed to find a supported format.");
+    }
+
+private:
+
+    void createLogicalDevice(const vk::SurfaceKHR& surface, const bool enableValidationLayers = true) {
+        queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
 
         std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
         // Added transfer as a separate queue
@@ -143,13 +157,15 @@ public:
         graphicsQueue = logicalDevice.getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
         presentQueue = logicalDevice.getQueue(queueFamilyIndices.presentFamily.value(), 0);
         transferQueue = logicalDevice.getQueue(queueFamilyIndices.transferFamily.value(), 0);
-
     }
-    
-    /** @brief Typecast to vk::Device */
-    operator vk::Device() {return logicalDevice; };
 
-    vk::PhysicalDevice pickPhysicalDevice(const vk::Instance& instance, vk::SurfaceKHR surface) {
+    void initProperties() {
+        properties = physicalDevice.getProperties();
+        memoryProperties = physicalDevice.getMemoryProperties();
+        queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+    }
+
+    vk::PhysicalDevice pickPhysicalDevice(const vk::Instance& instance, const vk::SurfaceKHR &surface) {
         std::vector<vk::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
 
         if (devices.size() == 0) {
@@ -157,41 +173,21 @@ public:
         }
 
         for (const auto d : devices) {
-            if (isDeviceSuitable(d, surface)) {
+            if (isDeviceSuitable(d, surface, extensions)) {
                 return d;
             }
         }
+
         throw std::runtime_error("Failed to find a suitable GPU.");
     }
-
-    bool isDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
-        core::QueueFamilyIndices familyIndices = core::findQueueFamilies(device, surface);
-        bool extensionsSupported = checkDeviceExtensionsSupport(device);
-
-        bool swapChainAdequate = false;
-        if (extensionsSupported) {
-            core::SwapchainSupportDetails swapChainSupport = core::querySwapchainSupport(device, surface);
-            // In this tutorial a device is adequate as long as it supports at least one image format and one supported presentation mode.
-            swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-        }
-
-        // TODO : Instead of enforcing features, we can disable their usage if not available
-        vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
-        return familyIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-    }
-
-    bool checkDeviceExtensionsSupport(vk::PhysicalDevice dev) {
-        // Populate available extensions list
-        std::vector<vk::ExtensionProperties> availableExtensions = dev.enumerateDeviceExtensionProperties();
-
-        // Compare against required ones
-        std::set<std::string> requiredExtentions(extensions.begin(), extensions.end());
-        for (const auto& extension : availableExtensions) {
-            requiredExtentions.erase(extension.extensionName);
-        }
-
-        return requiredExtentions.empty();
-    }
+    
+    static SwapchainSupportDetails querySwapchainSupport(const vk::PhysicalDevice& device,  const vk::SurfaceKHR &surface){
+        SwapchainSupportDetails details;
+        details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
+        details.formats = device.getSurfaceFormatsKHR(surface);
+        details.presentModes = device.getSurfacePresentModesKHR(surface);
+        return details;
+    };
 
     vk::SampleCountFlagBits getMaxUsableSampleCount() {
         // TODO: Beurk
@@ -207,37 +203,51 @@ public:
         return vk::SampleCountFlagBits::e1;
     }
 
-    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
-        auto memProperties = physicalDevice.getMemoryProperties();
-        
-        // TODO sometimes, consider heaps...
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if (typeFilter & (1 << i) && // Check if the memory type's bit is set to 1
-                (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { // We also need to be able to write our vertex data to the memory
-                return i;
+    /* TODO: This is static but only used internally. We may aswell remove the static part and assert that physical device has been picked. */
+    static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, const vk::SurfaceKHR& surface) {
+        QueueFamilyIndices indices;
+        // Assign index to queue families that could be found
+        uint32_t queueFamilyCount = 0;
+        std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
+
+        int i = 0;
+        for (const auto& queueFamily : queueFamilies) {
+            if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
+                indices.graphicsFamily = i;
+            } else if (queueFamily.queueFlags & vk::QueueFlagBits::eTransfer) {
+                indices.transferFamily = i;
             }
+
+            if (device.getSurfaceSupportKHR(i, surface)) {
+                indices.presentFamily = i;
+            }
+            //TODO : It's very likely that the queue family that has the "present" capability is the same as
+            // the one that has "graphics". In the tutorial they are treated as if they were separate for a uniform approach.
+            // We can add logic to explicitly prefer physical devices that support both drawing and presentation in the same queue
+            // for improved performance.        
+
+            if (indices.isComplete()) {
+                break;
+            }
+            i++;
         }
-        throw std::runtime_error("Failed to find suitable memory type.");
+        return indices;
     }
 
-    vk::Format findDepthFormat() {
-        return findSupportedFormat(
-            {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
-            vk::ImageTiling::eOptimal,
-            vk::FormatFeatureFlagBits::eDepthStencilAttachment
-        );
-    }
+    static bool isDeviceSuitable(const vk::PhysicalDevice &device, const vk::SurfaceKHR &surface, std::vector<const char*> requiredExtensions) {
+        core::QueueFamilyIndices familyIndices = findQueueFamilies(device, surface);
+        bool extensionsSupported = checkDeviceExtensionsSupport(device, requiredExtensions);
 
-    vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
-        for (vk::Format format : candidates) {
-            vk::FormatProperties formatProperties = physicalDevice.getFormatProperties(format);
-            if (tiling == vk::ImageTiling::eLinear && (formatProperties.linearTilingFeatures & features) == features) {
-                return format;
-            } else if (tiling == vk::ImageTiling::eOptimal && (formatProperties.optimalTilingFeatures & features) == features) {
-                return format;
-            }
+        bool swapChainAdequate = false;
+        if (extensionsSupported) {
+            core::SwapchainSupportDetails swapChainSupport = querySwapchainSupport(device, surface);
+            // In this tutorial a device is adequate as long as it supports at least one image format and one supported presentation mode.
+            swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
-        throw std::runtime_error("Failed to find a supported format.");
+
+        // TODO : Instead of enforcing features, we can disable their usage if not available
+        vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
+        return familyIndices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
     }
 };
 }
