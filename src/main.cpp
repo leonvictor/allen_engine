@@ -76,9 +76,6 @@ private:
 
     size_t currentFrame = 0;
     
-    // std::shared_ptr<core::Buffer> vertexBuffer;
-    // std::shared_ptr<core::Buffer> indexBuffer;
-
     uint32_t textureMipLevels;
 
     std::shared_ptr<core::Texture> texture;
@@ -181,8 +178,6 @@ private:
         
         /* Application related stuff. How do we handle multiple a complex scene with multiple models ? */
         loadModels();
-        // createVertexBuffer();
-        // createIndexBuffer();
 
         /* Swapchain components that rely on model parameters */
         swapchain.createDescriptorSets(*texture);
@@ -195,36 +190,6 @@ private:
             models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i]);
         }
     }
-
-    // void createVertexBuffer() {
-    //     vk::DeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
-        
-    //     core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-    //     stagingBuffer.map(0, bufferSize);
-    //     stagingBuffer.copy(model.vertices.data(), (size_t) bufferSize);
-    //     stagingBuffer.unmap();
-
-    //     vertexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
-    //     context->copyBuffer(stagingBuffer, *vertexBuffer, bufferSize);
-
-    //     stagingBuffer.destroy();
-    // }
-
-    // void createIndexBuffer() {
-    //     vk::DeviceSize  bufferSize = sizeof(model.indices[0]) * model.indices.size();
-        
-    //     core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-    //     stagingBuffer.map(0, bufferSize);
-    //     stagingBuffer.copy(model.indices.data(), (size_t) bufferSize);
-    //     stagingBuffer.unmap();
-
-    //     indexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
-    //     context->copyBuffer(stagingBuffer, *indexBuffer, bufferSize);
-
-    //     stagingBuffer.destroy();
-    // }
 
     void recreateSwapchain() {
         int width = 0, height = 0;
@@ -383,8 +348,6 @@ private:
         for (int i = 0; i < N_MODELS; i++) {
             models[i].destroy();
         }
-        // vertexBuffer->destroy();
-        // indexBuffer->destroy();
 
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
         device->logicalDevice.destroyCommandPool(context->transferCommandPool);
