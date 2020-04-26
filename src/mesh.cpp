@@ -2,6 +2,9 @@
 #include<unordered_map>
 
 #include "vertex.hpp"
+#include "core/device.hpp"
+#include "core/buffer.cpp"
+#include "core/context.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -11,6 +14,10 @@ class Mesh {
 public:
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+
+    core::Buffer vertexBuffer;
+    core::Buffer indexBuffer;
+
     glm::vec3 position; // TODO: This doesn't belong here
     glm::vec3 rotation; // Neither does this
 
@@ -18,9 +25,20 @@ public:
         return glm::translate(modelMatrix, position);
     }
 
-    static Mesh fromObj(std::string path, glm::vec3 position = glm::vec3(0.0f)) {
+    std::shared_ptr<core::Context> context;
+    std::shared_ptr<core::Device> device;
 
-            Mesh mesh = {};
+    Mesh() {}
+
+    Mesh(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device) {
+        this->context = context;
+        this->device = device;
+    }
+
+    static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path, glm::vec3 position = glm::vec3(0.0f)) {
+
+            Mesh mesh(context, device);
+
             mesh.position = position; // Initially place the object at the center of the scene
 
             tinyobj::attrib_t attrib;
@@ -69,29 +87,48 @@ public:
                     mesh.indices.push_back(uniqueVertices[vertex]);
                 }
             }
+
+            mesh.createVertexBuffer();
+            mesh.createIndexBuffer();
             return mesh;
     }
 
-    // void createVertexBuffer() {
-    //     VkDeviceSize  bufferSize = sizeof(vertices[0]) * vertices.size();
+    void createVertexBuffer() {
+        vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
         
-    //     VkBuffer stagingBuffer;
-    //     VkDeviceMemory stagingBufferMemory;
+        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-    //     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        stagingBuffer.map(0, bufferSize);
+        stagingBuffer.copy(vertices.data(), (size_t) bufferSize);
+        stagingBuffer.unmap();
 
-    //     void* data;
-    //     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    //     memcpy(data, model.vertices.data(), (size_t) bufferSize);
-    //     vkUnmapMemory(device, stagingBufferMemory);
-
-    //     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        // vertexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
+        vertexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         
-    //     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        context->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-    //     vkDestroyBuffer(device, stagingBuffer, nullptr);
-    //     vkFreeMemory(device, stagingBufferMemory, nullptr);
-    // }
+        stagingBuffer.destroy();
+    }
+
+    void createIndexBuffer() {
+        vk::DeviceSize  bufferSize = sizeof(indices[0]) * indices.size();
+        
+        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+        stagingBuffer.map(0, bufferSize);
+        stagingBuffer.copy(indices.data(), (size_t) bufferSize);
+        stagingBuffer.unmap();
+
+        indexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
+        context->copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+        stagingBuffer.destroy();
+    }
+
+    void destroy() {
+        vertexBuffer.destroy();
+        indexBuffer.destroy();
+    }
     
 private:
     glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO

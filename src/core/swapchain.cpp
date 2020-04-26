@@ -57,6 +57,10 @@ namespace core {
         std::vector<vk::Semaphore> renderFinishedSemaphores;
         std::vector<vk::Fence> inFlightFences;
 
+        int currentFrame = 0;
+        bool frame_active = false;
+        uint32_t activeFrameIndex;
+
         Swapchain() {}
         
         void createSurface(std::shared_ptr<core::Context> context, GLFWwindow *window) {
@@ -189,8 +193,7 @@ namespace core {
         }
 
         void createCommandBuffers(const core::CommandPool& commandPool,
-                core::Buffer& vertexBuffer, core::Buffer& indexBuffer, // TODO: Move this out. Maybe from a model ?
-                int nIndices) {
+                std::vector<Mesh> models) {
 
             this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
@@ -212,16 +215,20 @@ namespace core {
                 renderPassInfo.pClearValues = clearValues.data();
 
                 commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+
+                /* Draw command buffer */
                 commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline.graphicsPipeline);
                 
-                vk::Buffer vertexBuffers[] = {vertexBuffer.buffer};
-                vk::DeviceSize offsets[] = {0};
+                // vk::Buffer vertexBuffers[] = {vertexBuffer.buffer};
+                // vk::DeviceSize offsets[] = {0};
                 
-                commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
-                commandBuffers[i].bindIndexBuffer(indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, 1, &descriptor.sets[i], 0, nullptr);
-
-                commandBuffers[i].drawIndexed(nIndices, 1, 0, 0, 0);
+                // commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
+                for (auto model : models) {
+                    commandBuffers[i].bindVertexBuffers(0, model.vertexBuffer.buffer , vk::DeviceSize{0});
+                    commandBuffers[i].bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, 1, &descriptor.sets[i], 0, nullptr);
+                    commandBuffers[i].drawIndexed(model.indices.size(), 1, 0, 0, 0);
+                }
                 commandBuffers[i].endRenderPass();
                 commandBuffers[i].end();
 
@@ -262,6 +269,76 @@ namespace core {
             uniformBuffers[currentImage]->unmap();
         }
 
+        // void beginDrawFrame() {
+        //     // Wait for the fence
+        //     device->logicalDevice.waitForFences(inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
+        //     // Acquire an image from the swap chain
+        //     vk::Result result = device->logicalDevice.acquireNextImageKHR(swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame], nullptr, &activeFrameIndex);
+            
+        //     if (result == vk::Result::eErrorOutOfDateKHR) {
+        //         recreateSwapchain();
+        //     } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+        //         throw std::runtime_error("Failed to acquire swap chain image.");
+        //     }
+
+        //     // Check if a previous frame is using the image
+        //     if (images[activeFrameIndex].fence) {
+        //         device->logicalDevice.waitForFences(images[activeFrameIndex].fence, VK_TRUE, UINT64_MAX);
+        //     }
+
+        //     // Mark the image as now being in use by this frame
+        //     images[activeFrameIndex].fence = inFlightFences[currentFrame];
+        //     // return activeFrameIndex;
+        // }
+
+        // void endDrawFrame() {
+        //     vk::SubmitInfo submitInfo;
+            
+        //     // At which stage should we wait for each semaphores (in the same order)
+        //     vk::Semaphore waitSemaphores = {imageAvailableSemaphores[currentFrame]};
+        //     vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+            
+        //     submitInfo.waitSemaphoreCount = 1;
+        //     submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
+        //     submitInfo.pWaitDstStageMask = waitStages; // In which stage of the pipeline to wait 
+        //     submitInfo.commandBufferCount = 1;
+        //     submitInfo.pCommandBuffers = &images[activeFrameIndex].commandbuffer;
+            
+        //     // Which semaphores to signal when job is done
+        //     vk::Semaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+        //     submitInfo.signalSemaphoreCount = 1;
+        //     submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
+
+        //     device->logicalDevice.resetFences(inFlightFences[currentFrame]);
+        //     device->graphicsQueue.submit(submitInfo, inFlightFences[currentFrame]);
+
+        //     vk::PresentInfoKHR presentInfo;
+        //     presentInfo.swapchainCount = 1;
+        //     presentInfo.pSwapchains = &swapchain;
+        //     presentInfo.pImageIndices = &activeFrameIndex; 
+        //     presentInfo.waitSemaphoreCount = 1;
+        //     presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
+        //     presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
+
+        //     bool recreationNeeded = false;
+        //     vk::Result result;
+        //     try {
+        //         result = device->graphicsQueue.presentKHR(presentInfo);
+        //     } catch (vk::OutOfDateKHRError const &e) {
+        //         result = vk::Result::eErrorOutOfDateKHR;
+        //     }
+
+        //     // if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized) { 
+        //     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) { 
+        //         recreateSwapchain();
+        //     } else if (result != vk::Result::eSuccess) {
+        //         throw std::runtime_error("Failed to present swap chain image.");
+        //     }
+
+        //     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        // }
+        
         /* Destroy the parts we need to recreate */
         void cleanup() {
             colorImage.destroy();
@@ -294,6 +371,7 @@ namespace core {
                 device->logicalDevice.destroyFence(inFlightFences[i]);
             }
         }
+
     private:
 
         void retrievePersistentContextInfo() {
