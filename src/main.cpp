@@ -31,7 +31,6 @@
 #include "core/context.hpp"
 #include "core/swapchain.cpp"
 #include "core/buffer.cpp"
-#include "core/descriptor.cpp"
 #include "core/pipeline.cpp"
 #include "core/texture.cpp"
 
