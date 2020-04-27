@@ -5,6 +5,7 @@
 #include "core/device.hpp"
 #include "core/buffer.cpp"
 #include "core/context.hpp"
+#include "core/texture.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -17,6 +18,9 @@ public:
 
     core::Buffer vertexBuffer;
     core::Buffer indexBuffer;
+    core::Buffer uniformBuffer;
+
+    vk::DescriptorSet descriptorSet;
 
     glm::vec3 position; // TODO: This doesn't belong here
     glm::vec3 rotation; // Neither does this
@@ -27,6 +31,7 @@ public:
 
     std::shared_ptr<core::Context> context;
     std::shared_ptr<core::Device> device;
+    
 
     Mesh() {}
 
@@ -90,6 +95,7 @@ public:
 
             mesh.createVertexBuffer();
             mesh.createIndexBuffer();
+            mesh.createUniformBuffer();
             return mesh;
     }
 
@@ -102,13 +108,46 @@ public:
         stagingBuffer.copy(vertices.data(), (size_t) bufferSize);
         stagingBuffer.unmap();
 
-        // vertexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         vertexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
         
         context->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
         stagingBuffer.destroy();
     }
+
+    void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout, const core::Texture &texture) {
+            // TODO: Make sure setLayout is already initialized
+            vk::DescriptorSetAllocateInfo allocInfo{ descriptorPool, 1, &descriptorSetLayout };
+            descriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
+
+            /* Update descriptor set */
+            // Describes the buffer and the region within it that contains the data for the descriptor
+            vk::DescriptorBufferInfo bufferInfo;
+            bufferInfo.buffer = uniformBuffer.buffer;
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(core::UniformBufferObject);
+
+            vk::DescriptorImageInfo imageInfo = {};
+            imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            imageInfo.imageView = texture.image.view;
+            imageInfo.sampler = texture.sampler;
+
+            std::array<vk::WriteDescriptorSet, 2> writeDescriptors = {};
+            writeDescriptors[0].dstSet = descriptorSet;
+            writeDescriptors[0].dstBinding = 0; // Binding index 
+            writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+            writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+            writeDescriptors[0].descriptorCount = 1;
+            writeDescriptors[0].pBufferInfo = &bufferInfo;
+            writeDescriptors[1].dstSet = descriptorSet;
+            writeDescriptors[1].dstBinding = 1; // Binding index 
+            writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+            writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+            writeDescriptors[1].descriptorCount = 1;
+            writeDescriptors[1].pImageInfo = &imageInfo;
+
+            device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+        }
 
     void createIndexBuffer() {
         vk::DeviceSize  bufferSize = sizeof(indices[0]) * indices.size();
@@ -125,9 +164,20 @@ public:
         stagingBuffer.destroy();
     }
 
+    void createUniformBuffer() {
+        uniformBuffer = core::Buffer(device, sizeof(core::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    }
+
+    void updateUniformBuffers(core::UniformBufferObject ubo) { 
+            uniformBuffer.map(0, sizeof(ubo));
+            uniformBuffer.copy(&ubo, sizeof(ubo));
+            uniformBuffer.unmap();
+        }
+
     void destroy() {
         vertexBuffer.destroy();
         indexBuffer.destroy();
+        uniformBuffer.destroy();
     }
     
 private:

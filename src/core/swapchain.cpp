@@ -6,7 +6,6 @@
 #include "image.cpp"
 #include "commandpool.cpp"
 #include "pipeline.cpp"
-#include "descriptor.cpp"
 #include "buffer.cpp"
 #include <memory>
 
@@ -35,7 +34,6 @@ namespace core {
         core::Image colorImage;
         core::Image depthImage;
 
-        core::Descriptor descriptor;
         core::Pipeline graphicsPipeline;
         vk::SurfaceKHR surface;
         vk::SwapchainKHR swapchain;
@@ -45,9 +43,6 @@ namespace core {
         
         vk::Format imageFormat;
         vk::Extent2D extent;
-
-        std::vector<std::shared_ptr<core::Buffer>> uniformBuffers;
-
         vk::RenderPass renderPass;
 
         std::shared_ptr<core::Device> device;
@@ -60,6 +55,9 @@ namespace core {
         int currentFrame = 0;
         bool frame_active = false;
         uint32_t activeFrameIndex;
+
+        vk::DescriptorSetLayout descriptorSetLayout;
+        vk::DescriptorPool descriptorPool;
 
         Swapchain() {}
         
@@ -75,12 +73,11 @@ namespace core {
             createSwapchain(window);
             createImages();
             createRenderPass();
-            graphicsPipeline.createGraphicsPipeline(device, extent, descriptor.setLayout, renderPass);
+            graphicsPipeline.createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
             createDepthResources();
             createColorResources();
             createFramebuffers();
-            createUniformBuffers();
-            descriptor.createDescriptorPool(images.size());
+            createDescriptorPool(images.size());
 
             // TODO : Add descriptor sets and command buffers here
         }
@@ -95,23 +92,18 @@ namespace core {
             createDepthResources();
             createColorResources();
             createRenderPass();
-            descriptor = core::Descriptor(device, static_cast<uint32_t>(images.size()));
-            descriptor.createDescriptorSetLayout();
-            graphicsPipeline.createGraphicsPipeline(device, extent, descriptor.setLayout, renderPass);
+            createDescriptorSetLayout();
+            graphicsPipeline.createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
             createFramebuffers();
-            createUniformBuffers();
             createSyncObjects();
-            descriptor.createDescriptorPool(images.size());
+            createDescriptorPool(images.size());
+
         }
 
         void createFramebuffers() {  
             for (int i = 0; i < images.size(); i++) {
                 images[i].framebuffer = createFramebuffer(images[i].imageView, renderPass);
             }
-        }
-
-        void createDescriptorSets(const core::Texture &texture) {
-            descriptor.createDescriptorSets(images.size(), uniformBuffers, texture);
         }
 
         void createRenderPass() {
@@ -192,8 +184,7 @@ namespace core {
             renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
-        void createCommandBuffers(const core::CommandPool& commandPool,
-                std::vector<Mesh> models) {
+        void createCommandBuffers(const core::CommandPool& commandPool, std::vector<Mesh> models) {
 
             this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
@@ -219,14 +210,10 @@ namespace core {
                 /* Draw command buffer */
                 commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline.graphicsPipeline);
                 
-                // vk::Buffer vertexBuffers[] = {vertexBuffer.buffer};
-                // vk::DeviceSize offsets[] = {0};
-                
-                // commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
                 for (auto model : models) {
                     commandBuffers[i].bindVertexBuffers(0, model.vertexBuffer.buffer , vk::DeviceSize{0});
                     commandBuffers[i].bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, 1, &descriptor.sets[i], 0, nullptr);
+                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, 1, &model.descriptorSet, 0, nullptr);
                     commandBuffers[i].drawIndexed(model.indices.size(), 1, 0, 0, 0);
                 }
                 commandBuffers[i].endRenderPass();
@@ -253,92 +240,6 @@ namespace core {
             }
         }
 
-        void createUniformBuffers() {
-            vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-            
-            uniformBuffers.resize(images.size());
-
-            for (size_t i = 0; i < images.size(); i++) {
-                uniformBuffers[i] = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-            }
-        }
-
-        void updateUniformBuffers(uint32_t currentImage, UniformBufferObject ubo) { 
-            uniformBuffers[currentImage]->map(0, sizeof(ubo));
-            uniformBuffers[currentImage]->copy(&ubo, sizeof(ubo));
-            uniformBuffers[currentImage]->unmap();
-        }
-
-        // void beginDrawFrame() {
-        //     // Wait for the fence
-        //     device->logicalDevice.waitForFences(inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-        //     // Acquire an image from the swap chain
-        //     vk::Result result = device->logicalDevice.acquireNextImageKHR(swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame], nullptr, &activeFrameIndex);
-            
-        //     if (result == vk::Result::eErrorOutOfDateKHR) {
-        //         recreateSwapchain();
-        //     } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-        //         throw std::runtime_error("Failed to acquire swap chain image.");
-        //     }
-
-        //     // Check if a previous frame is using the image
-        //     if (images[activeFrameIndex].fence) {
-        //         device->logicalDevice.waitForFences(images[activeFrameIndex].fence, VK_TRUE, UINT64_MAX);
-        //     }
-
-        //     // Mark the image as now being in use by this frame
-        //     images[activeFrameIndex].fence = inFlightFences[currentFrame];
-        //     // return activeFrameIndex;
-        // }
-
-        // void endDrawFrame() {
-        //     vk::SubmitInfo submitInfo;
-            
-        //     // At which stage should we wait for each semaphores (in the same order)
-        //     vk::Semaphore waitSemaphores = {imageAvailableSemaphores[currentFrame]};
-        //     vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-            
-        //     submitInfo.waitSemaphoreCount = 1;
-        //     submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
-        //     submitInfo.pWaitDstStageMask = waitStages; // In which stage of the pipeline to wait 
-        //     submitInfo.commandBufferCount = 1;
-        //     submitInfo.pCommandBuffers = &images[activeFrameIndex].commandbuffer;
-            
-        //     // Which semaphores to signal when job is done
-        //     vk::Semaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
-        //     submitInfo.signalSemaphoreCount = 1;
-        //     submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
-
-        //     device->logicalDevice.resetFences(inFlightFences[currentFrame]);
-        //     device->graphicsQueue.submit(submitInfo, inFlightFences[currentFrame]);
-
-        //     vk::PresentInfoKHR presentInfo;
-        //     presentInfo.swapchainCount = 1;
-        //     presentInfo.pSwapchains = &swapchain;
-        //     presentInfo.pImageIndices = &activeFrameIndex; 
-        //     presentInfo.waitSemaphoreCount = 1;
-        //     presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
-        //     presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
-
-        //     bool recreationNeeded = false;
-        //     vk::Result result;
-        //     try {
-        //         result = device->graphicsQueue.presentKHR(presentInfo);
-        //     } catch (vk::OutOfDateKHRError const &e) {
-        //         result = vk::Result::eErrorOutOfDateKHR;
-        //     }
-
-        //     // if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized) { 
-        //     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) { 
-        //         recreateSwapchain();
-        //     } else if (result != vk::Result::eSuccess) {
-        //         throw std::runtime_error("Failed to present swap chain image.");
-        //     }
-
-        //     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        // }
-        
         /* Destroy the parts we need to recreate */
         void cleanup() {
             colorImage.destroy();
@@ -353,17 +254,13 @@ namespace core {
 
             device->logicalDevice.destroySwapchainKHR(swapchain);
         
-            for (size_t i = 0; i < uniformBuffers.size(); i++) {
-                uniformBuffers[i]->destroy();
-            }
-
-            device->logicalDevice.destroyDescriptorPool(descriptor.pool);
+            device->logicalDevice.destroyDescriptorPool(descriptorPool);
         }
 
         void destroy() {
             cleanup();
             
-            device->logicalDevice.destroyDescriptorSetLayout(descriptor.setLayout);
+            device->logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
@@ -511,6 +408,43 @@ namespace core {
             colorImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, this->imageFormat,
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eColor);
+        }
+
+        void createDescriptorSetLayout() {
+            vk::DescriptorSetLayoutBinding uboLayoutBinding;
+            uboLayoutBinding.binding = 0; // The binding used in the shader
+            uboLayoutBinding.descriptorCount = 1; // Number of values in the array
+            uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
+            uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex; // We're only referencing the descriptor from the vertex shader
+            uboLayoutBinding.pImmutableSamplers = nullptr; // Image sampling related stuff.
+
+            vk::DescriptorSetLayoutBinding samplerLayoutBinding;
+            samplerLayoutBinding.binding = 1;
+            samplerLayoutBinding.descriptorCount = 1;
+            samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+            samplerLayoutBinding.pImmutableSamplers = nullptr;
+            samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment; //It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
+
+            std::array<vk::DescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+            
+            vk::DescriptorSetLayoutCreateInfo createInfo{ {}, (uint32_t) bindings.size(), bindings.data() };
+
+            descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
+        }
+
+        void createDescriptorPool(int nObjects) {
+            std::array<vk::DescriptorPoolSize, 2> poolSizes;;
+            poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
+            poolSizes[0].descriptorCount = nObjects;
+            poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
+            poolSizes[1].descriptorCount = nObjects;
+
+            vk::DescriptorPoolCreateInfo createInfo;
+            createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+            createInfo.pPoolSizes = poolSizes.data();
+            createInfo.maxSets = nObjects;
+
+            descriptorPool = device->logicalDevice.createDescriptorPool(createInfo);
         }
     };
 };

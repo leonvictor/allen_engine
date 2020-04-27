@@ -10,9 +10,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-// #define STB_IMAGE_IMPLEMENTATION
-// #include <stb_image.h>
-
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -180,7 +177,6 @@ private:
         loadModels();
 
         /* Swapchain components that rely on model parameters */
-        swapchain.createDescriptorSets(*texture);
         swapchain.createCommandBuffers(context->graphicsCommandPool, models);
     }
 
@@ -188,6 +184,7 @@ private:
         models.resize(N_MODELS);
         for (int i = 0; i < N_MODELS; i++) {
             models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i]);
+            models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.descriptorSetLayout, *texture);
         }
     }
 
@@ -206,7 +203,7 @@ private:
         
         swapchain.recreate(window);
         // TODO: Those two calls should be inside recreate() but require too many parameters for now...
-        swapchain.createDescriptorSets(*texture); 
+        // swapchain.createDescriptorSets(*texture); 
         swapchain.createCommandBuffers(context->graphicsCommandPool, models);
     }
 
@@ -238,10 +235,10 @@ private:
                 core::UniformBufferObject ubo;;
                 ubo.model = modelMatrix;
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
-                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 50.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
                 
-                swapchain.updateUniformBuffers(imageIndex, ubo);
+                models[i].updateUniformBuffers(ubo);
             }
             endDrawFrame(imageIndex);
         }
