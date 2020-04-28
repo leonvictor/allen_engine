@@ -10,9 +10,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-// #define STB_IMAGE_IMPLEMENTATION
-// #include <stb_image.h>
-
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -34,7 +31,6 @@
 #include "core/context.hpp"
 #include "core/swapchain.cpp"
 #include "core/buffer.cpp"
-#include "core/descriptor.cpp"
 #include "core/pipeline.cpp"
 #include "core/texture.cpp"
 
@@ -43,6 +39,7 @@ const int HEIGHT = 600;
 
 const std::string MODEL_PATH = "assets/models/cube.obj";
 const std::string TEXTURE_PATH = "assets/textures/camel.jpg";
+const int N_MODELS = 3;
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
@@ -75,9 +72,6 @@ private:
 
     size_t currentFrame = 0;
     
-    std::shared_ptr<core::Buffer> vertexBuffer;
-    std::shared_ptr<core::Buffer> indexBuffer;
-
     uint32_t textureMipLevels;
 
     std::shared_ptr<core::Texture> texture;
@@ -100,7 +94,7 @@ private:
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
 
-    Mesh model;
+    std::vector<Mesh> models;
 
     std::array<glm::vec3, 3> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -179,47 +173,18 @@ private:
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
         
         /* Application related stuff. How do we handle multiple a complex scene with multiple models ? */
-        loadModel();
-        createVertexBuffer();
-        createIndexBuffer();
+        loadModels();
 
         /* Swapchain components that rely on model parameters */
-        swapchain.createDescriptorSets(*texture);
-        swapchain.createCommandBuffers(context->graphicsCommandPool, *vertexBuffer, *indexBuffer, model.indices.size());
+        swapchain.createCommandBuffers(context->graphicsCommandPool, models);
     }
 
-    void loadModel() {
-        model = Mesh::fromObj(MODEL_PATH);
-    }
-
-    void createVertexBuffer() {
-        vk::DeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
-        
-        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-        stagingBuffer.map(0, bufferSize);
-        stagingBuffer.copy(model.vertices.data(), (size_t) bufferSize);
-        stagingBuffer.unmap();
-
-        vertexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
-        context->copyBuffer(stagingBuffer, *vertexBuffer, bufferSize);
-
-        stagingBuffer.destroy();
-    }
-
-    void createIndexBuffer() {
-        vk::DeviceSize  bufferSize = sizeof(model.indices[0]) * model.indices.size();
-        
-        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-        stagingBuffer.map(0, bufferSize);
-        stagingBuffer.copy(model.indices.data(), (size_t) bufferSize);
-        stagingBuffer.unmap();
-
-        indexBuffer = std::make_shared<core::Buffer>(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);   
-        context->copyBuffer(stagingBuffer, *indexBuffer, bufferSize);
-
-        stagingBuffer.destroy();
+    void loadModels() {
+        models.resize(N_MODELS);
+        for (int i = 0; i < N_MODELS; i++) {
+            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i]);
+            models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.descriptorSetLayout, *texture);
+        }
     }
 
     void recreateSwapchain() {
@@ -237,8 +202,8 @@ private:
         
         swapchain.recreate(window);
         // TODO: Those two calls should be inside recreate() but require too many parameters for now...
-        swapchain.createDescriptorSets(*texture); 
-        swapchain.createCommandBuffers(context->graphicsCommandPool, *vertexBuffer, *indexBuffer, model.indices.size());
+        // swapchain.createDescriptorSets(*texture); 
+        swapchain.createCommandBuffers(context->graphicsCommandPool, models);
     }
 
     void mainLoop() {
@@ -262,17 +227,17 @@ private:
             
             processKeyboardInput(window);
 
-            for (int i = 0; i < 1; i++) { // TODO: Just one to display smth
+            for (int i = 0; i < N_MODELS; i++) { // TODO: Just one to display smth
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
                 
                 core::UniformBufferObject ubo;;
                 ubo.model = modelMatrix;
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
-                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 10.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 50.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
                 
-                swapchain.updateUniformBuffers(imageIndex, ubo);
+                models[i].updateUniformBuffers(ubo);
             }
             endDrawFrame(imageIndex);
         }
@@ -376,8 +341,9 @@ private:
 
         texture->destroy();
 
-        vertexBuffer->destroy();
-        indexBuffer->destroy();
+        for (int i = 0; i < N_MODELS; i++) {
+            models[i].destroy();
+        }
 
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
         device->logicalDevice.destroyCommandPool(context->transferCommandPool);
