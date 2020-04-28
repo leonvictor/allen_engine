@@ -31,6 +31,8 @@ class Device  {
 public:
     vk::PhysicalDevice physicalDevice;
     vk::Device logicalDevice;
+
+    vk::Instance instance;
     
     vk::PhysicalDeviceProperties properties;
     vk::PhysicalDeviceFeatures features;
@@ -48,6 +50,7 @@ public:
     Device() {};
 
     Device(const vk::Instance& instance, const vk::SurfaceKHR& surface) {
+        this->instance = instance;
         // Pick a suitable device
         physicalDevice = pickPhysicalDevice(instance, surface);
         initProperties();
@@ -117,6 +120,18 @@ public:
         }
         throw std::runtime_error("Failed to find a supported format.");
     }
+
+    /* Helper function to add a name to a vulkan object for debugging purposes. 
+     * TODO: This should be in Context, probably ?
+     * TODO: We should be able to simply pass a C++ wrapper and infer the type and handle.
+     * Hints: I tried with a template function but failed to cast to the CType inside each class
+     */
+    void setDebugUtilsObjectName(vk::ObjectType type, uint64_t handle, std::string name) {
+            // if (!enableValidationLayers) return; // TODO !!
+
+            vk::DebugUtilsObjectNameInfoEXT debugName{ type, handle, name.c_str() };
+            logicalDevice.setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
+        }
 
 private:
 

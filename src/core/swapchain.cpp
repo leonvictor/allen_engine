@@ -408,6 +408,8 @@ namespace core {
             colorImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, this->imageFormat,
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eColor);
+
+            device->setDebugUtilsObjectName((uint64_t) (VkImageView) colorImage.view, "Color Image view");
         }
 
         void createDescriptorSetLayout() {
