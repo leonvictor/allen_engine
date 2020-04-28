@@ -186,8 +186,14 @@ namespace core {
             const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
             void* pUserData
         ) {
-            std::cerr << "validation layer: " << pCallbackData -> pMessage << std::endl;
-            return VK_FALSE; // Should the vulkan call that triggered the validation be aborted ?
+            if (messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning) {
+                std::cout << "Warning: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" <<  pCallbackData->pMessage << std::endl;
+            }
+            else if (messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+            {
+                std::cerr << "Error: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" <<  pCallbackData->pMessage << std::endl;
+            }
+            return VK_FALSE;
         }
 
         void setupDebugMessenger() {
