@@ -2,15 +2,19 @@
 
 #include <vulkan/vulkan.hpp>
 #include <memory>
+#include <iomanip>
 #include "device.hpp"
 #include "../vertex.hpp" // TODO: Berk
 #include "../utils/files.cpp" // TODO: Berk
+#include "../utils/uuid.cpp"
 
 namespace core {
     class Pipeline {
     public:
         vk::Pipeline graphicsPipeline; // Should be family-agnostic ? (i.e rename to "pipeline")
         vk::PipelineLayout layout;
+
+        const std::string PIPELINE_CACHE_PATH = "pipeline_cache_data.bin";
 
         Pipeline() {}
 
@@ -168,10 +172,31 @@ namespace core {
             // pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
             pipelineInfo.basePipelineHandle = vk::Pipeline();
 
-            graphicsPipeline = device->logicalDevice.createGraphicsPipeline(vk::PipelineCache(), pipelineInfo); // TODO
+            auto pipelineCache = loadCachedPipeline();
+            graphicsPipeline = device->logicalDevice.createGraphicsPipeline(pipelineCache.get(), pipelineInfo); // TODO
 
             device->logicalDevice.destroyShaderModule(vertShaderModule);
             device->logicalDevice.destroyShaderModule(fragShaderModule);
+
+            // Save the cache data 
+            // TODO: We could store that in the class and save it on destroy 
+
+            // Store away the cache that we've populated.  This could conceivably happen
+            // earlier, depends on when the pipeline cache stops being populated
+            // internally.
+            std::vector<uint8_t> endCacheData = device->logicalDevice.getPipelineCacheData(pipelineCache.get());
+
+            // Write the file to disk, overwriting whatever was there
+            std::ofstream writeCacheStream(PIPELINE_CACHE_PATH, std::ios_base::out | std::ios_base::binary);
+            if (writeCacheStream.good()) {
+                writeCacheStream.write( reinterpret_cast<char const *>(endCacheData.data()), endCacheData.size());
+                writeCacheStream.close();
+                std::cout << "  cacheData written to " << PIPELINE_CACHE_PATH << "\n";
+            }
+            else {
+                // Something bad happened
+                std::cout << "  Unable to write cache data to disk!\n";
+            }
         }
 
     private:
@@ -183,6 +208,101 @@ namespace core {
             createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
             return device->logicalDevice.createShaderModule(createInfo);
+        }
+
+        /* Tries to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp */ 
+        vk::UniquePipelineCache loadCachedPipeline() {
+            // Check disk for existing cache data
+            size_t startCacheSize = 0;
+            char * startCacheData = nullptr;
+
+            std::ifstream readCacheStream(PIPELINE_CACHE_PATH, std::ios_base::in | std::ios_base::binary);
+            if ( readCacheStream.good()) {
+                // Determine cache size
+                readCacheStream.seekg( 0, readCacheStream.end );
+                startCacheSize = static_cast<size_t>( readCacheStream.tellg() );
+                readCacheStream.seekg( 0, readCacheStream.beg );
+
+                // Allocate memory to hold the initial cache data
+                startCacheData = (char *)std::malloc( startCacheSize );
+
+                // Read the data into our buffer
+                readCacheStream.read( startCacheData, startCacheSize );
+
+                // Clean up and print results
+                readCacheStream.close();
+                std::cout << "  Pipeline cache HIT!\n";
+                std::cout << "  cacheData loaded from " << PIPELINE_CACHE_PATH << "\n";
+            } else {
+                // No cache found on disk
+                std::cout << "  Pipeline cache miss!\n";
+            }
+
+            if (startCacheData) { 
+                
+                uint32_t headerLength = 0;
+                uint32_t cacheHeaderVersion = 0;
+                uint32_t vendorID = 0;
+                uint32_t deviceID = 0;
+                uint8_t  pipelineCacheUUID[VK_UUID_SIZE] = {};
+
+                memcpy( &headerLength, (uint8_t *) startCacheData + 0, 4 );
+                memcpy( &cacheHeaderVersion, (uint8_t *) startCacheData + 4, 4 );
+                memcpy( &vendorID, (uint8_t *) startCacheData + 8, 4 );
+                memcpy( &deviceID, (uint8_t *) startCacheData + 12, 4 );
+                memcpy( pipelineCacheUUID, (uint8_t *) startCacheData + 16, VK_UUID_SIZE );
+
+                // Check each field and report bad values before freeing existing cache
+                bool badCache = false;
+                if ( headerLength <= 0 ) {
+                    badCache = true;
+                    std::cout << "  Bad header length in " << PIPELINE_CACHE_PATH << ".\n";
+                    std::cout << "    Cache contains: " << std::hex << std::setw( 8 ) << headerLength << "\n";
+                }
+                if ( cacheHeaderVersion != VK_PIPELINE_CACHE_HEADER_VERSION_ONE ) {
+                    badCache = true;
+                    std::cout << "  Unsupported cache header version in " << PIPELINE_CACHE_PATH << ".\n";
+                    std::cout << "    Cache contains: " << std::hex << std::setw( 8 ) << cacheHeaderVersion << "\n";
+                }
+                if ( vendorID != device->properties.vendorID ) {
+                    badCache = true;
+                    std::cout << "  Vender ID mismatch in " << PIPELINE_CACHE_PATH << ".\n";
+                    std::cout << "    Cache contains: " << std::hex << std::setw( 8 ) << vendorID << "\n";
+                    std::cout << "    Driver expects: " << std::hex << std::setw( 8 ) << device->properties.vendorID << "\n";
+                }
+                if ( deviceID != device->properties.deviceID ) {
+                    badCache = true;
+                    std::cout << "  Device ID mismatch in " << PIPELINE_CACHE_PATH << ".\n";
+                    std::cout << "    Cache contains: " << std::hex << std::setw( 8 ) << deviceID << "\n";
+                    std::cout << "    Driver expects: " << std::hex << std::setw( 8 ) << device->properties.deviceID << "\n";
+                }
+                if ( memcmp( pipelineCacheUUID, device->properties.pipelineCacheUUID, sizeof( pipelineCacheUUID ) ) != 0 ) {
+                    badCache = true;
+                    std::cout << "  UUID mismatch in " << PIPELINE_CACHE_PATH << ".\n";
+                    std::cout << "    Cache contains: " << core::UUID( pipelineCacheUUID ) << "\n";
+                    std::cout << "    Driver expects: " << core::UUID( device->properties.pipelineCacheUUID ) << "\n";
+                }
+                if ( badCache ) {
+                    // Don't submit initial cache data if any version info is incorrect
+                    free( startCacheData );
+                    startCacheSize = 0;
+                    startCacheData = nullptr;
+                    // And clear out the old cache file for use in next run
+                    std::cout << "  Deleting cache entry " << PIPELINE_CACHE_PATH << " to repopulate.\n";
+                    if ( remove( PIPELINE_CACHE_PATH.c_str() ) != 0 ) {
+                        std::cerr << "Reading error";
+                        exit( EXIT_FAILURE );
+                    }
+                }
+            }
+            // Feed the initial cache data into cache creation
+            vk::UniquePipelineCache pipelineCache = device->logicalDevice.createPipelineCacheUnique(
+                vk::PipelineCacheCreateInfo(vk::PipelineCacheCreateFlags(), startCacheSize, startCacheData));
+            // Free our initialData now that pipeline cache has been created
+            free( startCacheData );
+            startCacheData = NULL;
+
+            return pipelineCache;
         }
     };
 }
