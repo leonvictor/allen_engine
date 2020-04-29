@@ -409,7 +409,7 @@ namespace core {
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eColor);
 
-            device->setDebugUtilsObjectName((uint64_t) (VkImageView) colorImage.view, "Color Image view");
+            device->setDebugUtilsObjectName(colorImage.view.objectType, (uint64_t) (VkImageView) colorImage.view, "Color Image view");
         }
 
         void createDescriptorSetLayout() {
