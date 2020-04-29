@@ -141,7 +141,7 @@ namespace core {
 
             // Not used for now
             vk::PipelineLayoutCreateInfo layoutInfo ;
-            layoutInfo.setLayoutCount = 1;
+            layoutInfo.setLayoutCount = 1; // Update when we have more layouts
             layoutInfo.pSetLayouts = &descriptorSetLayout;
 
             this->layout = device->logicalDevice.createPipelineLayout(layoutInfo);
@@ -169,7 +169,6 @@ namespace core {
             // Render pass
             pipelineInfo.renderPass = renderPass;
             pipelineInfo.subpass = 0;
-            // pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
             pipelineInfo.basePipelineHandle = vk::Pipeline();
 
             auto pipelineCache = loadCachedPipeline();

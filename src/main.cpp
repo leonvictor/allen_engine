@@ -236,7 +236,8 @@ private:
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 50.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
-                
+                ubo.lightPos = glm::vec3(1.5f);
+                // TODO: Add light position
                 models[i].updateUniformBuffers(ubo);
             }
             endDrawFrame(imageIndex);
