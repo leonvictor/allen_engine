@@ -40,7 +40,7 @@ public:
         this->device = device;
     }
 
-    static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path, glm::vec3 position = glm::vec3(0.0f)) {
+    static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path, glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f}) {
 
             Mesh mesh(context, device);
 
@@ -74,7 +74,7 @@ public:
                         };
                     }
 
-                    vertex.color = {1.0f, 1.0f, 1.0f};
+                    vertex.color = color;
                     
                     if (index.normal_index >= 0) {
                         vertex.normal = {

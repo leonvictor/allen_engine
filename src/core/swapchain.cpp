@@ -69,7 +69,7 @@ namespace core {
             surface = vk::SurfaceKHR(pSurface);
         }
 
-        void recreate(GLFWwindow *window) {
+        void recreate(GLFWwindow *window, int nObjects) {
             createSwapchain(window);
             createImages();
             createRenderPass();
@@ -77,13 +77,13 @@ namespace core {
             createDepthResources();
             createColorResources();
             createFramebuffers();
-            createDescriptorPool(images.size());
+            createDescriptorPool(nObjects);
 
             // TODO : Add descriptor sets and command buffers here
         }
 
         // TODO: Normalize object construction
-        void init(std::shared_ptr<core::Device> device, GLFWwindow *window) {
+        void init(std::shared_ptr<core::Device> device, GLFWwindow *window, int nObjects) {
             this->device = device;
 
             assert(surface);
@@ -96,7 +96,7 @@ namespace core {
             graphicsPipeline.createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
             createFramebuffers();
             createSyncObjects();
-            createDescriptorPool(images.size());
+            createDescriptorPool(nObjects);
 
         }
 
@@ -417,7 +417,9 @@ namespace core {
             uboLayoutBinding.binding = 0; // The binding used in the shader
             uboLayoutBinding.descriptorCount = 1; // Number of values in the array
             uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
-            uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex; // We're only referencing the descriptor from the vertex shader
+            // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
+            // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)
+            uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
             uboLayoutBinding.pImmutableSamplers = nullptr; // Image sampling related stuff.
 
             vk::DescriptorSetLayoutBinding samplerLayoutBinding;

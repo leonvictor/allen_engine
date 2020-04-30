@@ -16,6 +16,7 @@ namespace core {
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 projection; 
         alignas(16) glm::vec3 lightPos;
+        alignas(16) glm::vec3 cameraPos;
     };
     
     class Context {

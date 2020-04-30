@@ -39,7 +39,7 @@ const int HEIGHT = 600;
 
 const std::string MODEL_PATH = "assets/models/cube.obj";
 const std::string TEXTURE_PATH = "assets/textures/camel.jpg";
-const int N_MODELS = 3;
+const int N_MODELS = 4;
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
@@ -90,16 +90,18 @@ private:
     const glm::vec3 WORLD_DOWN = -WORLD_UP;
 
     Camera camera = Camera(WORLD_BACKWARD * 2.0f, WORLD_UP, 90.0f, 0.0f, 0.0f);
+    const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
 
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
 
     std::vector<Mesh> models;
 
-    std::array<glm::vec3, 3> cubePositions = {
+    std::array<glm::vec3, 4> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3( 2.0f, 5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f)
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        LIGHT_POSITION
     };
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
@@ -167,7 +169,7 @@ private:
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
         context->createCommandPools(device);
 
-        swapchain.init(device, window); // TODO: Swapchain are part of a Context ?
+        swapchain.init(device, window, N_MODELS); // TODO: Swapchain are part of a Context ?
         
         /* Model attributes */
         texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
@@ -182,7 +184,9 @@ private:
     void loadModels() {
         models.resize(N_MODELS);
         for (int i = 0; i < N_MODELS; i++) {
-            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i]);
+            // TODO : Clean this up.
+            glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
+            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color);
             models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.descriptorSetLayout, *texture);
         }
     }
@@ -200,7 +204,7 @@ private:
 
         swapchain.cleanup();
         
-        swapchain.recreate(window);
+        swapchain.recreate(window, N_MODELS);
         // TODO: Those two calls should be inside recreate() but require too many parameters for now...
         // swapchain.createDescriptorSets(*texture); 
         swapchain.createCommandBuffers(context->graphicsCommandPool, models);
@@ -234,10 +238,10 @@ private:
                 core::UniformBufferObject ubo;;
                 ubo.model = modelMatrix;
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
-                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 50.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
-                ubo.lightPos = glm::vec3(1.5f);
-                // TODO: Add light position
+                ubo.lightPos = LIGHT_POSITION;
+                ubo.cameraPos = camera.position;
                 models[i].updateUniformBuffers(ubo);
             }
             endDrawFrame(imageIndex);
