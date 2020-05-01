@@ -4,26 +4,34 @@ My experiments using Vulkan. I plan to make a simple renderer to begin with, the
 The first raw edition of the program was developped following [this tutorial](https://vulkan-tutorial.com/).
 
 # TODO
- - Configure CMake
- - Separate main.cpp in focused files
  - Use dynamic states for viewport and scissors to make window resizing more efficient
  - Improve shaders compilation (for now we have to do it manually beforehand)
  - "The right way to allocate memory for a large number of objects at the same time is to create a custom allocator that splits up a single allocation among many different objects by using the offset parameters that we've seen in many functions. You can either implement such an allocator yourself, or use the VulkanMemoryAllocator library provided by the GPUOpen initiative. However, for this tutorial it's okay to use a separate allocation for every resource, because we won't come close to hitting any of these limits for now.""
  - cont. [Store multiple buffers into a single VkBuffer and use offsets (aliasing)](https://developer.nvidia.com/vulkan-memory-management)
+ - Font Rendering
+ - Dear Imgui panels
+ - Fix camera gimbal lock
+ - Asset loading with assimp
+ - Pick and stick to a clang format (w/ assorted config file)
+ - Improve lighting in many many ways : 
+    - Support lighting maps
+    - Different light types
+    - Multiple lights in scene
+ - PBR
 
 Ideas of todos proposed by the tutorial :
 
  - Push constants
  - Instanced rendering
- - Dynamic uniforms
+ - Dynamic uniforms [(see this link)](https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer)
  - Separate images and sampler descriptors
- - Pipeline cache
+ - ~~Pipeline cache~~
  - Multi-threaded command buffer generation
  - Multiple subpasses
  - Compute shaders
  - Post processing effects
  - Shadow mapping
- - Blinn-Phong lighting
+ - ~~Blinn-Phong lighting~~
 
 
 # My notes
