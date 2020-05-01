@@ -235,7 +235,7 @@ private:
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
                 
-                core::UniformBufferObject ubo;;
+                core::UniformBufferObject ubo;
                 ubo.model = modelMatrix;
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
@@ -243,7 +243,14 @@ private:
                 ubo.lightPos = LIGHT_POSITION;
                 ubo.cameraPos = camera.position;
                 models[i].updateUniformBuffers(ubo);
+
+                Material material;
+                material.ambient = {0.2f, 0.2f, 0.2f};
+                material.diffuse = {0.5f, 0.5f, 0.5f};
+                material.specular = {0.5f, 0.5f, 0.5f};
+                models[i].updateMaterialBuffer(material);
             }
+            
             endDrawFrame(imageIndex);
         }
 

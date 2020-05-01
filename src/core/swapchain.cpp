@@ -428,8 +428,14 @@ namespace core {
             samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
             samplerLayoutBinding.pImmutableSamplers = nullptr;
             samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment; //It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
-
-            std::array<vk::DescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+            
+            vk::DescriptorSetLayoutBinding materialLayoutBinding;
+            materialLayoutBinding.binding =              2;
+            materialLayoutBinding.descriptorCount = 1;
+            materialLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
+            materialLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+            
+            std::array<vk::DescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, samplerLayoutBinding, materialLayoutBinding};
             
             vk::DescriptorSetLayoutCreateInfo createInfo{ {}, (uint32_t) bindings.size(), bindings.data() };
 
@@ -437,11 +443,13 @@ namespace core {
         }
 
         void createDescriptorPool(int nObjects) {
-            std::array<vk::DescriptorPoolSize, 2> poolSizes;;
+            std::array<vk::DescriptorPoolSize, 3> poolSizes;;
             poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
             poolSizes[0].descriptorCount = nObjects;
             poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
             poolSizes[1].descriptorCount = nObjects;
+            poolSizes[2].type = vk::DescriptorType::eUniformBuffer;
+            poolSizes[2].descriptorCount = nObjects;
 
             vk::DescriptorPoolCreateInfo createInfo;
             createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
