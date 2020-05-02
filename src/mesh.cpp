@@ -102,6 +102,7 @@ public:
             mesh.createIndexBuffer();
             mesh.createUniformBuffer();
             mesh.createMaterialBuffer();
+            mesh.updateMaterialBuffer(material);
             mesh.texture = core::Texture(context, device, texturePath);
             return mesh;
     }
@@ -146,12 +147,14 @@ public:
         materialBufferInfo.range = sizeof(Material);
 
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
+
         writeDescriptors[0].dstSet = descriptorSet;
         writeDescriptors[0].dstBinding = 0; // Binding index 
         writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
         writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
         writeDescriptors[0].descriptorCount = 1;
         writeDescriptors[0].pBufferInfo = &bufferInfo;
+
         writeDescriptors[1].dstSet = descriptorSet;
         writeDescriptors[1].dstBinding = 1; // Binding index 
         writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update

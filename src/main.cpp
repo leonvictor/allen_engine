@@ -235,11 +235,13 @@ private:
                 ubo.cameraPos = camera.position;
                 models[i].updateUniformBuffers(ubo);
 
-                Material material;
-                material.ambient = {0.2f, 0.2f, 0.2f};
-                material.diffuse = {0.5f, 0.5f, 0.5f};
-                material.specular = {0.5f, 0.5f, 0.5f};
-                models[i].updateMaterialBuffer(material);
+                //Material doesn't change
+                // Material material;
+                // material.ambient = glm::vec3(1.0f, 0.5f, 0.31f);
+                // material.diffuse = glm::vec3(1.0f, 0.5f, 0.31);
+                // material.specular = glm::vec3(0.5f, 0.5f, 0.5);
+                // material.shininess = glm::vec1(8.0f);
+                // models[i].updateMaterialBuffer(material);
             }
             
             endDrawFrame(imageIndex);

@@ -18,37 +18,47 @@ layout(binding = 0) uniform UniformBufferObject {
 
 layout(binding = 1) uniform sampler2D texSampler;
 
-layout(binding = 2) uniform struct Material {
+layout(binding = 2) uniform Material {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
     float shininess;
 } material;
 
+// Not used for now. TODO: Pass light info as uniform
+struct Light {
+    vec3 position;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
 // layout(binding = 2) uniform vec3 light_color; // TODO: Light color should be bound
 
 void main() {
-    
-    vec3 light_color = vec3(1.0); // TODO: Pass this as uniform ?
+    // TODO Pass as uniform
+    vec3 light_ambient = vec3(0.2f, 0.2f, 0.2f);
+    vec3 light_diffuse = vec3(0.5f);
+    vec3 light_specular = vec3(1.0f);
     
     vec3 normal = normalize(in_normal);
 
     // Diffuse
     vec3 light_dir = normalize(ubo.light_position - in_position);
     float diff = clamp(dot(normal, light_dir), 0.0, 1.0);
-    vec3 diffuse = light_color * (diff * material.diffuse);
+    vec3 diffuse = light_diffuse * (diff * material.diffuse);
 
     // Specular
     vec3 view_dir = normalize(ubo.camera_position - in_position);
     vec3 reflect_dir = reflect(-light_dir, normal);
     float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.shininess);
-    vec3 specular = material.specular * spec * light_color;
+    vec3 specular = light_specular * (material.specular * spec);
 
     // Ambient
-    vec3 ambient = material.ambient * light_color; 
+    vec3 ambient = light_ambient * material.ambient; 
 
     // Combine lights
     vec3 result = (ambient + diffuse + specular) * in_color;
-    o_color = vec4(result, 1.0); // TODO: Take light color into account
-    // o_color = texture(texSampler, in_tex_coord); // Ignore texture for now
+    o_color = vec4(result, 1.0);
 }
