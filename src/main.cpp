@@ -37,7 +37,7 @@ const int WIDTH = 800;
 const int HEIGHT = 600;
 
 const std::string MODEL_PATH = "assets/models/cube.obj";
-const std::string TEXTURE_PATH = "assets/textures/camel.jpg";
+const std::string TEXTURE_PATH = "assets/textures/container2.png";
 const int N_MODELS = 4;
 
 const std::vector<const char*> validationLayers = {

@@ -47,7 +47,8 @@ void main() {
     // Diffuse
     vec3 light_dir = normalize(ubo.light_position - in_position);
     float diff = clamp(dot(normal, light_dir), 0.0, 1.0);
-    vec3 diffuse = light_diffuse * (diff * material.diffuse);
+    // vec3 diffuse = light_diffuse * (diff * material.diffuse);
+    vec3 diffuse = light_diffuse * (diff * vec3(texture(texSampler, in_tex_coord)));
 
     // Specular
     vec3 view_dir = normalize(ubo.camera_position - in_position);
@@ -56,7 +57,8 @@ void main() {
     vec3 specular = light_specular * (material.specular * spec);
 
     // Ambient
-    vec3 ambient = light_ambient * material.ambient; 
+    // vec3 ambient = light_ambient * material.ambient; 
+    vec3 ambient = light_ambient * vec3(texture(texSampler, in_tex_coord)); 
 
     // Combine lights
     vec3 result = (ambient + diffuse + specular) * in_color;
