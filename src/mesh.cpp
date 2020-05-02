@@ -21,6 +21,8 @@ public:
     core::Buffer uniformBuffer;
     core::Buffer materialBuffer;
 
+    core::Texture texture;
+
     vk::DescriptorSet descriptorSet;
 
     glm::vec3 position; // TODO: This doesn't belong here
@@ -33,7 +35,6 @@ public:
     std::shared_ptr<core::Context> context;
     std::shared_ptr<core::Device> device;
     
-
     Mesh() {}
 
     Mesh(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device) {
@@ -41,7 +42,10 @@ public:
         this->device = device;
     }
 
-    static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path, glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f}, Material material = Material()) {
+    static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
+                glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f},
+                Material material = Material(),
+                std::string texturePath = nullptr) {
 
             Mesh mesh(context, device);
 
@@ -98,6 +102,7 @@ public:
             mesh.createIndexBuffer();
             mesh.createUniformBuffer();
             mesh.createMaterialBuffer();
+            mesh.texture = core::Texture(context, device, texturePath);
             return mesh;
     }
 
@@ -117,7 +122,7 @@ public:
         stagingBuffer.destroy();
     }
 
-    void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout, const core::Texture &texture) {
+    void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout) {
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{ descriptorPool, 1, &descriptorSetLayout };
         descriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
@@ -205,6 +210,8 @@ public:
         indexBuffer.destroy();
         uniformBuffer.destroy();
         materialBuffer.destroy();
+        texture.destroy();
+
     }
     
 private:

@@ -32,7 +32,6 @@
 #include "core/swapchain.cpp"
 #include "core/buffer.cpp"
 #include "core/pipeline.cpp"
-#include "core/texture.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -72,10 +71,6 @@ private:
 
     size_t currentFrame = 0;
     
-    uint32_t textureMipLevels;
-
-    std::shared_ptr<core::Texture> texture;
-
     bool framebufferResized = false;
     bool leftMouseButtonPressed = false;
     bool rightMouseButtonPressed = false;
@@ -171,10 +166,7 @@ private:
 
         swapchain.init(device, window, N_MODELS); // TODO: Swapchain are part of a Context ?
         
-        /* Model attributes */
-        texture = std::make_shared<core::Texture>(context, device, TEXTURE_PATH);
-        
-        /* Application related stuff. How do we handle multiple a complex scene with multiple models ? */
+        /* Application related stuff */
         loadModels();
 
         /* Swapchain components that rely on model parameters */
@@ -186,8 +178,8 @@ private:
         for (int i = 0; i < N_MODELS; i++) {
             // TODO : Clean this up.
             glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
-            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color);
-            models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.descriptorSetLayout, *texture);
+            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, Material(), TEXTURE_PATH);
+            models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.descriptorSetLayout);
         }
     }
 
@@ -205,8 +197,7 @@ private:
         swapchain.cleanup();
         
         swapchain.recreate(window, N_MODELS);
-        // TODO: Those two calls should be inside recreate() but require too many parameters for now...
-        // swapchain.createDescriptorSets(*texture); 
+        // TODO: This call should be inside recreate() but require too many parameters for now...
         swapchain.createCommandBuffers(context->graphicsCommandPool, models);
     }
 
@@ -350,8 +341,6 @@ private:
 
     void cleanup() {
         swapchain.destroy();
-
-        texture->destroy();
 
         for (int i = 0; i < N_MODELS; i++) {
             models[i].destroy();

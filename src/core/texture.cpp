@@ -21,6 +21,8 @@ namespace core {
         std::shared_ptr<core::Device> device;
         std::shared_ptr<core::Context> context;
 
+        Texture() {}
+        
         Texture(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path) {
             this->context = context;
             this->device = device;
