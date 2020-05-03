@@ -32,6 +32,7 @@
 #include "core/swapchain.cpp"
 #include "core/buffer.cpp"
 #include "core/pipeline.cpp"
+#include "light.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -91,6 +92,7 @@ private:
     float lastFrameTime = 0.0f;
 
     std::vector<Mesh> models;
+    std::vector<Light> lights; 
 
     std::array<glm::vec3, 4> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -110,7 +112,7 @@ private:
 
         // if (glfwRawMouseMotionSupported()) {
         //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        // }
+        // } 
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
@@ -168,9 +170,10 @@ private:
         
         /* Application related stuff */
         loadModels();
+        setUpLights();
 
         /* Swapchain components that rely on model parameters */
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models);
+        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet);
     }
 
     void loadModels() {
@@ -179,8 +182,70 @@ private:
             // TODO : Clean this up.
             glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
             models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, Material(), TEXTURE_PATH);
-            models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.descriptorSetLayout);
+            models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         }
+    }
+
+    vk::DescriptorSet lightsDescriptorSet;
+    core::Buffer lightsBuffer;
+
+    void createLightsBuffer() {
+        // TODO: Handle "max lights" (rn its 5)
+        lightsBuffer = core::Buffer(device, 16 + (5*sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    }
+
+    void updateLightBufferCount(int count) {
+        auto truc = sizeof(int);
+        lightsBuffer.map(0, sizeof(int)); // TODO: Respect spec alignment for int
+        lightsBuffer.copy(&count, sizeof(int));
+        lightsBuffer.unmap();
+    }
+
+    void updateLightsBuffer(Light light, int index) {
+        auto u = light.getUniform();
+        lightsBuffer.map(sizeof(int) + index * sizeof(LightUniform), sizeof(LightUniform));
+        lightsBuffer.copy(&u, sizeof(LightUniform));
+        lightsBuffer.unmap();
+    }
+
+    void setUpLights() {
+        // For now manually add a light
+        Light light;
+        light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+        light.position = LIGHT_POSITION;
+        light.direction = glm::normalize(LIGHT_POSITION); // Point toward 0,0,0
+        light.type = LightType::Directionnal;
+        
+        lights.push_back(light);
+        createLightsBuffer();
+        createLightsDescriptorSet();
+
+        updateLightBufferCount(lights.size());
+
+        for (int i = 0; i < lights.size(); i++) {
+            updateLightsBuffer(lights[i], i);
+        }
+
+    }
+
+    void createLightsDescriptorSet() {
+        vk::DescriptorSetAllocateInfo allocInfo{ swapchain.descriptorPool, 1, &swapchain.lightsDescriptorSetLayout };
+        lightsDescriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
+
+        vk::DescriptorBufferInfo lightsBufferInfo;
+        lightsBufferInfo.buffer = lightsBuffer.buffer; // TODO: How do we update the lights array ?
+        lightsBufferInfo.offset = 0;
+        lightsBufferInfo.range = VK_WHOLE_SIZE;
+
+        vk::WriteDescriptorSet writeDescriptor;
+        writeDescriptor.dstSet = lightsDescriptorSet;
+        writeDescriptor.dstBinding = 0;
+        writeDescriptor.dstArrayElement = 0;
+        writeDescriptor.descriptorType = vk::DescriptorType::eStorageBuffer;
+        writeDescriptor.descriptorCount = 1;
+        writeDescriptor.pBufferInfo = &lightsBufferInfo;
+
+        device->logicalDevice.updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
     void recreateSwapchain() {
@@ -198,7 +263,7 @@ private:
         
         swapchain.recreate(window, N_MODELS);
         // TODO: This call should be inside recreate() but require too many parameters for now...
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models);
+        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet);
     }
 
     void mainLoop() {
@@ -222,7 +287,10 @@ private:
             
             processKeyboardInput(window);
 
-            for (int i = 0; i < N_MODELS; i++) { // TODO: Just one to display smth
+            // TODO: How do we handle lights ? It would make more sense to build a buffer once
+            // The buffer should be associated in a descriptor Set. 
+            // Right now descriptor sets are created by model, so we would need to duplicate the light buffer -> not good !
+            for (int i = 0; i < N_MODELS; i++) {
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
                 

@@ -18,9 +18,9 @@ namespace core {
 
         Pipeline() {}
 
-        Pipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, vk::DescriptorSetLayout descriptorSetLayout, vk::RenderPass renderPass) {
+        Pipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, std::vector<vk::DescriptorSetLayout> descriptorSetLayouts, vk::RenderPass renderPass) {
             this->device = device;
-            createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
+            createGraphicsPipeline(device, extent, descriptorSetLayouts, renderPass);
         }
 
         void destroy() {
@@ -31,7 +31,7 @@ namespace core {
         /* 
         * TODO: Move shader files locations out
         * */
-        void createGraphicsPipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, vk::DescriptorSetLayout descriptorSetLayout, vk::RenderPass renderPass) {
+        void createGraphicsPipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, std::vector<vk::DescriptorSetLayout> descriptorSetLayouts, vk::RenderPass renderPass) {
             this->device = device;
 
             auto vertShaderCode = utils::readFile("shaders/vert.spv");
@@ -87,7 +87,7 @@ namespace core {
             viewportStateInfo.viewportCount = 1;
             viewportStateInfo.pViewports = &viewport;
             
-            // Rasterizer truns the geometry shaped by the vertices into fragments to be colors by the fragment shader.
+            // Rasterizer turns the geometry shaped by the vertices into fragments to be colored by the fragment shader.
             vk::PipelineRasterizationStateCreateInfo rasterizerInfo;
             rasterizerInfo.depthClampEnable = VK_FALSE; // Whether to clamp rather than discard vertices that are beyond the near and far planes.
             rasterizerInfo.rasterizerDiscardEnable = VK_FALSE; // Disable any output to the framebuffer
@@ -98,7 +98,6 @@ namespace core {
             // The rasterizer can alter depth values.
             rasterizerInfo.depthBiasEnable = VK_FALSE;
 
-            // Disabled for now
             vk::PipelineMultisampleStateCreateInfo multisampleInfo;
             multisampleInfo.sampleShadingEnable = VK_TRUE;
             multisampleInfo.minSampleShading = .2f;
@@ -141,8 +140,8 @@ namespace core {
 
             // Not used for now
             vk::PipelineLayoutCreateInfo layoutInfo ;
-            layoutInfo.setLayoutCount = 1; // Update when we have more layouts
-            layoutInfo.pSetLayouts = &descriptorSetLayout;
+            layoutInfo.setLayoutCount = descriptorSetLayouts.size(); // Update when we have more layouts
+            layoutInfo.pSetLayouts = descriptorSetLayouts.data();
 
             this->layout = device->logicalDevice.createPipelineLayout(layoutInfo);
 

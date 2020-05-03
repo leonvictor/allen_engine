@@ -56,7 +56,8 @@ namespace core {
         bool frame_active = false;
         uint32_t activeFrameIndex;
 
-        vk::DescriptorSetLayout descriptorSetLayout;
+        vk::DescriptorSetLayout objectsDescriptorSetLayout;
+        vk::DescriptorSetLayout lightsDescriptorSetLayout;
         vk::DescriptorPool descriptorPool;
 
         Swapchain() {}
@@ -73,7 +74,7 @@ namespace core {
             createSwapchain(window);
             createImages();
             createRenderPass();
-            graphicsPipeline.createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
+            graphicsPipeline.createGraphicsPipeline(device, extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}), renderPass);
             createDepthResources();
             createColorResources();
             createFramebuffers();
@@ -93,7 +94,7 @@ namespace core {
             createColorResources();
             createRenderPass();
             createDescriptorSetLayout();
-            graphicsPipeline.createGraphicsPipeline(device, extent, descriptorSetLayout, renderPass);
+            graphicsPipeline.createGraphicsPipeline(device, extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}), renderPass);
             createFramebuffers();
             createSyncObjects();
             createDescriptorPool(nObjects);
@@ -184,7 +185,8 @@ namespace core {
             renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
-        void createCommandBuffers(const core::CommandPool& commandPool, std::vector<Mesh> models) {
+        // TODO: Pull out models and lightsDescriptorSets
+        void createCommandBuffers(const core::CommandPool& commandPool, std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet) {
 
             this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
@@ -208,14 +210,18 @@ namespace core {
                 commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
                 /* Draw command buffer */
+                
                 commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline.graphicsPipeline);
+                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, lightsDescriptorSet, nullptr);
                 
                 for (auto model : models) {
                     commandBuffers[i].bindVertexBuffers(0, model.vertexBuffer.buffer , vk::DeviceSize{0});
                     commandBuffers[i].bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, 1, &model.descriptorSet, 0, nullptr);
+                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 1, 1, &model.descriptorSet, 0, nullptr);
                     commandBuffers[i].drawIndexed(model.indices.size(), 1, 0, 0, 0);
                 }
+
+
                 commandBuffers[i].endRenderPass();
                 commandBuffers[i].end();
 
@@ -260,7 +266,8 @@ namespace core {
         void destroy() {
             cleanup();
             
-            device->logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
+            device->logicalDevice.destroyDescriptorSetLayout(objectsDescriptorSetLayout);
+            device->logicalDevice.destroyDescriptorSetLayout(lightsDescriptorSetLayout);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
@@ -409,7 +416,7 @@ namespace core {
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eColor);
 
-            device->setDebugUtilsObjectName(colorImage.view.objectType, (uint64_t) (VkImageView) colorImage.view, "Color Image view");
+            device->setDebugUtilsObjectName(colorImage.view, "Color Image View");
         }
 
         void createDescriptorSetLayout() {
@@ -430,31 +437,49 @@ namespace core {
             samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment; //It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
             
             vk::DescriptorSetLayoutBinding materialLayoutBinding;
-            materialLayoutBinding.binding =              2;
+            materialLayoutBinding.binding = 2;
             materialLayoutBinding.descriptorCount = 1;
             materialLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
             materialLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
-            
+
             std::array<vk::DescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, samplerLayoutBinding, materialLayoutBinding};
             
             vk::DescriptorSetLayoutCreateInfo createInfo{ {}, (uint32_t) bindings.size(), bindings.data() };
 
-            descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
+            objectsDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
+            // TODO: Debug only
+            device->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
+
+            vk::DescriptorSetLayoutBinding lightsLayoutBinding;
+            lightsLayoutBinding.binding = 0;
+            lightsLayoutBinding.descriptorCount = 1;
+            lightsLayoutBinding.descriptorType = vk::DescriptorType::eStorageBuffer;
+            lightsLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+
+            vk::DescriptorSetLayoutCreateInfo lightsCreateInfo;
+            lightsCreateInfo.bindingCount = 1;
+            lightsCreateInfo.pBindings = &lightsLayoutBinding;
+
+            lightsDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(lightsCreateInfo);
+            // TODO: Debug only
+            device->setDebugUtilsObjectName(lightsDescriptorSetLayout, "Lights Descriptor Set Layout");
         }
 
         void createDescriptorPool(int nObjects) {
-            std::array<vk::DescriptorPoolSize, 3> poolSizes;;
+            std::array<vk::DescriptorPoolSize, 4> poolSizes;;
             poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
             poolSizes[0].descriptorCount = nObjects;
             poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
             poolSizes[1].descriptorCount = nObjects;
             poolSizes[2].type = vk::DescriptorType::eUniformBuffer;
             poolSizes[2].descriptorCount = nObjects;
+            poolSizes[3].type = vk::DescriptorType::eStorageBuffer;
+            poolSizes[3].descriptorCount = 1; // For now, only used by lights  
 
             vk::DescriptorPoolCreateInfo createInfo;
             createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
             createInfo.pPoolSizes = poolSizes.data();
-            createInfo.maxSets = nObjects;
+            createInfo.maxSets = nObjects + 1; // TODO: +1 is for lights. Make it less hardcoded
 
             descriptorPool = device->logicalDevice.createDescriptorPool(createInfo);
         }
