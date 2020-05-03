@@ -52,7 +52,7 @@ vec3 apply_directional_light(uint index, vec3 normal) {
 
     // Diffuse
     float diff = clamp(dot(normal, light_dir), 0.0, 1.0);
-    vec3 diffuse = light_diffuse * (diff * vec3(texture(tex_sampler, in_tex_coord)));
+    vec3 diffuse = light_diffuse * diff * vec3(texture(tex_sampler, in_tex_coord));
 
     // Specular
     vec3 view_dir = normalize(ubo.camera_position - in_position);
@@ -63,12 +63,31 @@ vec3 apply_directional_light(uint index, vec3 normal) {
     return diffuse + specular;
 }
 
-vec3 apply_spot_light() {
+vec3 apply_spot_light(uint index, vec3 normal) {
+
     return vec3(0.0f);
 }
 
-vec3 apply_point_light() {
-    return vec3(0.0f);
+vec3 apply_point_light(uint index, vec3 normal) {
+    vec3 light_ambient = vec3(0.2f, 0.2f, 0.2f);
+    vec3 light_diffuse = vec3(0.5f);
+    vec3 light_specular = vec3(1.0f);
+
+    vec3 light_dir = normalize(lights.light[index].position.xyz - in_position);
+
+    // Diffuse
+    float diff = max(dot(normal, light_dir), 0.0);
+    vec3 diffuse = light_diffuse * diff * vec3(texture(tex_sampler, in_tex_coord));
+
+    // Specular
+    vec3 view_dir = normalize(ubo.camera_position - in_position);
+    vec3 reflect_dir = reflect(-light_dir, normal);
+    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.shininess);
+    // vec3 specular = light_specular * spec * vec3(texture(material.specular, in_tex_coord)); // Using specular maps
+    vec3 specular = light_specular * spec * material.specular;
+    
+    // Attenuation (TODO)
+    return diffuse + specular;
 }
 
 void main() {
@@ -90,10 +109,10 @@ void main() {
             result += apply_directional_light(i, normal);
         }
         if (lights.light[i].position.w == SPOT_LIGHT) {
-
+            result += apply_spot_light(i, normal);
         }
         if (lights.light[i].position.w == POINT_LIGHT) {
-
+            result += apply_point_light(i, normal);
         }
     }
     // Diffuse

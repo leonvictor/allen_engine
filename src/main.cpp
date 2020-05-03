@@ -78,6 +78,7 @@ private:
     bool middleMouseButtonPressed = false;
     glm::vec2 lastMousePos;
 
+    const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
     const glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
     const glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -213,10 +214,16 @@ private:
         Light light;
         light.color = glm::vec3(1.0f, 1.0f, 1.0f);
         light.position = LIGHT_POSITION;
-        light.direction = glm::normalize(LIGHT_POSITION); // Point toward 0,0,0
+        light.direction = WORLD_RIGHT; // Point toward 0,0,0
         light.type = LightType::Directionnal;
         
         lights.push_back(light);
+
+        // Reuse the info
+        // Direction is not used for point lights
+        light.type = LightType::Point;
+        lights.push_back(light);
+
         createLightsBuffer();
         createLightsDescriptorSet();
 
