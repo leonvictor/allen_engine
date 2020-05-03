@@ -126,12 +126,18 @@ public:
      * TODO: We should be able to simply pass a C++ wrapper and infer the type and handle.
      * Hints: I tried with a template function but failed to cast to the CType inside each class
      */
+    [[deprecated("Replaced with a simpler version, use setDebugUtilsObjectName(object, name) instead.")]]
     void setDebugUtilsObjectName(vk::ObjectType type, uint64_t handle, std::string name) {
-            // if (!enableValidationLayers) return; // TODO !!
-
+            throw
             vk::DebugUtilsObjectNameInfoEXT debugName{ type, handle, name.c_str() };
             logicalDevice.setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
         }
+
+    template<class T>
+    void setDebugUtilsObjectName(T object, std::string name) {
+        vk::DebugUtilsObjectNameInfoEXT debugName { object.objectType, (uint64_t) (typename T::CType) object, name.c_str()};
+        logicalDevice.setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
+    }
 
 private:
 
@@ -151,6 +157,7 @@ private:
 
         features.samplerAnisotropy = VK_TRUE;
         features.sampleRateShading = VK_TRUE;
+        features.fragmentStoresAndAtomics = VK_TRUE;
 
         vk::DeviceCreateInfo deviceCreateInfo = {};
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
