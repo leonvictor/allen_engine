@@ -6,7 +6,8 @@
 #include "device.hpp"
 #include "../vertex.hpp" // TODO: Berk
 #include "../utils/files.cpp" // TODO: Berk
-#include "../utils/uuid.cpp"
+#include "../utils/uuid.cpp" // TODO: Berk
+#include "shaders.cpp"
 
 namespace core {
     class Pipeline {
@@ -34,25 +35,10 @@ namespace core {
         void createGraphicsPipeline(std::shared_ptr<core::Device> device, vk::Extent2D extent, std::vector<vk::DescriptorSetLayout> descriptorSetLayouts, vk::RenderPass renderPass) {
             this->device = device;
 
-            auto vertShaderCode = utils::readFile("shaders/vert.spv");
-            auto fragShaderCode = utils::readFile("shaders/frag.spv");
-
-            auto vertShaderModule = createShaderModule(vertShaderCode);
-            auto fragShaderModule = createShaderModule(fragShaderCode);
-
-            vk::PipelineShaderStageCreateInfo vertShaderStageInfo;
-            vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex; // At which stage of the pipeline is this shader used 
-            vertShaderStageInfo.module = vertShaderModule;
-            vertShaderStageInfo.pName = "main"; // Which shader function to invoke (entrypoint)
-            // pSpecializationInfo : We can set values for constants in the shader.
-            // Then we can use a single shader module and have its behavior configured at pipeline creation (here)
-
-            vk::PipelineShaderStageCreateInfo fragShaderStageInfo;
-            fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment; 
-            fragShaderStageInfo.module = fragShaderModule;
-            fragShaderStageInfo.pName = "main";
-
-            vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo}; // Referenced in the actual pipeline creation step
+            vk::PipelineShaderStageCreateInfo shaderStages[] = {
+                core::shaders::loadShader(device, "shaders/vert.spv", vk::ShaderStageFlagBits::eVertex, "main"),
+                core::shaders::loadShader(device, "shaders/frag.spv", vk::ShaderStageFlagBits::eFragment, "main")
+            };
 
             // Describe the format of the vertex data that will be passed to the vertex shader.
             auto vertextAttributeDescriptions = Vertex::getAttributeDescription();
@@ -173,8 +159,9 @@ namespace core {
             auto pipelineCache = loadCachedPipeline();
             graphicsPipeline = device->logicalDevice.createGraphicsPipeline(pipelineCache.get(), pipelineInfo); // TODO
 
-            device->logicalDevice.destroyShaderModule(vertShaderModule);
-            device->logicalDevice.destroyShaderModule(fragShaderModule);
+
+            // device->logicalDevice.destroyShaderModule(vertShaderModule);
+            // device->logicalDevice.destroyShaderModule(fragShaderModule);
 
             // Save the cache data 
             // TODO: We could store that in the class and save it on destroy 
@@ -199,14 +186,6 @@ namespace core {
 
     private:
         std::shared_ptr<core::Device> device;
-
-        vk::ShaderModule createShaderModule(const std::vector<char>& code) {
-            vk::ShaderModuleCreateInfo createInfo;
-            createInfo.codeSize = code.size();
-            createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-            return device->logicalDevice.createShaderModule(createInfo);
-        }
 
         /* Tries to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp */ 
         vk::UniquePipelineCache loadCachedPipeline() {
