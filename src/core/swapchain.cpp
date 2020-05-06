@@ -34,7 +34,11 @@ namespace core {
         core::Image colorImage;
         core::Image depthImage;
 
-        core::Pipeline graphicsPipeline;
+        struct {
+            core::Pipeline objects;
+            core::Pipeline skybox;
+        } pipelines;
+
         vk::SurfaceKHR surface;
         vk::SwapchainKHR swapchain;
         vk::PresentInfoKHR presentInfo;
@@ -58,6 +62,8 @@ namespace core {
 
         vk::DescriptorSetLayout objectsDescriptorSetLayout;
         vk::DescriptorSetLayout lightsDescriptorSetLayout;
+        // There is probably a better place for those
+        vk::DescriptorSetLayout skyboxDescriptorSetLayout;
         vk::DescriptorPool descriptorPool;
 
         Swapchain() {}
@@ -74,7 +80,7 @@ namespace core {
             createSwapchain(window);
             createImages();
             createRenderPass();
-            graphicsPipeline.createGraphicsPipeline(device, extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}), renderPass);
+            createPipelines();
             createDepthResources();
             createColorResources();
             createFramebuffers();
@@ -94,10 +100,41 @@ namespace core {
             createColorResources();
             createRenderPass();
             createDescriptorSetLayout();
-            graphicsPipeline.createGraphicsPipeline(device, extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}), renderPass);
+            createSkyboxDescriptorSetLayout();
+
+            createPipelines();
             createFramebuffers();
             createSyncObjects();
             createDescriptorPool(nObjects);
+
+        }
+
+        void createPipelines() {
+            core::PipelineFactory factory = core::PipelineFactory(device, renderPass);
+            factory.registerShader("shaders/shader.vert", vk::ShaderStageFlagBits::eVertex);
+            factory.registerShader("shaders/shader.frag", vk::ShaderStageFlagBits::eFragment);
+            auto objectsPipeline = factory.create(extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}));
+            pipelines.objects = objectsPipeline;
+
+            factory.registerShader("shaders/skybox_shader.vert", vk::ShaderStageFlagBits::eVertex);
+            factory.registerShader("shaders/skybox_shader.frag", vk::ShaderStageFlagBits::eFragment);
+            factory.depthStencil.depthWriteEnable = VK_FALSE;
+            pipelines.skybox = factory.create(extent, std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout}));
+        }
+
+        void createSkyboxDescriptorSetLayout() {
+            std::vector<vk::DescriptorSetLayoutBinding> setsLayoutBindings {
+                { 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex }, 
+                { 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment }
+            };
+
+            skyboxDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout({ {}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data() });
+            // TODO: Debug only 
+            device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
+
+
+            // vk::DescriptorImageInfo cubeMapDescriptor { cubeMap.sampler, cubeMap.view, vk::ImageLayout::eGeneral };
+            // vk::DescriptorSetAllocateInfo allocInfo { descriptorPool, 1, &descriptorSetLayout };
 
         }
 
@@ -188,6 +225,7 @@ namespace core {
         // TODO: Pull out models and lightsDescriptorSets
         void createCommandBuffers(const core::CommandPool& commandPool, std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet) {
 
+            // TODO: This has to happen somewhere else
             this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
 
@@ -209,15 +247,21 @@ namespace core {
 
                 commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
-                /* Draw command buffer */
-                
-                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline.graphicsPipeline);
-                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 0, lightsDescriptorSet, nullptr);
+                // Skybox
+                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
+                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skyboxDescriptorSet, nullptr);
+                // TODO: Bind skybox vertex buffer
+                // TODO: Draw skybox
+
+    
+                // Objects
+                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.graphicsPipeline);
+                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
                 
                 for (auto model : models) {
                     commandBuffers[i].bindVertexBuffers(0, model.vertexBuffer.buffer , vk::DeviceSize{0});
                     commandBuffers[i].bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline.layout, 1, 1, &model.descriptorSet, 0, nullptr);
+                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, 1, &model.descriptorSet, 0, nullptr);
                     commandBuffers[i].drawIndexed(model.indices.size(), 1, 0, 0, 0);
                 }
 
@@ -255,7 +299,7 @@ namespace core {
                 img.cleanup(device->logicalDevice, commandPool.pool);
             }
 
-            graphicsPipeline.destroy();
+            pipelines.objects.destroy();
             device->logicalDevice.destroyRenderPass(renderPass);
 
             device->logicalDevice.destroySwapchainKHR(swapchain);
@@ -277,11 +321,6 @@ namespace core {
         }
 
     private:
-
-        void retrievePersistentContextInfo() {
-
-        }
-
         void createSwapchain(GLFWwindow *window) {
 
             /* Swapchain parameters */
