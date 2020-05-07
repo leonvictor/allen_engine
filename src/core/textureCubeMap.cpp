@@ -17,12 +17,12 @@ public:
     // TODO: Quick and dirty way of storing faces names for now
     // Generate optimized file ?
     std::array<std::string, 6> faces = {
-        "Back",
+        "Right",
+        "Left",
+        "Up",
         "Down",
         "Front",
-        "Left",
-        "Right",
-        "Up",
+        "Back",
     };
 
     void loadFromDirectory(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path)

@@ -197,20 +197,20 @@ private:
             cubeMap.loadFromDirectory(context, device, "");
             loadSkyBox();
             createSkyboxDescriptorSet();
-            // TODO: Copy some data to the UBO
+
+            updateSkyboxUBO();
+        }
+
+        void updateSkyboxUBO() {
             core::UniformBufferObject ubo;
             // ubo.model = skyboxModel.getModelMatrix();
-            ubo.model = camera.getViewMatrix();
-            ubo.model[3] = glm::vec4(0, 0, 0, 1);
-
-            ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
+            ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
             ubo.view = glm::mat4(1.0f); // eye/camera position, center position, up axis
             ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
             ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
             ubo.lightPos = LIGHT_POSITION;
             ubo.cameraPos = camera.position;
             skyboxModel.updateUniformBuffers(ubo);
-
         }
 
         void loadSkyBox() {
@@ -361,6 +361,9 @@ private:
             // TODO: How do we handle lights ? It would make more sense to build a buffer once
             // The buffer should be associated in a descriptor Set. 
             // Right now descriptor sets are created by model, so we would need to duplicate the light buffer -> not good !
+
+            updateSkyboxUBO();
+
             for (int i = 0; i < N_MODELS; i++) {
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
                 modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
