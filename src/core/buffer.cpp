@@ -10,6 +10,8 @@ namespace core {
     public:
         vk::Buffer buffer;
         vk::DeviceMemory memory;
+        vk::DeviceSize size;
+
         void *mapped{nullptr};
 
         std::shared_ptr<core::Device> device;
@@ -18,6 +20,7 @@ namespace core {
 
         Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memProperties) {
             this->device = device;
+            this->size = size;
 
             createBuffer(size, usage);
             allocate(memProperties);
@@ -32,6 +35,7 @@ namespace core {
         //         device->logicalDevice.freeMemory(memory);
         //     }
         // }
+
         void destroy() {
             if (mapped) {
                 unmap();
@@ -39,8 +43,6 @@ namespace core {
             device->logicalDevice.destroyBuffer(buffer);
             device->logicalDevice.freeMemory(memory);
         }
-        // vkDestroyBuffer(device->getCDevice(), *uniformBuffers[i], nullptr);
-                // vkFreeMemory(device->getCDevice(), uniformBuffersMemory[i], nullptr);
 
         inline void* map(size_t offset, vk::DeviceSize size) {
             mapped = device->logicalDevice.mapMemory(memory, offset, size, vk::MemoryMapFlags());
@@ -55,6 +57,10 @@ namespace core {
         // Examples also has an offset.
         inline void copy(const void* data, size_t size) {
             memcpy(mapped, data, size);
+        }
+
+        inline vk::DescriptorBufferInfo getDescriptor() {
+            return vk::DescriptorBufferInfo(buffer, 0, size);
         }
 
         operator vk::Buffer() {

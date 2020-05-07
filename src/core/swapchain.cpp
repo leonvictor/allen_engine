@@ -15,6 +15,7 @@
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 namespace core {
+    // TODO: Rework to use core::Image
     struct SwapchainImage {
         vk::Framebuffer framebuffer;
         vk::CommandBuffer commandbuffer;
@@ -111,15 +112,20 @@ namespace core {
 
         void createPipelines() {
             core::PipelineFactory factory = core::PipelineFactory(device, renderPass);
-            factory.registerShader("shaders/shader.vert", vk::ShaderStageFlagBits::eVertex);
-            factory.registerShader("shaders/shader.frag", vk::ShaderStageFlagBits::eFragment);
-            auto objectsPipeline = factory.create(extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}));
-            pipelines.objects = objectsPipeline;
+            factory.registerShader("shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
+            factory.registerShader("shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
+            pipelines.objects = factory.create(extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}));
+            // TODO: Debug only
+            device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
 
-            factory.registerShader("shaders/skybox_shader.vert", vk::ShaderStageFlagBits::eVertex);
-            factory.registerShader("shaders/skybox_shader.frag", vk::ShaderStageFlagBits::eFragment);
+            factory.registerShader("shaders/skybox.vert.spv", vk::ShaderStageFlagBits::eVertex);
+            factory.registerShader("shaders/skybox.frag.spv", vk::ShaderStageFlagBits::eFragment);
             factory.depthStencil.depthWriteEnable = VK_FALSE;
+            factory.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
             pipelines.skybox = factory.create(extent, std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout}));
+
+             // TODO: Debug only
+            device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
         }
 
         void createSkyboxDescriptorSetLayout() {
@@ -132,9 +138,6 @@ namespace core {
             // TODO: Debug only 
             device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
 
-
-            // vk::DescriptorImageInfo cubeMapDescriptor { cubeMap.sampler, cubeMap.view, vk::ImageLayout::eGeneral };
-            // vk::DescriptorSetAllocateInfo allocInfo { descriptorPool, 1, &descriptorSetLayout };
 
         }
 
@@ -223,7 +226,7 @@ namespace core {
         }
 
         // TODO: Pull out models and lightsDescriptorSets
-        void createCommandBuffers(const core::CommandPool& commandPool, std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet) {
+        void createCommandBuffers(const core::CommandPool& commandPool, std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet, vk::DescriptorSet& skyboxDescriptorSet, Mesh& skyboxObject) {
 
             // TODO: This has to happen somewhere else
             this->commandPool = commandPool;
@@ -248,8 +251,12 @@ namespace core {
                 commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
                 // Skybox
-                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
                 commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skyboxDescriptorSet, nullptr);
+                commandBuffers[i].bindVertexBuffers(0, skyboxObject.vertexBuffer.buffer, vk::DeviceSize{0});
+                commandBuffers[i].bindIndexBuffer(skyboxObject.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
+                commandBuffers[i].drawIndexed(skyboxObject.indices.size(), 1, 0, 0, 0);
+                
                 // TODO: Bind skybox vertex buffer
                 // TODO: Draw skybox
 
@@ -300,6 +307,8 @@ namespace core {
             }
 
             pipelines.objects.destroy();
+            pipelines.skybox.destroy();
+
             device->logicalDevice.destroyRenderPass(renderPass);
 
             device->logicalDevice.destroySwapchainKHR(swapchain);
@@ -507,18 +516,18 @@ namespace core {
         void createDescriptorPool(int nObjects) {
             std::array<vk::DescriptorPoolSize, 4> poolSizes;;
             poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
-            poolSizes[0].descriptorCount = nObjects;
+            poolSizes[0].descriptorCount = nObjects + 1; // +1 for skybox. TODO: This should be dynamic
             poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-            poolSizes[1].descriptorCount = nObjects;
+            poolSizes[1].descriptorCount = nObjects + 1; // +1 TODO Same here
             poolSizes[2].type = vk::DescriptorType::eUniformBuffer;
-            poolSizes[2].descriptorCount = nObjects;
+            poolSizes[2].descriptorCount = nObjects; // TODO: Can we fuse the two uniformBuffer pools ? This one is for materials.
             poolSizes[3].type = vk::DescriptorType::eStorageBuffer;
             poolSizes[3].descriptorCount = 1; // For now, only used by lights  
 
             vk::DescriptorPoolCreateInfo createInfo;
             createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
             createInfo.pPoolSizes = poolSizes.data();
-            createInfo.maxSets = nObjects + 1; // TODO: +1 is for lights. Make it less hardcoded
+            createInfo.maxSets = nObjects + 2; // TODO: +2 is for lights / skybox. Make it less hardcoded
 
             descriptorPool = device->logicalDevice.createDescriptorPool(createInfo);
         }

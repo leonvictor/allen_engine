@@ -25,11 +25,14 @@ public:
 
     vk::DescriptorSet descriptorSet;
 
+    // TODO: This deserve to be in a Transform class
+    // Think about the design
     glm::vec3 position; // TODO: This doesn't belong here
     glm::vec3 rotation; // Neither does this
+    glm::vec3 scale = glm::vec3(1.0f);
 
     glm::mat4 getModelMatrix() {
-        return glm::translate(modelMatrix, position);
+        return glm::translate(glm::scale(modelMatrix, scale), position);
     }
 
     std::shared_ptr<core::Context> context;
@@ -45,7 +48,7 @@ public:
     static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
                 glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f},
                 Material material = Material(),
-                std::string texturePath = nullptr) {
+                std::string texturePath = "") {
 
             Mesh mesh(context, device);
 
@@ -103,7 +106,9 @@ public:
             mesh.createUniformBuffer();
             mesh.createMaterialBuffer();
             mesh.updateMaterialBuffer(material);
-            mesh.texture = core::Texture(context, device, texturePath);
+            if (!texturePath.empty()) {
+                mesh.texture = core::Texture(context, device, texturePath);
+            }
             return mesh;
     }
 
@@ -137,7 +142,7 @@ public:
 
         vk::DescriptorImageInfo imageInfo = {};
         imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        imageInfo.imageView = texture.image.view;
+        imageInfo.imageView = texture.view;
         imageInfo.sampler = texture.sampler;
 
         // TODO: Replace w/ push constants ?
@@ -214,9 +219,13 @@ public:
         uniformBuffer.destroy();
         materialBuffer.destroy();
         texture.destroy();
-
     }
     
+    void revertNormals() {
+        for (Vertex v : vertices) {
+            v.normal = - v.normal;
+        }
+    }
 private:
     glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
 };

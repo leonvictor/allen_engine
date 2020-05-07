@@ -13,15 +13,15 @@ namespace core
 class Texture : public core::Image
 {
 protected:
-    void createSampler()
+    void createSampler(vk::SamplerAddressMode adressMode = vk::SamplerAddressMode::eRepeat)
     {
         vk::SamplerCreateInfo samplerInfo;
         samplerInfo.magFilter = vk::Filter::eLinear; // How to interpolate texels that are magnified...
         samplerInfo.minFilter = vk::Filter::eLinear; // or minified
         // Addressing mode per axis
-        samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat; // x
-        samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat; // y
-        samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat; // z
+        samplerInfo.addressModeU = adressMode; // x
+        samplerInfo.addressModeV = adressMode; // y
+        samplerInfo.addressModeW = adressMode; // z
         samplerInfo.anisotropyEnable = VK_TRUE;
         samplerInfo.maxAnisotropy = 16;
         samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
@@ -34,12 +34,6 @@ protected:
         samplerInfo.minLod = 0;
 
         sampler = device->logicalDevice.createSampler(samplerInfo);
-    }
-
-    // TODO: This could come from a Descriptible interface (common w/ buffers)
-    vk::DescriptorImageInfo getDescriptor()
-    {
-        return vk::DescriptorImageInfo{sampler, view, vk::ImageLayout::eGeneral};
     }
 
 public:
@@ -62,9 +56,17 @@ public:
         core::Image::destroy();
     }
 
+    // TODO: This could come from a Descriptible interface (common w/ buffers)
+    vk::DescriptorImageInfo getDescriptor()
+    {
+        return vk::DescriptorImageInfo{sampler, view, vk::ImageLayout::eShaderReadOnlyOptimal};
+    }
 private:
     void createTextureImage(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path)
     {
+        this->device = device;
+        this->context = context;
+        
         // Load image from file
         core::ImageFile img = core::ImageFile(path);
 

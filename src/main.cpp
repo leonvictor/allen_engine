@@ -33,6 +33,7 @@
 #include "core/buffer.cpp"
 #include "core/pipeline.cpp"
 #include "light.cpp"
+#include "core/textureCubeMap.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -172,9 +173,10 @@ private:
         /* Application related stuff */
         loadModels();
         setUpLights();
+        setupSkyBox();
 
         /* Swapchain components that rely on model parameters */
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet);
+        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
     }
 
     void loadModels() {
@@ -186,26 +188,86 @@ private:
             models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         }
     }
+#pragma region skybox_descriptor
+        vk::DescriptorSet skyboxDescriptorSet;
+        core::TextureCubeMap cubeMap;
+        Mesh skyboxModel;
 
+        void setupSkyBox() {
+            cubeMap.loadFromDirectory(context, device, "");
+            loadSkyBox();
+            createSkyboxDescriptorSet();
+            // TODO: Copy some data to the UBO
+            core::UniformBufferObject ubo;
+            // ubo.model = skyboxModel.getModelMatrix();
+            ubo.model = camera.getViewMatrix();
+            ubo.model[3] = glm::vec4(0, 0, 0, 1);
+
+            ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
+            ubo.view = glm::mat4(1.0f); // eye/camera position, center position, up axis
+            ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+            ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
+            ubo.lightPos = LIGHT_POSITION;
+            ubo.cameraPos = camera.position;
+            skyboxModel.updateUniformBuffers(ubo);
+
+        }
+
+        void loadSkyBox() {
+            skyboxModel = Mesh::fromObj(context, device, MODEL_PATH);
+            skyboxModel.scale = glm::vec3(25.0f);
+            // skyboxModel.revertNormals();
+        }
+
+        void createSkyboxDescriptorSet() {
+
+            vk::DescriptorSetAllocateInfo allocInfo{ swapchain.descriptorPool, 1, &swapchain.skyboxDescriptorSetLayout };
+            skyboxDescriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
+
+            auto uboDescriptor = skyboxModel.uniformBuffer.getDescriptor();
+            auto cubeMapDescriptor = cubeMap.getDescriptor();
+
+            std::vector<vk::WriteDescriptorSet> writeDescriptors({
+                { skyboxDescriptorSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &uboDescriptor, nullptr },
+                { skyboxDescriptorSet, 1, 0, 1, vk::DescriptorType::eCombinedImageSampler,  &cubeMapDescriptor, nullptr, nullptr }
+            });
+
+            device->logicalDevice.updateDescriptorSets(writeDescriptors, nullptr);
+        }
+
+        void cleanupSkybox() {
+            skyboxModel.destroy();
+            cubeMap.destroy();
+        }
+
+
+#pragma endregion
+
+#pragma region  lights_descriptor
+// TODO: Move lights descriptor somewhere according to requirements
+// - All the lights in a scene share a buffer (so Scene should hold them) 
+// - For now swapchain holds the layout of the descriptor
+// - The descriptor itself is allocated and registered here
+//  
+//
     vk::DescriptorSet lightsDescriptorSet;
     core::Buffer lightsBuffer;
 
     void createLightsBuffer() {
         // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = core::Buffer(device, 16 + (5*sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        lightsBuffer = core::Buffer(device, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     void updateLightBufferCount(int count) {
-        auto truc = sizeof(int);
         lightsBuffer.map(0, sizeof(int)); // TODO: Respect spec alignment for int
         lightsBuffer.copy(&count, sizeof(int));
         lightsBuffer.unmap();
     }
 
     void updateLightsBuffer(Light light, int index) {
-        auto u = light.getUniform();
+        auto ubo = light.getUniform();
         lightsBuffer.map(sizeof(int) + index * sizeof(LightUniform), sizeof(LightUniform));
-        lightsBuffer.copy(&u, sizeof(LightUniform));
+        lightsBuffer.copy(&ubo, sizeof(LightUniform));
         lightsBuffer.unmap();
     }
 
@@ -255,6 +317,8 @@ private:
         device->logicalDevice.updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
+#pragma endregion
+
     void recreateSwapchain() {
         int width = 0, height = 0;
         glfwGetFramebufferSize(window, &width, &height);
@@ -270,7 +334,7 @@ private:
         
         swapchain.recreate(window, N_MODELS);
         // TODO: This call should be inside recreate() but require too many parameters for now...
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet);
+        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
     }
 
     void mainLoop() {
@@ -423,6 +487,8 @@ private:
             models[i].destroy();
         }
 
+        cleanupSkybox();
+        
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
         device->logicalDevice.destroyCommandPool(context->transferCommandPool);
         device->logicalDevice.destroy();

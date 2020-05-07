@@ -54,6 +54,7 @@ class PipelineFactory
 {
 public:
     vk::PipelineDepthStencilStateCreateInfo depthStencil;
+    vk::PipelineRasterizationStateCreateInfo rasterizer;
 
     PipelineFactory(std::shared_ptr<core::Device> device, const vk::RenderPass &renderpass)
     {
@@ -96,16 +97,7 @@ public:
         viewportStateInfo.viewportCount = 1;
         viewportStateInfo.pViewports = &viewport;
 
-        // Rasterizer turns the geometry shaped by the vertices into fragments to be colored by the fragment shader.
-        vk::PipelineRasterizationStateCreateInfo rasterizerInfo;
-        rasterizerInfo.depthClampEnable = VK_FALSE;        // Whether to clamp rather than discard vertices that are beyond the near and far planes.
-        rasterizerInfo.rasterizerDiscardEnable = VK_FALSE; // Disable any output to the framebuffer
-        rasterizerInfo.polygonMode = vk::PolygonMode::eFill;
-        rasterizerInfo.lineWidth = 1.0f;
-        rasterizerInfo.cullMode = vk::CullModeFlagBits::eBack; // Type of face culling
-        rasterizerInfo.frontFace = vk::FrontFace::eCounterClockwise;
-        // The rasterizer can alter depth values.
-        rasterizerInfo.depthBiasEnable = VK_FALSE;
+        // RasterizeInfo is initialized in init
 
         vk::PipelineMultisampleStateCreateInfo multisampleInfo;
         multisampleInfo.sampleShadingEnable = VK_TRUE;
@@ -153,9 +145,9 @@ public:
         pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
         pipelineCreateInfo.pColorBlendState = &colorBlendInfo;
         pipelineCreateInfo.pViewportState = &viewportStateInfo;
-        pipelineCreateInfo.pRasterizationState = &rasterizerInfo;
+        // pipelineCreateInfo.pRasterizationState = &rasterizerInfo;
         pipelineCreateInfo.pMultisampleState = &multisampleInfo;
-        pipelineCreateInfo.pDepthStencilState = &depthStencil;
+        // pipelineCreateInfo.pDepthStencilState = &depthStencil;
         pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
         pipelineCreateInfo.pDynamicState = nullptr;
 
@@ -169,13 +161,12 @@ public:
 
         auto pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH); // TODO
         auto graphicsPipeline = device->logicalDevice.createGraphicsPipeline(pipelineCache.get(), pipelineCreateInfo); // TODO
+        clearShaders();
         
         Pipeline pipeline;
         pipeline.layout = layout;
         pipeline.graphicsPipeline = graphicsPipeline;
         
-        clearShaders();
-
         return pipeline;
     }
 
@@ -202,8 +193,10 @@ private:
     std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
 
+
     void init() {
         pipelineCreateInfo.pDepthStencilState = &depthStencil;
+        pipelineCreateInfo.pRasterizationState = &rasterizer;
 
         // Initialize some parts with default values. We can modify them before calling create()
         // in order to specify some options.
@@ -216,6 +209,16 @@ private:
         depthStencil.minDepthBounds = 0.0f;
         depthStencil.maxDepthBounds = 1.0f;
         depthStencil.stencilTestEnable = VK_FALSE; // Not used
+
+        // Rasterizer turns the geometry shaped by the vertices into fragments to be colored by the fragment shader.
+        rasterizer.depthClampEnable = VK_FALSE;        // Whether to clamp rather than discard vertices that are beyond the near and far planes.
+        rasterizer.rasterizerDiscardEnable = VK_FALSE; // Disable any output to the framebuffer
+        rasterizer.polygonMode = vk::PolygonMode::eFill;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = vk::CullModeFlagBits::eBack; // Type of face culling
+        rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
+        // The rasterizer can alter depth values.
+        rasterizer.depthBiasEnable = VK_FALSE;
     }
 
     /* Try to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp 

@@ -72,6 +72,12 @@ namespace core {
             transferCommandPool.endSingleTimeCommands(commandBuffer, device->transferQueue);
         }
 
+        void copyBufferToImage(vk::Buffer buffer, vk::Image image, std::vector<vk::BufferImageCopy> bufferCopyRegions) {
+            auto commandBuffer = transferCommandPool.beginSingleTimeCommands();
+            commandBuffer[0].copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
+            transferCommandPool.endSingleTimeCommands(commandBuffer, device->transferQueue);
+        }
+
         void copyBuffer(const core::Buffer& srcBuffer, const core::Buffer& dstBuffer, vk::DeviceSize size) {
             auto commandBuffers = transferCommandPool.beginSingleTimeCommands();
 
