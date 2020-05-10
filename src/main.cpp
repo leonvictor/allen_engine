@@ -184,7 +184,7 @@ private:
         for (int i = 0; i < N_MODELS; i++) {
             // TODO : Clean this up.
             glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
-            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, Material(), TEXTURE_PATH);
+            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
             models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         }
     }
