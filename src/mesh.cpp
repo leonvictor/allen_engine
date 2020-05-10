@@ -19,9 +19,9 @@ public:
     core::Buffer vertexBuffer;
     core::Buffer indexBuffer;
     core::Buffer uniformBuffer;
-    core::Buffer materialBuffer;
 
     core::Texture texture;
+    Material material;
 
     vk::DescriptorSet descriptorSet;
 
@@ -47,7 +47,7 @@ public:
 
     static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
                 glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f},
-                Material material = Material(),
+                MaterialBufferObject material = MaterialBufferObject(),
                 std::string texturePath = "") {
 
             Mesh mesh(context, device);
@@ -104,12 +104,17 @@ public:
             mesh.createVertexBuffer();
             mesh.createIndexBuffer();
             mesh.createUniformBuffer();
-            mesh.createMaterialBuffer();
-            mesh.updateMaterialBuffer(material);
+            
+            mesh.addMaterial(material);
+            
             if (!texturePath.empty()) {
                 mesh.texture = core::Texture(context, device, texturePath);
             }
             return mesh;
+    }
+
+    void addMaterial(MaterialBufferObject newMaterial) {
+        material = Material(device, newMaterial);
     }
 
     void createVertexBuffer() {
@@ -145,12 +150,6 @@ public:
         imageInfo.imageView = texture.view;
         imageInfo.sampler = texture.sampler;
 
-        // TODO: Replace w/ push constants ?
-        vk::DescriptorBufferInfo materialBufferInfo;
-        materialBufferInfo.buffer = materialBuffer.buffer;
-        materialBufferInfo.offset = 0;
-        materialBufferInfo.range = sizeof(Material);
-
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
 
         writeDescriptors[0].dstSet = descriptorSet;
@@ -173,7 +172,8 @@ public:
         writeDescriptors[2].dstArrayElement = 0;
         writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
         writeDescriptors[2].descriptorCount = 1;
-        writeDescriptors[2].pBufferInfo = &materialBufferInfo;
+        auto materialDescriptor = material.getBufferDescriptor();
+        writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
             
         device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
@@ -203,21 +203,11 @@ public:
         uniformBuffer.unmap();
     }
 
-    void createMaterialBuffer() {
-        materialBuffer = core::Buffer(device, sizeof(Material), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
-    }
-
-    void updateMaterialBuffer(Material material) {
-        materialBuffer.map(0, sizeof(material));
-        materialBuffer.copy(&material, sizeof(material));
-        materialBuffer.unmap();
-    }
-
     void destroy() {
         vertexBuffer.destroy();
         indexBuffer.destroy();
         uniformBuffer.destroy();
-        materialBuffer.destroy();
+        material.destroy();
         texture.destroy();
     }
     
