@@ -138,18 +138,6 @@ public:
         vk::DescriptorSetAllocateInfo allocInfo{ descriptorPool, 1, &descriptorSetLayout };
         descriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
 
-        /* Update descriptor set */
-        // Describes the buffer and the region within it that contains the data for the descriptor
-        vk::DescriptorBufferInfo bufferInfo;
-        bufferInfo.buffer = uniformBuffer.buffer;
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(core::UniformBufferObject);
-
-        vk::DescriptorImageInfo imageInfo = {};
-        imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-        imageInfo.imageView = texture.view;
-        imageInfo.sampler = texture.sampler;
-
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
 
         writeDescriptors[0].dstSet = descriptorSet;
@@ -157,14 +145,16 @@ public:
         writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
         writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
         writeDescriptors[0].descriptorCount = 1;
-        writeDescriptors[0].pBufferInfo = &bufferInfo;
+        auto uniformDescriptor = uniformBuffer.getDescriptor();
+        writeDescriptors[0].pBufferInfo = &uniformDescriptor;
 
         writeDescriptors[1].dstSet = descriptorSet;
         writeDescriptors[1].dstBinding = 1; // Binding index 
         writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
         writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
         writeDescriptors[1].descriptorCount = 1;
-        writeDescriptors[1].pImageInfo = &imageInfo;
+        auto textureDescriptor = texture.getDescriptor();
+        writeDescriptors[1].pImageInfo = &textureDescriptor;
 
         // TODO: Materials presumably don't change so they don't need a binding
         writeDescriptors[2].dstSet = descriptorSet;
