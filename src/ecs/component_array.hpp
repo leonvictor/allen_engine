@@ -13,7 +13,7 @@ class IComponentArray
 {
 public:
 	virtual ~IComponentArray() = default;
-	virtual void EntityDestroyed(Entity entity) = 0;
+	virtual void entityDestroyed(Entity entity) = 0;
 };
 
 template <typename T>
@@ -51,7 +51,7 @@ public:
 		--mSize;
 	}
 
-    T& GetData(Entity entity)
+    T& getData(Entity entity)
 	{
 		assert(mEntityToIndexMap.find(entity) != mEntityToIndexMap.end() && "Retrieving non-existent component.");
 
@@ -59,12 +59,12 @@ public:
 		return mComponentArray[mEntityToIndexMap[entity]];
 	}
 
-	void EntityDestroyed(Entity entity) override
+	void entityDestroyed(Entity entity) override
 	{
 		if (mEntityToIndexMap.find(entity) != mEntityToIndexMap.end())
 		{
 			// Remove the entity's component if it existed
-			RemoveData(entity);
+			removeData(entity);
 		}
 	}
 

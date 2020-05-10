@@ -1,5 +1,0 @@
-namespace ecs {
-    struct Entity {
-
-    };
-}

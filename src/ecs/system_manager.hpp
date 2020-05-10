@@ -1,5 +1,4 @@
 #include "common.cpp"
-#include "system.cpp"
 #include <memory>
 #include <unordered_map>
 
@@ -9,7 +8,7 @@ class SystemManager
 {
 public:
     template <typename T>
-    std::shared_ptr<T> RegisterSystem()
+    std::shared_ptr<T> registerSystem()
     {
         const char *typeName = typeid(T).name();
 
@@ -22,7 +21,7 @@ public:
     }
 
     template <typename T>
-    void SetSignature(Signature signature)
+    void setSignature(Signature signature)
     {
         const char *typeName = typeid(T).name();
 
@@ -32,7 +31,7 @@ public:
         mSignatures.insert({typeName, signature});
     }
 
-    void EntityDestroyed(Entity entity)
+    void entityDestroyed(Entity entity)
     {
         // Erase a destroyed entity from all system lists
         // mEntities is a set so no check needed
@@ -44,7 +43,7 @@ public:
         }
     }
 
-    void EntitySignatureChanged(Entity entity, Signature entitySignature)
+    void entitySignatureChanged(Entity entity, Signature entitySignature)
     {
         // Notify each system that an entity's signature changed
         for (auto const &pair : mSystems)

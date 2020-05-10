@@ -11,7 +11,7 @@ class ComponentManager
 {
 public:
     template <typename T>
-    void RegisterComponent()
+    void registerComponent()
     {
         const char *typeName = typeid(T).name();
 
@@ -28,7 +28,7 @@ public:
     }
 
     template <typename T>
-    ComponentType GetComponentType()
+    ComponentType getComponentType()
     {
         const char *typeName = typeid(T).name();
 
@@ -39,27 +39,27 @@ public:
     }
 
     template <typename T>
-    void AddComponent(Entity entity, T component)
+    void addComponent(Entity entity, T component)
     {
         // Add a component to the array for an entity
-        GetComponentArray<T>()->InsertData(entity, component);
+        getComponentArray<T>()->insertData(entity, component);
     }
 
     template <typename T>
     void RemoveComponent(Entity entity)
     {
         // Remove a component from the array for an entity
-        GetComponentArray<T>()->RemoveData(entity);
+        getComponentArray<T>()->removeData(entity);
     }
 
     template <typename T>
-    T &GetComponent(Entity entity)
+    T &getComponent(Entity entity)
     {
         // Get a reference to a component from the array for an entity
-        return GetComponentArray<T>()->GetData(entity);
+        return getComponentArray<T>()->getData(entity);
     }
 
-    void EntityDestroyed(Entity entity)
+    void entityDestroyed(Entity entity)
     {
         // Notify each component array that an entity has been destroyed
         // If it has a component for that entity, it will remove it
@@ -67,7 +67,7 @@ public:
         {
             auto const &component = pair.second;
 
-            component->EntityDestroyed(entity);
+            component->entityDestroyed(entity);
         }
     }
 
@@ -83,7 +83,7 @@ private:
 
     // Convenience function to get the statically casted pointer to the ComponentArray of type T.
     template <typename T>
-    std::shared_ptr<ComponentArray<T>> GetComponentArray()
+    std::shared_ptr<ComponentArray<T>> getComponentArray()
     {
         const char *typeName = typeid(T).name();
 

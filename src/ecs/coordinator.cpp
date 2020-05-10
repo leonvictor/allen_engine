@@ -6,90 +6,90 @@
 class Coordinator
 {
 public:
-	void Init()
+	void init()
 	{
 		// Create pointers to each manager
-		mComponentManager = std::make_unique<ComponentManager>();
-		mEntityManager = std::make_unique<EntityManager>();
-		mSystemManager = std::make_unique<SystemManager>();
+		mComponentManager = std::make_unique<ecs::ComponentManager>();
+		mEntityManager = std::make_unique<ecs::EntityManager>();
+		mSystemManager = std::make_unique<ecs::SystemManager>();
 	}
 
 
 	// Entity methods
-	Entity CreateEntity()
+	ecs::Entity createEntity()
 	{
-		return mEntityManager->CreateEntity();
+		return mEntityManager->createEntity();
 	}
 
-	void DestroyEntity(Entity entity)
+	void destroyEntity(ecs::Entity entity)
 	{
-		mEntityManager->DestroyEntity(entity);
+		mEntityManager->destroyEntity(entity);
 
-		mComponentManager->EntityDestroyed(entity);
+		mComponentManager->entityDestroyed(entity);
 
-		mSystemManager->EntityDestroyed(entity);
+		mSystemManager->entityDestroyed(entity);
 	}
 
 
 	// Component methods
 	template<typename T>
-	void RegisterComponent()
+	void registerComponent()
 	{
-		mComponentManager->RegisterComponent<T>();
+		mComponentManager->registerComponent<T>();
 	}
 
 	template<typename T>
-	void AddComponent(Entity entity, T component)
+	void addComponent(ecs::Entity entity, T component)
 	{
-		mComponentManager->AddComponent<T>(entity, component);
+		mComponentManager->addComponent<T>(entity, component);
 
-		auto signature = mEntityManager->GetSignature(entity);
-		signature.set(mComponentManager->GetComponentType<T>(), true);
-		mEntityManager->SetSignature(entity, signature);
+		auto signature = mEntityManager->getSignature(entity);
+		signature.set(mComponentManager->getComponentType<T>(), true);
+		mEntityManager->setSignature(entity, signature);
 
-		mSystemManager->EntitySignatureChanged(entity, signature);
+		mSystemManager->entitySignatureChanged(entity, signature);
 	}
 
 	template<typename T>
-	void RemoveComponent(Entity entity)
+	void removeComponent(ecs::Entity entity)
 	{
-		mComponentManager->RemoveComponent<T>(entity);
+		mComponentManager->removeComponent<T>(entity);
 
-		auto signature = mEntityManager->GetSignature(entity);
-		signature.set(mComponentManager->GetComponentType<T>(), false);
-		mEntityManager->SetSignature(entity, signature);
+		auto signature = mEntityManager->getSignature(entity);
+		signature.set(mComponentManager->getComponentType<T>(), false);
+		mEntityManager->setSignature(entity, signature);
 
-		mSystemManager->EntitySignatureChanged(entity, signature);
+		mSystemManager->entitySignatureChanged(entity, signature);
 	}
 
 	template<typename T>
-	T& GetComponent(Entity entity)
+	T& getComponent(ecs::Entity entity)
 	{
-		return mComponentManager->GetComponent<T>(entity);
+		return mComponentManager->getComponent<T>(entity);
 	}
 
 	template<typename T>
-	ComponentType GetComponentType()
+	ecs::ComponentType getComponentType()
 	{
-		return mComponentManager->GetComponentType<T>();
+		return mComponentManager->getComponentType<T>();
 	}
 
 
 	// System methods
 	template<typename T>
-	std::shared_ptr<T> RegisterSystem()
+	std::shared_ptr<T> registerSystem()
 	{
-		return mSystemManager->RegisterSystem<T>();
+		return mSystemManager->registerSystem<T>();
 	}
 
 	template<typename T>
-	void SetSystemSignature(Signature signature)
+	void setSystemSignature(ecs::Signature signature)
 	{
-		mSystemManager->SetSignature<T>(signature);
+		mSystemManager->setSignature<T>(signature);
 	}
 
 private:
-	std::unique_ptr<ComponentManager> mComponentManager;
-	std::unique_ptr<EntityManager> mEntityManager;
-	std::unique_ptr<SystemManager> mSystemManager;
+	std::unique_ptr<ecs::ComponentManager> mComponentManager;
+	std::unique_ptr<ecs::EntityManager> mEntityManager;
+	std::unique_ptr<ecs::SystemManager> mSystemManager;
 };

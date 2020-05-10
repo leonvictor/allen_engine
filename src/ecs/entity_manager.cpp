@@ -30,7 +30,7 @@ namespace ecs {
             return id;
         }
 
-        void DestroyEntity(Entity entity) {
+        void destroyEntity(Entity entity) {
             assert(entity < MAX_ENTITIES && "Entity out of range");
 
             mSignatures[entity].reset();
