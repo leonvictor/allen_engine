@@ -34,6 +34,10 @@
 #include "core/pipeline.cpp"
 #include "light.cpp"
 #include "core/textureCubeMap.cpp"
+#include "ecs/coordinator.cpp"
+#include "ecs/components.hpp"
+#include "ecs/common.cpp"
+#include "ecs/systems.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -68,6 +72,8 @@ private:
     std::shared_ptr<core::Context> context;
     
     std::shared_ptr<core::Device> device;
+
+    Coordinator gCoordinator;
 
     core::Swapchain swapchain;
 
@@ -160,6 +166,22 @@ private:
         }
     }
 
+    void initECS() {
+        gCoordinator.init();
+
+        gCoordinator.registerComponent<ecs::components::Transform>();
+        gCoordinator.registerComponent<ecs::components::Renderable>();
+        gCoordinator.registerComponent<Mesh>();
+
+        auto renderSystem = gCoordinator.registerSystem<RenderSystem>();
+       
+        ecs::Signature signature;
+        signature.set(gCoordinator.getComponentType<ecs::components::Transform>());
+        signature.set(gCoordinator.getComponentType<ecs::components::Renderable>());
+        signature.set(gCoordinator.getComponentType<Mesh>());
+        gCoordinator.setSystemSignature<RenderSystem>(signature);
+    }
+
     void initVulkan() {
         context = std::make_shared<core::Context>();
         swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
@@ -168,7 +190,7 @@ private:
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
         context->createCommandPools(device);
 
-        swapchain.init(device, window, N_MODELS); // TODO: Swapchain are part of a Context ?
+        swapchain.init(device, context->graphicsCommandPool, window, N_MODELS); // TODO: Swapchain are part of a Context ?
         
         /* Application related stuff */
         loadModels();
@@ -176,7 +198,8 @@ private:
         setupSkyBox();
 
         /* Swapchain components that rely on model parameters */
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
+        // swapchain.createCommandBuffers(context->graphicsCommandPool);
+        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
     }
 
     void loadModels() {
@@ -187,7 +210,27 @@ private:
             models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, Material(), TEXTURE_PATH);
             models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         }
+
+        // ECS Version
+        // for (int i = 0; i < N_MODELS; i++) {
+        //     auto entity = gCoordinator.createEntity();
+        //     gCoordinator.addComponent(entity, ecs::components::Transform {
+        //         .position = cubePositions[i],
+        //         .rotation = glm::vec3(0.0f),
+        //         .scale = glm::vec3(1.0f)
+        //     });
+
+        //     gCoordinator.addComponent(entity, ecs::components::Renderable {
+        //         .display = true,
+        //         .uniform = core::Buffer(device, sizeof(core::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible)
+        //     });
+
+        //     glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light
+        //     // TODO: Move only mesh specific stuff to its own component 
+        //     gCoordinator.addComponent(entity, Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, Material(), TEXTURE_PATH)); // TODO: Mesh
+        // }
     }
+
 #pragma region skybox_descriptor
         vk::DescriptorSet skyboxDescriptorSet;
         core::TextureCubeMap cubeMap;
@@ -331,9 +374,10 @@ private:
 
         swapchain.cleanup();
         
-        swapchain.recreate(window, N_MODELS);
+        swapchain.recreate(window, context->graphicsCommandPool, N_MODELS);
         // TODO: This call should be inside recreate() but require too many parameters for now...
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
+        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
+        // swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
     }
 
     void mainLoop() {
