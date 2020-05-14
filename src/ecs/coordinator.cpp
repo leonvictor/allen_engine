@@ -1,3 +1,5 @@
+#pragma once 
+
 #include "common.cpp"
 #include "component_manager.hpp"
 #include "entity_manager.cpp"

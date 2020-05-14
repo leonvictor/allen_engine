@@ -1,3 +1,5 @@
+#pragma once
+
 // Entity Component System inspired by https://austinmorlan.com/posts/entity_component_system/
 #include <array>
 #include <queue>

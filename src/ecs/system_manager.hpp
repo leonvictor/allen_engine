@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common.cpp"
 #include <memory>
 #include <unordered_map>
@@ -70,7 +72,7 @@ private:
     std::unordered_map<const char *, Signature> mSignatures{};
 
     // Map from system type string pointer to a system pointer
-    std::unordered_map<const char *, std::shared_ptr<System>> mSystems{};
+    std::unordered_map<const char *, std::shared_ptr<ecs::System>> mSystems{};
 };
 
 } // namespace ecs

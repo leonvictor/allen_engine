@@ -46,7 +46,7 @@ public:
     }
 
     template <typename T>
-    void RemoveComponent(Entity entity)
+    void removeComponent(Entity entity)
     {
         // Remove a component from the array for an entity
         getComponentArray<T>()->removeData(entity);
