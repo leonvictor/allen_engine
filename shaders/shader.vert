@@ -5,7 +5,6 @@ layout(set = 1, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 projection;
-    vec3 lightpos;
     vec3 camera_position;
 } ubo;
 
@@ -22,7 +21,6 @@ layout(location = 3) out vec3 o_pos;
 void main() {
     o_color = color;
     o_tex_coord = tex_coord;
-    // o_normal = mat3(transpose(inverse(ubo.model))) * normal;
     o_normal = mat3(transpose(inverse(ubo.model))) * normal;
 
     o_pos = vec3(ubo.model * vec4(position, 1.0));

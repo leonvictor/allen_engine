@@ -12,7 +12,6 @@ layout(set = 1, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 projection;
-    vec3 light_position;
     vec3 camera_position;
 } ubo;
 
@@ -115,24 +114,9 @@ void main() {
             result += apply_point_light(i, normal);
         }
     }
-    // Diffuse
-    // vec3 light_dir = normalize(ubo.light_position - in_position);
-    // float diff = clamp(dot(normal, light_dir), 0.0, 1.0);
-    // // vec3 diffuse = light_diffuse * (diff * material.diffuse);
-    // vec3 diffuse = light_diffuse * (diff * vec3(texture(tex_sampler, in_tex_coord)));
-
-    // // Specular
-    // vec3 view_dir = normalize(ubo.camera_position - in_position);
-    // vec3 reflect_dir = reflect(-light_dir, normal);
-    // float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.shininess);
-    // vec3 specular = light_specular * (material.specular * spec);
 
     // Ambient
-    // vec3 ambient = light_ambient * material.ambient; 
     vec3 ambient = light_ambient * vec3(texture(tex_sampler, in_tex_coord)); 
-
-    // Combine lights
-    // vec3 result = (ambient + diffuse + specular);
     result += ambient;
     o_color = vec4(result, 1.0);
 }
