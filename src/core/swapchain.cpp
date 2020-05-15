@@ -268,9 +268,9 @@ namespace core {
                 images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
                 
                 for (auto model : models) {
-                    images[i].commandbuffer.bindVertexBuffers(0, model.vertexBuffer.buffer , vk::DeviceSize{0});
+                    images[i].commandbuffer.bindVertexBuffers(0, model.vertexBuffer.buffer, vk::DeviceSize{0});
                     images[i].commandbuffer.bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                    images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, 1, &model.descriptorSet, 0, nullptr);
+                    images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model.descriptorSet, nullptr);
                     images[i].commandbuffer.drawIndexed(model.indices.size(), 1, 0, 0, 0);
                 }
 

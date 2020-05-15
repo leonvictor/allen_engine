@@ -1,3 +1,5 @@
+#pragma once
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -50,7 +52,7 @@ class Camera {
         throw std::runtime_error("Not implemented");
     }
 
-    glm::mat4 getViewMatrix() {
+    glm::mat4 getViewMatrix() const {
         return glm::lookAt(position, position + forward, up);
     }
 

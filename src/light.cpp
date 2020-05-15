@@ -10,6 +10,7 @@ struct LightUniform {
     alignas(16) glm::vec4 position; // position.w represents type of light
     alignas(16) glm::vec3 direction; //direction.w represents range
     alignas(16) glm::vec3 color; // color.w represents intensity
+    // TODO: Add inner and outer cutoff for spot lights
 };
 
 class Light {
