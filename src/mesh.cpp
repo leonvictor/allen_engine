@@ -201,7 +201,7 @@ public:
         vertexBuffer.destroy();
         indexBuffer.destroy();
         uniformBuffer.destroy();
-        materialBuffer.destroy();
+        material.destroy();
         // TODO: Separate mesh and the rest (gameobject w/ components ?)
         texture.destroy();
     }
