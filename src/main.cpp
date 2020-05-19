@@ -237,35 +237,21 @@ private:
         // }
     }
 
-#pragma region skybox_descriptor
-        // vk::DescriptorSet skyboxDescriptorSet;
-        // core::TextureCubeMap cubeMap;
-        // Mesh skyboxModel;
+    void setupSkyBox() {
+        skybox = Skybox(context, device, "", MODEL_PATH);
+        skybox.createDescriptorSet(swapchain.descriptorPool, swapchain.skyboxDescriptorSetLayout);
+        updateSkyboxUBO();
+    }
 
-        void setupSkyBox() {
-            skybox = Skybox(context, device, "", MODEL_PATH);
-            skybox.createDescriptorSet(swapchain.descriptorPool, swapchain.skyboxDescriptorSetLayout);
-            // cubeMap.loadFromDirectory(context, device, "");
-            // loadSkyBox();
-            // createSkyboxDescriptorSet();
-
-            updateSkyboxUBO();
-        }
-
-        void updateSkyboxUBO() {
-            core::UniformBufferObject ubo;
-            // ubo.model = skyboxModel.getModelMatrix();
-            ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-            ubo.view = glm::mat4(1.0f); // eye/camera position, center position, up axis
-            ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-            ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
-            ubo.cameraPos = camera.position;
-            skybox.updateUniformBuffer(ubo);
-        }
-
-
-
-#pragma endregion
+    void updateSkyboxUBO() {
+        core::UniformBufferObject ubo;
+        ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
+        ubo.view = glm::mat4(1.0f); // eye/camera position, center position, up axis
+        ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
+        ubo.cameraPos = camera.position;
+        skybox.updateUniformBuffer(ubo);
+    }
 
 #pragma region  lights_descriptor
 // TODO: Move lights descriptor somewhere according to requirements
@@ -358,7 +344,6 @@ private:
         
         swapchain.recreate(window, context->graphicsCommandPool, N_MODELS);
         swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
-        // swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
     }
 
     void mainLoop() {
