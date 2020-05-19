@@ -38,6 +38,7 @@
 #include "ecs/components.hpp"
 #include "ecs/common.cpp"
 #include "ecs/systems.cpp"
+#include "skybox.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -101,6 +102,7 @@ private:
 
     std::vector<Mesh> models;
     std::vector<Light> lights; 
+    Skybox skybox;
 
     std::array<glm::vec3, 4> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -198,8 +200,12 @@ private:
         setupSkyBox();
 
         /* Swapchain components that rely on model parameters */
-        // swapchain.createCommandBuffers(context->graphicsCommandPool);
-        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
+        // TODO: 1 - At each frame, record the command buffers to update new/deleted objects
+        //       2 - Do not update if no object were modified
+        //       3 - Only update objects which have been modified
+        // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
+        // TODO: Skybox is a sceneobject with a mesh and a cubemap texture, BUT it should be unique
+        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
     void loadModels() {
@@ -232,14 +238,16 @@ private:
     }
 
 #pragma region skybox_descriptor
-        vk::DescriptorSet skyboxDescriptorSet;
-        core::TextureCubeMap cubeMap;
-        Mesh skyboxModel;
+        // vk::DescriptorSet skyboxDescriptorSet;
+        // core::TextureCubeMap cubeMap;
+        // Mesh skyboxModel;
 
         void setupSkyBox() {
-            cubeMap.loadFromDirectory(context, device, "");
-            loadSkyBox();
-            createSkyboxDescriptorSet();
+            skybox = Skybox(context, device, "", MODEL_PATH);
+            skybox.createDescriptorSet(swapchain.descriptorPool, swapchain.skyboxDescriptorSetLayout);
+            // cubeMap.loadFromDirectory(context, device, "");
+            // loadSkyBox();
+            // createSkyboxDescriptorSet();
 
             updateSkyboxUBO();
         }
@@ -252,35 +260,9 @@ private:
             ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
             ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
             ubo.cameraPos = camera.position;
-            skyboxModel.updateUniformBuffers(ubo);
+            skybox.updateUniformBuffer(ubo);
         }
 
-        void loadSkyBox() {
-            skyboxModel = Mesh::fromObj(context, device, MODEL_PATH);
-            skyboxModel.scale = glm::vec3(25.0f);
-            // skyboxModel.revertNormals();
-        }
-
-        void createSkyboxDescriptorSet() {
-
-            vk::DescriptorSetAllocateInfo allocInfo{ swapchain.descriptorPool, 1, &swapchain.skyboxDescriptorSetLayout };
-            skyboxDescriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
-
-            auto uboDescriptor = skyboxModel.uniformBuffer.getDescriptor();
-            auto cubeMapDescriptor = cubeMap.getDescriptor();
-
-            std::vector<vk::WriteDescriptorSet> writeDescriptors({
-                { skyboxDescriptorSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &uboDescriptor, nullptr },
-                { skyboxDescriptorSet, 1, 0, 1, vk::DescriptorType::eCombinedImageSampler,  &cubeMapDescriptor, nullptr, nullptr }
-            });
-
-            device->logicalDevice.updateDescriptorSets(writeDescriptors, nullptr);
-        }
-
-        void cleanupSkybox() {
-            skyboxModel.destroy();
-            cubeMap.destroy();
-        }
 
 
 #pragma endregion
@@ -375,8 +357,7 @@ private:
         swapchain.cleanup();
         
         swapchain.recreate(window, context->graphicsCommandPool, N_MODELS);
-        // TODO: This call should be inside recreate() but require too many parameters for now...
-        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
+        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
         // swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
     }
 
@@ -532,7 +513,8 @@ private:
             models[i].destroy();
         }
 
-        cleanupSkybox();
+        // cleanupSkybox();
+        skybox.destroy();
         
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
         device->logicalDevice.destroyCommandPool(context->transferCommandPool);

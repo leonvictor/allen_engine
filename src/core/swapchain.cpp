@@ -8,6 +8,7 @@
 #include "pipeline.cpp"
 #include "buffer.cpp"
 #include <memory>
+#include "../skybox.cpp"
 
 #include <array>
 #include <GLFW/glfw3.h>
@@ -237,7 +238,7 @@ namespace core {
             }
         }
 
-        void recordCommandBuffers(std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet, vk::DescriptorSet& skyboxDescriptorSet, Mesh& skyboxObject) {
+        void recordCommandBuffers(std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
             for (size_t i = 0; i < images.size(); i++) {
                 images[i].commandbuffer.begin(vk::CommandBufferBeginInfo{});
 
@@ -257,11 +258,11 @@ namespace core {
                 images[i].commandbuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
                 // Skybox
-                images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skyboxDescriptorSet, nullptr);
-                images[i].commandbuffer.bindVertexBuffers(0, skyboxObject.vertexBuffer.buffer, vk::DeviceSize{0});
-                images[i].commandbuffer.bindIndexBuffer(skyboxObject.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skybox.descriptorSet, nullptr);
+                images[i].commandbuffer.bindVertexBuffers(0, skybox.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
+                images[i].commandbuffer.bindIndexBuffer(skybox.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
                 images[i].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
-                images[i].commandbuffer.drawIndexed(skyboxObject.indices.size(), 1, 0, 0, 0);
+                images[i].commandbuffer.drawIndexed(skybox.mesh.indices.size(), 1, 0, 0, 0);
                 
                 // Objects
                 images[i].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.graphicsPipeline);
