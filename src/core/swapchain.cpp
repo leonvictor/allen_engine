@@ -8,6 +8,7 @@
 #include "pipeline.cpp"
 #include "buffer.cpp"
 #include <memory>
+#include "../skybox.cpp"
 
 #include <array>
 #include <GLFW/glfw3.h>
@@ -77,7 +78,7 @@ namespace core {
             surface = vk::SurfaceKHR(pSurface);
         }
 
-        void recreate(GLFWwindow *window, int nObjects) {
+        void recreate(GLFWwindow *window, core::CommandPool& commandPool, int nObjects) {
             createSwapchain(window);
             createImages();
             createRenderPass();
@@ -86,12 +87,13 @@ namespace core {
             createColorResources();
             createFramebuffers();
             createDescriptorPool(nObjects);
+            createCommandBuffers(commandPool);
 
             // TODO : Add descriptor sets and command buffers here
         }
 
         // TODO: Normalize object construction
-        void init(std::shared_ptr<core::Device> device, GLFWwindow *window, int nObjects) {
+        void init(std::shared_ptr<core::Device> device, core::CommandPool& commandPool, GLFWwindow *window, int nObjects) {
             this->device = device;
 
             assert(surface);
@@ -107,6 +109,7 @@ namespace core {
             createFramebuffers();
             createSyncObjects();
             createDescriptorPool(nObjects);
+            createCommandBuffers(commandPool);
 
         }
 
@@ -137,8 +140,6 @@ namespace core {
             skyboxDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout({ {}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data() });
             // TODO: Debug only 
             device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
-
-
         }
 
         void createFramebuffers() {  
@@ -226,14 +227,20 @@ namespace core {
         }
 
         // TODO: Pull out models and lightsDescriptorSets
-        void createCommandBuffers(const core::CommandPool& commandPool, std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet, vk::DescriptorSet& skyboxDescriptorSet, Mesh& skyboxObject) {
+        void createCommandBuffers(const core::CommandPool& commandPool) {
 
             // TODO: This has to happen somewhere else
             this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
 
             for (size_t i = 0; i < images.size(); i++) {
-                commandBuffers[i].begin(vk::CommandBufferBeginInfo{});
+                images[i].commandbuffer = commandBuffers[i];
+            }
+        }
+
+        void recordCommandBuffers(std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
+            for (size_t i = 0; i < images.size(); i++) {
+                images[i].commandbuffer.begin(vk::CommandBufferBeginInfo{});
 
                 // Start a render pass.
                 vk::RenderPassBeginInfo renderPassInfo;
@@ -248,35 +255,28 @@ namespace core {
                 renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
                 renderPassInfo.pClearValues = clearValues.data();
 
-                commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+                images[i].commandbuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
                 // Skybox
-                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skyboxDescriptorSet, nullptr);
-                commandBuffers[i].bindVertexBuffers(0, skyboxObject.vertexBuffer.buffer, vk::DeviceSize{0});
-                commandBuffers[i].bindIndexBuffer(skyboxObject.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
-                commandBuffers[i].drawIndexed(skyboxObject.indices.size(), 1, 0, 0, 0);
+                images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skybox.descriptorSet, nullptr);
+                images[i].commandbuffer.bindVertexBuffers(0, skybox.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
+                images[i].commandbuffer.bindIndexBuffer(skybox.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                images[i].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
+                images[i].commandbuffer.drawIndexed(skybox.mesh.indices.size(), 1, 0, 0, 0);
                 
-                // TODO: Bind skybox vertex buffer
-                // TODO: Draw skybox
-
-    
                 // Objects
-                commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.graphicsPipeline);
-                commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
+                images[i].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.graphicsPipeline);
+                images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
                 
                 for (auto model : models) {
-                    commandBuffers[i].bindVertexBuffers(0, model.vertexBuffer.buffer , vk::DeviceSize{0});
-                    commandBuffers[i].bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                    commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, 1, &model.descriptorSet, 0, nullptr);
-                    commandBuffers[i].drawIndexed(model.indices.size(), 1, 0, 0, 0);
+                    images[i].commandbuffer.bindVertexBuffers(0, model.vertexBuffer.buffer, vk::DeviceSize{0});
+                    images[i].commandbuffer.bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                    images[i].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model.descriptorSet, nullptr);
+                    images[i].commandbuffer.drawIndexed(model.indices.size(), 1, 0, 0, 0);
                 }
 
-
-                commandBuffers[i].endRenderPass();
-                commandBuffers[i].end();
-
-                images[i].commandbuffer = commandBuffers[i];
+                images[i].commandbuffer.endRenderPass();
+                images[i].commandbuffer.end();
             }
         }
 

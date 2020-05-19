@@ -34,6 +34,11 @@
 #include "core/pipeline.cpp"
 #include "light.cpp"
 #include "core/textureCubeMap.cpp"
+#include "ecs/coordinator.cpp"
+#include "ecs/components.hpp"
+#include "ecs/common.cpp"
+#include "ecs/systems.cpp"
+#include "skybox.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -69,6 +74,8 @@ private:
     
     std::shared_ptr<core::Device> device;
 
+    Coordinator gCoordinator;
+
     core::Swapchain swapchain;
 
     size_t currentFrame = 0;
@@ -95,6 +102,7 @@ private:
 
     std::vector<Mesh> models;
     std::vector<Light> lights; 
+    Skybox skybox;
 
     std::array<glm::vec3, 4> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -160,6 +168,22 @@ private:
         }
     }
 
+    void initECS() {
+        gCoordinator.init();
+
+        gCoordinator.registerComponent<ecs::components::Transform>();
+        gCoordinator.registerComponent<ecs::components::Renderable>();
+        gCoordinator.registerComponent<Mesh>();
+
+        auto renderSystem = gCoordinator.registerSystem<RenderSystem>();
+       
+        ecs::Signature signature;
+        signature.set(gCoordinator.getComponentType<ecs::components::Transform>());
+        signature.set(gCoordinator.getComponentType<ecs::components::Renderable>());
+        signature.set(gCoordinator.getComponentType<Mesh>());
+        gCoordinator.setSystemSignature<RenderSystem>(signature);
+    }
+
     void initVulkan() {
         context = std::make_shared<core::Context>();
         swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
@@ -168,7 +192,7 @@ private:
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
         context->createCommandPools(device);
 
-        swapchain.init(device, window, N_MODELS); // TODO: Swapchain are part of a Context ?
+        swapchain.init(device, context->graphicsCommandPool, window, N_MODELS); // TODO: Swapchain are part of a Context ?
         
         /* Application related stuff */
         loadModels();
@@ -176,7 +200,12 @@ private:
         setupSkyBox();
 
         /* Swapchain components that rely on model parameters */
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
+        // TODO: 1 - At each frame, record the command buffers to update new/deleted objects
+        //       2 - Do not update if no object were modified
+        //       3 - Only update objects which have been modified
+        // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
+        // TODO: Skybox is a sceneobject with a mesh and a cubemap texture, BUT it should be unique
+        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
     void loadModels() {
@@ -187,61 +216,42 @@ private:
             models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
             models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         }
+
+        // ECS Version
+        // for (int i = 0; i < N_MODELS; i++) {
+        //     auto entity = gCoordinator.createEntity();
+        //     gCoordinator.addComponent(entity, ecs::components::Transform {
+        //         .position = cubePositions[i],
+        //         .rotation = glm::vec3(0.0f),
+        //         .scale = glm::vec3(1.0f)
+        //     });
+
+        //     gCoordinator.addComponent(entity, ecs::components::Renderable {
+        //         .display = true,
+        //         .uniform = core::Buffer(device, sizeof(core::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible)
+        //     });
+
+        //     glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light
+        //     // TODO: Move only mesh specific stuff to its own component 
+        //     gCoordinator.addComponent(entity, Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, Material(), TEXTURE_PATH)); // TODO: Mesh
+        // }
     }
-#pragma region skybox_descriptor
-        vk::DescriptorSet skyboxDescriptorSet;
-        core::TextureCubeMap cubeMap;
-        Mesh skyboxModel;
 
-        void setupSkyBox() {
-            cubeMap.loadFromDirectory(context, device, "");
-            loadSkyBox();
-            createSkyboxDescriptorSet();
+    void setupSkyBox() {
+        skybox = Skybox(context, device, "", MODEL_PATH);
+        skybox.createDescriptorSet(swapchain.descriptorPool, swapchain.skyboxDescriptorSetLayout);
+        updateSkyboxUBO();
+    }
 
-            updateSkyboxUBO();
-        }
-
-        void updateSkyboxUBO() {
-            core::UniformBufferObject ubo;
-            // ubo.model = skyboxModel.getModelMatrix();
-            ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-            ubo.view = glm::mat4(1.0f); // eye/camera position, center position, up axis
-            ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-            ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
-            ubo.lightPos = LIGHT_POSITION;
-            ubo.cameraPos = camera.position;
-            skyboxModel.updateUniformBuffers(ubo);
-        }
-
-        void loadSkyBox() {
-            skyboxModel = Mesh::fromObj(context, device, MODEL_PATH);
-            skyboxModel.scale = glm::vec3(25.0f);
-            // skyboxModel.revertNormals();
-        }
-
-        void createSkyboxDescriptorSet() {
-
-            vk::DescriptorSetAllocateInfo allocInfo{ swapchain.descriptorPool, 1, &swapchain.skyboxDescriptorSetLayout };
-            skyboxDescriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
-
-            auto uboDescriptor = skyboxModel.uniformBuffer.getDescriptor();
-            auto cubeMapDescriptor = cubeMap.getDescriptor();
-
-            std::vector<vk::WriteDescriptorSet> writeDescriptors({
-                { skyboxDescriptorSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &uboDescriptor, nullptr },
-                { skyboxDescriptorSet, 1, 0, 1, vk::DescriptorType::eCombinedImageSampler,  &cubeMapDescriptor, nullptr, nullptr }
-            });
-
-            device->logicalDevice.updateDescriptorSets(writeDescriptors, nullptr);
-        }
-
-        void cleanupSkybox() {
-            skyboxModel.destroy();
-            cubeMap.destroy();
-        }
-
-
-#pragma endregion
+    void updateSkyboxUBO() {
+        core::UniformBufferObject ubo;
+        ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
+        ubo.view = glm::mat4(1.0f); // eye/camera position, center position, up axis
+        ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
+        ubo.cameraPos = camera.position;
+        skybox.updateUniformBuffer(ubo);
+    }
 
 #pragma region  lights_descriptor
 // TODO: Move lights descriptor somewhere according to requirements
@@ -332,9 +342,8 @@ private:
 
         swapchain.cleanup();
         
-        swapchain.recreate(window, N_MODELS);
-        // TODO: This call should be inside recreate() but require too many parameters for now...
-        swapchain.createCommandBuffers(context->graphicsCommandPool, models, lightsDescriptorSet, skyboxDescriptorSet, skyboxModel);
+        swapchain.recreate(window, context->graphicsCommandPool, N_MODELS);
+        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
     void mainLoop() {
@@ -373,7 +382,6 @@ private:
                 ubo.view = camera.getViewMatrix(); // eye/camera position, center position, up axis
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
-                ubo.lightPos = LIGHT_POSITION;
                 ubo.cameraPos = camera.position;
                 models[i].updateUniformBuffers(ubo);
 
@@ -490,7 +498,8 @@ private:
             models[i].destroy();
         }
 
-        cleanupSkybox();
+        // cleanupSkybox();
+        skybox.destroy();
         
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
         device->logicalDevice.destroyCommandPool(context->transferCommandPool);

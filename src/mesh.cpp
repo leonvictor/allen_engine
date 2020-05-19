@@ -1,3 +1,5 @@
+#pragma once
+
 #include<vector>
 #include<unordered_map>
 
@@ -133,6 +135,8 @@ public:
         stagingBuffer.destroy();
     }
 
+    // TODO: Descriptor allocation and update is managed by the swapchain.
+    // We could extract this part and use a method where each objects requests a descriptor from the pool ?
     void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout) {
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{ descriptorPool, 1, &descriptorSetLayout };
@@ -197,7 +201,8 @@ public:
         vertexBuffer.destroy();
         indexBuffer.destroy();
         uniformBuffer.destroy();
-        material.destroy();
+        materialBuffer.destroy();
+        // TODO: Separate mesh and the rest (gameobject w/ components ?)
         texture.destroy();
     }
     

@@ -15,9 +15,12 @@ The first raw edition of the program was developped following [this tutorial](ht
  - Pick and stick to a clang format (w/ assorted config file)
  - Improve lighting in many many ways : 
     - Support lighting maps
-    - Different light types
-    - Multiple lights in scene
+    - ~~Different light types~~ (Still missing spot lights)
+    - ~~Multiple lights in scene~~
  - PBR
+ - Add specialization constants to specify light types to the pipeline (and the shaders) at creation time
+ - Unify naming to using a single convention (Google ?)
+ - Create a custom ECS framework
 
 Ideas of todos proposed by the tutorial :
 
@@ -31,19 +34,7 @@ Ideas of todos proposed by the tutorial :
  - Compute shaders
  - Post processing effects
  - Shadow mapping
- - ~~Blinn-Phong lighting~~
-
-
-# My notes
-For now explicit memory alloc, but it is recommended to use RAII (Resource Acquisition is Initialization) later on.
-VkCreate, VkAllocate, VkDestroy and vkFree have a parameter pAllocator used to specify callbacks for a custom memory allocator. Not used in the tutorial
-SPIR-V is a bytecode format for shader code, as opposed to human readable syntaxes like GLSL and HLSL. Khronos provides a compiler for GLSL -> SPIR-V. It is possible to ship it w/ the app to compule shaders at runtime but we don't do that in this tutorial.
-We can use this compiler via glslangValidator.exe but we'll use glslc.exe instead. Provided by google, it has the advantage of using the same parameter format as GCC.
-
-We use a manual compile script  (shaders/compile.bat) in the tutorial, but it is possible to compile them from the code. See libshaderc. 
-
-Fences : Designed to synchronize the application itself with rendering (can be accessed from the prog)
-Semaphores : Synchronize operation within or accross command queues
+ - Blinn- ~~Phong lighting~~
 
 # Dependencies
  - Vulkan SDK
@@ -51,3 +42,7 @@ Semaphores : Synchronize operation within or accross command queues
  - glfw
  - tinyobjloader
  - stb
+ - entt
+
+# Assets
+Skyboxes from : https://github.com/PhannGor/Cloudy-Crown

@@ -30,6 +30,7 @@ public:
         this->context = context;
         this->device = device;
 
+        // TODO: Remove hardcoded path to textures
         // TODO: Load the first face before the loop to initialize buffers
         auto facePath = "assets/skyboxes/daybreak/CloudyCrown_Daybreak_" + faces[0] + ".png";
         // TODO: Load face with stbi
