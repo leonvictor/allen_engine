@@ -106,10 +106,12 @@ private:
 
     std::array<glm::vec3, 4> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3( 2.0f, 5.0f, -15.0f),
-        // ,
+        glm::vec3(2.0f, 5.0f, -15.0f),
         LIGHT_POSITION
     };
+
+    int objectToDelete = -1; // Index of objects marked for deletion
+    int objectsToCreate = 0; // Number of objects to create
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
@@ -129,6 +131,36 @@ private:
         glfwSetMouseButtonCallback(window, mouseButtonCallback);
         glfwSetScrollCallback(window, scrollCallback);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+        glfwSetKeyCallback(window, keyCallback);
+    }
+
+    void addObject() {
+        auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
+        glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.31f);
+
+        auto m = Mesh::fromObj(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
+        m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+        models.push_back(m);
+    }
+
+    void removeObject(int index) {
+        if (models.size() > 0) {
+            models[index].destroy();
+            models.erase(models.begin() + index);
+        }
+    }
+
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
+        
+        if (key == GLFW_KEY_Z && action == GLFW_RELEASE) {
+            app->objectsToCreate++;
+            std::cout << app->objectsToCreate << std::endl;
+
+        } else if (key == GLFW_KEY_X && action == GLFW_RELEASE) {
+            auto index = app->models.size() - 1;
+            app->objectToDelete = index;
+        }
     }
 
     static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
@@ -258,8 +290,6 @@ private:
 // - All the lights in a scene share a buffer (so Scene should hold them) 
 // - For now swapchain holds the layout of the descriptor
 // - The descriptor itself is allocated and registered here
-//  
-//
     vk::DescriptorSet lightsDescriptorSet;
     core::Buffer lightsBuffer;
 
@@ -304,7 +334,6 @@ private:
         for (int i = 0; i < lights.size(); i++) {
             updateLightsBuffer(lights[i], i);
         }
-
     }
 
     void createLightsDescriptorSet() {
@@ -359,6 +388,7 @@ private:
                 getMouseMotionDelta(&xoffset, &yoffset);
                 camera.rotate(xoffset, yoffset);
             }
+            
             float currentFrameTime = glfwGetTime();
             deltaTime = currentFrameTime - lastFrameTime;
             lastFrameTime = currentFrameTime;
@@ -366,6 +396,22 @@ private:
             auto imageIndex = beginDrawFrame();
             
             processKeyboardInput(window);
+
+            // This is rough. TODO: Make it better: 
+            //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
+            //  * Enable selecting objects to delete
+            if (objectToDelete >= 0) {
+                removeObject(objectToDelete);
+                objectToDelete = -1;
+            }
+
+            // TODO: Refine as well
+            //  * Change the position of the object
+            //  * Specify the model
+            for (int i = 0; i < objectsToCreate; i++) {
+                addObject();
+                objectsToCreate = 0;
+            }
 
             // TODO: How do we handle lights ? It would make more sense to build a buffer once
             // The buffer should be associated in a descriptor Set. 
@@ -410,14 +456,6 @@ private:
             camera.move(-cameraSpeed, 0.0f);
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             camera.move(cameraSpeed, 0.0f);
-        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
-            // TODO: Add some delay to prevent triggering multiple time for a single key press. Maybe just change the glfw flag (release ?)
-            addObject();
-        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-            removeObject(models.size() - 1); // Remove the last for now
-            // TODO: Rather than removing on the fly, keep a list of objects to remove and tidy things up after drawing is completed
-        if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_RELEASE)
-            std::cout << "Y Released" << std::endl;
     }
 
     void getMouseMotionDelta(double *dX, double *dY) {
@@ -426,24 +464,6 @@ private:
         *dX = xpos - lastMousePos.x;
         *dY = ypos - lastMousePos.y;
         lastMousePos = {xpos, ypos}; 
-    }
-
-    void addObject() {
-        // std::cout << "Add object" << std::endl;
-        auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
-        glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.31f);
-
-        auto m = Mesh::fromObj(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
-        m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
-        models.push_back(m);
-    }
-
-    void removeObject(int index) {
-        std::cout << "Remove object" << std::endl;
-        if (models.size() > 0) {
-            models[index].destroy();
-            models.erase(models.begin() + index);
-        }
     }
 
     uint8_t beginDrawFrame() {
