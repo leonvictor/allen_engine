@@ -440,8 +440,10 @@ private:
 
     void removeObject(int index) {
         std::cout << "Remove object" << std::endl;
-        models[index].destroy();
-        models.erase(models.begin() + index);
+        if (models.size() > 0) {
+            models[index].destroy();
+            models.erase(models.begin() + index);
+        }
     }
 
     uint8_t beginDrawFrame() {
