@@ -411,7 +411,13 @@ private:
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             camera.move(cameraSpeed, 0.0f);
         if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+            // TODO: Add some delay to prevent triggering multiple time for a single key press. Maybe just change the glfw flag (release ?)
             addObject();
+        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+            removeObject(models.size() - 1); // Remove the last for now
+            // TODO: Rather than removing on the fly, keep a list of objects to remove and tidy things up after drawing is completed
+        if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_RELEASE)
+            std::cout << "Y Released" << std::endl;
     }
 
     void getMouseMotionDelta(double *dX, double *dY) {
@@ -430,6 +436,12 @@ private:
         auto m = Mesh::fromObj(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
         m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         models.push_back(m);
+    }
+
+    void removeObject(int index) {
+        std::cout << "Remove object" << std::endl;
+        models[index].destroy();
+        models.erase(models.begin() + index);
     }
 
     uint8_t beginDrawFrame() {
