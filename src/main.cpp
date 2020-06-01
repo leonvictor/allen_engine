@@ -45,7 +45,7 @@ const int HEIGHT = 600;
 
 const std::string MODEL_PATH = "assets/models/cube.obj";
 const std::string TEXTURE_PATH = "assets/textures/container2.png";
-const int N_MODELS = 4;
+const int MAX_MODELS = 50;
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
@@ -107,7 +107,7 @@ private:
     std::array<glm::vec3, 4> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3( 2.0f, 5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
+        // ,
         LIGHT_POSITION
     };
 
@@ -192,7 +192,7 @@ private:
         device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
         context->createCommandPools(device);
 
-        swapchain.init(device, context->graphicsCommandPool, window, N_MODELS); // TODO: Swapchain are part of a Context ?
+        swapchain.init(device, context->graphicsCommandPool, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
         
         /* Application related stuff */
         loadModels();
@@ -209,12 +209,12 @@ private:
     }
 
     void loadModels() {
-        models.resize(N_MODELS);
-        for (int i = 0; i < N_MODELS; i++) {
+        for (int i = 0; i < cubePositions.size(); i++) {
             // TODO : Clean this up.
-            glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
-            models[i] = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
-            models[i].createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+            glm::vec3 color = (i ==  cubePositions.size() -1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
+            auto m = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
+            m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+            models.push_back(m);
         }
 
         // ECS Version
@@ -342,7 +342,7 @@ private:
 
         swapchain.cleanup();
         
-        swapchain.recreate(window, context->graphicsCommandPool, N_MODELS);
+        swapchain.recreate(window, context->graphicsCommandPool, MAX_MODELS);
         swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
@@ -373,9 +373,9 @@ private:
 
             updateSkyboxUBO();
 
-            for (int i = 0; i < N_MODELS; i++) {
+            for (auto model : models) {
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
+                modelMatrix = model.getModelMatrix();
                 
                 core::UniformBufferObject ubo;
                 ubo.model = modelMatrix;
@@ -383,7 +383,7 @@ private:
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.cameraPos = camera.position;
-                models[i].updateUniformBuffers(ubo);
+                model.updateUniformBuffers(ubo);
 
                 //Material doesn't change
                 // Material material;
@@ -393,7 +393,7 @@ private:
                 // material.shininess = glm::vec1(8.0f);
                 // models[i].updateMaterialBuffer(material);
             }
-            
+            swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
             endDrawFrame(imageIndex);
         }
 
@@ -410,6 +410,8 @@ private:
             camera.move(-cameraSpeed, 0.0f);
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             camera.move(cameraSpeed, 0.0f);
+        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+            addObject();
     }
 
     void getMouseMotionDelta(double *dX, double *dY) {
@@ -418,6 +420,16 @@ private:
         *dX = xpos - lastMousePos.x;
         *dY = ypos - lastMousePos.y;
         lastMousePos = {xpos, ypos}; 
+    }
+
+    void addObject() {
+        // std::cout << "Add object" << std::endl;
+        auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
+        glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.31f);
+
+        auto m = Mesh::fromObj(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
+        m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+        models.push_back(m);
     }
 
     uint8_t beginDrawFrame() {
@@ -494,11 +506,10 @@ private:
     void cleanup() {
         swapchain.destroy();
 
-        for (int i = 0; i < N_MODELS; i++) {
-            models[i].destroy();
+        for (auto model : models) {
+            model.destroy();
         }
 
-        // cleanupSkybox();
         skybox.destroy();
         
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);

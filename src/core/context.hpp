@@ -43,7 +43,7 @@ namespace core {
 
         void createCommandPools(std::shared_ptr<core::Device> device) {
             this-> device = device; // TODO: This HAS to be somewhere else.
-            graphicsCommandPool = core::CommandPool(device, device->queueFamilyIndices.graphicsFamily.value());
+            graphicsCommandPool = core::CommandPool(device, device->queueFamilyIndices.graphicsFamily.value(), vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
             transferCommandPool = core::CommandPool(device, device->queueFamilyIndices.transferFamily.value(), vk::CommandPoolCreateFlagBits::eTransient);
         }
 
