@@ -130,7 +130,13 @@ namespace core
             pipelineCreateInfo.pViewportState = &viewportStateInfo;
             pipelineCreateInfo.pMultisampleState = &multisampleInfo;
             pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
-            pipelineCreateInfo.pDynamicState = nullptr;
+
+            vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = { {},
+                static_cast<uint32_t>(dynamicStates.size()),
+                dynamicStates.data()
+            };
+
+            pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
             // Pipeline layout
             pipelineCreateInfo.layout = layout;
@@ -141,7 +147,9 @@ namespace core
 
             auto pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH);                                          // TODO
             auto graphicsPipeline = device->logicalDevice.createGraphicsPipeline(pipelineCache.get(), pipelineCreateInfo); // TODO
+            
             clearShaders();
+            dynamicStates.clear();
 
             Pipeline pipeline;
             pipeline.device = device;
@@ -176,12 +184,17 @@ namespace core
             shaderStages.clear();
         }
 
+        void addDynamicState(vk::DynamicState state) {
+            dynamicStates.push_back(state);
+        }
+
     private:
         std::shared_ptr<core::Device> device;
         vk::PipelineLayout layout;
         vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
         std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
         vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
+        std::vector<vk::DynamicState> dynamicStates;
 
         void init()
         {
