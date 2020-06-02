@@ -12,6 +12,7 @@
 
 #include <array>
 #include <GLFW/glfw3.h>
+#include "../scene_object.cpp"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -254,7 +255,7 @@ namespace core {
             }
         }
 
-        void recordCommandBuffer(uint32_t index, std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
+        void recordCommandBuffer(uint32_t index, std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
             images[index].commandbuffer.begin(vk::CommandBufferBeginInfo{});
 
             // Start a render pass.
@@ -284,17 +285,17 @@ namespace core {
             images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
                 
             for (auto model : models) {
-                images[index].commandbuffer.bindVertexBuffers(0, model.vertexBuffer.buffer, vk::DeviceSize{0});
-                images[index].commandbuffer.bindIndexBuffer(model.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                images[index].commandbuffer.bindVertexBuffers(0, model.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
+                images[index].commandbuffer.bindIndexBuffer(model.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
                 images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model.descriptorSet, nullptr);
-                images[index].commandbuffer.drawIndexed(model.indices.size(), 1, 0, 0, 0);
+                images[index].commandbuffer.drawIndexed(model.mesh.indices.size(), 1, 0, 0, 0);
             }
 
             images[index].commandbuffer.endRenderPass();
             images[index].commandbuffer.end();
         }
 
-        void recordCommandBuffers(std::vector<Mesh> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
+        void recordCommandBuffers(std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
             for (size_t i = 0; i < images.size(); i++) {
                 recordCommandBuffer(i, models, lightsDescriptorSet, skybox);
             }
