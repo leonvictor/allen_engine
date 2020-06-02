@@ -5,13 +5,14 @@
 
 #include <vulkan/vulkan.hpp>
 #include <memory>
+#include "transform.cpp"
 
 class Skybox {
     public:
     Mesh mesh;
     core::TextureCubeMap texture;
     vk::DescriptorSet descriptorSet;
-
+    Transform transform;
     std::shared_ptr<core::Device> device;
 
     Skybox() {}
@@ -21,9 +22,7 @@ class Skybox {
 
         texture.loadFromDirectory(context, device, texturePath);
         mesh = Mesh::fromObj(context, device, modelPath);
-        mesh.scale = glm::vec3(25.0f);
-
-        // createDescriptorSet();
+        transform.scale = glm::vec3(25.0f);
     }
 
     // TODO: Maybe move the alloc/update to swapchain ? See mesh.cpp

@@ -7,8 +7,6 @@
 #include "core/device.hpp"
 #include "core/buffer.cpp"
 #include "core/context.hpp"
-#include "core/texture.cpp"
-#include "material.cpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -22,21 +20,6 @@ public:
     core::Buffer indexBuffer;
     core::Buffer uniformBuffer;
 
-    core::Texture texture;
-    Material material;
-
-    vk::DescriptorSet descriptorSet;
-
-    // TODO: This deserve to be in a Transform class
-    // Think about the design
-    glm::vec3 position; // TODO: This doesn't belong here
-    glm::vec3 rotation; // Neither does this
-    glm::vec3 scale = glm::vec3(1.0f);
-
-    glm::mat4 getModelMatrix() {
-        return glm::translate(glm::scale(modelMatrix, scale), position);
-    }
-
     std::shared_ptr<core::Context> context;
     std::shared_ptr<core::Device> device;
     
@@ -48,13 +31,9 @@ public:
     }
 
     static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
-                glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f},
-                MaterialBufferObject material = MaterialBufferObject(),
-                std::string texturePath = "") {
+                glm::vec3 color = {1.0f, 1.0f, 1.0f}) {
 
             Mesh mesh(context, device);
-
-            mesh.position = position; // Initially place the object at the center of the scene
 
             tinyobj::attrib_t attrib;
             std::vector<tinyobj::shape_t> shapes;
@@ -107,16 +86,7 @@ public:
             mesh.createIndexBuffer();
             mesh.createUniformBuffer();
             
-            mesh.addMaterial(material);
-            
-            if (!texturePath.empty()) {
-                mesh.texture = core::Texture(context, device, texturePath);
-            }
             return mesh;
-    }
-
-    void addMaterial(MaterialBufferObject newMaterial) {
-        material = Material(device, newMaterial);
     }
 
     void createVertexBuffer() {
@@ -133,43 +103,6 @@ public:
         context->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
         stagingBuffer.destroy();
-    }
-
-    // TODO: Descriptor allocation and update is managed by the swapchain.
-    // We could extract this part and use a method where each objects requests a descriptor from the pool ?
-    void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout) {
-        // TODO: Make sure setLayout is already initialized
-        vk::DescriptorSetAllocateInfo allocInfo{ descriptorPool, 1, &descriptorSetLayout };
-        descriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
-
-        std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
-
-        writeDescriptors[0].dstSet = descriptorSet;
-        writeDescriptors[0].dstBinding = 0; // Binding index 
-        writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
-        writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
-        writeDescriptors[0].descriptorCount = 1;
-        auto uniformDescriptor = uniformBuffer.getDescriptor();
-        writeDescriptors[0].pBufferInfo = &uniformDescriptor;
-
-        writeDescriptors[1].dstSet = descriptorSet;
-        writeDescriptors[1].dstBinding = 1; // Binding index 
-        writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
-        writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-        writeDescriptors[1].descriptorCount = 1;
-        auto textureDescriptor = texture.getDescriptor();
-        writeDescriptors[1].pImageInfo = &textureDescriptor;
-
-        // TODO: Materials presumably don't change so they don't need a binding
-        writeDescriptors[2].dstSet = descriptorSet;
-        writeDescriptors[2].dstBinding = 2;
-        writeDescriptors[2].dstArrayElement = 0;
-        writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
-        writeDescriptors[2].descriptorCount = 1;
-        auto materialDescriptor = material.getBufferDescriptor();
-        writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
-            
-        device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
     void createIndexBuffer() {
@@ -201,9 +134,6 @@ public:
         vertexBuffer.destroy();
         indexBuffer.destroy();
         uniformBuffer.destroy();
-        material.destroy();
-        // TODO: Separate mesh and the rest (gameobject w/ components ?)
-        texture.destroy();
     }
     
     void revertNormals() {
@@ -211,6 +141,4 @@ public:
             v.normal = - v.normal;
         }
     }
-private:
-    glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
 };

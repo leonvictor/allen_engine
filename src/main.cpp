@@ -26,7 +26,6 @@
 
 #include "vertex.hpp"
 #include "camera.cpp" // TODO: Create .h
-#include "mesh.cpp" // TODO: create.h
 #include "core/device.hpp"
 #include "core/context.hpp"
 #include "core/swapchain.cpp"
@@ -39,6 +38,7 @@
 #include "ecs/common.cpp"
 #include "ecs/systems.cpp"
 #include "skybox.cpp"
+#include "scene_object.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -100,7 +100,7 @@ private:
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
 
-    std::vector<Mesh> models;
+    std::vector<SceneObject> models;
     std::vector<Light> lights; 
     Skybox skybox;
 
@@ -138,7 +138,7 @@ private:
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
         glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.31f);
 
-        auto m = Mesh::fromObj(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
+        auto m = SceneObject(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
         m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         models.push_back(m);
     }
@@ -155,7 +155,6 @@ private:
         
         if (key == GLFW_KEY_Z && action == GLFW_RELEASE) {
             app->objectsToCreate++;
-            std::cout << app->objectsToCreate << std::endl;
 
         } else if (key == GLFW_KEY_X && action == GLFW_RELEASE) {
             auto index = app->models.size() - 1;
@@ -180,6 +179,7 @@ private:
             case GLFW_MOUSE_BUTTON_LEFT:
                 if (action == GLFW_PRESS) {
                     app->leftMouseButtonPressed = true;
+                    // TODO: Select the object under the mouse
                 } else if (action == GLFW_RELEASE) {
                     app->leftMouseButtonPressed = false;
                 }
@@ -244,7 +244,7 @@ private:
         for (int i = 0; i < cubePositions.size(); i++) {
             // TODO : Clean this up.
             glm::vec3 color = (i ==  cubePositions.size() -1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
-            auto m = Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
+            auto m = SceneObject(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
             m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
             models.push_back(m);
         }
@@ -285,7 +285,7 @@ private:
         skybox.updateUniformBuffer(ubo);
     }
 
-#pragma region  lights_descriptor
+#pragma region lights_descriptor
 // TODO: Move lights descriptor somewhere according to requirements
 // - All the lights in a scene share a buffer (so Scene should hold them) 
 // - For now swapchain holds the layout of the descriptor
@@ -429,7 +429,7 @@ private:
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.cameraPos = camera.position;
-                model.updateUniformBuffers(ubo);
+                model.mesh.updateUniformBuffers(ubo);
 
                 //Material doesn't change
                 // Material material;
