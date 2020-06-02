@@ -125,7 +125,8 @@ namespace core
 
         void createPipelines()
         {
-            core::PipelineFactory factory = core::PipelineFactory(device, renderPass);
+            core::PipelineFactory factory = core::PipelineFactory(device);
+            factory.setRenderPass(renderPass);
             factory.setExtent(extent);
 
             factory.registerShader("shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
@@ -525,7 +526,9 @@ namespace core
                                      vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                      vk::ImageAspectFlagBits::eColor);
 
+#ifndef NDEBUG
             device->setDebugUtilsObjectName(colorImage.view, "Color Image View");
+#endif
         }
 
         void createDescriptorSetLayout()

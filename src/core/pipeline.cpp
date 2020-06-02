@@ -58,10 +58,9 @@ namespace core
         core::Viewport viewport;
         vk::Rect2D scissor;
 
-        PipelineFactory(std::shared_ptr<core::Device> device, const vk::RenderPass &renderpass)
+        PipelineFactory(std::shared_ptr<core::Device> device)
         {
             this->device = device;
-            this->renderpass = renderpass;
             init();
         }
 
@@ -137,7 +136,6 @@ namespace core
             pipelineCreateInfo.layout = layout;
 
             // Render pass
-            pipelineCreateInfo.renderPass = renderpass;
             pipelineCreateInfo.subpass = 0;
             pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
@@ -159,6 +157,10 @@ namespace core
             scissor.extent = extent;
         }
 
+        void setRenderPass(const vk::RenderPass &renderPass) {
+            pipelineCreateInfo.renderPass = renderPass;
+        }
+
         void registerShader(const std::string &filename, vk::ShaderStageFlagBits stage, std::string entrypoint = "main")
         {
             auto shaderStage = core::shaders::loadShader(device, filename, stage, entrypoint);
@@ -177,7 +179,6 @@ namespace core
     private:
         std::shared_ptr<core::Device> device;
         vk::PipelineLayout layout;
-        vk::RenderPass renderpass;
         vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
         std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
         vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
