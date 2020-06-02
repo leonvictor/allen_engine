@@ -39,6 +39,7 @@ namespace core {
         struct {
             core::Pipeline objects;
             core::Pipeline skybox;
+            core::Pipeline picking;
         } pipelines;
 
         vk::SurfaceKHR surface;
@@ -115,20 +116,33 @@ namespace core {
 
         void createPipelines() {
             core::PipelineFactory factory = core::PipelineFactory(device, renderPass);
+            factory.setExtent(extent);
+
             factory.registerShader("shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
             factory.registerShader("shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
-            pipelines.objects = factory.create(extent, std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}));
-            // TODO: Debug only
-            device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
+            pipelines.objects = factory.create(std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}));
+
+            // TODO: Create object picking pipeline
+            //  * No actual rendering
+            //  * Write vertex color to a specific buffer
+            //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
+            //  * 
+            
+            // 1) register simple color shaders
+            // 2) 
 
             factory.registerShader("shaders/skybox.vert.spv", vk::ShaderStageFlagBits::eVertex);
             factory.registerShader("shaders/skybox.frag.spv", vk::ShaderStageFlagBits::eFragment);
             factory.depthStencil.depthWriteEnable = VK_FALSE;
             factory.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
-            pipelines.skybox = factory.create(extent, std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout}));
+            pipelines.skybox = factory.create(std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout}));
 
-             // TODO: Debug only
-            device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
+
+            // TODO: Get rid of the double negative
+            #ifndef NDEBUG
+                device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
+                device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
+            #endif
         }
 
         void createSkyboxDescriptorSetLayout() {
@@ -138,8 +152,10 @@ namespace core {
             };
 
             skyboxDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout({ {}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data() });
-            // TODO: Debug only 
-            device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
+            
+            #ifndef NDEBUG
+                device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
+            #endif
         }
 
         void createFramebuffers() {  

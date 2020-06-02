@@ -33,48 +33,30 @@ namespace core
         }
     };
 
-    class Pipeline
+    struct Pipeline
     {
-    public:
+        std::shared_ptr<core::Device> device;
         vk::Pipeline graphicsPipeline; // Should be family-agnostic ? (i.e rename to "pipeline")
         vk::PipelineLayout layout;
 
         Pipeline() {}
 
-        Pipeline(std::shared_ptr<core::Device> device,
-                 vk::Extent2D extent,
-                 std::vector<vk::DescriptorSetLayout> descriptorSetLayouts,
-                 vk::RenderPass renderPass,
-                 std::string vertexShaderFileName,
-                 std::string fragmentShaderFileName)
-        {
-
-            this->device = device;
-            // this->vertexShaderFileName = vertexShaderFileName;
-            // this->fragmentShaderFileName = fragmentShaderFileName;
-
-            // createGraphicsPipeline(device, extent, descriptorSetLayouts, renderPass);
-        }
-
         void destroy()
         {
-            // device->logicalDevice.destroyPipeline(graphicsPipeline);
-            // device->logicalDevice.destroyPipelineLayout(layout);
+            device->logicalDevice.destroyPipeline(graphicsPipeline);
+            device->logicalDevice.destroyPipelineLayout(layout);
         }
-
-    private:
-        std::shared_ptr<core::Device> device;
     };
 
-    /* An helper class for pipeline creation
- * TODO: Pull out more parts of the pipelines parts to allow customization
-*/
+    // An helper class for pipeline creation
+    // TODO: Pull out more parts of the pipelines parts to allow customization
     class PipelineFactory
     {
     public:
         vk::PipelineDepthStencilStateCreateInfo depthStencil;
         vk::PipelineRasterizationStateCreateInfo rasterizer;
         core::Viewport viewport;
+        vk::Rect2D scissor;
 
         PipelineFactory(std::shared_ptr<core::Device> device, const vk::RenderPass &renderpass)
         {
@@ -83,7 +65,7 @@ namespace core
             init();
         }
 
-        core::Pipeline create(vk::Extent2D &extent, std::vector<vk::DescriptorSetLayout> descriptorSetLayouts)
+        core::Pipeline create(std::vector<vk::DescriptorSetLayout> descriptorSetLayouts)
         {
             auto vertextAttributeDescriptions = Vertex::getAttributeDescription();
             auto vertexBindingDescription = Vertex::getBindingDescription();
@@ -97,13 +79,7 @@ namespace core
                                                                        vk::PrimitiveTopology::eTriangleList,
                                                                        VK_FALSE};
 
-            viewport.width = extent.width;
-            viewport.height = extent.height;
-
-            vk::Rect2D scissor;
-            scissor.offset = vk::Offset2D(0, 0);
-            scissor.extent = extent;
-
+            // TODO: Handle multiple viewports/scissors
             vk::PipelineViewportStateCreateInfo viewportStateInfo;
             viewportStateInfo.scissorCount = 1;
             viewportStateInfo.pScissors = &scissor;
@@ -170,10 +146,17 @@ namespace core
             clearShaders();
 
             Pipeline pipeline;
+            pipeline.device = device;
             pipeline.layout = layout;
             pipeline.graphicsPipeline = graphicsPipeline;
 
             return pipeline;
+        }
+
+        void setExtent(const vk::Extent2D &extent) {
+            viewport.width = extent.width;
+            viewport.height = extent.height;
+            scissor.extent = extent;
         }
 
         void registerShader(const std::string &filename, vk::ShaderStageFlagBits stage, std::string entrypoint = "main")
@@ -204,6 +187,9 @@ namespace core
             pipelineCreateInfo.pDepthStencilState = &depthStencil;
             pipelineCreateInfo.pRasterizationState = &rasterizer;
 
+            // scissor.offset = vk::Offset2D(0, 0);
+            // scissor.extent = vk::Extent2D(0, 0);
+
             // Initialize some parts with default values. We can modify them before calling create()
             // in order to specify some options.
             // TODO: Move that out. Default values belong in a constructor ?
@@ -227,12 +213,11 @@ namespace core
             rasterizer.depthBiasEnable = VK_FALSE;
         }
 
-        /* Try to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp 
-     * TODO:
-     * - move to pipeline namespace
-     * - remove verbose output OR make it debug only    
-    */
-        vk::UniquePipelineCache loadCachedPipeline(std::shared_ptr<core::Device> device, std::string path)
+    // Try to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp 
+    // TODO:
+    // - move to pipeline namespace
+    // - remove verbose output OR make it debug only    
+    vk::UniquePipelineCache loadCachedPipeline(std::shared_ptr<core::Device> device, std::string path)
         {
             // Check disk for existing cache data
             size_t startCacheSize = 0;
