@@ -16,28 +16,33 @@
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-namespace core {
+namespace core
+{
     // TODO: Rework to use core::Image
-    struct SwapchainImage {
+    struct SwapchainImage
+    {
         vk::Framebuffer framebuffer;
         vk::CommandBuffer commandbuffer;
         vk::Image image;
         vk::ImageView imageView;
         vk::Fence fence;
-        
-        void cleanup(vk::Device& device, const vk::CommandPool& commandPool) {
+
+        void cleanup(vk::Device &device, const vk::CommandPool &commandPool)
+        {
             device.destroyFramebuffer(framebuffer);
             device.freeCommandBuffers(commandPool, commandbuffer);
             device.destroyImageView(imageView);
         }
     };
 
-    class Swapchain {
+    class Swapchain
+    {
     public:
         core::Image colorImage;
         core::Image depthImage;
 
-        struct {
+        struct
+        {
             core::Pipeline objects;
             core::Pipeline skybox;
             core::Pipeline picking;
@@ -48,7 +53,7 @@ namespace core {
         vk::PresentInfoKHR presentInfo;
 
         std::vector<SwapchainImage> images;
-        
+
         vk::Format imageFormat;
         vk::Extent2D extent;
         vk::RenderPass renderPass;
@@ -64,23 +69,26 @@ namespace core {
         bool frame_active = false;
         uint32_t activeFrameIndex;
 
+        // There is probably a better place for those
         vk::DescriptorSetLayout objectsDescriptorSetLayout;
         vk::DescriptorSetLayout lightsDescriptorSetLayout;
-        // There is probably a better place for those
         vk::DescriptorSetLayout skyboxDescriptorSetLayout;
         vk::DescriptorPool descriptorPool;
 
         Swapchain() {}
-        
-        void createSurface(std::shared_ptr<core::Context> context, GLFWwindow *window) {
+
+        void createSurface(std::shared_ptr<core::Context> context, GLFWwindow *window)
+        {
             VkSurfaceKHR pSurface = VkSurfaceKHR(surface);
-            if (glfwCreateWindowSurface(context->instance.get(), window, nullptr, &pSurface) != VK_SUCCESS) {
+            if (glfwCreateWindowSurface(context->instance.get(), window, nullptr, &pSurface) != VK_SUCCESS)
+            {
                 throw std::runtime_error("Failed to create window surface.");
             }
             surface = vk::SurfaceKHR(pSurface);
         }
 
-        void recreate(GLFWwindow *window, core::CommandPool& commandPool, int maxObjects) {
+        void recreate(GLFWwindow *window, core::CommandPool &commandPool, int maxObjects)
+        {
             createSwapchain(window);
             createImages();
             createRenderPass();
@@ -95,7 +103,8 @@ namespace core {
         }
 
         // TODO: Normalize object construction
-        void init(std::shared_ptr<core::Device> device, core::CommandPool& commandPool, GLFWwindow *window, int maxObjects) {
+        void init(std::shared_ptr<core::Device> device, core::CommandPool &commandPool, GLFWwindow *window, int maxObjects)
+        {
             this->device = device;
 
             assert(surface);
@@ -112,10 +121,10 @@ namespace core {
             createSyncObjects();
             createDescriptorPool(maxObjects);
             createCommandBuffers(commandPool);
-
         }
 
-        void createPipelines() {
+        void createPipelines()
+        {
             core::PipelineFactory factory = core::PipelineFactory(device, renderPass);
             factory.setExtent(extent);
 
@@ -127,10 +136,10 @@ namespace core {
             //  * No actual rendering
             //  * Write vertex color to a specific buffer
             //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
-            //  * 
-            
+            //  *
+
             // 1) register simple color shaders
-            // 2) 
+            // 2)
 
             factory.registerShader("shaders/skybox.vert.spv", vk::ShaderStageFlagBits::eVertex);
             factory.registerShader("shaders/skybox.frag.spv", vk::ShaderStageFlagBits::eFragment);
@@ -138,41 +147,43 @@ namespace core {
             factory.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
             pipelines.skybox = factory.create(std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout}));
 
-
-            // TODO: Get rid of the double negative
-            #ifndef NDEBUG
-                device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
-                device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
-            #endif
+// TODO: Get rid of the double negative
+#ifndef NDEBUG
+            device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
+            device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
+#endif
         }
 
-        void createSkyboxDescriptorSetLayout() {
-            std::vector<vk::DescriptorSetLayoutBinding> setsLayoutBindings {
-                { 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex }, 
-                { 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment }
-            };
+        void createSkyboxDescriptorSetLayout()
+        {
+            std::vector<vk::DescriptorSetLayoutBinding> setsLayoutBindings{
+                {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+                {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-            skyboxDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout({ {}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data() });
-            
-            #ifndef NDEBUG
-                device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
-            #endif
+            skyboxDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout({{}, (uint32_t)setsLayoutBindings.size(), setsLayoutBindings.data()});
+
+#ifndef NDEBUG
+            device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
+#endif
         }
 
-        void createFramebuffers() {  
-            for (int i = 0; i < images.size(); i++) {
+        void createFramebuffers()
+        {
+            for (int i = 0; i < images.size(); i++)
+            {
                 images[i].framebuffer = createFramebuffer(images[i].imageView, renderPass);
             }
         }
 
-        void createRenderPass() {
+        void createRenderPass()
+        {
             assert(device);
 
             vk::AttachmentDescription colorAttachment;
             colorAttachment.format = imageFormat;
             colorAttachment.samples = device->msaaSamples;
             // Color and depth data
-            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear; // What to do with the data before ...
+            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;   // What to do with the data before ...
             colorAttachment.storeOp = vk::AttachmentStoreOp::eStore; // ... and after rendering
             // Stencil data
             colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare; // We don't have stencils for now
@@ -220,12 +231,12 @@ namespace core {
             subpass.pColorAttachments = &colorAttachmentRef; // The index of the attachment is directly referenced in the fragment shader ( layout(location = 0) )...
             subpass.pDepthStencilAttachment = &depthAttachmentRef;
             subpass.pResolveAttachments = &colorAttachmentResolveRef;
-            
+
             // Add a subpass dependency to ensure the render pass will wait for the right stage
             // We need to wait for the image to be acquired before transitionning to it
             vk::SubpassDependency subpassDependency;
-            subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL; // The implicit subpass before or after the render pass
-            subpassDependency.dstSubpass = 0; // Target subpass index (we have only one)
+            subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;                                 // The implicit subpass before or after the render pass
+            subpassDependency.dstSubpass = 0;                                                   // Target subpass index (we have only one)
             subpassDependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Stage to wait on
             subpassDependency.srcAccessMask = vk::AccessFlagBits(0);
             subpassDependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -244,18 +255,21 @@ namespace core {
         }
 
         // TODO: Pull out models and lightsDescriptorSets
-        void createCommandBuffers(const core::CommandPool& commandPool) {
+        void createCommandBuffers(const core::CommandPool &commandPool)
+        {
 
             // TODO: This has to happen somewhere else
             this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
 
-            for (size_t i = 0; i < images.size(); i++) {
+            for (size_t i = 0; i < images.size(); i++)
+            {
                 images[i].commandbuffer = commandBuffers[i];
             }
         }
 
-        void recordCommandBuffer(uint32_t index, std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
+        void recordCommandBuffer(uint32_t index, std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox &skybox)
+        {
             images[index].commandbuffer.begin(vk::CommandBufferBeginInfo{});
 
             // Start a render pass.
@@ -279,12 +293,13 @@ namespace core {
             images[index].commandbuffer.bindIndexBuffer(skybox.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
             images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
             images[index].commandbuffer.drawIndexed(skybox.mesh.indices.size(), 1, 0, 0, 0);
-                
+
             // Objects
             images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.graphicsPipeline);
             images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
-                
-            for (auto model : models) {
+
+            for (auto model : models)
+            {
                 images[index].commandbuffer.bindVertexBuffers(0, model.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
                 images[index].commandbuffer.bindIndexBuffer(model.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
                 images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model.descriptorSet, nullptr);
@@ -295,23 +310,27 @@ namespace core {
             images[index].commandbuffer.end();
         }
 
-        void recordCommandBuffers(std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox) {
-            for (size_t i = 0; i < images.size(); i++) {
+        void recordCommandBuffers(std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox &skybox)
+        {
+            for (size_t i = 0; i < images.size(); i++)
+            {
                 recordCommandBuffer(i, models, lightsDescriptorSet, skybox);
             }
         }
 
-        void createSyncObjects() {
+        void createSyncObjects()
+        {
             imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
             renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
             inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-            
+
             vk::SemaphoreCreateInfo semaphoreInfo;
 
             vk::FenceCreateInfo fenceInfo;
             fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled; // Create fences in the signaled state
-            
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            {
                 imageAvailableSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
                 renderFinishedSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
                 inFlightFences[i] = device->logicalDevice.createFence(fenceInfo, nullptr);
@@ -319,11 +338,13 @@ namespace core {
         }
 
         /* Destroy the parts we need to recreate */
-        void cleanup() {
+        void cleanup()
+        {
             colorImage.destroy();
             depthImage.destroy();
 
-            for (auto img : images) {
+            for (auto img : images)
+            {
                 img.cleanup(device->logicalDevice, commandPool.pool);
             }
 
@@ -333,17 +354,20 @@ namespace core {
             device->logicalDevice.destroyRenderPass(renderPass);
 
             device->logicalDevice.destroySwapchainKHR(swapchain);
-        
+
             device->logicalDevice.destroyDescriptorPool(descriptorPool);
         }
 
-        void destroy() {
+        void destroy()
+        {
             cleanup();
-            
+
             device->logicalDevice.destroyDescriptorSetLayout(objectsDescriptorSetLayout);
             device->logicalDevice.destroyDescriptorSetLayout(lightsDescriptorSetLayout);
+            device->logicalDevice.destroyDescriptorSetLayout(skyboxDescriptorSetLayout);
 
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            {
                 device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
                 device->logicalDevice.destroySemaphore(renderFinishedSemaphores[i]);
                 device->logicalDevice.destroyFence(inFlightFences[i]);
@@ -351,17 +375,18 @@ namespace core {
         }
 
     private:
-        void createSwapchain(GLFWwindow *window) {
-
+        void createSwapchain(GLFWwindow *window)
+        {
             /* Swapchain parameters */
             core::SwapchainSupportDetails swapchainSupport = device->getSwapchainSupport(surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
             vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
-            
+
             vk::Extent2D extent = chooseSwapExtent(swapchainSupport.capabilities, window);
 
-            uint32_t imageCount = swapchainSupport.capabilities.minImageCount +1;
-            if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
+            uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+            if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
+            {
                 imageCount = swapchainSupport.capabilities.maxImageCount;
             }
 
@@ -375,17 +400,20 @@ namespace core {
             sCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
             sCreateInfo.presentMode = presentMode;
             sCreateInfo.clipped = VK_TRUE; // We don't care about the color of obscured pixels (ex: if another window is on top)
-            
+
             core::QueueFamilyIndices indices = device->getQueueFamilyIndices();
             uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
-            if (indices.graphicsFamily != indices.presentFamily) {
+            if (indices.graphicsFamily != indices.presentFamily)
+            {
                 sCreateInfo.imageSharingMode = vk::SharingMode::eConcurrent;
                 sCreateInfo.queueFamilyIndexCount = 2;
                 sCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
-            } else {
+            }
+            else
+            {
                 sCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
-                sCreateInfo.queueFamilyIndexCount = 0; // Optionnal
+                sCreateInfo.queueFamilyIndexCount = 0;     // Optionnal
                 sCreateInfo.pQueueFamilyIndices = nullptr; // Optionnal
             }
 
@@ -399,29 +427,39 @@ namespace core {
             imageFormat = surfaceFormat.format;
         }
 
-        vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
-            for (const auto& format : availableFormats){
+        vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats)
+        {
+            for (const auto &format : availableFormats)
+            {
                 // Return the first format that supports SRGB color space in 8bit by channels
-                if (format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear && format.format == vk::Format::eB8G8R8A8Srgb) {
+                if (format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear && format.format == vk::Format::eB8G8R8A8Srgb)
+                {
                     return format;
                 }
             }
             return availableFormats[0];
         }
 
-        vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availableModes) {
-            for (const auto& mode : availableModes) {
-                if (mode == vk::PresentModeKHR::eMailbox) {
+        vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availableModes)
+        {
+            for (const auto &mode : availableModes)
+            {
+                if (mode == vk::PresentModeKHR::eMailbox)
+                {
                     return mode;
                 }
             }
             return vk::PresentModeKHR::eFifo;
         }
 
-        vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, GLFWwindow *window) {
-            if (capabilities.currentExtent.width != UINT32_MAX) {
+        vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities, GLFWwindow *window)
+        {
+            if (capabilities.currentExtent.width != UINT32_MAX)
+            {
                 return capabilities.currentExtent;
-            } else {
+            }
+            else
+            {
                 // Some window managers do not specify the resolution (indicated by special max value)
                 // In this case, use the resolution that best matches the window within the ImageExtent bounds
                 int width, height;
@@ -429,8 +467,7 @@ namespace core {
 
                 VkExtent2D extent = {
                     static_cast<uint32_t>(width),
-                    static_cast<uint32_t>(height)
-                    };
+                    static_cast<uint32_t>(height)};
 
                 extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
                 extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
@@ -438,12 +475,14 @@ namespace core {
             }
         }
 
-        void createImages() {
+        void createImages()
+        {
             std::vector<vk::Image> imgs = device->logicalDevice.getSwapchainImagesKHR(swapchain);
 
             images.resize(imgs.size());
 
-            for (size_t i = 0; i < imgs.size(); i++) {
+            for (size_t i = 0; i < imgs.size(); i++)
+            {
 
                 auto view = core::Image::createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1);
                 images[i] = {
@@ -451,17 +490,16 @@ namespace core {
                     nullptr,
                     imgs[i],
                     view,
-                    vk::Fence()
-                };
+                    vk::Fence()};
             }
         }
 
-        vk::Framebuffer createFramebuffer(vk::ImageView view, vk::RenderPass renderPass) {
+        vk::Framebuffer createFramebuffer(vk::ImageView view, vk::RenderPass renderPass)
+        {
             std::array<vk::ImageView, 3> attachments = {
                 colorImage.view,
-                depthImage.view, 
-                view
-            };
+                depthImage.view,
+                view};
             vk::FramebufferCreateInfo framebufferInfo;
             framebufferInfo.renderPass = renderPass; //TODO: Requires a ref to renderpass.
             framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -471,26 +509,29 @@ namespace core {
             framebufferInfo.layers = 1; // Nb of layers in image array.
             return device->logicalDevice.createFramebuffer(framebufferInfo);
         }
-        
-        void createDepthResources() {
+
+        void createDepthResources()
+        {
             vk::Format format = device->findDepthFormat();
 
-            depthImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, 
-                format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                vk::ImageAspectFlagBits::eDepth);
+            depthImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples,
+                                     format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                     vk::ImageAspectFlagBits::eDepth);
         }
 
-        void createColorResources() {
+        void createColorResources()
+        {
             colorImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, this->imageFormat,
-                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment| vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                vk::ImageAspectFlagBits::eColor);
+                                     vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                     vk::ImageAspectFlagBits::eColor);
 
             device->setDebugUtilsObjectName(colorImage.view, "Color Image View");
         }
 
-        void createDescriptorSetLayout() {
+        void createDescriptorSetLayout()
+        {
             vk::DescriptorSetLayoutBinding uboLayoutBinding;
-            uboLayoutBinding.binding = 0; // The binding used in the shader
+            uboLayoutBinding.binding = 0;         // The binding used in the shader
             uboLayoutBinding.descriptorCount = 1; // Number of values in the array
             uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
             // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
@@ -504,7 +545,7 @@ namespace core {
             samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
             samplerLayoutBinding.pImmutableSamplers = nullptr;
             samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment; //It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
-            
+
             vk::DescriptorSetLayoutBinding materialLayoutBinding;
             materialLayoutBinding.binding = 2;
             materialLayoutBinding.descriptorCount = 1;
@@ -512,12 +553,10 @@ namespace core {
             materialLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
 
             std::array<vk::DescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, samplerLayoutBinding, materialLayoutBinding};
-            
-            vk::DescriptorSetLayoutCreateInfo createInfo{ {}, (uint32_t) bindings.size(), bindings.data() };
+
+            vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
 
             objectsDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
-            // TODO: Debug only
-            device->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
 
             vk::DescriptorSetLayoutBinding lightsLayoutBinding;
             lightsLayoutBinding.binding = 0;
@@ -530,12 +569,17 @@ namespace core {
             lightsCreateInfo.pBindings = &lightsLayoutBinding;
 
             lightsDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(lightsCreateInfo);
-            // TODO: Debug only
+
+#ifndef NDEBUG
+            device->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
             device->setDebugUtilsObjectName(lightsDescriptorSetLayout, "Lights Descriptor Set Layout");
+#endif
         }
 
-        void createDescriptorPool(int nObjects) {
-            std::array<vk::DescriptorPoolSize, 4> poolSizes;;
+        void createDescriptorPool(int nObjects)
+        {
+            std::array<vk::DescriptorPoolSize, 4> poolSizes;
+            ;
             poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
             poolSizes[0].descriptorCount = nObjects + 1; // +1 for skybox. TODO: This should be dynamic
             poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
@@ -543,7 +587,7 @@ namespace core {
             poolSizes[2].type = vk::DescriptorType::eUniformBuffer;
             poolSizes[2].descriptorCount = nObjects; // TODO: Can we fuse the two uniformBuffer pools ? This one is for materials.
             poolSizes[3].type = vk::DescriptorType::eStorageBuffer;
-            poolSizes[3].descriptorCount = 1; // For now, only used by lights  
+            poolSizes[3].descriptorCount = 1; // For now, only used by lights
 
             vk::DescriptorPoolCreateInfo createInfo;
             createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -553,4 +597,4 @@ namespace core {
             descriptorPool = device->logicalDevice.createDescriptorPool(createInfo);
         }
     };
-};
+}; // namespace core

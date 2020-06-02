@@ -356,6 +356,10 @@ private:
         device->logicalDevice.updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
+    void cleanupLights() {
+        lightsBuffer.destroy();
+    }
+
 #pragma endregion
 
     void recreateSwapchain() {
@@ -545,6 +549,7 @@ private:
         }
 
         skybox.destroy();
+        cleanupLights();
         
         device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
         device->logicalDevice.destroyCommandPool(context->transferCommandPool);
