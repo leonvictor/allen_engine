@@ -45,13 +45,17 @@ namespace core
         {
             core::Pipeline objects;
             core::Pipeline skybox;
-            core::Pipeline picking;
         } pipelines;
 
         // Object picking 
-        vk::RenderPass pickingRenderPass;
-        core::Image pickingImage;
-        vk::DescriptorSetLayout pickerObjectDescriptorSetLayout;
+        struct Picker {
+            vk::RenderPass renderPass;
+            core::Image colorImage;
+            core::Image depthImage;
+            vk::DescriptorSetLayout descriptorSetLayout;
+            vk::Framebuffer framebuffer;
+            core::Pipeline pipeline;
+        } picker;
 
         vk::SurfaceKHR surface;
         vk::SwapchainKHR swapchain;
@@ -126,6 +130,7 @@ namespace core
             createSyncObjects();
             createDescriptorPool(maxObjects);
             createCommandBuffers(commandPool);
+            setupPicker();
         }
 
         void createPipelines()
@@ -382,7 +387,7 @@ namespace core
     private:
         void createSwapchain(GLFWwindow *window)
         {
-            /* Swapchain parameters */
+            // Swapchain parameters
             core::SwapchainSupportDetails swapchainSupport = device->getSwapchainSupport(surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
             vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
@@ -472,7 +477,8 @@ namespace core
 
                 VkExtent2D extent = {
                     static_cast<uint32_t>(width),
-                    static_cast<uint32_t>(height)};
+                    static_cast<uint32_t>(height)
+                };
 
                 extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
                 extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
@@ -495,7 +501,8 @@ namespace core
                     nullptr,
                     imgs[i],
                     view,
-                    vk::Fence()};
+                    vk::Fence()
+                };
             }
         }
 
@@ -508,7 +515,7 @@ namespace core
             };
 
             vk::FramebufferCreateInfo framebufferInfo;
-            framebufferInfo.renderPass = renderPass; //TODO: Requires a ref to renderpass.
+            framebufferInfo.renderPass = renderPass;
             framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();
             framebufferInfo.width = extent.width;
@@ -517,23 +524,41 @@ namespace core
             return device->logicalDevice.createFramebuffer(framebufferInfo);
         }
 
-        vk::Framebuffer createPickerFramebuffer() {
+        void setupPicker() {
+            createPickerRessources();
+            createPickerObjectDescriptorSetLayout();
+            createPickerRenderPass();
+            createPickerFramebuffer();
+            createPickerPipeline();
+        }
+
+        void createPickerFramebuffer() {
+            std::array<vk::ImageView, 2> attachments = {
+                picker.colorImage.view,
+                picker.depthImage.view,
+            };
+
             vk::FramebufferCreateInfo fbInfo;
-            fbInfo.renderPass = pickingRenderPass; // TODO: Different renderpass
-            fbInfo.attachmentCount = 1;
-            fbInfo.pAttachments = &pickingImage.view;
+            fbInfo.renderPass = picker.renderPass; // TODO: Different renderpass
+            fbInfo.attachmentCount = 2;
+            fbInfo.pAttachments = attachments.data();
             fbInfo.width = 3;
             fbInfo.height = 3;
             fbInfo.layers = 1;
 
-            return device->logicalDevice.createFramebuffer(fbInfo);
+            picker.framebuffer = device->logicalDevice.createFramebuffer(fbInfo);
         }
 
-        void createPickerImage() {
-            pickingImage = core::Image(device, 3, 3, 1, vk::SampleCountFlagBits::e1, vk::Format::eR32G32B32A32Sfloat,
-                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment, // TODO ?
-                vk::MemoryPropertyFlagBits::eHostVisible, // TODO ?
-                vk::ImageAspectFlagBits::eColor); // TODO ?
+        void createPickerRessources() {
+            vk::Format format = device->findDepthFormat();
+
+            picker.depthImage = core::Image(device, 3, 3, 1, device->msaaSamples,
+                                     format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                     vk::ImageAspectFlagBits::eDepth);
+
+            picker.colorImage = core::Image(device, 3, 3, 1, device->msaaSamples, this->imageFormat,
+                                     vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                     vk::ImageAspectFlagBits::eColor);
         }
 
         void createPickerObjectDescriptorSetLayout() {
@@ -548,22 +573,17 @@ namespace core
 
             std::array<vk::DescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
 
-            vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
+            vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
-            pickerObjectDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
+            picker.descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
         }
 
         void createPickerRenderPass() {
             vk::AttachmentDescription colorAttachment;
             colorAttachment.format = imageFormat;
-            colorAttachment.samples = vk::SampleCountFlagBits::e1;
-            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;   // What to do with the data before ...
-            colorAttachment.storeOp = vk::AttachmentStoreOp::eStore; // ... and after rendering
-            // Stencil data
-            colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare; // We don't have stencils for now
-            colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-
-            // Images need to be transitioned to specific layout that are suitable for the op that they're going to be involved in next.
+            colorAttachment.samples = device->msaaSamples; // TODO: ?
+            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+            colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
             colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
             colorAttachment.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
 
@@ -571,10 +591,23 @@ namespace core
             colorAttachmentRef.attachment = 0;
             colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
+            vk::AttachmentDescription depthAttachment;
+            depthAttachment.format = device->findDepthFormat();
+            depthAttachment.samples = device->msaaSamples;
+            depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+            depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare; // Depth data is not used after drawing has finished
+            depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
+            depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+            vk::AttachmentReference depthAttachmentRef;
+            depthAttachmentRef.attachment = 1;
+            depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
             vk::SubpassDescription subpass;
             subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
             subpass.colorAttachmentCount = 1;
-            subpass.pColorAttachments = &colorAttachmentRef; // The index of the attachment is directly referenced in the fragment shader ( layout(location = 0) )...
+            subpass.pColorAttachments = &colorAttachmentRef;
+            subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
             // Add a subpass dependency to ensure the render pass will wait for the right stage
             // We need to wait for the image to be acquired before transitionning to it
@@ -586,28 +619,28 @@ namespace core
             subpassDependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
             subpassDependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
 
-            std::array<vk::AttachmentDescription, 1> attachments = {colorAttachment};
+            std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
             vk::RenderPassCreateInfo renderPassInfo;
-            renderPassInfo.attachmentCount = 1;
+            renderPassInfo.attachmentCount = 2;
             renderPassInfo.pAttachments = attachments.data();
             renderPassInfo.subpassCount = 1;
             renderPassInfo.pSubpasses = &subpass;
             renderPassInfo.dependencyCount = 1;
             renderPassInfo.pDependencies = &subpassDependency;
 
-            pickingRenderPass = device->logicalDevice.createRenderPass(renderPassInfo);
+            picker.renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
         void createPickerPipeline() {
             core::PipelineFactory factory = core::PipelineFactory(device);
-            factory.setRenderPass(pickingRenderPass);
+            factory.setRenderPass(picker.renderPass);
             factory.setExtent(extent);
             factory.addDynamicState(vk::DynamicState::eViewport);
 
             // TODO: Specific shaders
             factory.registerShader("shaders/picker.vert.spv", vk::ShaderStageFlagBits::eVertex);
             factory.registerShader("shaders/picker.frag.spv", vk::ShaderStageFlagBits::eFragment);
-            pipelines.picking = factory.create(std::vector<vk::DescriptorSetLayout>({pickerObjectDescriptorSetLayout}));
+            picker.pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({picker.descriptorSetLayout}));
 
             // TODO: Create object picking pipeline
             //  * No actual rendering
