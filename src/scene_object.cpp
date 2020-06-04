@@ -4,8 +4,9 @@
 #include "core/texture.cpp"
 #include "material.cpp"
 #include "core/device.hpp"
-#include<glm/glm.hpp>
+#include <glm/glm.hpp>
 #include "transform.cpp"
+#include "utils/color_uid.cpp"
 
 class SceneObject
 {
@@ -18,6 +19,8 @@ public:
     
     std::shared_ptr<core::Device> device;
     vk::DescriptorSet descriptorSet;
+
+    ColorUID colorId;
 
     SceneObject(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
                 glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f},
