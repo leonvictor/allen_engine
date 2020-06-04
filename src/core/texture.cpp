@@ -90,13 +90,13 @@ private:
         initMemory(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         // Transition the image to transfer dst layout
-        transitionLayout(context, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, mipLevels);
+        transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
         // Copy staging buffer to image
         context->copyBufferToImage(stagingBuffer, image, img.width, img.height);
 
         generateMipMaps(image, vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
 
-        initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, mipLevels);
+        initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 
         stagingBuffer.destroy();
     }

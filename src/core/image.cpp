@@ -63,6 +63,11 @@ protected:
         imageInfo.samples = numSamples;
 
         image = device->logicalDevice.createImage(imageInfo);
+        
+        this->layout = vk::ImageLayout::eUndefined;
+        this->mipLevels = mipLevels;
+        this->format = format;
+        this->arrayLayers = arrayLayers;
     }
 
     void initMemory(vk::MemoryPropertyFlags memProperties)
@@ -77,10 +82,10 @@ protected:
         device->logicalDevice.bindImageMemory(image, memory, 0);
     }
 
-    void initView(vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1)
+    void initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D)
     {
         assert(!view && "Image view is already initialized.");
-        view = createImageView(device, this->image, format, aspectMask, mipLevels, viewtype, layerCount);
+        view = createImageView(device, this->image, format, aspectMask, mipLevels, viewtype, arrayLayers);
     }
 
 public:
@@ -88,11 +93,15 @@ public:
     vk::ImageView view;
     vk::DeviceMemory memory;
 
+    vk::ImageLayout layout;
+    vk::Format format;
     int mipLevels;
+    int arrayLayers;
 
     /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
     Image() {}
 
+    // TODO: Default arguments
     Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask)
     {
@@ -101,7 +110,7 @@ public:
 
         initImage(width, height, mipLevels, numSamples, format, tiling, usage);
         initMemory(memProperties);
-        initView(format, aspectMask, mipLevels);
+        initView(format, aspectMask);
     }
 
     Image(std::shared_ptr<core::Device> device, vk::Image image, vk::MemoryPropertyFlags memProperties)
@@ -121,23 +130,16 @@ public:
 
     operator vk::Image() { return image; }
 
-    /* Transition  
-        * TODO 
-        * - Is this the same format ? If so, move it to an attribute 
-        * - Is this the same mipLevels ? //
-        * 
-        */
-    void transitionLayout(std::shared_ptr<core::Context> context, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels, int layerCount = 1)
-    {
+    void transitionLayout(std::shared_ptr<core::Context> context, vk::ImageLayout newLayout) {
         vk::ImageMemoryBarrier memoryBarrier;
-        memoryBarrier.oldLayout = oldLayout;
+        memoryBarrier.oldLayout = layout;
         memoryBarrier.newLayout = newLayout;
         //TODO: Specify transferQueue here ?
         memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         memoryBarrier.image = image;
         memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        memoryBarrier.subresourceRange.layerCount = layerCount;
+        memoryBarrier.subresourceRange.layerCount = arrayLayers;
         memoryBarrier.subresourceRange.baseArrayLayer = 0;
         memoryBarrier.subresourceRange.levelCount = mipLevels;
         memoryBarrier.subresourceRange.baseMipLevel = 0;
@@ -150,7 +152,7 @@ public:
         vk::PipelineStageFlagBits dstStage;
 
         // Specify transition support. See https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#synchronization-access-types-supported
-        if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
+        if (layout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
         {
             memoryBarrier.srcAccessMask = vk::AccessFlags();
             memoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
@@ -161,7 +163,7 @@ public:
             queue = &device->transferQueue;
             commandPool = &context->transferCommandPool;
         }
-        else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
+        else if (layout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
         {
             memoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
             memoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
@@ -187,6 +189,7 @@ public:
             memoryBarrier);
 
         commandPool->endSingleTimeCommands(commandBuffers, *queue);
+        this->layout = newLayout;
     }
 
     /* helper function to create image views

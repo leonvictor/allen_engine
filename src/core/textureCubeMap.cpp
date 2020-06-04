@@ -86,14 +86,13 @@ public:
 
         initMemory(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-        transitionLayout(context, vk::Format::eR8G8B8A8Srgb,
-                         vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, 1, 6);
+        transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
 
         context->copyBufferToImage(stagingBuffer, image, bufferCopyRegions);
 
-        transitionLayout(context, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, 1, 6);
+        transitionLayout(context, vk::ImageLayout::eShaderReadOnlyOptimal);
         
-        initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, 1, vk::ImageViewType::eCube, 6);
+        initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 
         createSampler(vk::SamplerAddressMode::eClampToEdge);
         stagingBuffer.destroy();
