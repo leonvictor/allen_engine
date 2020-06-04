@@ -39,6 +39,7 @@
 #include "ecs/systems.cpp"
 #include "skybox.cpp"
 #include "scene_object.cpp"
+#include "input_monitor.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -81,10 +82,8 @@ private:
     size_t currentFrame = 0;
     
     bool framebufferResized = false;
-    bool leftMouseButtonPressed = false;
-    bool rightMouseButtonPressed = false;
-    bool middleMouseButtonPressed = false;
     glm::vec2 lastMousePos;
+    InputMonitor input;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -134,22 +133,8 @@ private:
         glfwSetKeyCallback(window, keyCallback);
     }
 
-    void addObject() {
-        auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
-        glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.31f);
-
-        auto m = SceneObject(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
-        m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
-        models.push_back(m);
-    }
-
-    void removeObject(int index) {
-        if (models.size() > 0) {
-            models[index].destroy();
-            models.erase(models.begin() + index);
-        }
-    }
-
+    // TODO: Use InputMonitor. 
+    // FIXME: GLFW events for keyboard and mouse might share the same identifiers
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
         auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
         
@@ -170,51 +155,45 @@ private:
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
         
-        //TODO: This doesn't need to happen when pressing every buttons, only the ones that handle camera motion
+        //TODO: This doesn't need to happen for every frame
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
         app->lastMousePos = {xpos, ypos};
+        app->input.callback(button, action, mods);
+    }
 
-        switch (button) {
-            case GLFW_MOUSE_BUTTON_LEFT:
-                if (action == GLFW_PRESS) {
-                    app->leftMouseButtonPressed = true;
-                    // TODO: Select the object under the mouse
-                } else if (action == GLFW_RELEASE) {
-                    app->leftMouseButtonPressed = false;
-                }
-                break;
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                if (action == GLFW_PRESS) {
-                    app->rightMouseButtonPressed = true;
-                } else if (action == GLFW_RELEASE) {
-                    app->rightMouseButtonPressed = false;
-                }
-                break;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                if (action == GLFW_PRESS) {
-                    app->middleMouseButtonPressed = true;
-                } else if (action == GLFW_RELEASE) {
-                    app->middleMouseButtonPressed = false;
-                }
+    void addObject() {
+        auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
+        glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.31f);
+
+        auto m = SceneObject(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
+        m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+        models.push_back(m);
+    }
+
+    void removeObject(int index) {
+        if (models.size() > 0) {
+            models[index].destroy();
+            models.erase(models.begin() + index);
         }
     }
 
-    void initECS() {
-        gCoordinator.init();
+    // TODO
+    // void initECS() {
+    //     gCoordinator.init();
 
-        gCoordinator.registerComponent<ecs::components::Transform>();
-        gCoordinator.registerComponent<ecs::components::Renderable>();
-        gCoordinator.registerComponent<Mesh>();
+    //     gCoordinator.registerComponent<ecs::components::Transform>();
+    //     gCoordinator.registerComponent<ecs::components::Renderable>();
+    //     gCoordinator.registerComponent<Mesh>();
 
-        auto renderSystem = gCoordinator.registerSystem<RenderSystem>();
+    //     auto renderSystem = gCoordinator.registerSystem<RenderSystem>();
        
-        ecs::Signature signature;
-        signature.set(gCoordinator.getComponentType<ecs::components::Transform>());
-        signature.set(gCoordinator.getComponentType<ecs::components::Renderable>());
-        signature.set(gCoordinator.getComponentType<Mesh>());
-        gCoordinator.setSystemSignature<RenderSystem>(signature);
-    }
+    //     ecs::Signature signature;
+    //     signature.set(gCoordinator.getComponentType<ecs::components::Transform>());
+    //     signature.set(gCoordinator.getComponentType<ecs::components::Renderable>());
+    //     signature.set(gCoordinator.getComponentType<Mesh>());
+    //     gCoordinator.setSystemSignature<RenderSystem>(signature);
+    // }
 
     void initVulkan() {
         context = std::make_shared<core::Context>();
@@ -382,12 +361,12 @@ private:
     void mainLoop() {
         while(!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            if (middleMouseButtonPressed) {
+            if (input.isDown(GLFW_MOUSE_BUTTON_MIDDLE)) {
                 double xoffset, yoffset;
                 getMouseMotionDelta(&xoffset, &yoffset);
                 camera.move(-xoffset, -yoffset);
             }
-            if (rightMouseButtonPressed) {
+            if (input.isDown(GLFW_MOUSE_BUTTON_RIGHT)) {
                 double xoffset, yoffset;
                 getMouseMotionDelta(&xoffset, &yoffset);
                 camera.rotate(xoffset, yoffset);
@@ -434,16 +413,14 @@ private:
                 ubo.projection[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.cameraPos = camera.position;
                 model.mesh.updateUniformBuffers(ubo);
-
-                //Material doesn't change
-                // Material material;
-                // material.ambient = glm::vec3(1.0f, 0.5f, 0.31f);
-                // material.diffuse = glm::vec3(1.0f, 0.5f, 0.31);
-                // material.specular = glm::vec3(0.5f, 0.5f, 0.5);
-                // material.shininess = glm::vec1(8.0f);
-                // models[i].updateMaterialBuffer(material);
             }
             swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
+
+            if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true))
+            {
+                // TODO
+                std::cout << "pick object at (" << lastMousePos.x << ", " << lastMousePos.y << ")" << std::endl;
+            }
             endDrawFrame(imageIndex);
         }
 
