@@ -168,6 +168,7 @@ private:
 
         auto m = SceneObject(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
         m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+        m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
         models.push_back(m);
     }
 
@@ -219,12 +220,14 @@ private:
         swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
+
     void loadModels() {
         for (int i = 0; i < cubePositions.size(); i++) {
             // TODO : Clean this up.
             glm::vec3 color = (i ==  cubePositions.size() -1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
             auto m = SceneObject(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
             m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+            m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
             models.push_back(m);
         }
 
@@ -418,8 +421,9 @@ private:
 
             if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true))
             {
-                // TODO
+                // TODO: Draw in the picker pipeline. Grab the color output. Select the corresponding scene object
                 std::cout << "pick object at (" << lastMousePos.x << ", " << lastMousePos.y << ")" << std::endl;
+                swapchain.pickColor(models, lastMousePos);
             }
             endDrawFrame(imageIndex);
         }

@@ -47,14 +47,16 @@ namespace core
             core::Pipeline skybox;
         } pipelines;
 
-        // Object picking 
-        struct Picker {
+        // Object picking
+        struct Picker
+        {
             vk::RenderPass renderPass;
             core::Image colorImage;
             core::Image depthImage;
             vk::DescriptorSetLayout descriptorSetLayout;
             vk::Framebuffer framebuffer;
             core::Pipeline pipeline;
+            vk::CommandBuffer commandBuffer;
         } picker;
 
         vk::SurfaceKHR surface;
@@ -265,9 +267,8 @@ namespace core
             renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
-                void createCommandBuffers(const core::CommandPool &commandPool)
+        void createCommandBuffers(const core::CommandPool &commandPool)
         {
-
             // TODO: This has to happen somewhere else
             this->commandPool = commandPool;
             auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
@@ -384,6 +385,69 @@ namespace core
             }
         }
 
+        glm::vec3 pickColor(std::vector<SceneObject> models, glm::vec2 target)
+        {
+            // TODO: Color is mesh-wide and should be passed by uniform
+            // TODO: Restrict the info attached to each vertex. We only need the pos.
+            // TODO: Handle out of window target
+            picker.commandBuffer.begin(vk::CommandBufferBeginInfo());
+
+            // Start a render pass.
+            vk::RenderPassBeginInfo renderPassInfo;
+            renderPassInfo.renderPass = picker.renderPass;
+            renderPassInfo.framebuffer = picker.framebuffer;
+            renderPassInfo.renderArea.extent = vk::Extent2D(3, 3); // TODO ?
+            // renderPassInfo.renderArea.offset = vk::Offset2D{target.x, target.y}; // TODO -3 ?
+            renderPassInfo.renderArea.offset = vk::Offset2D{0, 0}; // TODO -3 ?
+
+
+            std::array<vk::ClearValue, 2> clearValues = {};
+            clearValues[0].color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+            clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassInfo.pClearValues = clearValues.data();
+
+            picker.commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+
+            picker.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, picker.pipeline.graphicsPipeline);
+
+            vk::Viewport viewport = {
+                target.x,
+                target.y,
+                3,
+                3,
+            };
+
+            picker.commandBuffer.setViewport(0, viewport);
+
+            for (auto model : models)
+            {
+                picker.commandBuffer.bindVertexBuffers(0, model.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
+                picker.commandBuffer.bindIndexBuffer(model.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+                picker.commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, picker.pipeline.layout, 0, model.colorDescriptorSet, nullptr);
+                picker.commandBuffer.drawIndexed(model.mesh.indices.size(), 1, 0, 0, 0);
+            }
+
+            picker.commandBuffer.endRenderPass();
+            picker.commandBuffer.end();
+
+            
+            // auto *data = picker.colorImage.map()
+            // for (uint32_t y = 0; y < 3; y++) 
+            // {
+            //     unsigned int *row = (unsigned int*) picker.colorImage.image;
+            //     for (uint32_t x = 0; x < 3; x++) 
+            //     {
+            //         auto r = (char*) row;
+            //         std::cout << row[0] << row[1] << row[2] << std::endl;
+            //         row++;
+            //     }
+            // }
+
+            return glm::vec3();
+            // TODO: Select the color at the mouse pos.
+        }
+
     private:
         void createSwapchain(GLFWwindow *window)
         {
@@ -477,8 +541,7 @@ namespace core
 
                 VkExtent2D extent = {
                     static_cast<uint32_t>(width),
-                    static_cast<uint32_t>(height)
-                };
+                    static_cast<uint32_t>(height)};
 
                 extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
                 extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
@@ -501,8 +564,7 @@ namespace core
                     nullptr,
                     imgs[i],
                     view,
-                    vk::Fence()
-                };
+                    vk::Fence()};
             }
         }
 
@@ -511,8 +573,7 @@ namespace core
             std::array<vk::ImageView, 3> attachments = {
                 colorImage.view,
                 depthImage.view,
-                view
-            };
+                view};
 
             vk::FramebufferCreateInfo framebufferInfo;
             framebufferInfo.renderPass = renderPass;
@@ -524,15 +585,23 @@ namespace core
             return device->logicalDevice.createFramebuffer(framebufferInfo);
         }
 
-        void setupPicker() {
+        void setupPicker()
+        {
             createPickerRessources();
             createPickerObjectDescriptorSetLayout();
             createPickerRenderPass();
             createPickerFramebuffer();
             createPickerPipeline();
+            createPickerCommandBuffer();
         }
 
-        void createPickerFramebuffer() {
+        void createPickerCommandBuffer()
+        {
+            picker.commandBuffer = commandPool.allocateCommandBuffers(1)[0];
+        }
+
+        void createPickerFramebuffer()
+        {
             std::array<vk::ImageView, 2> attachments = {
                 picker.colorImage.view,
                 picker.depthImage.view,
@@ -549,19 +618,21 @@ namespace core
             picker.framebuffer = device->logicalDevice.createFramebuffer(fbInfo);
         }
 
-        void createPickerRessources() {
+        void createPickerRessources()
+        {
             vk::Format format = device->findDepthFormat();
 
             picker.depthImage = core::Image(device, 3, 3, 1, device->msaaSamples,
-                                     format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                     vk::ImageAspectFlagBits::eDepth);
+                                            format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                            vk::ImageAspectFlagBits::eDepth);
 
             picker.colorImage = core::Image(device, 3, 3, 1, device->msaaSamples, this->imageFormat,
-                                     vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                     vk::ImageAspectFlagBits::eColor);
+                                            vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                            vk::ImageAspectFlagBits::eColor);
         }
 
-        void createPickerObjectDescriptorSetLayout() {
+        void createPickerObjectDescriptorSetLayout()
+        {
             vk::DescriptorSetLayoutBinding uboLayoutBinding;
             uboLayoutBinding.binding = 0;         // The binding used in the shader
             uboLayoutBinding.descriptorCount = 1; // Number of values in the array
@@ -573,12 +644,13 @@ namespace core
 
             std::array<vk::DescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
 
-            vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
+            vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
 
             picker.descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
         }
 
-        void createPickerRenderPass() {
+        void createPickerRenderPass()
+        {
             vk::AttachmentDescription colorAttachment;
             colorAttachment.format = imageFormat;
             colorAttachment.samples = device->msaaSamples; // TODO: ?
@@ -631,7 +703,8 @@ namespace core
             picker.renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
-        void createPickerPipeline() {
+        void createPickerPipeline()
+        {
             core::PipelineFactory factory = core::PipelineFactory(device);
             factory.setRenderPass(picker.renderPass);
             factory.setExtent(extent);
@@ -722,21 +795,22 @@ namespace core
 
         void createDescriptorPool(int nObjects)
         {
-            std::array<vk::DescriptorPoolSize, 4> poolSizes;
-            ;
+            // TODO: Refactor
+            std::array<vk::DescriptorPoolSize, 3> poolSizes;
+            
             poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
-            poolSizes[0].descriptorCount = nObjects + 1; // +1 for skybox. TODO: This should be dynamic
+            poolSizes[0].descriptorCount = (nObjects * 3) + 1; // +1 for skybox. TODO: This should be dynamic
             poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
             poolSizes[1].descriptorCount = nObjects + 1; // +1 TODO Same here
-            poolSizes[2].type = vk::DescriptorType::eUniformBuffer;
-            poolSizes[2].descriptorCount = nObjects; // TODO: Can we fuse the two uniformBuffer pools ? This one is for materials.
-            poolSizes[3].type = vk::DescriptorType::eStorageBuffer;
-            poolSizes[3].descriptorCount = 1; // For now, only used by lights
+            // poolSizes[2].type = vk::DescriptorType::eUniformBuffer;
+            // poolSizes[2].descriptorCount = nObjects; // TODO: Can we fuse the two uniformBuffer pools ? This one is for materials.
+            poolSizes[2].type = vk::DescriptorType::eStorageBuffer;
+            poolSizes[2].descriptorCount = 1; // For now, only used by lights
 
             vk::DescriptorPoolCreateInfo createInfo;
             createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
             createInfo.pPoolSizes = poolSizes.data();
-            createInfo.maxSets = nObjects + 2; // TODO: +2 is for lights / skybox. Make it less hardcoded
+            createInfo.maxSets = (nObjects * 2) + 2; // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker 
 
             descriptorPool = device->logicalDevice.createDescriptorPool(createInfo);
         }

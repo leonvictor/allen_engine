@@ -19,6 +19,7 @@ public:
     
     std::shared_ptr<core::Device> device;
     vk::DescriptorSet descriptorSet;
+    vk::DescriptorSet colorDescriptorSet;
 
     ColorUID colorId;
 
@@ -85,6 +86,25 @@ public:
 
         device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
+
+    void createColorDescriptorSet(vk::DescriptorPool &descriptorPool, vk::DescriptorSetLayout &descriptorSetLayout)
+    {
+        vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
+        colorDescriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
+
+        std::array<vk::WriteDescriptorSet, 1> writeDescriptors = {};
+
+        writeDescriptors[0].dstSet = colorDescriptorSet;
+        writeDescriptors[0].dstBinding = 0;      // Binding index
+        writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
+        writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+        writeDescriptors[0].descriptorCount = 1;
+        auto uniformDescriptor = mesh.uniformBuffer.getDescriptor();
+        writeDescriptors[0].pBufferInfo = &uniformDescriptor;
+
+        device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+    }
+
     void destroy()
     {
         mesh.destroy();
