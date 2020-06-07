@@ -3,214 +3,313 @@
 #include <vulkan/vulkan.hpp>
 #include <memory>
 
-#include "device.hpp"
 #include "context.hpp"
+#include "device.hpp"
 #include "commandpool.cpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
 namespace core
 {
 
-// Minimal Cpp wrapper for STB loader
-// TODO by order of preference :
-// 1) Get rid of it
-// 2) Find it a better name
-// 3) Move it somewhere else
-struct ImageFile
-{
-    stbi_uc* pixels;
-    int width, height, channels;
-
-    ImageFile(std::string path)
+    // Minimal Cpp wrapper for STB loader
+    // TODO by order of preference :
+    // 1) Get rid of it
+    // 2) Find it a better name
+    // 3) Move it somewhere else
+    struct ImageFile
     {
-        load(path);
-    }
+        stbi_uc *pixels;
+        int width, height, channels;
 
-    void load(std::string path)
-    {
-        pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-        if (!pixels)
+        ImageFile(std::string path)
         {
-            throw std::runtime_error("Failed to load image at " + path);
+            load(path);
         }
-    }
-};
 
-class Image
-{
-protected:
-    std::shared_ptr<core::Device> device;
+        void load(std::string path)
+        {
+            pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
-    void initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-                   vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {})
+            if (!pixels)
+            {
+                throw std::runtime_error("Failed to load image at " + path);
+            }
+        }
+    };
+
+    class Image
     {
+    protected:
+        std::shared_ptr<core::Device> device;
 
-        vk::ImageCreateInfo imageInfo;
-        imageInfo.flags = flags;
-        imageInfo.imageType = vk::ImageType::e2D;
-        imageInfo.extent.width = static_cast<uint32_t>(width);
-        imageInfo.extent.height = static_cast<uint32_t>(height);
-        imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = mipLevels;
-        imageInfo.arrayLayers = arrayLayers;
-        imageInfo.format = format;
-        imageInfo.tiling = tiling;
-        imageInfo.initialLayout = vk::ImageLayout::eUndefined; // The very first iteration will discard the texels
-        imageInfo.usage = usage;
-        imageInfo.sharingMode = vk::SharingMode::eExclusive;
-        imageInfo.samples = numSamples;
+        void initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+                       vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {})
+        {
 
-        image = device->logicalDevice.createImage(imageInfo);
+            vk::ImageCreateInfo imageInfo;
+            imageInfo.flags = flags;
+            imageInfo.imageType = vk::ImageType::e2D;
+            imageInfo.extent.width = static_cast<uint32_t>(width);
+            imageInfo.extent.height = static_cast<uint32_t>(height);
+            imageInfo.extent.depth = 1;
+            imageInfo.mipLevels = mipLevels;
+            imageInfo.arrayLayers = arrayLayers;
+            imageInfo.format = format;
+            imageInfo.tiling = tiling;
+            imageInfo.initialLayout = vk::ImageLayout::eUndefined; // The very first iteration will discard the texels
+            imageInfo.usage = usage;
+            imageInfo.sharingMode = vk::SharingMode::eExclusive;
+            imageInfo.samples = numSamples;
+
+            image = device->logicalDevice.createImage(imageInfo);
+
+            this->layout = vk::ImageLayout::eUndefined;
+            this->mipLevels = mipLevels;
+            this->format = format;
+            this->arrayLayers = arrayLayers;
+            this->width = width;
+            this->height = height;
+        }
+
+        void initMemory(vk::MemoryPropertyFlags memProperties)
+        {
+            auto memRequirements = device->logicalDevice.getImageMemoryRequirements(image);
+
+            vk::MemoryAllocateInfo allocInfo = {};
+            allocInfo.allocationSize = memRequirements.size;
+            allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
+
+            memory = device->logicalDevice.allocateMemory(allocInfo);
+            device->logicalDevice.bindImageMemory(image, memory, 0);
+        }
+
+        void initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D)
+        {
+            assert(!view && "Image view is already initialized.");
+            view = createImageView(device, this->image, format, aspectMask, mipLevels, viewtype, arrayLayers);
+        }
+
+    public:
+        vk::Image image;
+        vk::ImageView view;
+        vk::DeviceMemory memory;
+
+        vk::ImageLayout layout;
+        vk::Format format;
+        int mipLevels;
+        int arrayLayers;
+        int width, height;
+
+        /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
+        Image() {}
+
+        // TODO: Default arguments
+        Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask)
+        {
+
+            this->device = device;
+
+            initImage(width, height, mipLevels, numSamples, format, tiling, usage);
+            initMemory(memProperties);
+            initView(format, aspectMask);
+        }
+
+        // Create an image without a view. 
+        // TODO: Handle this case in destroy()
+        Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties)
+        {
+
+            this->device = device;
+
+            initImage(width, height, mipLevels, numSamples, format, tiling, usage);
+            initMemory(memProperties);
+        }
+
+        Image(std::shared_ptr<core::Device> device, vk::Image image, vk::MemoryPropertyFlags memProperties)
+        {
+            this->device = device;
+            this->image = image;
+            initMemory(memProperties);
+        }
+
+        void destroy()
+        {
+            // TODO: We might not need this with Unique stuff ?
+            device->logicalDevice.destroyImageView(view);
+            device->logicalDevice.destroyImage(image);
+            device->logicalDevice.freeMemory(memory);
+        }
+
+        operator vk::Image() { return image; }
+
+        void transitionLayout(std::shared_ptr<core::Context> context, vk::ImageLayout newLayout)
+        {
+            if (layout == newLayout)
+                return;
+            
+            vk::ImageMemoryBarrier memoryBarrier;
+            memoryBarrier.oldLayout = layout;
+            memoryBarrier.newLayout = newLayout;
+            //TODO: Specify transferQueue here ?
+            memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            memoryBarrier.image = image;
+            memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+            memoryBarrier.subresourceRange.layerCount = arrayLayers;
+            memoryBarrier.subresourceRange.baseArrayLayer = 0;
+            memoryBarrier.subresourceRange.levelCount = mipLevels;
+            memoryBarrier.subresourceRange.baseMipLevel = 0;
+            memoryBarrier.srcAccessMask = vk::AccessFlags(); // Which operations must happen before the barrier
+            memoryBarrier.dstAccessMask = vk::AccessFlags(); // ... and after
+
+            vk::Queue *queue;
+            core::CommandPool *commandPool;
+            vk::PipelineStageFlagBits srcStage;
+            vk::PipelineStageFlagBits dstStage;
+
+            // Specify transition support. See https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#synchronization-access-types-supported
+            if      (layout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
+            {
+                memoryBarrier.srcAccessMask = vk::AccessFlags();
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+
+                srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
+                dstStage = vk::PipelineStageFlagBits::eTransfer;
+
+                queue = &device->transferQueue;
+                commandPool = &context->transferCommandPool;
+            }
+            else if (layout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
+            {
+                memoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+                srcStage = vk::PipelineStageFlagBits::eTransfer;
+                dstStage = vk::PipelineStageFlagBits::eFragmentShader;
+
+                queue = &device->graphicsQueue;
+                commandPool = &context->graphicsCommandPool;
+            }
+            else if (layout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eGeneral)
+            {
+                memoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
+
+                srcStage = vk::PipelineStageFlagBits::eTransfer;
+                dstStage = vk::PipelineStageFlagBits::eTransfer;
+
+                queue = &device->transferQueue;
+                commandPool = &context->transferCommandPool;
+            }
+            else if (layout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferSrcOptimal)
+            {
+                memoryBarrier.srcAccessMask = vk::AccessFlagBits();
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
+
+                srcStage = vk::PipelineStageFlagBits::eTransfer;
+                dstStage = vk::PipelineStageFlagBits::eTransfer;
+
+                queue = &device->transferQueue;
+                commandPool = &context->transferCommandPool;
+            }
+            else
+            {
+                throw std::invalid_argument("Unsupported layout transition (" + vk::to_string(layout) + " -> " + vk::to_string(newLayout) + ")");
+            }
+
+            auto commandBuffers = commandPool->beginSingleTimeCommands();
+
+            commandBuffers[0].pipelineBarrier(
+                srcStage, dstStage,
+                vk::DependencyFlags(),
+                nullptr,
+                nullptr,
+                memoryBarrier);
+
+            commandPool->endSingleTimeCommands(commandBuffers, *queue);
+            this->layout = newLayout;
+        }
+
+        void blit(std::shared_ptr<core::Context> context, core::Image &dstImage)
+        {
+            blit(context, dstImage, width, height);
+        }
         
-        this->layout = vk::ImageLayout::eUndefined;
-        this->mipLevels = mipLevels;
-        this->format = format;
-        this->arrayLayers = arrayLayers;
-    }
-
-    void initMemory(vk::MemoryPropertyFlags memProperties)
-    {
-        auto memRequirements = device->logicalDevice.getImageMemoryRequirements(image);
-
-        vk::MemoryAllocateInfo allocInfo = {};
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
-
-        memory = device->logicalDevice.allocateMemory(allocInfo);
-        device->logicalDevice.bindImageMemory(image, memory, 0);
-    }
-
-    void initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D)
-    {
-        assert(!view && "Image view is already initialized.");
-        view = createImageView(device, this->image, format, aspectMask, mipLevels, viewtype, arrayLayers);
-    }
-
-public:
-    vk::Image image;
-    vk::ImageView view;
-    vk::DeviceMemory memory;
-
-    vk::ImageLayout layout;
-    vk::Format format;
-    int mipLevels;
-    int arrayLayers;
-
-    /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
-    Image() {}
-
-    // TODO: Default arguments
-    Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-          vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask)
-    {
-
-        this->device = device;
-
-        initImage(width, height, mipLevels, numSamples, format, tiling, usage);
-        initMemory(memProperties);
-        initView(format, aspectMask);
-    }
-
-    Image(std::shared_ptr<core::Device> device, vk::Image image, vk::MemoryPropertyFlags memProperties)
-    {
-        this->device = device;
-        this->image = image;
-        initMemory(memProperties);
-    }
-
-    void destroy()
-    {
-        // TODO: We might not need this with Unique stuff ?
-        device->logicalDevice.destroyImageView(view);
-        device->logicalDevice.destroyImage(image);
-        device->logicalDevice.freeMemory(memory);
-    }
-
-    operator vk::Image() { return image; }
-
-    void transitionLayout(std::shared_ptr<core::Context> context, vk::ImageLayout newLayout) {
-        vk::ImageMemoryBarrier memoryBarrier;
-        memoryBarrier.oldLayout = layout;
-        memoryBarrier.newLayout = newLayout;
-        //TODO: Specify transferQueue here ?
-        memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        memoryBarrier.image = image;
-        memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        memoryBarrier.subresourceRange.layerCount = arrayLayers;
-        memoryBarrier.subresourceRange.baseArrayLayer = 0;
-        memoryBarrier.subresourceRange.levelCount = mipLevels;
-        memoryBarrier.subresourceRange.baseMipLevel = 0;
-        memoryBarrier.srcAccessMask = vk::AccessFlags(); // Which operations must happen before the barrier
-        memoryBarrier.dstAccessMask = vk::AccessFlags(); // ... and after
-
-        vk::Queue *queue;
-        core::CommandPool *commandPool;
-        vk::PipelineStageFlagBits srcStage;
-        vk::PipelineStageFlagBits dstStage;
-
-        // Specify transition support. See https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#synchronization-access-types-supported
-        if (layout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
+        void blit(std::shared_ptr<core::Context> context, core::Image &dstImage, int width, int height)
         {
-            memoryBarrier.srcAccessMask = vk::AccessFlags();
-            memoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+            // TODO: Modify so that we can use a single command buffer for multiple calls
+            auto commandBuffers = context->graphicsCommandPool.beginSingleTimeCommands();
 
-            srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
-            dstStage = vk::PipelineStageFlagBits::eTransfer;
+            vk::Offset3D blitSize;
+            blitSize.x = width;
+            blitSize.y = height;
+            blitSize.z = 1;
+            vk::ImageBlit imageBlitRegion;
+            imageBlitRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+            imageBlitRegion.srcSubresource.layerCount = 1;
+            imageBlitRegion.srcOffsets[1] = blitSize;
+            imageBlitRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+            imageBlitRegion.dstSubresource.layerCount = 1;
+            imageBlitRegion.dstOffsets[1] = blitSize;
 
-            queue = &device->transferQueue;
-            commandPool = &context->transferCommandPool;
-        }
-        else if (layout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
-        {
-            memoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-            memoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+            commandBuffers[0].blitImage(
+                image, vk::ImageLayout::eTransferSrcOptimal,
+                dstImage.image, vk::ImageLayout::eTransferDstOptimal,
+                imageBlitRegion,
+                vk::Filter::eNearest);
 
-            srcStage = vk::PipelineStageFlagBits::eTransfer;
-            dstStage = vk::PipelineStageFlagBits::eFragmentShader;
-
-            queue = &device->graphicsQueue;
-            commandPool = &context->graphicsCommandPool;
-        }
-        else
-        {
-            throw std::invalid_argument("Unsupported layout transition.");
+            context->graphicsCommandPool.endSingleTimeCommands(commandBuffers, device->graphicsQueue);
         }
 
-        auto commandBuffers = commandPool->beginSingleTimeCommands();
+        void copyTo(std::shared_ptr<core::Context> context, core::Image &dstImage) {
+            copyTo(context, dstImage, width, height);
+        }
 
-        commandBuffers[0].pipelineBarrier(
-            srcStage, dstStage,
-            vk::DependencyFlags(),
-            nullptr,
-            nullptr,
-            memoryBarrier);
+        void copyTo(std::shared_ptr<core::Context> context, core::Image &dstImage, int width, int height) {
+            auto commandBuffers = context->graphicsCommandPool.beginSingleTimeCommands();
 
-        commandPool->endSingleTimeCommands(commandBuffers, *queue);
-        this->layout = newLayout;
-    }
+            // Otherwise use image copy (requires us to manually flip components)
+			vk::ImageCopy imageCopyRegion;
+			imageCopyRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+			imageCopyRegion.srcSubresource.layerCount = 1;
+			imageCopyRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+			imageCopyRegion.dstSubresource.layerCount = 1;
+			imageCopyRegion.extent.width = width;
+			imageCopyRegion.extent.height = height;
+			imageCopyRegion.extent.depth = 1;
 
-    /* helper function to create image views
+			// Issue the copy command
+			commandBuffers[0].copyImage(
+				image, vk::ImageLayout::eTransferSrcOptimal,
+				dstImage.image, vk::ImageLayout::eTransferDstOptimal,
+				imageCopyRegion);
+
+            context->graphicsCommandPool.endSingleTimeCommands(commandBuffers, device->graphicsQueue);
+        }
+
+        /* helper function to create image views
         * @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places. 
         * If so what would be a good place ? Inside device ?
         */
-    static vk::ImageView createImageView(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1)
-    {
-        vk::ImageViewCreateInfo createInfo;
-        createInfo.format = format;
-        createInfo.image = image;
-        createInfo.viewType = viewtype;
-        createInfo.subresourceRange.aspectMask = aspectMask;
-        createInfo.subresourceRange.layerCount = layerCount;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.levelCount = mipLevels;
-        createInfo.subresourceRange.baseMipLevel = 0;
+        static vk::ImageView createImageView(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1)
+        {
+            vk::ImageViewCreateInfo createInfo;
+            createInfo.format = format;
+            createInfo.image = image;
+            createInfo.viewType = viewtype;
+            createInfo.subresourceRange.aspectMask = aspectMask;
+            createInfo.subresourceRange.layerCount = layerCount;
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.levelCount = mipLevels;
+            createInfo.subresourceRange.baseMipLevel = 0;
 
-        return device->logicalDevice.createImageView(createInfo);
-    }
+            return device->logicalDevice.createImageView(createInfo);
+        }
 
-private:
-};
+    private:
+    };
 } // namespace core
