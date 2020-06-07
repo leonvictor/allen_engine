@@ -55,6 +55,8 @@ namespace core
     public:
         vk::PipelineDepthStencilStateCreateInfo depthStencil;
         vk::PipelineRasterizationStateCreateInfo rasterizer;
+        vk::PipelineMultisampleStateCreateInfo multisample;
+
         core::Viewport viewport;
         vk::Rect2D scissor;
 
@@ -84,11 +86,6 @@ namespace core
             viewportStateInfo.pScissors = &scissor;
             viewportStateInfo.viewportCount = 1;
             viewportStateInfo.pViewports = &viewport;
-
-            vk::PipelineMultisampleStateCreateInfo multisampleInfo;
-            multisampleInfo.sampleShadingEnable = VK_TRUE;
-            multisampleInfo.minSampleShading = .2f;
-            multisampleInfo.rasterizationSamples = vk::SampleCountFlagBits(device->msaaSamples);
 
             // Color blending = How do we combine the color returned by the fragment shader and the one that is already in the pixel ?
             // Configuration per attached framebuffer
@@ -128,7 +125,7 @@ namespace core
             pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
             pipelineCreateInfo.pColorBlendState = &colorBlendInfo;
             pipelineCreateInfo.pViewportState = &viewportStateInfo;
-            pipelineCreateInfo.pMultisampleState = &multisampleInfo;
+            // pipelineCreateInfo.pMultisampleState = &multisampleInfo;
             pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
 
             vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = { {},
@@ -159,6 +156,7 @@ namespace core
             return pipeline;
         }
 
+        // Set viewport and scissors to match a whole extent.
         void setExtent(const vk::Extent2D &extent) {
             viewport.width = extent.width;
             viewport.height = extent.height;
@@ -196,13 +194,20 @@ namespace core
         vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
         std::vector<vk::DynamicState> dynamicStates;
 
+
         void init()
         {
+            // TODO: set this at creation time ?
             pipelineCreateInfo.pDepthStencilState = &depthStencil;
             pipelineCreateInfo.pRasterizationState = &rasterizer;
+            pipelineCreateInfo.pMultisampleState = &multisample;
 
-            // scissor.offset = vk::Offset2D(0, 0);
-            // scissor.extent = vk::Extent2D(0, 0);
+            multisample.sampleShadingEnable = VK_TRUE;
+            multisample.minSampleShading = .2f;
+            multisample.rasterizationSamples = vk::SampleCountFlagBits(device->msaaSamples);
+
+            scissor.offset = vk::Offset2D(0, 0);
+            scissor.extent = vk::Extent2D(0, 0);
 
             // Initialize some parts with default values. We can modify them before calling create()
             // in order to specify some options.
