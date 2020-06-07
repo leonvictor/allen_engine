@@ -16,6 +16,10 @@ struct ColorUID {
         id = rgb.r + rgb.g * 256 + rgb.b * 256*256;
     }
 
+    ColorUID(int r, int g, int b){
+        id = r + g * 256 + b * 256*256;
+    }
+
     glm::vec3 toRGB() {
         int r = (id & 0x000000FF) >>  0;
         int g = (id & 0x0000FF00) >>  8;
