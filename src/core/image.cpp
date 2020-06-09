@@ -6,6 +6,7 @@
 #include "context.hpp"
 #include "device.hpp"
 #include "commandpool.cpp"
+#include "allocation.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -39,11 +40,9 @@ namespace core
         }
     };
 
-    class Image
+    class Image : public Allocation
     {
     protected:
-        std::shared_ptr<core::Device> device;
-
         void initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
                        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {})
         {
@@ -94,7 +93,7 @@ namespace core
     public:
         vk::Image image;
         vk::ImageView view;
-        vk::DeviceMemory memory;
+        // vk::DeviceMemory memory;
 
         vk::ImageLayout layout;
         vk::Format format;
@@ -141,7 +140,7 @@ namespace core
             // TODO: We might not need this with Unique stuff ?
             device->logicalDevice.destroyImageView(view);
             device->logicalDevice.destroyImage(image);
-            device->logicalDevice.freeMemory(memory);
+            Allocation::destroy();
         }
 
         operator vk::Image() { return image; }
@@ -291,10 +290,81 @@ namespace core
             context->graphicsCommandPool.endSingleTimeCommands(commandBuffers, device->graphicsQueue);
         }
 
-        /* helper function to create image views
-        * @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places. 
-        * If so what would be a good place ? Inside device ?
-        */
+        // Save image on disk as a ppm file.
+        void save(std::string filename, bool colorSwizzle = false) {
+            // TODO: Swizzle or not base on format
+            vk::ImageSubresource subresource = { vk::ImageAspectFlagBits::eColor, 0, 0};
+            auto subResourceLayout = device->logicalDevice.getImageSubresourceLayout(image, subresource);
+
+            // TODO: Map could be an Image method. Behavior is shared behavior w/ buffers. Create a common parent abstract class ? 
+            void* vdata = device->logicalDevice.mapMemory(memory, 0, VK_WHOLE_SIZE, vk::MemoryMapFlags()); 
+            char* data = static_cast<char*>(vdata);
+            data += subResourceLayout.offset;
+            std::ofstream file(filename, std::ios::out | std::ios::binary);
+
+		    // ppm header
+		    file << "P6\n" << width << "\n" << height << "\n" << 255 << "\n";
+
+            for (uint32_t y = 0; y < height; y++) 
+            {
+                unsigned int *row = (unsigned int*) data;
+                for (uint32_t x = 0; x < width; x++) 
+                {
+                    auto r = (char*) row;
+                    if (colorSwizzle) {
+                        // ColorUID color = ColorUID(r[2], r[1], r[0]);
+
+                        // Debug
+                        file.write((char*)row+2, 1);
+                        file.write((char*)row+1, 1);
+                        file.write((char*)row, 1);
+                    }
+                    else
+                    {
+                        // ColorUID color = ColorUID(r[0], r[1], r[2]);
+
+                        //Debug
+                        file.write((char*)row, 3);
+
+                    }
+                    row++;
+                }
+                data += subResourceLayout.rowPitch;
+            }
+            
+            file.close();
+        }
+
+        // Retreive the pixel value at index
+        // FIXME: This won't work if the image is in GPU-specific format
+        glm::vec3 pixelAt(int x, int y, bool colorSwizzle = false) {
+            vk::ImageSubresource subresource = { vk::ImageAspectFlagBits::eColor, 0, 0};
+            auto subResourceLayout = device->logicalDevice.getImageSubresourceLayout(image, subresource);
+
+            // TODO: Map could be an Image method. Behavior is shared behavior w/ buffers. Create a common parent abstract class ? 
+            void* vdata = device->logicalDevice.mapMemory(memory, 0, VK_WHOLE_SIZE, vk::MemoryMapFlags()); 
+            char* data = static_cast<char*>(vdata);
+            data += subResourceLayout.offset;
+
+            // TODO: Waaaay too many unnecessary casts
+            data += (subResourceLayout.rowPitch) * y;
+            unsigned int *row = (unsigned int*) data;
+            row += x;
+
+            if (colorSwizzle)
+            {
+                return glm::vec3(row[2], row[1], row[0]);
+            }
+            else
+            {
+                return glm::vec3(row[0], row[1], row[2]);
+            }
+        }
+
+        // Helper function to create image views
+        // @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places. 
+        // If so what would be a good place ? Inside device ?
+        //
         static vk::ImageView createImageView(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1)
         {
             vk::ImageViewCreateInfo createInfo;

@@ -2,19 +2,14 @@
 
 #include <vulkan/vulkan.hpp>
 #include "device.hpp"
+#include "allocation.hpp"
 
 #include <memory>
 
 namespace core {
-    class Buffer {
+    class Buffer : public Allocation{
     public:
         vk::Buffer buffer;
-        vk::DeviceMemory memory;
-        vk::DeviceSize size;
-
-        void *mapped{nullptr};
-
-        std::shared_ptr<core::Device> device;
         
         Buffer() {} // Empty ctor is required for now. Todo: Remove when we can 
 
@@ -26,37 +21,13 @@ namespace core {
             allocate(memProperties);
         }
 
-        // ~Buffer() {
-        //     if (mapped) {
-        //         unmap();
-        //     }
-        //     if (memory) {
-        //         device->logicalDevice.destroyBuffer(buffer);
-        //         device->logicalDevice.freeMemory(memory);
-        //     }
-        // }
-
         void destroy() {
-            if (mapped) {
-                unmap();
-            }
+            // if (mapped) {
+                // unmap();
+            // }
+            // device->logicalDevice.freeMemory(memory);
+            Allocation::destroy();
             device->logicalDevice.destroyBuffer(buffer);
-            device->logicalDevice.freeMemory(memory);
-        }
-
-        inline void* map(size_t offset, vk::DeviceSize size) {
-            mapped = device->logicalDevice.mapMemory(memory, offset, size, vk::MemoryMapFlags());
-            return mapped;
-        }
-
-        inline void unmap() {
-            device->logicalDevice.unmapMemory(memory);
-            mapped = nullptr;
-        }
-
-        // Examples also has an offset.
-        inline void copy(const void* data, size_t size) {
-            memcpy(mapped, data, size);
         }
 
         inline vk::DescriptorBufferInfo getDescriptor() {
@@ -66,9 +37,6 @@ namespace core {
         operator vk::Buffer() {
             return buffer;
         }
-
-        /* Helper function to cast to C vulkan buffer. Remove when no longer necessary */
-        operator VkBuffer() { return VkBuffer(buffer); }
 
     private:
         void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage) {
