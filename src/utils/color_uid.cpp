@@ -4,7 +4,7 @@
 
 struct ColorUID {
     static int current;
-    int id;
+    uint32_t id;
 
     ColorUID() {
         id = current;
@@ -25,7 +25,8 @@ struct ColorUID {
         int g = (id & 0x0000FF00) >>  8;
         int b = (id & 0x00FF0000) >> 16;
 
-        return glm::vec3(r, g, b);
+        // TODO: Uniformize usage of floats (because we pass float values anyway)
+        return glm::vec3((float) r / 255, (float) g / 255, (float) b / 255);
     }
 
     bool operator==(ColorUID other) {
