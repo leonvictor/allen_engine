@@ -22,10 +22,6 @@ namespace core {
         }
 
         void destroy() {
-            // if (mapped) {
-                // unmap();
-            // }
-            // device->logicalDevice.freeMemory(memory);
             Allocation::destroy();
             device->logicalDevice.destroyBuffer(buffer);
         }
@@ -44,8 +40,8 @@ namespace core {
             uint32_t queues[] = {device->queueFamilyIndices.graphicsFamily.value(), device->queueFamilyIndices.transferFamily.value()};
             
             vk::BufferCreateInfo bufferInfo;
-            bufferInfo.size = size; // Byte size of the buffer = vertex size
-            bufferInfo.usage = usage; // This is a vertex buffer
+            bufferInfo.size = size;
+            bufferInfo.usage = usage;
             // TODO: We might have to pull this out as well
             bufferInfo.sharingMode = vk::SharingMode::eConcurrent; // Can buffers be shared between queues?
             bufferInfo.flags = vk::BufferCreateFlags(); // Configure sparse buffer memory. Not used rn

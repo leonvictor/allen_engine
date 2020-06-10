@@ -171,6 +171,7 @@ namespace core
             vk::PipelineStageFlagBits dstStage;
 
             // Specify transition support. See https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#synchronization-access-types-supported
+            // TODO: Refactor. This is quite verbose
             if      (layout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
             {
                 memoryBarrier.srcAccessMask = vk::AccessFlags();
@@ -214,6 +215,28 @@ namespace core
 
                 queue = &device->transferQueue;
                 commandPool = &context->transferCommandPool;
+            }
+            else if (layout == vk::ImageLayout::eTransferSrcOptimal && newLayout == vk::ImageLayout::eColorAttachmentOptimal)
+            {
+                memoryBarrier.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+
+                srcStage = vk::PipelineStageFlagBits::eTransfer;
+                dstStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+                queue = &device->graphicsQueue;
+                commandPool = &context->graphicsCommandPool;
+            }
+           else if (layout == vk::ImageLayout::eColorAttachmentOptimal && newLayout == vk::ImageLayout::eTransferSrcOptimal)
+            {
+                memoryBarrier.srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead;
+                memoryBarrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
+
+                srcStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+                dstStage = vk::PipelineStageFlagBits::eTransfer;
+
+                queue = &device->graphicsQueue;
+                commandPool = &context->graphicsCommandPool;
             }
             else
             {
@@ -292,14 +315,18 @@ namespace core
 
         // Save image on disk as a ppm file.
         void save(std::string filename, bool colorSwizzle = false) {
-            // TODO: Swizzle or not base on format
+            // TODO: Swizzle or not based on format
             vk::ImageSubresource subresource = { vk::ImageAspectFlagBits::eColor, 0, 0};
             auto subResourceLayout = device->logicalDevice.getImageSubresourceLayout(image, subresource);
 
-            // TODO: Map could be an Image method. Behavior is shared behavior w/ buffers. Create a common parent abstract class ? 
-            void* vdata = device->logicalDevice.mapMemory(memory, 0, VK_WHOLE_SIZE, vk::MemoryMapFlags()); 
-            char* data = static_cast<char*>(vdata);
+            if (mapped == nullptr) 
+            {
+                map();
+            }
+            char* data = static_cast<char*>(mapped);
+
             data += subResourceLayout.offset;
+            
             std::ofstream file(filename, std::ios::out | std::ios::binary);
 
 		    // ppm header
@@ -341,9 +368,12 @@ namespace core
             vk::ImageSubresource subresource = { vk::ImageAspectFlagBits::eColor, 0, 0};
             auto subResourceLayout = device->logicalDevice.getImageSubresourceLayout(image, subresource);
 
-            // TODO: Map could be an Image method. Behavior is shared behavior w/ buffers. Create a common parent abstract class ? 
-            void* vdata = device->logicalDevice.mapMemory(memory, 0, VK_WHOLE_SIZE, vk::MemoryMapFlags()); 
-            char* data = static_cast<char*>(vdata);
+            // TODO: Map could be an Image method. Behavior is shared behavior w/ buffers. Create a common parent abstract class ?
+            if (mapped == nullptr) 
+            {
+                map();
+            }
+            char* data = static_cast<char*>(mapped);
             data += subResourceLayout.offset;
 
             // TODO: Waaaay too many unnecessary casts
