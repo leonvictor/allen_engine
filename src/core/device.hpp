@@ -121,18 +121,20 @@ public:
         throw std::runtime_error("Failed to find a supported format.");
     }
 
-    /* Helper function to add a name to a vulkan object for debugging purposes. 
-     * TODO: This should be in Context, probably ?
-     * TODO: We should be able to simply pass a C++ wrapper and infer the type and handle.
-     * Hints: I tried with a template function but failed to cast to the CType inside each class
-     */
-    [[deprecated("Replaced with a simpler version, use setDebugUtilsObjectName(object, name) instead.")]]
-    void setDebugUtilsObjectName(vk::ObjectType type, uint64_t handle, std::string name) {
-            throw
-            vk::DebugUtilsObjectNameInfoEXT debugName{ type, handle, name.c_str() };
-            logicalDevice.setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
-        }
+    // Check if the device supports blitting to linear images
+    // TODO: Make more versatile 
+	bool supportsBlittingToLinearImages()
+    {
+    	vk::FormatProperties formatProps = physicalDevice.getFormatProperties(vk::Format::eR8G8B8A8Unorm);
+		if (!(formatProps.linearTilingFeatures & vk::FormatFeatureFlagBits::eBlitDst))
+        {
+			std::cerr << "Device does not support blitting to linear tiled images, using copy instead of blit!" << std::endl;
+			return false;
+		}
+        return true;
+    }
 
+    /* Helper function to add a name to a vulkan object for debugging purposes. */
     template<class T>
     void setDebugUtilsObjectName(T object, std::string name) {
         vk::DebugUtilsObjectNameInfoEXT debugName { object.objectType, (uint64_t) (typename T::CType) object, name.c_str()};
