@@ -294,7 +294,6 @@ namespace core
         void copyTo(std::shared_ptr<core::Context> context, core::Image &dstImage, int width, int height) {
             auto commandBuffers = context->graphicsCommandPool.beginSingleTimeCommands();
 
-            // Otherwise use image copy (requires us to manually flip components)
 			vk::ImageCopy imageCopyRegion;
 			imageCopyRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
 			imageCopyRegion.srcSubresource.layerCount = 1;
@@ -304,7 +303,6 @@ namespace core
 			imageCopyRegion.extent.height = height;
 			imageCopyRegion.extent.depth = 1;
 
-			// Issue the copy command
 			commandBuffers[0].copyImage(
 				image, vk::ImageLayout::eTransferSrcOptimal,
 				dstImage.image, vk::ImageLayout::eTransferDstOptimal,
@@ -324,7 +322,6 @@ namespace core
                 map();
             }
             char* data = static_cast<char*>(mapped);
-
             data += subResourceLayout.offset;
             
             std::ofstream file(filename, std::ios::out | std::ios::binary);
@@ -337,22 +334,14 @@ namespace core
                 unsigned int *row = (unsigned int*) data;
                 for (uint32_t x = 0; x < width; x++) 
                 {
-                    auto r = (char*) row;
                     if (colorSwizzle) {
-                        // ColorUID color = ColorUID(r[2], r[1], r[0]);
-
-                        // Debug
                         file.write((char*)row+2, 1);
                         file.write((char*)row+1, 1);
                         file.write((char*)row, 1);
                     }
                     else
                     {
-                        // ColorUID color = ColorUID(r[0], r[1], r[2]);
-
-                        //Debug
                         file.write((char*)row, 3);
-
                     }
                     row++;
                 }
@@ -376,19 +365,38 @@ namespace core
             char* data = static_cast<char*>(mapped);
             data += subResourceLayout.offset;
 
-            // TODO: Waaaay too many unnecessary casts
-            data += (subResourceLayout.rowPitch) * y;
-            unsigned int *row = (unsigned int*) data;
-            row += x;
-
-            if (colorSwizzle)
+            // TODO: Get rid of the loops
+            for (uint32_t iy = 0; iy < height; iy++) 
             {
-                return glm::vec3(row[2], row[1], row[0]);
+                unsigned int *row = (unsigned int*) data;
+                for (uint32_t ix = 0; ix < width; ix++) 
+                {
+                    uint8_t *pixel = (uint8_t*) row;
+                    if (ix == x && iy == y)
+                    {
+                        // FIXME: Color swizzle is not set properly.
+                        if (colorSwizzle) {
+                            std::cout << "R: " << (int) *(pixel+2) << " G: " << (int) *(pixel+1) <<" B: " << (int) *pixel << std::endl;
+                            int r = (int) *(pixel+2);
+                            int g = (int) *(pixel+1);
+                            int b = (int) *pixel;
+                            return glm::vec3(r, g, b);
+                        }
+                        else
+                        {
+                            std::cout << "R: " << (int) *pixel << " G: " << (int) *(pixel+1) <<" B: " << (int) *(pixel+2) << std::endl;
+                            int r = (int) *pixel;
+                            int g = (int) *(pixel+1);
+                            int b = (int) *(pixel+2);
+                            return glm::vec3(r, g, b);
+                        }
+                        
+                    }
+                    row++;
+                }
+                data += subResourceLayout.rowPitch;
             }
-            else
-            {
-                return glm::vec3(row[0], row[1], row[2]);
-            }
+            return glm::vec3();
         }
 
         // Helper function to create image views
