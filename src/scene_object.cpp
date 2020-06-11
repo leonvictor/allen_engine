@@ -24,12 +24,32 @@ public:
     ColorUID colorId;
 
     SceneObject(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
-                glm::vec3 position = glm::vec3(0.0f), glm::vec3 color = {1.0f, 1.0f, 1.0f},
+                glm::vec3 position = glm::vec3(0.0f),
                 MaterialBufferObject material = MaterialBufferObject(),
                 std::string texturePath = "")
     {
         this->device = device;
-        mesh = Mesh::fromObj(context, device, path, color);
+        mesh = Mesh::fromObj(context, device, path, colorId.toRGB());
+        
+        transform.position = position;
+        
+        addMaterial(material);
+
+        if (!texturePath.empty()) {
+            texture = core::Texture(context, device, texturePath);
+        }
+    }
+
+    // TODO: Remove
+    SceneObject(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device,  ColorUID id, std::string path,
+                glm::vec3 position = glm::vec3(0.0f),
+                MaterialBufferObject material = MaterialBufferObject(),
+                std::string texturePath = "")
+    {
+        this->device = device;
+        this->colorId = id;
+
+        mesh = Mesh::fromObj(context, device, path, colorId.toRGB());
         
         transform.position = position;
         

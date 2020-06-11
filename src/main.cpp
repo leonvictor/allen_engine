@@ -9,6 +9,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds       
 
 #include <chrono>
 #include <iostream>
@@ -24,10 +26,10 @@
 #include <unordered_map>
 #include <string.h>
 
+#include "core/context.hpp"
 #include "vertex.hpp"
 #include "camera.cpp" // TODO: Create .h
 #include "core/device.hpp"
-#include "core/context.hpp"
 #include "core/swapchain.cpp"
 #include "core/buffer.cpp"
 #include "core/pipeline.cpp"
@@ -40,6 +42,7 @@
 #include "skybox.cpp"
 #include "scene_object.cpp"
 #include "input_monitor.cpp"
+#include "utils/color_uid.cpp"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -78,6 +81,7 @@ private:
     Coordinator gCoordinator;
 
     core::Swapchain swapchain;
+    int frameCount = 0;
 
     size_t currentFrame = 0;
     
@@ -164,9 +168,8 @@ private:
 
     void addObject() {
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
-        glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.31f);
 
-        auto m = SceneObject(context, device, MODEL_PATH, pos, color, MaterialBufferObject(), TEXTURE_PATH);
+        auto m = SceneObject(context, device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
         models.push_back(m);
@@ -224,11 +227,20 @@ private:
     void loadModels() {
         for (int i = 0; i < cubePositions.size(); i++) {
             // TODO : Clean this up.
-            glm::vec3 color = (i ==  cubePositions.size() -1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light 
-            auto m = SceneObject(context, device, MODEL_PATH, cubePositions[i], color, MaterialBufferObject(), TEXTURE_PATH);
+            if (i==0) {
+                // DEBUG: Set a fixed color id to the first object
+                auto m = SceneObject(context, device, ColorUID(154, 202, 13), MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
+                m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+                m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
+                models.push_back(m);
+            }
+            else
+            {
+            auto m = SceneObject(context, device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
             m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
             models.push_back(m);
+            }
         }
 
         // ECS Version
@@ -363,6 +375,10 @@ private:
 
     void mainLoop() {
         while(!glfwWindowShouldClose(window)) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            frameCount++;
+            // std::cout << "Frame: " << frameCount << std::endl;
+            
             glfwPollEvents();
             if (input.isDown(GLFW_MOUSE_BUTTON_MIDDLE)) {
                 double xoffset, yoffset;
@@ -417,14 +433,18 @@ private:
                 ubo.cameraPos = camera.position;
                 model.mesh.updateUniformBuffers(ubo);
             }
-            swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
 
             if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true))
             {
                 // TODO: Draw in the picker pipeline. Grab the color output. Select the corresponding scene object
                 std::cout << "pick object at (" << lastMousePos.x << ", " << lastMousePos.y << ")" << std::endl;
-                swapchain.pickColor(models, lastMousePos);
+                auto rgb = swapchain.pickColor(models, lastMousePos);
+                auto cID = ColorUID(rgb);
+                std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
+
+            swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
+
             endDrawFrame(imageIndex);
         }
 

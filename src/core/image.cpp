@@ -312,6 +312,7 @@ namespace core
         }
 
         // Save image on disk as a ppm file.
+        // FIXME: This only works in 8-bits per channel formats
         void save(std::string filename, bool colorSwizzle = false) {
             // TODO: Swizzle or not based on format
             vk::ImageSubresource subresource = { vk::ImageAspectFlagBits::eColor, 0, 0};
@@ -353,11 +354,11 @@ namespace core
 
         // Retreive the pixel value at index
         // FIXME: This won't work if the image is in GPU-specific format
+        // FIXME: This only works in 8-bits per channel formats
         glm::vec3 pixelAt(int x, int y, bool colorSwizzle = false) {
             vk::ImageSubresource subresource = { vk::ImageAspectFlagBits::eColor, 0, 0};
             auto subResourceLayout = device->logicalDevice.getImageSubresourceLayout(image, subresource);
 
-            // TODO: Map could be an Image method. Behavior is shared behavior w/ buffers. Create a common parent abstract class ?
             if (mapped == nullptr) 
             {
                 map();
@@ -365,6 +366,7 @@ namespace core
             char* data = static_cast<char*>(mapped);
             data += subResourceLayout.offset;
 
+            // TODO: Offsets depend on image format
             // TODO: Get rid of the loops
             for (uint32_t iy = 0; iy < height; iy++) 
             {
@@ -377,17 +379,17 @@ namespace core
                         // FIXME: Color swizzle is not set properly.
                         if (colorSwizzle) {
                             std::cout << "R: " << (int) *(pixel+2) << " G: " << (int) *(pixel+1) <<" B: " << (int) *pixel << std::endl;
-                            int r = (int) *(pixel+2);
-                            int g = (int) *(pixel+1);
-                            int b = (int) *pixel;
+                            int r = (unsigned int) *(pixel+2);
+                            int g = (unsigned int) *(pixel+1);
+                            int b = (unsigned int) *pixel;
                             return glm::vec3(r, g, b);
                         }
                         else
                         {
                             std::cout << "R: " << (int) *pixel << " G: " << (int) *(pixel+1) <<" B: " << (int) *(pixel+2) << std::endl;
-                            int r = (int) *pixel;
-                            int g = (int) *(pixel+1);
-                            int b = (int) *(pixel+2);
+                            int r = (unsigned int) *pixel;
+                            int g = (unsigned int) *(pixel+1);
+                            int b = (unsigned int) *(pixel+2);
                             return glm::vec3(r, g, b);
                         }
                         

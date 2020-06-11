@@ -60,6 +60,7 @@ namespace core
             vk::CommandBuffer commandBuffer;
             vk::Fence renderFinished;
             int height, width;
+            vk::Format colorImageFormat;
         } picker;
 
         vk::SurfaceKHR surface;
@@ -390,8 +391,6 @@ namespace core
             }
         }
 
-#include "../utils/color_uid.cpp"
-
         void renderObjectPickerImage(std::vector<SceneObject> models, glm::vec2 target) {
             // TODO: Color is mesh-wide and should be passed by uniform
             // TODO: Restrict the info attached to each vertex. We only need the pos.
@@ -437,18 +436,11 @@ namespace core
             picker.commandBuffer.endRenderPass();
             picker.commandBuffer.end();
 
-            // TODO: Submit the commandbuffer
             // TODO: Pack the submit with the others. 
             vk::SubmitInfo submitInfo;
             submitInfo.commandBufferCount = 1;
             submitInfo.pCommandBuffers = &picker.commandBuffer;
             
-            // Which semaphores to signal when job is done
-            // vk::Semaphore signalSemaphores[] = {swapchain.renderFinishedSemaphores[currentFrame]};
-            // submitInfo.signalSemaphoreCount = 1;
-            // submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
-
-            // device->logicalDevice.resetFences(swapchain.inFlightFences[currentFrame]);
             device->graphicsQueue.submit(submitInfo, picker.renderFinished);
         }
 
@@ -460,7 +452,6 @@ namespace core
             device->logicalDevice.waitForFences(picker.renderFinished, VK_TRUE, UINT64_MAX);
             device->logicalDevice.resetFences(picker.renderFinished);
 
-            // TODO: Synchronize before copying
             core::Image stagingImage = core::Image(device, picker.width, picker.height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst, 
                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
             
@@ -486,23 +477,20 @@ namespace core
             
             stagingImage.transitionLayout(context, vk::ImageLayout::eGeneral);
             picker.image.transitionLayout(context, vk::ImageLayout::eColorAttachmentOptimal);
-            
+
             // TODO: Grab only the value in the middle pixel
             stagingImage.save("debug.ppm", colorSwizzle);
             glm::vec3 pixelValue = stagingImage.pixelAt(target.x, target.y);
-            auto cID = ColorUID(pixelValue);
-            std::cout << "Pixel found: [Color: R" << pixelValue.x << ", G" << pixelValue.y << ", B" << pixelValue.z << ", ID: " << cID.id << "]" << std::endl;
+            
             stagingImage.destroy();
             return pixelValue;
-            // TODO: Select the color at the mouse pos.
         }
 
     private:
         void createSwapchain(GLFWwindow *window)
         {
-            // Swapchain parameters
             core::SwapchainSupportDetails swapchainSupport = device->getSwapchainSupport(surface);
-            vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
+            vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
             vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
 
             vk::Extent2D extent = chooseSwapExtent(swapchainSupport.capabilities, window);
@@ -550,12 +538,13 @@ namespace core
             imageFormat = surfaceFormat.format;
         }
 
-        vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats)
+        vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats, const vk::Format& desiredFormat = vk::Format::eB8G8R8A8Srgb)
         {
+            // TODO: Refine selection (ex: support bliting to linear tiling format)
             for (const auto &format : availableFormats)
             {
                 // Return the first format that supports SRGB color space in 8bit by channels
-                if (format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear && format.format == vk::Format::eB8G8R8A8Srgb)
+                if (format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear && format.format == desiredFormat) // TODO: We might want to switch == to & if we have multiple acceptable formats
                 {
                     return format;
                 }
@@ -638,6 +627,7 @@ namespace core
         {
             picker.width = 800;
             picker.height = 600;
+            picker.colorImageFormat = vk::Format::eR8G8B8A8Unorm;
             createPickerRessources();
             createPickerObjectDescriptorSetLayout();
             createPickerRenderPass();
@@ -649,7 +639,6 @@ namespace core
 
         void createPickerFence() {
             vk::FenceCreateInfo fenceInfo;
-            // fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
             picker.renderFinished = device->logicalDevice.createFence(fenceInfo);
         }
 
@@ -666,7 +655,7 @@ namespace core
             };
 
             vk::FramebufferCreateInfo fbInfo;
-            fbInfo.renderPass = picker.renderPass; // TODO: Different renderpass
+            fbInfo.renderPass = picker.renderPass;
             fbInfo.attachmentCount = 2;
             fbInfo.pAttachments = attachments.data();
             fbInfo.width = picker.width;
@@ -684,7 +673,7 @@ namespace core
                                             dFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                             vk::ImageAspectFlagBits::eDepth);
 
-            picker.image = core::Image(device, picker.width, picker.height, 1, vk::SampleCountFlagBits::e1, this->imageFormat,
+            picker.image = core::Image(device, picker.width, picker.height, 1, vk::SampleCountFlagBits::e1, picker.colorImageFormat,
                                             vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                             vk::ImageAspectFlagBits::eColor);
         #ifndef NDEBUG
@@ -712,8 +701,8 @@ namespace core
         void createPickerRenderPass()
         {
             vk::AttachmentDescription colorAttachment;
-            colorAttachment.format = imageFormat;
-            colorAttachment.samples = vk::SampleCountFlagBits::e1; // TODO: ?
+            colorAttachment.format = picker.colorImageFormat;
+            colorAttachment.samples = vk::SampleCountFlagBits::e1;
             colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
             colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
             colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
@@ -727,7 +716,7 @@ namespace core
             depthAttachment.format = device->findDepthFormat();
             depthAttachment.samples = vk::SampleCountFlagBits::e1;
             depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-            depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare; // Depth data is not used after drawing has finished
+            depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
             depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
             depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
@@ -779,7 +768,7 @@ namespace core
             factory.registerShader("shaders/picker.frag.spv", vk::ShaderStageFlagBits::eFragment);
             picker.pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({picker.descriptorSetLayout}));
 
-            #ifndef NDEBUG
+        #ifndef NDEBUG
             device->setDebugUtilsObjectName(picker.pipeline.graphicsPipeline, "Picker graphics Pipeline");
         #endif
             // TODO: Create object picking pipeline
