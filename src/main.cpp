@@ -104,6 +104,7 @@ private:
     float lastFrameTime = 0.0f;
 
     std::vector<SceneObject> models;
+    std::map<ColorUID, SceneObject*> clickables;
     std::vector<Light> lights; 
     Skybox skybox;
 
@@ -169,14 +170,16 @@ private:
     void addObject() {
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
-        auto m = SceneObject(context, device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
+        SceneObject m = SceneObject(context, device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
         models.push_back(m);
+        clickables.insert(std::pair<ColorUID, SceneObject*>(m.colorId, &m));
     }
 
     void removeObject(int index) {
         if (models.size() > 0) {
+            clickables.erase(models[index].colorId);
             models[index].destroy();
             models.erase(models.begin() + index);
         }
@@ -226,21 +229,11 @@ private:
 
     void loadModels() {
         for (int i = 0; i < cubePositions.size(); i++) {
-            // TODO : Clean this up.
-            if (i==0) {
-                // DEBUG: Set a fixed color id to the first object
-                auto m = SceneObject(context, device, ColorUID(154, 202, 13), MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
-                m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
-                m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
-                models.push_back(m);
-            }
-            else
-            {
             auto m = SceneObject(context, device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
             m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
             models.push_back(m);
-            }
+            clickables.insert(std::pair<ColorUID, SceneObject*>(m.colorId, &m));
         }
 
         // ECS Version
@@ -436,11 +429,12 @@ private:
 
             if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true))
             {
-                // TODO: Draw in the picker pipeline. Grab the color output. Select the corresponding scene object
-                std::cout << "pick object at (" << lastMousePos.x << ", " << lastMousePos.y << ")" << std::endl;
                 auto rgb = swapchain.pickColor(models, lastMousePos);
                 auto cID = ColorUID(rgb);
-                std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
+                // TODO: Handle background
+                // TODO: Make sure ColorUID has a reserved id for the background
+                SceneObject* selected = clickables[cID];
+                // std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
 
             swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
