@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mesh.cpp"
-#include "core/textureCubeMap.cpp"
+#include "core/texture_cubemap.cpp"
 
 #include <vulkan/vulkan.hpp>
 #include <memory>

@@ -34,7 +34,7 @@
 #include "core/buffer.cpp"
 #include "core/pipeline.cpp"
 #include "light.cpp"
-#include "core/textureCubeMap.cpp"
+#include "core/texture_cubemap.cpp"
 #include "ecs/coordinator.cpp"
 #include "ecs/components.hpp"
 #include "ecs/common.cpp"
@@ -375,7 +375,7 @@ private:
 
     void mainLoop() {
         while(!glfwWindowShouldClose(window)) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            // std::this_thread::sleep_for(std::chrono::seconds(1));
             frameCount++;
             // std::cout << "Frame: " << frameCount << std::endl;
             
