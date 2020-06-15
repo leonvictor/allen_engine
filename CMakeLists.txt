@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 project(custom-engine VERSION 0.1)
+set(SOURCE "src/main.cpp")
 
 find_package(Vulkan REQUIRED)
 
@@ -9,6 +10,11 @@ include_directories("external/glfw/include")
 include_directories("external/glm")
 include_directories("external/stb")
 include_directories("external/tinyobjloader")
+include_directories("external/imgui")
+include_directories("external/imgui/examples")
+
+file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")
+set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/examples/imgui_impl_vulkan.cpp" "external/imgui/examples/imgui_impl_glfw.cpp")
 
 set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
@@ -17,7 +23,7 @@ set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
 add_subdirectory(external/glfw)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
-add_executable(main src/main.cpp)
+add_executable(main ${SOURCE})
 
 target_compile_features(main PUBLIC cxx_std_17)
 
