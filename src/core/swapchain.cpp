@@ -285,7 +285,7 @@ namespace core
             }
         }
 
-        void recordCommandBuffer(uint32_t index, std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox &skybox)
+        void beginDrawFrame(uint32_t index)
         {
             images[index].commandbuffer.begin(vk::CommandBufferBeginInfo{});
 
@@ -303,7 +303,16 @@ namespace core
             renderPassInfo.pClearValues = clearValues.data();
 
             images[index].commandbuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+        }
 
+        void endDrawFrame(uint32_t index)
+        {
+            images[index].commandbuffer.endRenderPass();
+            images[index].commandbuffer.end();
+        }
+
+        void recordCommandBuffer(uint32_t index, std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox &skybox)
+        {
             // Skybox
             images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skybox.descriptorSet, nullptr);
             images[index].commandbuffer.bindVertexBuffers(0, skybox.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
@@ -322,9 +331,6 @@ namespace core
                 images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model.descriptorSet, nullptr);
                 images[index].commandbuffer.drawIndexed(model.mesh.indices.size(), 1, 0, 0, 0);
             }
-
-            images[index].commandbuffer.endRenderPass();
-            images[index].commandbuffer.end();
         }
 
         void recordCommandBuffers(std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox &skybox)
@@ -334,7 +340,7 @@ namespace core
                 recordCommandBuffer(i, models, lightsDescriptorSet, skybox);
             }
         }
-
+        
         void createSyncObjects()
         {
             // TODO: Refactor in modern c++

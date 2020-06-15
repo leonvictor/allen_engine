@@ -44,6 +44,10 @@
 #include "input_monitor.cpp"
 #include "utils/color_uid.cpp"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
@@ -63,11 +67,15 @@ const std::vector<const char*> validationLayers = {
 
 class Engine {
 public:
-    Engine() {
+    Engine() 
+    {
         initWindow();
         initVulkan();
+        initImGUI();
     }
-    void run() {
+
+    void run() 
+    {
         mainLoop();
         cleanup();
     }
@@ -136,6 +144,42 @@ private:
         glfwSetScrollCallback(window, scrollCallback);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);
+    }
+
+    void initImGUI() 
+    {
+        // Initialize Imgui context
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void) io;
+        ImGui::StyleColorsDark();
+        
+        ImGui_ImplGlfw_InitForVulkan(window, true);
+        
+        ImGui_ImplVulkan_InitInfo init_info;
+        init_info.Instance = context->instance.get();
+        init_info.PhysicalDevice = device->physicalDevice;
+        init_info.Device = device->logicalDevice;
+        init_info.QueueFamily = device->queueFamilyIndices.presentFamily.value();
+        init_info.Queue = device->presentQueue;
+        init_info.PipelineCache = nullptr;
+        init_info.DescriptorPool = swapchain.descriptorPool;
+        init_info.Allocator = nullptr;
+        init_info.MinImageCount = 2;
+        init_info.ImageCount = swapchain.images.size();
+        init_info.CheckVkResultFn = nullptr;
+        init_info.MSAASamples = (VkSampleCountFlagBits) device->msaaSamples;
+        ImGui_ImplVulkan_Init(&init_info, swapchain.renderPass);
+
+        // Upload Fonts
+        // Use any command queue
+
+        // TODO: Make the single time buffer usage more fluid
+        auto commandBuffer = context->graphicsCommandPool.beginSingleTimeCommands();
+    
+        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer[0]);
+        context->graphicsCommandPool.endSingleTimeCommands(commandBuffer, device->graphicsQueue);
+        device->logicalDevice.waitIdle();
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
     // TODO: Use InputMonitor. 
@@ -217,13 +261,12 @@ private:
         setUpLights();
         setupSkyBox();
 
-        /* Swapchain components that rely on model parameters */
+        // Swapchain components that rely on model parameters
         // TODO: 1 - At each frame, record the command buffers to update new/deleted objects
         //       2 - Do not update if no object were modified
         //       3 - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
         // TODO: Skybox is a sceneobject with a mesh and a cubemap texture, BUT it should be unique
-        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
 
@@ -433,12 +476,17 @@ private:
                 auto cID = ColorUID(rgb);
                 // TODO: Handle background
                 // TODO: Make sure ColorUID has a reserved id for the background
+                // TODO: Display in inspector
+                // TODO: Keep a ref to the currently selected object
                 SceneObject* selected = clickables[cID];
                 // std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
 
             swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
-
+            
+            // Draw ImGUI components
+            ImGui::ShowDemoWindow();
+            
             endDrawFrame(imageIndex);
         }
 
@@ -465,6 +513,7 @@ private:
         lastMousePos = {xpos, ypos}; 
     }
 
+    // TODO: Move to swapchain
     uint8_t beginDrawFrame() {
         // Wait for the fence
         device->logicalDevice.waitForFences(swapchain.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -472,7 +521,6 @@ private:
         // Acquire an image from the swap chain
         uint32_t imageIndex;
         vk::Result result = device->logicalDevice.acquireNextImageKHR(swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
-        
         if (result == vk::Result::eErrorOutOfDateKHR) {
             recreateSwapchain();
         } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
@@ -486,10 +534,24 @@ private:
 
         // Mark the image as now being in use by this frame
         swapchain.images[imageIndex].fence = swapchain.inFlightFences[currentFrame];
+
+        swapchain.beginDrawFrame(imageIndex);
+
+        // ImGui
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
         return imageIndex;
     }
 
     void endDrawFrame(uint32_t imageIndex) {
+
+        ImGui::Render();
+        ImDrawData* draw_data = ImGui::GetDrawData();
+        ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain.images[imageIndex].commandbuffer);
+
+        swapchain.endDrawFrame(imageIndex);
         vk::SubmitInfo submitInfo;
         
         // At which stage should we wait for each semaphores (in the same order)
