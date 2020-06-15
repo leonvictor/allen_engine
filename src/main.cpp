@@ -599,6 +599,12 @@ private:
     }
 
     void cleanup() {
+
+        // Cleanup ImGui
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+
         swapchain.destroy();
 
         for (auto model : models) {
