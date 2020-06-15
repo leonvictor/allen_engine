@@ -16,51 +16,39 @@ public:
     Material material;
 
     Transform transform;
-    
+
     std::shared_ptr<core::Device> device;
     vk::DescriptorSet descriptorSet;
     vk::DescriptorSet colorDescriptorSet;
 
     ColorUID colorId;
 
-    SceneObject(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
+    // TODO: Refactor to use composition
+    SceneObject(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string modelPath,
                 glm::vec3 position = glm::vec3(0.0f),
                 MaterialBufferObject material = MaterialBufferObject(),
                 std::string texturePath = "")
     {
         this->device = device;
-        mesh = Mesh::fromObj(context, device, path, colorId.toRGB());
-        
+        colorId.generate();
+
+        // TODO: Mesh is a component.
+        mesh = Mesh::fromObj(context, device, modelPath, colorId.toRGB());
+
         transform.position = position;
-        
+
+        // TODO: Material is a component.
         addMaterial(material);
 
-        if (!texturePath.empty()) {
+        // TODO: Texture is a component.
+        if (!texturePath.empty())
+        {
             texture = core::Texture(context, device, texturePath);
         }
     }
 
-    // TODO: Remove
-    SceneObject(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device,  ColorUID id, std::string path,
-                glm::vec3 position = glm::vec3(0.0f),
-                MaterialBufferObject material = MaterialBufferObject(),
-                std::string texturePath = "")
+    glm::mat4 getModelMatrix()
     {
-        this->device = device;
-        this->colorId = id;
-
-        mesh = Mesh::fromObj(context, device, path, colorId.toRGB());
-        
-        transform.position = position;
-        
-        addMaterial(material);
-
-        if (!texturePath.empty()) {
-            texture = core::Texture(context, device, texturePath);
-        }
-    }
-
-    glm::mat4 getModelMatrix() {
         return glm::translate(glm::scale(modelMatrix, transform.scale), transform.position);
     }
 
@@ -131,6 +119,7 @@ public:
         texture.destroy();
         material.destroy();
     }
+
 private:
     glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
 };

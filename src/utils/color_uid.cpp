@@ -7,11 +7,7 @@ struct ColorUID
     static uint32_t current;
     uint32_t id;
 
-    ColorUID()
-    {
-        id = current;
-        current++;
-    }
+    ColorUID(){}
 
     ColorUID(const glm::vec3 &rgb)
     {
@@ -21,6 +17,12 @@ struct ColorUID
     ColorUID(const unsigned int &r, const unsigned int &g, const unsigned int &b)
     {
         id = r + g * 256 + b * 256 * 256;
+    }
+
+    void generate() 
+    {
+        current++;
+        id = current;
     }
 
     glm::vec3 const toRGB()
@@ -42,11 +44,8 @@ struct ColorUID
     {
         return id != other.id;
     }
-    // bool const operator>(const ColorUID& other)
-    // {
-    //     return id > other.id;
-    // }
 };
+
 inline bool operator<(const ColorUID &a, const ColorUID &b)
 {
     return a.id < b.id;
