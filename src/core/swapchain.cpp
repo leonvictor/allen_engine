@@ -13,6 +13,7 @@
 #include <array>
 #include <GLFW/glfw3.h>
 #include "../scene_object.cpp"
+#include "picker.cpp"
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -48,20 +49,7 @@ namespace core
         } pipelines;
 
         // Object picking
-        // TODO: Refactor out of swapchain.
-        struct Picker
-        {
-            vk::RenderPass renderPass;
-            core::Image image;
-            core::Image depthImage;
-            vk::DescriptorSetLayout descriptorSetLayout;
-            vk::Framebuffer framebuffer;
-            core::Pipeline pipeline;
-            vk::CommandBuffer commandBuffer;
-            vk::Fence renderFinished;
-            int height, width;
-            vk::Format colorImageFormat;
-        } picker;
+        Picker picker;
 
         vk::SurfaceKHR surface;
         vk::SwapchainKHR swapchain;
@@ -138,7 +126,7 @@ namespace core
             createSyncObjects();
             createDescriptorPool(maxObjects);
             createCommandBuffers(commandPool);
-            setupPicker();
+            picker.setup(context, device, commandPool);
         }
 
         void createPipelines()
@@ -384,7 +372,8 @@ namespace core
         void destroy()
         {
             cleanup();
-
+            picker.destroy();
+            
             device->logicalDevice.destroyDescriptorSetLayout(objectsDescriptorSetLayout);
             device->logicalDevice.destroyDescriptorSetLayout(lightsDescriptorSetLayout);
             device->logicalDevice.destroyDescriptorSetLayout(skyboxDescriptorSetLayout);
@@ -395,101 +384,6 @@ namespace core
                 device->logicalDevice.destroySemaphore(renderFinishedSemaphores[i]);
                 device->logicalDevice.destroyFence(inFlightFences[i]);
             }
-        }
-
-        void renderObjectPickerImage(std::vector<SceneObject> models, glm::vec2 target) {
-            // TODO: Color is mesh-wide and should be passed by uniform
-            // TODO: Restrict the info attached to each vertex. We only need the pos.
-            // TODO: Handle out of window target
-            picker.commandBuffer.begin(vk::CommandBufferBeginInfo());
-
-            // Start a render pass.
-            vk::RenderPassBeginInfo renderPassInfo;
-            renderPassInfo.renderPass = picker.renderPass;
-            renderPassInfo.framebuffer = picker.framebuffer;
-            renderPassInfo.renderArea.extent = vk::Extent2D(picker.width, picker.height); // TODO ?
-            // renderPassInfo.renderArea.offset = vk::Offset2D{target.x, target.y}; // TODO -3 ?
-            renderPassInfo.renderArea.offset = vk::Offset2D{0, 0}; // TODO -3 ?
-
-            std::array<vk::ClearValue, 2> clearValues = {};
-            clearValues[0].color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
-            clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
-            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            renderPassInfo.pClearValues = clearValues.data();
-
-            picker.commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-
-            picker.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, picker.pipeline.graphicsPipeline);
-
-            vk::Rect2D scissor = {
-                // vk::Offset2D {target.x, target.y},
-                vk::Offset2D {0, 0},
-                // vk::Extent2D {3, 3}
-                extent
-            };
-
-            // picker.commandBuffer.setViewport(0, viewport);
-            picker.commandBuffer.setScissor(0, scissor);
-
-            for (auto model : models)
-            {
-                picker.commandBuffer.bindVertexBuffers(0, model.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
-                picker.commandBuffer.bindIndexBuffer(model.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-                picker.commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, picker.pipeline.layout, 0, model.colorDescriptorSet, nullptr);
-                picker.commandBuffer.drawIndexed(model.mesh.indices.size(), 1, 0, 0, 0);
-            }
-
-            picker.commandBuffer.endRenderPass();
-            picker.commandBuffer.end();
-
-            // TODO: Pack the submit with the others. 
-            vk::SubmitInfo submitInfo;
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &picker.commandBuffer;
-            
-            device->graphicsQueue.submit(submitInfo, picker.renderFinished);
-        }
-
-        glm::vec3 pickColor(std::vector<SceneObject> models, glm::vec2 target)
-        {
-            // TODO: Call that elsewhere
-            renderObjectPickerImage(models, target);
-
-            device->logicalDevice.waitForFences(picker.renderFinished, VK_TRUE, UINT64_MAX);
-            device->logicalDevice.resetFences(picker.renderFinished);
-
-            core::Image stagingImage = core::Image(device, picker.width, picker.height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst, 
-                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
-            
-            // TODO: OPTIMIZE Use a single command buffer to do all necessary operations
-            picker.image.transitionLayout(context, vk::ImageLayout::eTransferSrcOptimal);
-            stagingImage.transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
-            
-            bool colorSwizzle = false;
-            
-            if (device->supportsBlittingToLinearImages()) {
-                picker.image.blit(context, stagingImage, picker.width, picker.height);
-            }
-            else
-            {
-                picker.image.copyTo(context, stagingImage, picker.width, picker.height);
-                
-                // If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
-                // Check if source is BGR 
-                // Note: Not complete, only contains most common and basic BGR surface formats for demonstation purposes
-                std::vector<vk::Format> formatsBGR = { vk::Format::eB8G8R8A8Srgb, vk::Format::eB8G8R8A8Unorm, vk::Format::eB8G8R8A8Snorm };
-                colorSwizzle = (std::find(formatsBGR.begin(), formatsBGR.end(), picker.image.format) != formatsBGR.end());
-            }
-            
-            stagingImage.transitionLayout(context, vk::ImageLayout::eGeneral);
-            picker.image.transitionLayout(context, vk::ImageLayout::eColorAttachmentOptimal);
-
-            // TODO: Grab only the value in the middle pixel
-            stagingImage.save("debug.ppm", colorSwizzle);
-            glm::vec3 pixelValue = stagingImage.pixelAt(target.x, target.y);
-            
-            stagingImage.destroy();
-            return pixelValue;
         }
 
     private:
@@ -627,164 +521,6 @@ namespace core
             framebufferInfo.height = extent.height;
             framebufferInfo.layers = 1; // Nb of layers in image array.
             return device->logicalDevice.createFramebuffer(framebufferInfo);
-        }
-
-        void setupPicker()
-        {
-            picker.width = 800;
-            picker.height = 600;
-            picker.colorImageFormat = vk::Format::eR8G8B8A8Unorm;
-            createPickerRessources();
-            createPickerObjectDescriptorSetLayout();
-            createPickerRenderPass();
-            createPickerFramebuffer();
-            createPickerPipeline();
-            createPickerCommandBuffer();
-            createPickerFence();
-        }
-
-        void createPickerFence() {
-            vk::FenceCreateInfo fenceInfo;
-            picker.renderFinished = device->logicalDevice.createFence(fenceInfo);
-        }
-
-        void createPickerCommandBuffer()
-        {
-            picker.commandBuffer = commandPool.allocateCommandBuffers(1)[0];
-        }
-
-        void createPickerFramebuffer()
-        {
-            std::array<vk::ImageView, 2> attachments = {
-                picker.image.view,
-                picker.depthImage.view,
-            };
-
-            vk::FramebufferCreateInfo fbInfo;
-            fbInfo.renderPass = picker.renderPass;
-            fbInfo.attachmentCount = 2;
-            fbInfo.pAttachments = attachments.data();
-            fbInfo.width = picker.width;
-            fbInfo.height = picker.height;
-            fbInfo.layers = 1;
-
-            picker.framebuffer = device->logicalDevice.createFramebuffer(fbInfo);
-        }
-
-        void createPickerRessources()
-        {
-            vk::Format dFormat = device->findDepthFormat();
-
-            picker.depthImage = core::Image(device, picker.width, picker.height, 1, vk::SampleCountFlagBits::e1,
-                                            dFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                            vk::ImageAspectFlagBits::eDepth);
-
-            picker.image = core::Image(device, picker.width, picker.height, 1, vk::SampleCountFlagBits::e1, picker.colorImageFormat,
-                                            vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                            vk::ImageAspectFlagBits::eColor);
-        #ifndef NDEBUG
-            device->setDebugUtilsObjectName(picker.depthImage.image, "Picker depth image");
-            device->setDebugUtilsObjectName(picker.image.image, "Picker color image");
-        #endif
-        }
-
-        void createPickerObjectDescriptorSetLayout()
-        {
-            vk::DescriptorSetLayoutBinding uboLayoutBinding;
-            uboLayoutBinding.binding = 0;         // The binding used in the shader
-            uboLayoutBinding.descriptorCount = 1; // Number of values in the array
-            uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
-            uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
-            uboLayoutBinding.pImmutableSamplers = nullptr; // Image sampling related stuff.
-
-            std::array<vk::DescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
-
-            vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
-
-            picker.descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
-        }
-
-        void createPickerRenderPass()
-        {
-            vk::AttachmentDescription colorAttachment;
-            colorAttachment.format = picker.colorImageFormat;
-            colorAttachment.samples = vk::SampleCountFlagBits::e1;
-            colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-            colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-            colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
-            colorAttachment.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
-
-            vk::AttachmentReference colorAttachmentRef;
-            colorAttachmentRef.attachment = 0;
-            colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
-
-            vk::AttachmentDescription depthAttachment;
-            depthAttachment.format = device->findDepthFormat();
-            depthAttachment.samples = vk::SampleCountFlagBits::e1;
-            depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-            depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
-            depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
-            depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-            vk::AttachmentReference depthAttachmentRef;
-            depthAttachmentRef.attachment = 1;
-            depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-            vk::SubpassDescription subpass;
-            subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-            subpass.colorAttachmentCount = 1;
-            subpass.pColorAttachments = &colorAttachmentRef;
-            subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-            // Add a subpass dependency to ensure the render pass will wait for the right stage
-            // We need to wait for the image to be acquired before transitionning to it
-            vk::SubpassDependency subpassDependency;
-            subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;                                 // The implicit subpass before or after the render pass
-            subpassDependency.dstSubpass = 0;                                                   // Target subpass index (we have only one)
-            subpassDependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Stage to wait on
-            subpassDependency.srcAccessMask = vk::AccessFlagBits(0);
-            subpassDependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-            subpassDependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-
-            std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-            vk::RenderPassCreateInfo renderPassInfo;
-            renderPassInfo.attachmentCount = 2;
-            renderPassInfo.pAttachments = attachments.data();
-            renderPassInfo.subpassCount = 1;
-            renderPassInfo.pSubpasses = &subpass;
-            renderPassInfo.dependencyCount = 1;
-            renderPassInfo.pDependencies = &subpassDependency;
-
-            picker.renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
-        #ifndef NDEBUG
-            device->setDebugUtilsObjectName(picker.renderPass, "Picker renderpass");
-        #endif
-        }
-
-        void createPickerPipeline()
-        {
-            core::PipelineFactory factory = core::PipelineFactory(device);
-            factory.setRenderPass(picker.renderPass);
-            factory.setExtent(extent);
-            factory.addDynamicState(vk::DynamicState::eScissor);
-            factory.multisample.rasterizationSamples = vk::SampleCountFlagBits::e1; // TODO: set all of those at once.
-
-            // TODO: Specific shaders
-            factory.registerShader("shaders/picker.vert.spv", vk::ShaderStageFlagBits::eVertex);
-            factory.registerShader("shaders/picker.frag.spv", vk::ShaderStageFlagBits::eFragment);
-            picker.pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({picker.descriptorSetLayout}));
-
-        #ifndef NDEBUG
-            device->setDebugUtilsObjectName(picker.pipeline.graphicsPipeline, "Picker graphics Pipeline");
-        #endif
-            // TODO: Create object picking pipeline
-            //  * No actual rendering
-            //  * Write vertex color to a specific buffer
-            //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
-            //  *
-
-            // 1) register simple color shaders
-            // 2)
         }
 
         void createDepthResources()

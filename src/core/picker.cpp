@@ -1,30 +1,35 @@
 #include <vulkan/vulkan.hpp>
+
 #include "image.cpp"
 #include "pipeline.cpp"
+#include "device.hpp"
+#include "../scene_object.cpp"
+#include "commandpool.cpp"
+#include "context.hpp"
 
-class ObjectPicker
+class Picker
 {
-public:
-    void init()
-    {
-        createPickerRessources();
-        createPickerObjectDescriptorSetLayout();
-        createPickerRenderPass();
-        createFramebuffer();
-        createPickerPipeline();
-        createCommandBuffer();
-    }
-
 private:
     vk::RenderPass renderPass;
     core::Image image;
     core::Image depthImage;
-    vk::DescriptorSetLayout descriptorSetLayout;
     vk::Framebuffer framebuffer;
     core::Pipeline pipeline;
     vk::CommandBuffer commandBuffer;
+    vk::Fence renderFinished;
+    uint32_t height, width;
+    vk::Format colorImageFormat;
 
-    void createCommandBuffer()
+    std::shared_ptr<core::Device> device;
+    std::shared_ptr<core::Context> context;
+
+    void createFence()
+    {
+        vk::FenceCreateInfo fenceInfo;
+        renderFinished = device->logicalDevice.createFence(fenceInfo);
+    }
+
+    void createCommandBuffer(const core::CommandPool &commandPool)
     {
         commandBuffer = commandPool.allocateCommandBuffers(1)[0];
     }
@@ -32,43 +37,44 @@ private:
     void createFramebuffer()
     {
         std::array<vk::ImageView, 2> attachments = {
-            picker.image.view,
-            picker.depthImage.view,
+            image.view,
+            depthImage.view,
         };
 
         vk::FramebufferCreateInfo fbInfo;
-        fbInfo.renderPass = picker.renderPass; // TODO: Different renderpass
+        fbInfo.renderPass = renderPass;
         fbInfo.attachmentCount = 2;
         fbInfo.pAttachments = attachments.data();
-        fbInfo.width = 3;
-        fbInfo.height = 3;
+        fbInfo.width = width;
+        fbInfo.height = height;
         fbInfo.layers = 1;
 
-        picker.framebuffer = device->logicalDevice.createFramebuffer(fbInfo);
+        framebuffer = device->logicalDevice.createFramebuffer(fbInfo);
     }
 
-    void createPickerRessources()
+    void createRessources()
     {
-        vk::Format format = device->findDepthFormat();
+        vk::Format dFormat = device->findDepthFormat();
 
-        picker.depthImage = core::Image(device, 3, 3, 1, vk::SampleCountFlagBits::e1,
-                                        format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                        vk::ImageAspectFlagBits::eDepth);
+        depthImage = core::Image(device, width, height, 1, vk::SampleCountFlagBits::e1,
+                                 dFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                 vk::ImageAspectFlagBits::eDepth);
 
-        picker.image = core::Image(device, 3, 3, 1, vk::SampleCountFlagBits::e1, this->imageFormat,
-                                   vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                   vk::ImageAspectFlagBits::eColor);
-        // TODO: Check if we need transient usage flag
+        image = core::Image(device, width, height, 1, vk::SampleCountFlagBits::e1, colorImageFormat,
+                            vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                            vk::ImageAspectFlagBits::eColor);
+#ifndef NDEBUG
+        device->setDebugUtilsObjectName(depthImage.image, "Picker depth image");
+        device->setDebugUtilsObjectName(image.image, "Picker color image");
+#endif
     }
 
-    void createPickerObjectDescriptorSetLayout()
+    void createObjectDescriptorSetLayout()
     {
         vk::DescriptorSetLayoutBinding uboLayoutBinding;
         uboLayoutBinding.binding = 0;         // The binding used in the shader
         uboLayoutBinding.descriptorCount = 1; // Number of values in the array
         uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
-        // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
-        // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)
         uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
         uboLayoutBinding.pImmutableSamplers = nullptr; // Image sampling related stuff.
 
@@ -76,20 +82,20 @@ private:
 
         vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
 
-        picker.descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
+        descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
     }
 
-    void createPickerRenderPass()
+    void createRenderPass()
     {
         vk::AttachmentDescription colorAttachment;
-        colorAttachment.format = imageFormat;
-        colorAttachment.samples = vk::SampleCountFlagBits::e1; // TODO: ?
+        colorAttachment.format = colorImageFormat;
+        colorAttachment.samples = vk::SampleCountFlagBits::e1;
         colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
         colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
         colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
         colorAttachment.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
 
-        vk::AttachmentReference colorAttachmentRef = {};
+        vk::AttachmentReference colorAttachmentRef;
         colorAttachmentRef.attachment = 0;
         colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
@@ -97,7 +103,7 @@ private:
         depthAttachment.format = device->findDepthFormat();
         depthAttachment.samples = vk::SampleCountFlagBits::e1;
         depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-        depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare; // Depth data is not used after drawing has finished
+        depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
         depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
         depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
@@ -130,29 +136,156 @@ private:
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDependency;
 
-        picker.renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
+        renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
+#ifndef NDEBUG
+        device->setDebugUtilsObjectName(renderPass, "Picker renderpass");
+#endif
     }
 
-    void createPickerPipeline()
+    void createPipeline()
     {
         core::PipelineFactory factory = core::PipelineFactory(device);
-        factory.setRenderPass(picker.renderPass);
-        factory.setExtent(extent);
-        factory.addDynamicState(vk::DynamicState::eViewport);
+        factory.setRenderPass(renderPass);
+        factory.setExtent(vk::Extent2D{width, height});
+        factory.addDynamicState(vk::DynamicState::eScissor);
         factory.multisample.rasterizationSamples = vk::SampleCountFlagBits::e1; // TODO: set all of those at once.
 
-        // TODO: Specific shaders
         factory.registerShader("shaders/picker.vert.spv", vk::ShaderStageFlagBits::eVertex);
         factory.registerShader("shaders/picker.frag.spv", vk::ShaderStageFlagBits::eFragment);
-        picker.pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({picker.descriptorSetLayout}));
+        pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout}));
 
+#ifndef NDEBUG
+        device->setDebugUtilsObjectName(pipeline.graphicsPipeline, "Picker graphics Pipeline");
+#endif
         // TODO: Create object picking pipeline
-        //  * No actual rendering
-        //  * Write vertex color to a specific buffer
         //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
-        //  *
+    }
 
-        // 1) register simple color shaders
-        // 2)
+public:
+    vk::DescriptorSetLayout descriptorSetLayout;
+
+    void setup(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, const core::CommandPool &commandPool)
+    {
+        this->device = device;
+        this->context = context;
+
+        width = 800;
+        height = 600;
+        colorImageFormat = vk::Format::eR8G8B8A8Unorm;
+        createRessources();
+        createObjectDescriptorSetLayout();
+        createRenderPass();
+        createFramebuffer();
+        createPipeline();
+        createCommandBuffer(commandPool);
+        createFence();
+    }
+
+    void destroy()
+    {
+        image.destroy();
+        depthImage.destroy();
+
+        pipeline.destroy();
+        device->logicalDevice.destroyRenderPass(renderPass);
+        device->logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
+        device->logicalDevice.destroyFence(renderFinished);
+        device->logicalDevice.destroyFramebuffer(framebuffer);
+    }
+
+    void render(std::vector<SceneObject> models, glm::vec2 target)
+    {
+        // TODO: Color is mesh-wide and should be passed by uniform
+        // TODO: Restrict the info attached to each vertex. We only need the pos.
+        // TODO: Handle out of window target
+        commandBuffer.begin(vk::CommandBufferBeginInfo());
+
+        // Start a render pass.
+        vk::RenderPassBeginInfo renderPassInfo;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = framebuffer;
+        renderPassInfo.renderArea.extent = vk::Extent2D(width, height); // TODO ?
+        // renderPassInfo.renderArea.offset = vk::Offset2D{target.x, target.y}; // TODO -3 ?
+        renderPassInfo.renderArea.offset = vk::Offset2D{0, 0}; // TODO -3 ?
+
+        std::array<vk::ClearValue, 2> clearValues = {};
+        clearValues[0].color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+        clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
+        commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.graphicsPipeline);
+
+        vk::Rect2D scissor = {
+            // vk::Offset2D {target.x, target.y},
+            vk::Offset2D{0, 0},
+            vk::Extent2D{width, height}
+            // extent
+        };
+
+        commandBuffer.setScissor(0, scissor);
+
+        for (auto model : models)
+        {
+            commandBuffer.bindVertexBuffers(0, model.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
+            commandBuffer.bindIndexBuffer(model.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, model.colorDescriptorSet, nullptr);
+            commandBuffer.drawIndexed(model.mesh.indices.size(), 1, 0, 0, 0);
+        }
+
+        commandBuffer.endRenderPass();
+        commandBuffer.end();
+
+        // TODO: Pack the submit with the others.
+        vk::SubmitInfo submitInfo;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        device->graphicsQueue.submit(submitInfo, renderFinished);
+    }
+
+    glm::vec3 pickColor(std::vector<SceneObject> models, glm::vec2 target)
+    {
+        // TODO: Call that elsewhere
+        render(models, target);
+
+        device->logicalDevice.waitForFences(renderFinished, VK_TRUE, UINT64_MAX);
+        device->logicalDevice.resetFences(renderFinished);
+
+        core::Image stagingImage = core::Image(device, width, height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst,
+                                               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
+
+        // TODO: OPTIMIZE Use a single command buffer to do all necessary operations
+        image.transitionLayout(context, vk::ImageLayout::eTransferSrcOptimal);
+        stagingImage.transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
+
+        bool colorSwizzle = false;
+
+        if (device->supportsBlittingToLinearImages())
+        {
+            image.blit(context, stagingImage, width, height);
+        }
+        else
+        {
+            image.copyTo(context, stagingImage, width, height);
+
+            // If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
+            // Check if source is BGR
+            // Note: Not complete, only contains most common and basic BGR surface formats for demonstation purposes
+            std::vector<vk::Format> formatsBGR = {vk::Format::eB8G8R8A8Srgb, vk::Format::eB8G8R8A8Unorm, vk::Format::eB8G8R8A8Snorm};
+            colorSwizzle = (std::find(formatsBGR.begin(), formatsBGR.end(), image.format) != formatsBGR.end());
+        }
+
+        stagingImage.transitionLayout(context, vk::ImageLayout::eGeneral);
+        image.transitionLayout(context, vk::ImageLayout::eColorAttachmentOptimal);
+
+        // TODO: Grab only the value in the middle pixel
+        stagingImage.save("debug.ppm", colorSwizzle);
+        glm::vec3 pixelValue = stagingImage.pixelAt(target.x, target.y);
+
+        stagingImage.destroy();
+        return pixelValue;
     }
 };

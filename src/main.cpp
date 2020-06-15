@@ -472,7 +472,7 @@ private:
 
             if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true))
             {
-                auto rgb = swapchain.pickColor(models, lastMousePos);
+                auto rgb = swapchain.picker.pickColor(models, lastMousePos);
                 auto cID = ColorUID(rgb);
                 // TODO: Handle background
                 // TODO: Make sure ColorUID has a reserved id for the background
