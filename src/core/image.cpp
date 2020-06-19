@@ -122,14 +122,6 @@ namespace core
             allocate(memProperties);
         }
 
-        Image(std::shared_ptr<core::Device> device, vk::Image image, vk::MemoryPropertyFlags memProperties)
-        {
-            // TODO: Lazy loading of image attributes (width, height, etc.). Not needed for now.
-            this->device = device;
-            this->image = image;
-            allocate(memProperties);
-        }
-
         void destroy() override
         {
             // TODO: We might not need this with Unique stuff ?
