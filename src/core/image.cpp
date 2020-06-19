@@ -72,15 +72,10 @@ namespace core
             this->height = height;
         }
 
-        void initMemory(vk::MemoryPropertyFlags memProperties)
+        void allocate(const vk::MemoryPropertyFlags& memProperties)
         {
-            auto memRequirements = device->logicalDevice.getImageMemoryRequirements(image);
-
-            vk::MemoryAllocateInfo allocInfo = {};
-            allocInfo.allocationSize = memRequirements.size;
-            allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
-
-            memory = device->logicalDevice.allocateMemory(allocInfo);
+            vk::MemoryRequirements memRequirements = device->logicalDevice.getImageMemoryRequirements(image);
+            Allocation::allocate(memRequirements, memProperties);
             device->logicalDevice.bindImageMemory(image, memory, 0);
         }
 
@@ -93,7 +88,6 @@ namespace core
     public:
         vk::Image image;
         vk::ImageView view;
-        // vk::DeviceMemory memory;
 
         vk::ImageLayout layout;
         vk::Format format;
@@ -101,7 +95,7 @@ namespace core
         int arrayLayers;
         int width, height;
 
-        /* Empty ctor to avoid errors. We should be able to get rid of it later on*/
+        // Empty ctor to avoid errors. We should be able to get rid of it later on
         Image() {}
 
         // TODO: Default arguments
@@ -112,7 +106,7 @@ namespace core
             this->device = device;
 
             initImage(width, height, mipLevels, numSamples, format, tiling, usage);
-            initMemory(memProperties);
+            allocate(memProperties);
             initView(format, aspectMask);
         }
 
@@ -125,17 +119,18 @@ namespace core
             this->device = device;
 
             initImage(width, height, mipLevels, numSamples, format, tiling, usage);
-            initMemory(memProperties);
+            allocate(memProperties);
         }
 
         Image(std::shared_ptr<core::Device> device, vk::Image image, vk::MemoryPropertyFlags memProperties)
         {
+            // TODO: Lazy loading of image attributes (width, height, etc.). Not needed for now.
             this->device = device;
             this->image = image;
-            initMemory(memProperties);
+            allocate(memProperties);
         }
 
-        void destroy()
+        void destroy() override
         {
             // TODO: We might not need this with Unique stuff ?
             device->logicalDevice.destroyImageView(view);

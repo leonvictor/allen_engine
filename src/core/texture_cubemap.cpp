@@ -84,7 +84,7 @@ public:
                   6,
                   vk::ImageCreateFlagBits::eCubeCompatible);
 
-        initMemory(vk::MemoryPropertyFlagBits::eDeviceLocal);
+        allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
 

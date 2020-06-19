@@ -49,19 +49,13 @@ namespace core {
             bufferInfo.queueFamilyIndexCount = 2;
             bufferInfo.pQueueFamilyIndices = queues;
         
-            buffer = device->logicalDevice.createBuffer(bufferInfo);  
+            buffer = device->logicalDevice.createBuffer(bufferInfo);
         }
 
-        void allocate(vk::MemoryPropertyFlags memProperties) {
-            //TODO: Assert buffer created
+        void allocate(const vk::MemoryPropertyFlags& memProperties)
+        {
             vk::MemoryRequirements memRequirements = device->logicalDevice.getBufferMemoryRequirements(buffer);
-
-            vk::MemoryAllocateInfo allocInfo;
-            allocInfo.allocationSize = memRequirements.size;
-            allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
-
-            memory = device->logicalDevice.allocateMemory(allocInfo, nullptr);
-
+            Allocation::allocate(memRequirements, memProperties);
             device->logicalDevice.bindBufferMemory(buffer, memory, 0);
         }
     };

@@ -87,7 +87,7 @@ private:
                   vk::ImageTiling::eOptimal,
                   vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc);
 
-        initMemory(vk::MemoryPropertyFlagBits::eDeviceLocal);
+        allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         // Transition the image to transfer dst layout
         transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);

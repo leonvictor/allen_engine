@@ -17,8 +17,6 @@ struct Allocation {
     vk::DeviceSize alignment{ 0 };
     vk::DeviceSize allocSize{ 0 };
     void* mapped{ nullptr };
-    // @brief Memory propertys flags to be filled by external source at buffer creation (to query at some later point)
-    vk::MemoryPropertyFlags memoryPropertyFlags;
 
     template <typename T = void>
     inline T* map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) {
@@ -70,6 +68,15 @@ struct Allocation {
         */
     void invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0) {
         return device->logicalDevice.invalidateMappedMemoryRanges(vk::MappedMemoryRange{ memory, offset, size });
+    }
+
+    virtual void allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
+    {
+        vk::MemoryAllocateInfo allocInfo;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
+
+        memory = device->logicalDevice.allocateMemory(allocInfo, nullptr);
     }
 
     virtual void destroy() {
