@@ -26,6 +26,7 @@ class Context
   public:
     vk::UniqueInstance instance;
     std::shared_ptr<core::Device> device;
+    vk::SurfaceKHR surface;
 
     core::CommandPool graphicsCommandPool;
     core::CommandPool transferCommandPool;
@@ -40,15 +41,17 @@ class Context
 
     bool enableValidationLayers = true; // TODO: Move that somewhere else (global config)
 
-    Context()
+    Context(GLFWwindow *window)
     {
         createInstance();
+        createSurface(window);
+        device = std::make_shared<core::Device>(instance.get(), surface);
+        createCommandPools();
         setupDebugMessenger();
     }
 
-    void createCommandPools(std::shared_ptr<core::Device> device)
+    void createCommandPools()
     {
-        this->device = device; // TODO: This HAS to be somewhere else.
         graphicsCommandPool = core::CommandPool(device, device->queueFamilyIndices.graphicsFamily.value(), vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
         transferCommandPool = core::CommandPool(device, device->queueFamilyIndices.transferFamily.value(), vk::CommandPoolCreateFlagBits::eTransient);
     }
@@ -138,6 +141,18 @@ class Context
 
         instance = vk::createInstanceUnique(iCreateInfo);
     };
+    
+    void createSurface(GLFWwindow *window)
+        {
+            VkSurfaceKHR pSurface = VkSurfaceKHR(surface);
+            VkInstance pInstance = (VkInstance) instance.get();
+            if (glfwCreateWindowSurface(pInstance, window, nullptr, &pSurface) != VK_SUCCESS)
+            {
+                throw std::runtime_error("Failed to create window surface.");
+            }
+            
+            surface = vk::SurfaceKHR(pSurface);
+        }
 
     bool checkValidationLayersSupport()
     {

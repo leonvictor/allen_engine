@@ -20,6 +20,8 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 namespace core
 {
     // TODO: Rework to use core::Image
+    //   * more info: this is problematic when it comes to destruction because
+    //     swapchain images shouldn't be deleted manually
     struct SwapchainImage
     {
         vk::Framebuffer framebuffer;
@@ -51,7 +53,7 @@ namespace core
         // Object picking
         Picker picker;
 
-        vk::SurfaceKHR surface;
+        // vk::SurfaceKHR surface;
         vk::SwapchainKHR swapchain;
         vk::PresentInfoKHR presentInfo;
 
@@ -61,7 +63,6 @@ namespace core
         vk::Extent2D extent;
         vk::RenderPass renderPass;
 
-        std::shared_ptr<core::Device> device;
         std::shared_ptr<core::Context> context; // TODO: Fuse device, context and swapchain somehow
         core::CommandPool commandPool;
 
@@ -81,16 +82,6 @@ namespace core
 
         Swapchain() {}
 
-        void createSurface(std::shared_ptr<core::Context> context, GLFWwindow *window)
-        {
-            this->context = context; // TODO: berk!
-            VkSurfaceKHR pSurface = VkSurfaceKHR(surface);
-            if (glfwCreateWindowSurface(context->instance.get(), window, nullptr, &pSurface) != VK_SUCCESS)
-            {
-                throw std::runtime_error("Failed to create window surface.");
-            }
-            surface = vk::SurfaceKHR(pSurface);
-        }
 
         void recreate(GLFWwindow *window, core::CommandPool &commandPool, int maxObjects)
         {
@@ -108,11 +99,10 @@ namespace core
         }
 
         // TODO: Normalize object construction
-        void init(std::shared_ptr<core::Device> device, core::CommandPool &commandPool, GLFWwindow *window, int maxObjects)
+        void init(std::shared_ptr<core::Context> context, core::CommandPool &commandPool, GLFWwindow *window, int maxObjects)
         {
-            this->device = device;
+            this->context = context;
 
-            assert(surface);
             createSwapchain(window);
             createImages();
             createDepthResources();
@@ -126,12 +116,12 @@ namespace core
             createSyncObjects();
             createDescriptorPool(maxObjects);
             createCommandBuffers(commandPool);
-            picker.setup(context, device, commandPool);
+            picker.setup(context, context->device, commandPool);
         }
 
         void createPipelines()
         {
-            core::PipelineFactory factory = core::PipelineFactory(device);
+            core::PipelineFactory factory = core::PipelineFactory(context->device);
             factory.setRenderPass(renderPass);
             factory.setExtent(extent);
 
@@ -156,8 +146,8 @@ namespace core
 
 // TODO: Get rid of the double negative
 #ifndef NDEBUG
-            device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
-            device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
+            context->device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
+            context->device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
 #endif
         }
 
@@ -167,10 +157,10 @@ namespace core
                 {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
                 {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-            skyboxDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout({{}, (uint32_t)setsLayoutBindings.size(), setsLayoutBindings.data()});
+            skyboxDescriptorSetLayout = context->device->logicalDevice.createDescriptorSetLayout({{}, (uint32_t)setsLayoutBindings.size(), setsLayoutBindings.data()});
 
 #ifndef NDEBUG
-            device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
+            context->device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
 #endif
         }
 
@@ -184,11 +174,11 @@ namespace core
 
         void createRenderPass()
         {
-            assert(device);
+            assert(context->device);
 
             vk::AttachmentDescription colorAttachment;
             colorAttachment.format = imageFormat;
-            colorAttachment.samples = device->msaaSamples;
+            colorAttachment.samples = context->device->msaaSamples;
             // Color and depth data
             colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;   // What to do with the data before ...
             colorAttachment.storeOp = vk::AttachmentStoreOp::eStore; // ... and after rendering
@@ -205,8 +195,8 @@ namespace core
             colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
             vk::AttachmentDescription depthAttachment;
-            depthAttachment.format = device->findDepthFormat();
-            depthAttachment.samples = device->msaaSamples;
+            depthAttachment.format = context->device->findDepthFormat();
+            depthAttachment.samples = context->device->msaaSamples;
             depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
             depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare; // Depth data is not used after drawing has finished
             depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
@@ -258,7 +248,7 @@ namespace core
             renderPassInfo.dependencyCount = 1;
             renderPassInfo.pDependencies = &subpassDependency;
 
-            renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
+            renderPass = context->device->logicalDevice.createRenderPass(renderPassInfo);
         }
 
         void createCommandBuffers(const core::CommandPool &commandPool)
@@ -331,20 +321,15 @@ namespace core
         
         void createSyncObjects()
         {
-            // TODO: Refactor in modern c++
-            imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-            renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-            inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-
             vk::SemaphoreCreateInfo semaphoreInfo;
             vk::FenceCreateInfo fenceInfo;
             fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled; // Create fences in the signaled state
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
-                imageAvailableSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
-                renderFinishedSemaphores[i] = device->logicalDevice.createSemaphore(semaphoreInfo, nullptr);
-                inFlightFences[i] = device->logicalDevice.createFence(fenceInfo, nullptr);
+                imageAvailableSemaphores.push_back(context->device->logicalDevice.createSemaphore(semaphoreInfo, nullptr));
+                renderFinishedSemaphores.push_back(context->device->logicalDevice.createSemaphore(semaphoreInfo, nullptr));
+                inFlightFences.push_back(context->device->logicalDevice.createFence(fenceInfo, nullptr));
             }
         }
 
@@ -356,17 +341,17 @@ namespace core
 
             for (auto img : images)
             {
-                img.cleanup(device->logicalDevice, commandPool.pool);
+                img.cleanup(context->device->logicalDevice, commandPool.pool);
             }
 
             pipelines.objects.destroy();
             pipelines.skybox.destroy();
 
-            device->logicalDevice.destroyRenderPass(renderPass);
+            context->device->logicalDevice.destroyRenderPass(renderPass);
 
-            device->logicalDevice.destroySwapchainKHR(swapchain);
+            context->device->logicalDevice.destroySwapchainKHR(swapchain);
 
-            device->logicalDevice.destroyDescriptorPool(descriptorPool);
+            context->device->logicalDevice.destroyDescriptorPool(descriptorPool);
         }
 
         void destroy()
@@ -374,22 +359,22 @@ namespace core
             cleanup();
             picker.destroy();
             
-            device->logicalDevice.destroyDescriptorSetLayout(objectsDescriptorSetLayout);
-            device->logicalDevice.destroyDescriptorSetLayout(lightsDescriptorSetLayout);
-            device->logicalDevice.destroyDescriptorSetLayout(skyboxDescriptorSetLayout);
+            context->device->logicalDevice.destroyDescriptorSetLayout(objectsDescriptorSetLayout);
+            context->device->logicalDevice.destroyDescriptorSetLayout(lightsDescriptorSetLayout);
+            context->device->logicalDevice.destroyDescriptorSetLayout(skyboxDescriptorSetLayout);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
-                device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
-                device->logicalDevice.destroySemaphore(renderFinishedSemaphores[i]);
-                device->logicalDevice.destroyFence(inFlightFences[i]);
+                context->device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
+                context->device->logicalDevice.destroySemaphore(renderFinishedSemaphores[i]);
+                context->device->logicalDevice.destroyFence(inFlightFences[i]);
             }
         }
 
     private:
         void createSwapchain(GLFWwindow *window)
         {
-            core::SwapchainSupportDetails swapchainSupport = device->getSwapchainSupport(surface);
+            core::SwapchainSupportDetails swapchainSupport = context->device->getSwapchainSupport(context->surface);
             vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
             vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
 
@@ -402,7 +387,7 @@ namespace core
             }
 
             vk::SwapchainCreateInfoKHR sCreateInfo;
-            sCreateInfo.surface = surface;
+            sCreateInfo.surface = context->surface;
             sCreateInfo.minImageCount = imageCount;
             sCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
             sCreateInfo.imageFormat = surfaceFormat.format;
@@ -412,7 +397,7 @@ namespace core
             sCreateInfo.presentMode = presentMode;
             sCreateInfo.clipped = VK_TRUE; // We don't care about the color of obscured pixels (ex: if another window is on top)
 
-            core::QueueFamilyIndices indices = device->getQueueFamilyIndices();
+            core::QueueFamilyIndices indices = context->device->getQueueFamilyIndices();
             uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
             if (indices.graphicsFamily != indices.presentFamily)
@@ -432,7 +417,7 @@ namespace core
             sCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
             sCreateInfo.oldSwapchain = {(VkSwapchainKHR_T *)0}; // TODO : Pass the old swapchain to reuse most of the info.
 
-            swapchain = device->logicalDevice.createSwapchainKHR(sCreateInfo);
+            swapchain = context->device->logicalDevice.createSwapchainKHR(sCreateInfo);
 
             this->extent = extent;
             imageFormat = surfaceFormat.format;
@@ -489,20 +474,19 @@ namespace core
 
         void createImages()
         {
-            std::vector<vk::Image> imgs = device->logicalDevice.getSwapchainImagesKHR(swapchain);
+            std::vector<vk::Image> imgs = context->device->logicalDevice.getSwapchainImagesKHR(swapchain);
 
-            images.resize(imgs.size());
-
-            for (size_t i = 0; i < imgs.size(); i++)
+            for (vk::Image swapImage : imgs)
             {
-
-                auto view = core::Image::createImageView(device, imgs[i], imageFormat, vk::ImageAspectFlagBits::eColor, 1);
-                images[i] = {
+                vk::ImageView view = core::Image::createImageView(context->device, swapImage, imageFormat, vk::ImageAspectFlagBits::eColor, 1);
+                SwapchainImage image = SwapchainImage {
                     nullptr,
                     nullptr,
-                    imgs[i],
+                    swapImage,
                     view,
-                    vk::Fence()};
+                    vk::Fence()
+                };
+                this->images.push_back(image);
             }
         }
 
@@ -520,26 +504,26 @@ namespace core
             framebufferInfo.width = extent.width;
             framebufferInfo.height = extent.height;
             framebufferInfo.layers = 1; // Nb of layers in image array.
-            return device->logicalDevice.createFramebuffer(framebufferInfo);
+            return context->device->logicalDevice.createFramebuffer(framebufferInfo);
         }
 
         void createDepthResources()
         {
-            vk::Format format = device->findDepthFormat();
+            vk::Format format = context->device->findDepthFormat();
 
-            depthImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples,
+            depthImage = core::Image(context->device, extent.width, extent.height, 1, context->device->msaaSamples,
                                      format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                      vk::ImageAspectFlagBits::eDepth);
         }
 
         void createColorResources()
         {
-            colorImage = core::Image(device, extent.width, extent.height, 1, device->msaaSamples, this->imageFormat,
+            colorImage = core::Image(context->device, extent.width, extent.height, 1, context->device->msaaSamples, this->imageFormat,
                                      vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                      vk::ImageAspectFlagBits::eColor);
 
 #ifndef NDEBUG
-            device->setDebugUtilsObjectName(colorImage.view, "Color Image View");
+            context->device->setDebugUtilsObjectName(colorImage.view, "Color Image View");
 #endif
         }
 
@@ -571,7 +555,7 @@ namespace core
 
             vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
 
-            objectsDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
+            objectsDescriptorSetLayout = context->device->logicalDevice.createDescriptorSetLayout(createInfo);
 
             vk::DescriptorSetLayoutBinding lightsLayoutBinding;
             lightsLayoutBinding.binding = 0;
@@ -583,11 +567,11 @@ namespace core
             lightsCreateInfo.bindingCount = 1;
             lightsCreateInfo.pBindings = &lightsLayoutBinding;
 
-            lightsDescriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(lightsCreateInfo);
+            lightsDescriptorSetLayout = context->device->logicalDevice.createDescriptorSetLayout(lightsCreateInfo);
 
 #ifndef NDEBUG
-            device->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
-            device->setDebugUtilsObjectName(lightsDescriptorSetLayout, "Lights Descriptor Set Layout");
+            context->device->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
+            context->device->setDebugUtilsObjectName(lightsDescriptorSetLayout, "Lights Descriptor Set Layout");
 #endif
         }
 
@@ -610,7 +594,7 @@ namespace core
             createInfo.pPoolSizes = poolSizes.data();
             createInfo.maxSets = (nObjects * 2) + 2; // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker 
 
-            descriptorPool = device->logicalDevice.createDescriptorPool(createInfo);
+            descriptorPool = context->device->logicalDevice.createDescriptorPool(createInfo);
         }
     };
 }; // namespace core

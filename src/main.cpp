@@ -84,8 +84,6 @@ private:
     GLFWwindow* window;
     std::shared_ptr<core::Context> context;
     
-    std::shared_ptr<core::Device> device;
-
     Coordinator gCoordinator;
 
     core::Swapchain swapchain;
@@ -157,17 +155,17 @@ private:
         
         ImGui_ImplVulkan_InitInfo init_info;
         init_info.Instance = context->instance.get();
-        init_info.PhysicalDevice = device->physicalDevice;
-        init_info.Device = device->logicalDevice;
-        init_info.QueueFamily = device->queueFamilyIndices.presentFamily.value();
-        init_info.Queue = device->presentQueue;
+        init_info.PhysicalDevice = context->device->physicalDevice;
+        init_info.Device = context->device->logicalDevice;
+        init_info.QueueFamily = context->device->queueFamilyIndices.presentFamily.value();
+        init_info.Queue = context->device->presentQueue;
         init_info.PipelineCache = nullptr;
         init_info.DescriptorPool = swapchain.descriptorPool;
         init_info.Allocator = nullptr;
         init_info.MinImageCount = 2;
         init_info.ImageCount = swapchain.images.size();
         init_info.CheckVkResultFn = nullptr;
-        init_info.MSAASamples = (VkSampleCountFlagBits) device->msaaSamples;
+        init_info.MSAASamples = (VkSampleCountFlagBits) context->device->msaaSamples;
         ImGui_ImplVulkan_Init(&init_info, swapchain.renderPass);
 
         // Upload Fonts
@@ -177,8 +175,8 @@ private:
         auto commandBuffer = context->graphicsCommandPool.beginSingleTimeCommands();
     
         ImGui_ImplVulkan_CreateFontsTexture(commandBuffer[0]);
-        context->graphicsCommandPool.endSingleTimeCommands(commandBuffer, device->graphicsQueue);
-        device->logicalDevice.waitIdle();
+        context->graphicsCommandPool.endSingleTimeCommands(commandBuffer, context->device->graphicsQueue);
+        context->device->logicalDevice.waitIdle();
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
@@ -214,7 +212,7 @@ private:
     void addObject() {
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
-        SceneObject m = SceneObject(context, device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
+        SceneObject m = SceneObject(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
         models.push_back(m);
@@ -247,14 +245,8 @@ private:
     // }
 
     void initVulkan() {
-        context = std::make_shared<core::Context>();
-        swapchain.createSurface(context, window); // TODO: This is dirty : device needs an initialized surface to check for extensions support,
-        // but surface is contained in swapchain which require device to be initialized.
-        
-        device = std::make_shared<core::Device>(context->instance.get(), swapchain.surface);
-        context->createCommandPools(device);
-
-        swapchain.init(device, context->graphicsCommandPool, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        context = std::make_shared<core::Context>(window);
+        swapchain.init(context, context->graphicsCommandPool, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
         
         /* Application related stuff */
         loadModels();
@@ -262,9 +254,9 @@ private:
         setupSkyBox();
 
         // Swapchain components that rely on model parameters
-        // TODO: 1 - At each frame, record the command buffers to update new/deleted objects
-        //       2 - Do not update if no object were modified
-        //       3 - Only update objects which have been modified
+        // TODO: 
+        //  - Do not update if no object were modified
+        //  - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
         // TODO: Skybox is a sceneobject with a mesh and a cubemap texture, BUT it should be unique
     }
@@ -272,7 +264,7 @@ private:
 
     void loadModels() {
         for (int i = 0; i < cubePositions.size(); i++) {
-            auto m = SceneObject(context, device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
+            auto m = SceneObject(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
             m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
             models.push_back(m);
@@ -300,7 +292,7 @@ private:
     }
 
     void setupSkyBox() {
-        skybox = Skybox(context, device, "", MODEL_PATH);
+        skybox = Skybox(context, context->device, "", MODEL_PATH);
         skybox.createDescriptorSet(swapchain.descriptorPool, swapchain.skyboxDescriptorSetLayout);
         updateSkyboxUBO();
     }
@@ -325,7 +317,7 @@ private:
 
     void createLightsBuffer() {
         // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = core::Buffer(device, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        lightsBuffer = core::Buffer(context->device, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     void updateLightBufferCount(int count) {
@@ -368,7 +360,7 @@ private:
 
     void createLightsDescriptorSet() {
         vk::DescriptorSetAllocateInfo allocInfo{ swapchain.descriptorPool, 1, &swapchain.lightsDescriptorSetLayout };
-        lightsDescriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
+        lightsDescriptorSet = context->device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer.buffer; // TODO: How do we update the lights array ?
@@ -383,7 +375,7 @@ private:
         writeDescriptor.descriptorCount = 1;
         writeDescriptor.pBufferInfo = &lightsBufferInfo;
 
-        device->logicalDevice.updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        context->device->logicalDevice.updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
     void cleanupLights() {
@@ -401,7 +393,7 @@ private:
             glfwWaitEvents(); // Pause the app.
         }
 
-        device->logicalDevice.waitIdle();
+        context->device->logicalDevice.waitIdle();
 
         swapchain.cleanup();
         
@@ -490,7 +482,7 @@ private:
             endDrawFrame(imageIndex);
         }
 
-        device->logicalDevice.waitIdle();
+        context->device->logicalDevice.waitIdle();
     }
 
     void processKeyboardInput(GLFWwindow *window) {
@@ -516,11 +508,11 @@ private:
     // TODO: Move to swapchain
     uint8_t beginDrawFrame() {
         // Wait for the fence
-        device->logicalDevice.waitForFences(swapchain.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        context->device->logicalDevice.waitForFences(swapchain.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
-        vk::Result result = device->logicalDevice.acquireNextImageKHR(swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
+        vk::Result result = context->device->logicalDevice.acquireNextImageKHR(swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
         if (result == vk::Result::eErrorOutOfDateKHR) {
             recreateSwapchain();
         } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
@@ -529,7 +521,7 @@ private:
 
         // Check if a previous frame is using the image
         if (swapchain.images[imageIndex].fence) {
-            device->logicalDevice.waitForFences(swapchain.images[imageIndex].fence, VK_TRUE, UINT64_MAX);
+            context->device->logicalDevice.waitForFences(swapchain.images[imageIndex].fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
@@ -569,8 +561,8 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
 
-        device->logicalDevice.resetFences(swapchain.inFlightFences[currentFrame]);
-        device->graphicsQueue.submit(submitInfo, swapchain.inFlightFences[currentFrame]);
+        context->device->logicalDevice.resetFences(swapchain.inFlightFences[currentFrame]);
+        context->device->graphicsQueue.submit(submitInfo, swapchain.inFlightFences[currentFrame]);
 
         vk::PresentInfoKHR presentInfo;
         presentInfo.swapchainCount = 1;
@@ -583,7 +575,7 @@ private:
         bool recreationNeeded = false;
         vk::Result result;
         try {
-            result = device->graphicsQueue.presentKHR(presentInfo);
+            result = context->device->graphicsQueue.presentKHR(presentInfo);
         } catch (vk::OutOfDateKHRError const &e) {
             result = vk::Result::eErrorOutOfDateKHR;
         }
@@ -614,11 +606,11 @@ private:
         skybox.destroy();
         cleanupLights();
         
-        device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
-        device->logicalDevice.destroyCommandPool(context->transferCommandPool);
-        device->logicalDevice.destroy();
+        context->device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
+        context->device->logicalDevice.destroyCommandPool(context->transferCommandPool);
+        context->device->logicalDevice.destroy();
 
-        context->instance->destroySurfaceKHR(swapchain.surface);
+        context->instance->destroySurfaceKHR(context->surface);
         // TODO: either destroy surface at the same time as the rest of the swap chain,
         // or move it out.
         
