@@ -605,11 +605,8 @@ private:
         skybox.destroy();
         cleanupLights();
         
-        context->device->logicalDevice.destroyCommandPool(context->graphicsCommandPool);
-        context->device->logicalDevice.destroyCommandPool(context->transferCommandPool);
-        context->device->logicalDevice.destroy();
+        context->destroy();
 
-        context->instance->destroySurfaceKHR(context->surface);
         // TODO: either destroy surface at the same time as the rest of the swap chain,
         // or move it out.
         

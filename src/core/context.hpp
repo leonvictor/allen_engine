@@ -56,6 +56,15 @@ class Context
         transferCommandPool = core::CommandPool(device, device->queueFamilyIndices.transferFamily.value(), vk::CommandPoolCreateFlagBits::eTransient);
     }
 
+    void destroy()
+    {
+        device->logicalDevice.destroyCommandPool(graphicsCommandPool);
+        device->logicalDevice.destroyCommandPool(transferCommandPool);
+        device->logicalDevice.destroy();
+
+        instance->destroySurfaceKHR(surface);
+    }
+    
   private:
     void createInstance()
     {
