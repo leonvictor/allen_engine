@@ -46,6 +46,20 @@ namespace core {
             return commandBuffers;   
         }
 
+        inline void execute(vk::Queue queue, const std::function<void (vk::CommandBuffer cb)> &func) {
+            vk::CommandBufferAllocateInfo cbai{ this->pool, vk::CommandBufferLevel::ePrimary, 1};
+            auto cbs = device->logicalDevice.allocateCommandBuffers(cbai);
+            cbs[0].begin(vk::CommandBufferBeginInfo{});
+            func(cbs[0]);
+            cbs[0].end();
+            vk::SubmitInfo submitInfo;
+            submitInfo.commandBufferCount =  (uint32_t) cbs.size();
+            submitInfo.pCommandBuffers = cbs.data();
+            queue.submit(submitInfo, vk::Fence{});
+            queue.waitIdle(); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
+            device->logicalDevice.freeCommandBuffers(pool, cbs);
+        }
+
         // TODO: This would make more sense in a Queue class, which can decide how to handle the commands.
         void endSingleTimeCommands(std::vector<vk::CommandBuffer> commandBuffers, vk::Queue& queue) {
             assert(pool && "You are trying to use an unallocated command pool.");
