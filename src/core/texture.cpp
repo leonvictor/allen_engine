@@ -90,9 +90,10 @@ private:
         allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         // Transition the image to transfer dst layout
-        transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
-        // Copy staging buffer to image
-        context->copyBufferToImage(stagingBuffer, image, img.width, img.height);
+        context->transferCommandPool.execute(context->device->transferQueue, [&](vk::CommandBuffer cb) {
+            transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+            stagingBuffer.copyTo(cb, image, img.width, img.height);
+        });
 
         generateMipMaps(image, vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
 
@@ -101,9 +102,9 @@ private:
         stagingBuffer.destroy();
     }
 
-    /* TODO :
-         * - Move to image ? It's weird as long as we need context
-         */
+    // TODO :
+    // - Move to image ? It's weird as long as we need context
+    // 
     void generateMipMaps(vk::Image image, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
     {
 

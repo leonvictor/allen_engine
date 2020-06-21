@@ -21,9 +21,42 @@ namespace core {
             allocate(memProperties);
         }
 
-        void destroy() {
+        void destroy() override 
+        {
             Allocation::destroy();
             device->logicalDevice.destroyBuffer(buffer);
+        }
+
+        void copyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions)
+        {
+            cb.copyBufferToImage(this->buffer, image, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
+        }
+
+        void copyTo(vk::CommandBuffer& cb, vk::Image& image, const uint32_t width, const uint32_t height) const
+        {
+            vk::BufferImageCopy copy;
+            copy.bufferOffset = 0;
+            copy.bufferRowLength = 0;
+            copy.bufferImageHeight = 0;
+            copy.imageExtent = vk::Extent3D{width, height, 1};
+            copy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+            copy.imageSubresource.baseArrayLayer = 0;
+            copy.imageSubresource.layerCount = 1;
+            copy.imageSubresource.mipLevel = 0;
+            copy.imageOffset = vk::Offset3D{0, 0, 0};
+
+            cb.copyBufferToImage(this->buffer, image, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
+        }
+
+        
+        void copyTo(vk::CommandBuffer& cb, core::Buffer& dstBuffer, vk::DeviceSize size)
+        {
+            vk::BufferCopy copyRegion;
+            copyRegion.srcOffset = 0;
+            copyRegion.dstOffset = 0;
+            copyRegion.size = size;
+
+            cb.copyBuffer(this->buffer, dstBuffer.buffer, copyRegion);
         }
 
         inline vk::DescriptorBufferInfo getDescriptor() {

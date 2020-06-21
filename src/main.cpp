@@ -172,11 +172,10 @@ private:
         // Use any command queue
 
         // TODO: Make the single time buffer usage more fluid
-        auto commandBuffer = context->graphicsCommandPool.beginSingleTimeCommands();
-    
-        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer[0]);
-        context->graphicsCommandPool.endSingleTimeCommands(commandBuffer, context->device->graphicsQueue);
-        context->device->logicalDevice.waitIdle();
+        context->graphicsCommandPool.execute(context->device->graphicsQueue, [&](vk::CommandBuffer cb){
+            ImGui_ImplVulkan_CreateFontsTexture(cb);
+            ImGui_ImplVulkan_CreateFontsTexture(cb);
+        });
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 

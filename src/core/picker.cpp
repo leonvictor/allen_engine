@@ -1,15 +1,15 @@
 #include <vulkan/vulkan.hpp>
 
-#include "image.cpp"
-#include "pipeline.cpp"
-#include "device.hpp"
 #include "../scene_object.cpp"
 #include "commandpool.cpp"
 #include "context.hpp"
+#include "device.hpp"
+#include "image.cpp"
+#include "pipeline.cpp"
 
 class Picker
 {
-private:
+  private:
     vk::RenderPass renderPass;
     core::Image image;
     core::Image depthImage;
@@ -29,7 +29,7 @@ private:
         renderFinished = device->logicalDevice.createFence(fenceInfo);
     }
 
-    void createCommandBuffer(const core::CommandPool &commandPool)
+    void createCommandBuffer(const core::CommandPool& commandPool)
     {
         commandBuffer = commandPool.allocateCommandBuffers(1)[0];
     }
@@ -63,6 +63,11 @@ private:
         image = core::Image(device, width, height, 1, vk::SampleCountFlagBits::e1, colorImageFormat,
                             vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
                             vk::ImageAspectFlagBits::eColor);
+
+        context->graphicsCommandPool.execute(context->device->graphicsQueue, [&](vk::CommandBuffer cb) {
+            image.transitionLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
+        });
+
 #ifndef NDEBUG
         device->setDebugUtilsObjectName(depthImage.image, "Picker depth image");
         device->setDebugUtilsObjectName(image.image, "Picker color image");
@@ -80,7 +85,7 @@ private:
 
         std::array<vk::DescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
 
-        vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
+        vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
         descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
     }
@@ -161,10 +166,10 @@ private:
         //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
     }
 
-public:
+  public:
     vk::DescriptorSetLayout descriptorSetLayout;
 
-    void setup(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, const core::CommandPool &commandPool)
+    void setup(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, const core::CommandPool& commandPool)
     {
         this->device = device;
         this->context = context;
@@ -258,28 +263,34 @@ public:
                                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
 
         // TODO: OPTIMIZE Use a single command buffer to do all necessary operations
-        image.transitionLayout(context, vk::ImageLayout::eTransferSrcOptimal);
-        stagingImage.transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
+        context->transferCommandPool.execute(context->device->transferQueue, [&](vk::CommandBuffer cb) {
+            stagingImage.transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+        });
 
+        context->graphicsCommandPool.execute(context->device->graphicsQueue, [&](vk::CommandBuffer cb) {
+            image.transitionLayout(cb, vk::ImageLayout::eTransferSrcOptimal);
+
+            if (device->supportsBlittingToLinearImages())
+            {
+                image.blit(cb, stagingImage, width, height);
+            }
+            else
+            {
+                image.copyTo(cb, stagingImage, width, height);
+            }
+
+            stagingImage.transitionLayout(cb, vk::ImageLayout::eGeneral);
+            image.transitionLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
+        });
+        // If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
+        // Check if source is BGR
+        // Note: Not complete, only contains most common and basic BGR surface formats for demonstation purposes
         bool colorSwizzle = false;
-
         if (device->supportsBlittingToLinearImages())
         {
-            image.blit(context, stagingImage, width, height);
-        }
-        else
-        {
-            image.copyTo(context, stagingImage, width, height);
-
-            // If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
-            // Check if source is BGR
-            // Note: Not complete, only contains most common and basic BGR surface formats for demonstation purposes
             std::vector<vk::Format> formatsBGR = {vk::Format::eB8G8R8A8Srgb, vk::Format::eB8G8R8A8Unorm, vk::Format::eB8G8R8A8Snorm};
             colorSwizzle = (std::find(formatsBGR.begin(), formatsBGR.end(), image.format) != formatsBGR.end());
         }
-
-        stagingImage.transitionLayout(context, vk::ImageLayout::eGeneral);
-        image.transitionLayout(context, vk::ImageLayout::eColorAttachmentOptimal);
 
         // TODO: Grab only the value in the middle pixel
         stagingImage.save("debug.ppm", colorSwizzle);

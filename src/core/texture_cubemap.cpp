@@ -2,18 +2,18 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "image.cpp"
 #include "context.hpp"
 #include "device.hpp"
+#include "image.cpp"
 #include "texture.cpp"
 
 namespace core
 {
 
 class TextureCubeMap : public core::Texture
-{ // TODO: inheritate a base Texture class
-private:
-public:
+{
+  private:
+  public:
     // TODO: Quick and dirty way of storing faces names for now
     // Generate optimized file ?
     std::array<std::string, 6> faces = {
@@ -49,16 +49,16 @@ public:
         vk::BufferImageCopy bufferImageCopy;
         bufferImageCopy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
         bufferImageCopy.imageSubresource.layerCount = 1;
-        
+
         bufferImageCopy.imageExtent.depth = 1;
         bufferImageCopy.imageExtent.width = img.width;
         bufferImageCopy.imageExtent.height = img.height;
 
         bufferImageCopy.bufferOffset = 0;
-        bufferImageCopy.imageSubresource.mipLevel = 0; 
+        bufferImageCopy.imageSubresource.mipLevel = 0;
         bufferImageCopy.imageSubresource.baseArrayLayer = 0;
         bufferCopyRegions.push_back(bufferImageCopy);
-        
+
         for (uint32_t i = 1; i < faces.size(); i++)
         {
             facePath = "assets/skyboxes/daybreak/CloudyCrown_Daybreak_" + faces[i] + ".png";
@@ -69,11 +69,10 @@ public:
             stagingBuffer.unmap();
 
             bufferImageCopy.bufferOffset = faceSize * i;
-            bufferImageCopy.imageSubresource.mipLevel = 0; 
+            bufferImageCopy.imageSubresource.mipLevel = 0;
             bufferImageCopy.imageSubresource.baseArrayLayer = i;
             // bufferImageCopy.imageExtent = {img.width, img.height};
             bufferCopyRegions.push_back(bufferImageCopy);
-
         }
 
         initImage(img.width, img.height, 1,
@@ -86,12 +85,15 @@ public:
 
         allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-        transitionLayout(context, vk::ImageLayout::eTransferDstOptimal);
+        context->transferCommandPool.execute(context->device->transferQueue, [&](vk::CommandBuffer cb) {
+            transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+            stagingBuffer.copyTo(cb, image, bufferCopyRegions);
+        });
 
-        context->copyBufferToImage(stagingBuffer, image, bufferCopyRegions);
+        context->graphicsCommandPool.execute(context->device->graphicsQueue, [&](vk::CommandBuffer cb) {
+            transitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+        });
 
-        transitionLayout(context, vk::ImageLayout::eShaderReadOnlyOptimal);
-        
         initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 
         createSampler(vk::SamplerAddressMode::eClampToEdge);
