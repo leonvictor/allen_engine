@@ -20,12 +20,12 @@ struct Allocation {
 
     template <typename T = void>
     inline T* map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) {
-        mapped = device->logicalDevice.get().mapMemory(memory, offset, size, vk::MemoryMapFlags());
+        mapped = device->logical.get().mapMemory(memory, offset, size, vk::MemoryMapFlags());
         return (T*)mapped;
     }
 
     inline void unmap() {
-        device->logicalDevice.get().unmapMemory(memory);
+        device->logical.get().unmapMemory(memory);
         mapped = nullptr;
     }
 
@@ -53,7 +53,7 @@ struct Allocation {
         * @return VkResult of the flush call
         */
     void flush(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0) {
-        return device->logicalDevice.get().flushMappedMemoryRanges(vk::MappedMemoryRange{ memory, offset, size });
+        return device->logical.get().flushMappedMemoryRanges(vk::MappedMemoryRange{ memory, offset, size });
     }
 
     /**
@@ -67,7 +67,7 @@ struct Allocation {
         * @return VkResult of the invalidate call
         */
     void invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0) {
-        return device->logicalDevice.get().invalidateMappedMemoryRanges(vk::MappedMemoryRange{ memory, offset, size });
+        return device->logical.get().invalidateMappedMemoryRanges(vk::MappedMemoryRange{ memory, offset, size });
     }
 
     virtual void allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
@@ -76,7 +76,7 @@ struct Allocation {
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
 
-        memory = device->logicalDevice.get().allocateMemory(allocInfo, nullptr);
+        memory = device->logical.get().allocateMemory(allocInfo, nullptr);
     }
 
     virtual void destroy() {
@@ -84,7 +84,7 @@ struct Allocation {
             unmap();
         }
         if (memory) {
-            device->logicalDevice.get().freeMemory(memory);
+            device->logical.get().freeMemory(memory);
             memory = vk::DeviceMemory();
         }
     }

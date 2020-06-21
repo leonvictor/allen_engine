@@ -17,7 +17,7 @@ namespace core {
             this->device = device;
 
             vk::CommandPoolCreateInfo createInfo(flags, queueFamilyIndex);
-            pool = device->logicalDevice.get().createCommandPool(createInfo);
+            pool = device->logical.get().createCommandPool(createInfo);
         }
 
         operator vk::CommandPool() { return pool; }
@@ -34,7 +34,7 @@ namespace core {
             allocInfo.commandPool = pool;
             allocInfo.commandBufferCount = 1;
 
-            auto commandBuffers = device->logicalDevice.get().allocateCommandBuffers(allocInfo);
+            auto commandBuffers = device->logical.get().allocateCommandBuffers(allocInfo);
             
             // Immediately start recording
             vk::CommandBufferBeginInfo beginInfo;
@@ -48,7 +48,7 @@ namespace core {
 
         inline void execute(vk::Queue queue, const std::function<void (vk::CommandBuffer cb)> &func) {
             vk::CommandBufferAllocateInfo cbai{ this->pool, vk::CommandBufferLevel::ePrimary, 1};
-            auto cbs = device->logicalDevice.get().allocateCommandBuffers(cbai);
+            auto cbs = device->logical.get().allocateCommandBuffers(cbai);
             cbs[0].begin(vk::CommandBufferBeginInfo{});
             func(cbs[0]);
             cbs[0].end();
@@ -57,7 +57,7 @@ namespace core {
             submitInfo.pCommandBuffers = cbs.data();
             queue.submit(submitInfo, vk::Fence{});
             queue.waitIdle(); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
-            device->logicalDevice.get().freeCommandBuffers(pool, cbs);
+            device->logical.get().freeCommandBuffers(pool, cbs);
         }
 
         // TODO: This would make more sense in a Queue class, which can decide how to handle the commands.
@@ -75,7 +75,7 @@ namespace core {
             queue.submit(submitInfo, nullptr);
             queue.waitIdle(); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
 
-            device->logicalDevice.get().freeCommandBuffers(pool, commandBuffers);
+            device->logical.get().freeCommandBuffers(pool, commandBuffers);
         }
 
         std::vector<vk::CommandBuffer> allocateCommandBuffers(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const {
@@ -84,7 +84,7 @@ namespace core {
             allocInfo.commandBufferCount = count;
             allocInfo.level = level; // Or secondary
 
-            return device->logicalDevice.get().allocateCommandBuffers(allocInfo);
+            return device->logical.get().allocateCommandBuffers(allocInfo);
         }
     private:
     };

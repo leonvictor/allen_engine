@@ -43,8 +43,8 @@ namespace core
 
         void destroy()
         {
-            device->logicalDevice.get().destroyPipeline(graphicsPipeline);
-            device->logicalDevice.get().destroyPipelineLayout(layout);
+            device->logical.get().destroyPipeline(graphicsPipeline);
+            device->logical.get().destroyPipelineLayout(layout);
         }
     };
 
@@ -115,7 +115,7 @@ namespace core
             layoutInfo.setLayoutCount = descriptorSetLayouts.size(); // Update when we have more layouts
             layoutInfo.pSetLayouts = descriptorSetLayouts.data();
 
-            auto layout = device->logicalDevice.get().createPipelineLayout(layoutInfo);
+            auto layout = device->logical.get().createPipelineLayout(layoutInfo);
 
             // Shader stages
             pipelineCreateInfo.stageCount = shaderStages.size();
@@ -143,7 +143,7 @@ namespace core
             pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
             auto pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH);                                          // TODO
-            auto graphicsPipeline = device->logicalDevice.get().createGraphicsPipeline(pipelineCache.get(), pipelineCreateInfo); // TODO
+            auto graphicsPipeline = device->logical.get().createGraphicsPipeline(pipelineCache.get(), pipelineCreateInfo); // TODO
             
             clearShaders();
             dynamicStates.clear();
@@ -177,7 +177,7 @@ namespace core
         {
             for (const auto &shader : shaderStages)
             {
-                device->logicalDevice.get().destroyShaderModule(shader.module);
+                device->logical.get().destroyShaderModule(shader.module);
             }
             shaderStages.clear();
         }
@@ -331,7 +331,7 @@ namespace core
                 }
             }
             // Feed the initial cache data into cache creation
-            vk::UniquePipelineCache pipelineCache = device->logicalDevice.get().createPipelineCacheUnique(
+            vk::UniquePipelineCache pipelineCache = device->logical.get().createPipelineCacheUnique(
                 vk::PipelineCacheCreateInfo(vk::PipelineCacheCreateFlags(), startCacheSize, startCacheData));
             // Free our initialData now that pipeline cache has been created
             free(startCacheData);

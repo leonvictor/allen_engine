@@ -29,8 +29,8 @@ struct SwapchainSupportDetails {
 
 class Device  {
 public:
-    vk::PhysicalDevice physicalDevice;
-    vk::UniqueDevice logicalDevice;
+    vk::PhysicalDevice physical;
+    vk::UniqueDevice logical;
 
     vk::Instance instance;
     
@@ -52,20 +52,16 @@ public:
     Device(const vk::Instance& instance, const vk::UniqueSurfaceKHR& surface) {
         this->instance = instance;
         // Pick a suitable device
-        physicalDevice = pickPhysicalDevice(instance, surface);
+        physical = pickPhysicalDevice(instance, surface);
         initProperties();
         // Create logical device
         createLogicalDevice(surface);
         msaaSamples = getMaxUsableSampleCount();
     }
 
-    void destroy() {
-        // TODO
-    }
-
     SwapchainSupportDetails getSwapchainSupport(const vk::UniqueSurfaceKHR &surface) {
         /* TODO: Store support as class attribute ? */
-        return querySwapchainSupport(physicalDevice, surface);
+        return querySwapchainSupport(physical, surface);
     }
 
     QueueFamilyIndices getQueueFamilyIndices() {
@@ -111,7 +107,7 @@ public:
 
     vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
         for (vk::Format format : candidates) {
-            vk::FormatProperties formatProperties = physicalDevice.getFormatProperties(format);
+            vk::FormatProperties formatProperties = physical.getFormatProperties(format);
             if (tiling == vk::ImageTiling::eLinear && (formatProperties.linearTilingFeatures & features) == features) {
                 return format;
             } else if (tiling == vk::ImageTiling::eOptimal && (formatProperties.optimalTilingFeatures & features) == features) {
@@ -125,7 +121,7 @@ public:
     // TODO: Make more versatile 
 	bool supportsBlittingToLinearImages()
     {
-    	vk::FormatProperties formatProps = physicalDevice.getFormatProperties(vk::Format::eR8G8B8A8Unorm);
+    	vk::FormatProperties formatProps = physical.getFormatProperties(vk::Format::eR8G8B8A8Unorm);
 		if (!(formatProps.linearTilingFeatures & vk::FormatFeatureFlagBits::eBlitDst))
         {
 			return false;
@@ -137,13 +133,13 @@ public:
     template<class T>
     void setDebugUtilsObjectName(T object, std::string name) {
         vk::DebugUtilsObjectNameInfoEXT debugName { object.objectType, (uint64_t) (typename T::CType) object, name.c_str()};
-        logicalDevice.get().setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
+        logical.get().setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
     }
 
 private:
 
     void createLogicalDevice(const vk::UniqueSurfaceKHR& surface, const bool enableValidationLayers = true) {
-        queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
+        queueFamilyIndices = findQueueFamilies(physical, surface);
 
         std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
         // Added transfer as a separate queue
@@ -175,17 +171,17 @@ private:
             deviceCreateInfo.enabledLayerCount = 0;
         }
 
-        logicalDevice = physicalDevice.createDeviceUnique(deviceCreateInfo);
+        logical = physical.createDeviceUnique(deviceCreateInfo);
         
-        graphicsQueue = logicalDevice.get().getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
-        presentQueue = logicalDevice.get().getQueue(queueFamilyIndices.presentFamily.value(), 0);
-        transferQueue = logicalDevice.get().getQueue(queueFamilyIndices.transferFamily.value(), 0);
+        graphicsQueue = logical.get().getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
+        presentQueue = logical.get().getQueue(queueFamilyIndices.presentFamily.value(), 0);
+        transferQueue = logical.get().getQueue(queueFamilyIndices.transferFamily.value(), 0);
     }
 
     void initProperties() {
-        properties = physicalDevice.getProperties();
-        memoryProperties = physicalDevice.getMemoryProperties();
-        queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+        properties = physical.getProperties();
+        memoryProperties = physical.getMemoryProperties();
+        queueFamilyProperties = physical.getQueueFamilyProperties();
     }
 
     vk::PhysicalDevice pickPhysicalDevice(const vk::Instance& instance, const vk::UniqueSurfaceKHR &surface) {

@@ -33,7 +33,7 @@ protected:
         samplerInfo.maxLod = static_cast<uint32_t>(mipLevels);
         samplerInfo.minLod = 0;
 
-        sampler = device->logicalDevice.get().createSampler(samplerInfo);
+        sampler = device->logical.get().createSampler(samplerInfo);
     }
 
 public:
@@ -52,7 +52,7 @@ public:
 
     void destroy()
     {
-        device->logicalDevice.get().destroySampler(sampler);
+        device->logical.get().destroySampler(sampler);
         core::Image::destroy();
     }
 
@@ -108,7 +108,7 @@ private:
     void generateMipMaps(vk::Image image, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
     {
 
-        auto formatProperties = device->physicalDevice.getFormatProperties(format);
+        auto formatProperties = device->physical.getFormatProperties(format);
         auto commandBuffers = context->graphicsCommandPool.beginSingleTimeCommands();
 
         vk::ImageMemoryBarrier barrier;

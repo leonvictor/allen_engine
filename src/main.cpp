@@ -155,8 +155,8 @@ private:
         
         ImGui_ImplVulkan_InitInfo init_info;
         init_info.Instance = context->instance.get();
-        init_info.PhysicalDevice = context->device->physicalDevice;
-        init_info.Device = context->device->logicalDevice.get();
+        init_info.PhysicalDevice = context->device->physical;
+        init_info.Device = context->device->logical.get();
         init_info.QueueFamily = context->device->queueFamilyIndices.presentFamily.value();
         init_info.Queue = context->device->presentQueue;
         init_info.PipelineCache = nullptr;
@@ -359,7 +359,7 @@ private:
 
     void createLightsDescriptorSet() {
         vk::DescriptorSetAllocateInfo allocInfo{ swapchain.descriptorPool, 1, &swapchain.lightsDescriptorSetLayout };
-        lightsDescriptorSet = context->device->logicalDevice.get().allocateDescriptorSets(allocInfo)[0];
+        lightsDescriptorSet = context->device->logical.get().allocateDescriptorSets(allocInfo)[0];
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer.buffer; // TODO: How do we update the lights array ?
@@ -374,7 +374,7 @@ private:
         writeDescriptor.descriptorCount = 1;
         writeDescriptor.pBufferInfo = &lightsBufferInfo;
 
-        context->device->logicalDevice.get().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        context->device->logical.get().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
     void cleanupLights() {
@@ -392,7 +392,7 @@ private:
             glfwWaitEvents(); // Pause the app.
         }
 
-        context->device->logicalDevice.get().waitIdle();
+        context->device->logical.get().waitIdle();
 
         swapchain.cleanup();
         
@@ -481,7 +481,7 @@ private:
             endDrawFrame(imageIndex);
         }
 
-        context->device->logicalDevice.get().waitIdle();
+        context->device->logical.get().waitIdle();
     }
 
     void processKeyboardInput(GLFWwindow *window) {
@@ -507,11 +507,11 @@ private:
     // TODO: Move to swapchain
     uint8_t beginDrawFrame() {
         // Wait for the fence
-        context->device->logicalDevice.get().waitForFences(swapchain.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        context->device->logical.get().waitForFences(swapchain.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
-        vk::Result result = context->device->logicalDevice.get().acquireNextImageKHR(swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
+        vk::Result result = context->device->logical.get().acquireNextImageKHR(swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
         if (result == vk::Result::eErrorOutOfDateKHR) {
             recreateSwapchain();
         } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
@@ -520,7 +520,7 @@ private:
 
         // Check if a previous frame is using the image
         if (swapchain.images[imageIndex].fence) {
-            context->device->logicalDevice.get().waitForFences(swapchain.images[imageIndex].fence, VK_TRUE, UINT64_MAX);
+            context->device->logical.get().waitForFences(swapchain.images[imageIndex].fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
@@ -560,7 +560,7 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
 
-        context->device->logicalDevice.get().resetFences(swapchain.inFlightFences[currentFrame]);
+        context->device->logical.get().resetFences(swapchain.inFlightFences[currentFrame]);
         context->device->graphicsQueue.submit(submitInfo, swapchain.inFlightFences[currentFrame]);
 
         vk::PresentInfoKHR presentInfo;

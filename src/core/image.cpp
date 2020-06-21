@@ -62,7 +62,7 @@ class Image : public Allocation
         imageInfo.sharingMode = vk::SharingMode::eExclusive;
         imageInfo.samples = numSamples;
 
-        image = device->logicalDevice.get().createImage(imageInfo);
+        image = device->logical.get().createImage(imageInfo);
 
         this->layout = layout;
         this->mipLevels = mipLevels;
@@ -74,9 +74,9 @@ class Image : public Allocation
 
     void allocate(const vk::MemoryPropertyFlags& memProperties)
     {
-        vk::MemoryRequirements memRequirements = device->logicalDevice.get().getImageMemoryRequirements(image);
+        vk::MemoryRequirements memRequirements = device->logical.get().getImageMemoryRequirements(image);
         Allocation::allocate(memRequirements, memProperties);
-        device->logicalDevice.get().bindImageMemory(image, memory, 0);
+        device->logical.get().bindImageMemory(image, memory, 0);
     }
 
     void initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D)
@@ -124,8 +124,8 @@ class Image : public Allocation
     void destroy() override
     {
         // TODO: We might not need this with Unique stuff ?
-        device->logicalDevice.get().destroyImageView(view);
-        device->logicalDevice.get().destroyImage(image);
+        device->logical.get().destroyImageView(view);
+        device->logical.get().destroyImage(image);
         Allocation::destroy();
     }
 
@@ -295,7 +295,7 @@ class Image : public Allocation
     {
         // TODO: Swizzle or not based on format
         vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-        auto subResourceLayout = device->logicalDevice.get().getImageSubresourceLayout(image, subresource);
+        auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image, subresource);
 
         if (mapped == nullptr)
         {
@@ -341,7 +341,7 @@ class Image : public Allocation
     glm::vec3 pixelAt(int x, int y, bool colorSwizzle = false)
     {
         vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-        auto subResourceLayout = device->logicalDevice.get().getImageSubresourceLayout(image, subresource);
+        auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image, subresource);
 
         if (mapped == nullptr)
         {
@@ -401,7 +401,7 @@ class Image : public Allocation
         createInfo.subresourceRange.levelCount = mipLevels;
         createInfo.subresourceRange.baseMipLevel = 0;
 
-        return device->logicalDevice.get().createImageView(createInfo);
+        return device->logical.get().createImageView(createInfo);
     }
 };
 } // namespace core

@@ -30,7 +30,7 @@ class Skybox {
     void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout) {
 
             vk::DescriptorSetAllocateInfo allocInfo{ descriptorPool, 1, &descriptorSetLayout };
-            descriptorSet = device->logicalDevice.get().allocateDescriptorSets(allocInfo)[0];
+            descriptorSet = device->logical.get().allocateDescriptorSets(allocInfo)[0];
 
             auto uboDescriptor = mesh.uniformBuffer.getDescriptor();
             auto cubeMapDescriptor = texture.getDescriptor();
@@ -40,7 +40,7 @@ class Skybox {
                 { descriptorSet, 1, 0, 1, vk::DescriptorType::eCombinedImageSampler,  &cubeMapDescriptor, nullptr, nullptr }
             });
 
-            device->logicalDevice.get().updateDescriptorSets(writeDescriptors, nullptr);
+            device->logical.get().updateDescriptorSets(writeDescriptors, nullptr);
     }
 
     void updateUniformBuffer(core::UniformBufferObject ubo) {
