@@ -62,7 +62,7 @@ class Image : public Allocation
         imageInfo.sharingMode = vk::SharingMode::eExclusive;
         imageInfo.samples = numSamples;
 
-        image = device->logicalDevice.createImage(imageInfo);
+        image = device->logicalDevice.get().createImage(imageInfo);
 
         this->layout = layout;
         this->mipLevels = mipLevels;
@@ -74,9 +74,9 @@ class Image : public Allocation
 
     void allocate(const vk::MemoryPropertyFlags& memProperties)
     {
-        vk::MemoryRequirements memRequirements = device->logicalDevice.getImageMemoryRequirements(image);
+        vk::MemoryRequirements memRequirements = device->logicalDevice.get().getImageMemoryRequirements(image);
         Allocation::allocate(memRequirements, memProperties);
-        device->logicalDevice.bindImageMemory(image, memory, 0);
+        device->logicalDevice.get().bindImageMemory(image, memory, 0);
     }
 
     void initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D)
@@ -124,8 +124,8 @@ class Image : public Allocation
     void destroy() override
     {
         // TODO: We might not need this with Unique stuff ?
-        device->logicalDevice.destroyImageView(view);
-        device->logicalDevice.destroyImage(image);
+        device->logicalDevice.get().destroyImageView(view);
+        device->logicalDevice.get().destroyImage(image);
         Allocation::destroy();
     }
 
@@ -139,7 +139,6 @@ class Image : public Allocation
         vk::ImageMemoryBarrier memoryBarrier;
         memoryBarrier.oldLayout = layout;
         memoryBarrier.newLayout = newLayout;
-        //TODO: Specify transferQueue here ?
         memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         memoryBarrier.image = image;
@@ -296,7 +295,7 @@ class Image : public Allocation
     {
         // TODO: Swizzle or not based on format
         vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-        auto subResourceLayout = device->logicalDevice.getImageSubresourceLayout(image, subresource);
+        auto subResourceLayout = device->logicalDevice.get().getImageSubresourceLayout(image, subresource);
 
         if (mapped == nullptr)
         {
@@ -342,7 +341,7 @@ class Image : public Allocation
     glm::vec3 pixelAt(int x, int y, bool colorSwizzle = false)
     {
         vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-        auto subResourceLayout = device->logicalDevice.getImageSubresourceLayout(image, subresource);
+        auto subResourceLayout = device->logicalDevice.get().getImageSubresourceLayout(image, subresource);
 
         if (mapped == nullptr)
         {
@@ -402,7 +401,7 @@ class Image : public Allocation
         createInfo.subresourceRange.levelCount = mipLevels;
         createInfo.subresourceRange.baseMipLevel = 0;
 
-        return device->logicalDevice.createImageView(createInfo);
+        return device->logicalDevice.get().createImageView(createInfo);
     }
 };
 } // namespace core

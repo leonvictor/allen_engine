@@ -7,7 +7,7 @@
 namespace core::shaders {
     vk::ShaderModule createShaderModule(std::shared_ptr<core::Device> device, const std::string& filename) {
         auto code = utils::readFile(filename);
-        return device->logicalDevice.createShaderModule({ {}, code.size(), reinterpret_cast<const uint32_t*>(code.data()) });
+        return device->logicalDevice.get().createShaderModule({ {}, code.size(), reinterpret_cast<const uint32_t*>(code.data()) });
     }
 
     vk::PipelineShaderStageCreateInfo loadShader(std::shared_ptr<core::Device> device, const std::string& filename, vk::ShaderStageFlagBits stage, const std::string& entryPoint) {

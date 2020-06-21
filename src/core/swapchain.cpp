@@ -157,7 +157,7 @@ namespace core
                 {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
                 {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-            skyboxDescriptorSetLayout = context->device->logicalDevice.createDescriptorSetLayout({{}, (uint32_t)setsLayoutBindings.size(), setsLayoutBindings.data()});
+            skyboxDescriptorSetLayout = context->device->logicalDevice.get().createDescriptorSetLayout({{}, (uint32_t)setsLayoutBindings.size(), setsLayoutBindings.data()});
 
 #ifndef NDEBUG
             context->device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
@@ -248,7 +248,7 @@ namespace core
             renderPassInfo.dependencyCount = 1;
             renderPassInfo.pDependencies = &subpassDependency;
 
-            renderPass = context->device->logicalDevice.createRenderPass(renderPassInfo);
+            renderPass = context->device->logicalDevice.get().createRenderPass(renderPassInfo);
         }
 
         void createCommandBuffers(const core::CommandPool &commandPool)
@@ -327,9 +327,9 @@ namespace core
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
-                imageAvailableSemaphores.push_back(context->device->logicalDevice.createSemaphore(semaphoreInfo, nullptr));
-                renderFinishedSemaphores.push_back(context->device->logicalDevice.createSemaphore(semaphoreInfo, nullptr));
-                inFlightFences.push_back(context->device->logicalDevice.createFence(fenceInfo, nullptr));
+                imageAvailableSemaphores.push_back(context->device->logicalDevice.get().createSemaphore(semaphoreInfo, nullptr));
+                renderFinishedSemaphores.push_back(context->device->logicalDevice.get().createSemaphore(semaphoreInfo, nullptr));
+                inFlightFences.push_back(context->device->logicalDevice.get().createFence(fenceInfo, nullptr));
             }
         }
 
@@ -341,17 +341,17 @@ namespace core
 
             for (auto img : images)
             {
-                img.cleanup(context->device->logicalDevice, commandPool.pool);
+                img.cleanup(context->device->logicalDevice.get(), commandPool.pool);
             }
 
             pipelines.objects.destroy();
             pipelines.skybox.destroy();
 
-            context->device->logicalDevice.destroyRenderPass(renderPass);
+            context->device->logicalDevice.get().destroyRenderPass(renderPass);
 
-            context->device->logicalDevice.destroySwapchainKHR(swapchain);
+            context->device->logicalDevice.get().destroySwapchainKHR(swapchain);
 
-            context->device->logicalDevice.destroyDescriptorPool(descriptorPool);
+            context->device->logicalDevice.get().destroyDescriptorPool(descriptorPool);
         }
 
         void destroy()
@@ -359,15 +359,15 @@ namespace core
             cleanup();
             picker.destroy();
             
-            context->device->logicalDevice.destroyDescriptorSetLayout(objectsDescriptorSetLayout);
-            context->device->logicalDevice.destroyDescriptorSetLayout(lightsDescriptorSetLayout);
-            context->device->logicalDevice.destroyDescriptorSetLayout(skyboxDescriptorSetLayout);
+            context->device->logicalDevice.get().destroyDescriptorSetLayout(objectsDescriptorSetLayout);
+            context->device->logicalDevice.get().destroyDescriptorSetLayout(lightsDescriptorSetLayout);
+            context->device->logicalDevice.get().destroyDescriptorSetLayout(skyboxDescriptorSetLayout);
 
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
-                context->device->logicalDevice.destroySemaphore(imageAvailableSemaphores[i]);
-                context->device->logicalDevice.destroySemaphore(renderFinishedSemaphores[i]);
-                context->device->logicalDevice.destroyFence(inFlightFences[i]);
+                context->device->logicalDevice.get().destroySemaphore(imageAvailableSemaphores[i]);
+                context->device->logicalDevice.get().destroySemaphore(renderFinishedSemaphores[i]);
+                context->device->logicalDevice.get().destroyFence(inFlightFences[i]);
             }
         }
 
@@ -417,7 +417,7 @@ namespace core
             sCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
             sCreateInfo.oldSwapchain = {(VkSwapchainKHR_T *)0}; // TODO : Pass the old swapchain to reuse most of the info.
 
-            swapchain = context->device->logicalDevice.createSwapchainKHR(sCreateInfo);
+            swapchain = context->device->logicalDevice.get().createSwapchainKHR(sCreateInfo);
 
             this->extent = extent;
             imageFormat = surfaceFormat.format;
@@ -474,7 +474,7 @@ namespace core
 
         void createImages()
         {
-            std::vector<vk::Image> imgs = context->device->logicalDevice.getSwapchainImagesKHR(swapchain);
+            std::vector<vk::Image> imgs = context->device->logicalDevice.get().getSwapchainImagesKHR(swapchain);
 
             for (vk::Image swapImage : imgs)
             {
@@ -504,7 +504,7 @@ namespace core
             framebufferInfo.width = extent.width;
             framebufferInfo.height = extent.height;
             framebufferInfo.layers = 1; // Nb of layers in image array.
-            return context->device->logicalDevice.createFramebuffer(framebufferInfo);
+            return context->device->logicalDevice.get().createFramebuffer(framebufferInfo);
         }
 
         void createDepthResources()
@@ -555,7 +555,7 @@ namespace core
 
             vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t)bindings.size(), bindings.data()};
 
-            objectsDescriptorSetLayout = context->device->logicalDevice.createDescriptorSetLayout(createInfo);
+            objectsDescriptorSetLayout = context->device->logicalDevice.get().createDescriptorSetLayout(createInfo);
 
             vk::DescriptorSetLayoutBinding lightsLayoutBinding;
             lightsLayoutBinding.binding = 0;
@@ -567,7 +567,7 @@ namespace core
             lightsCreateInfo.bindingCount = 1;
             lightsCreateInfo.pBindings = &lightsLayoutBinding;
 
-            lightsDescriptorSetLayout = context->device->logicalDevice.createDescriptorSetLayout(lightsCreateInfo);
+            lightsDescriptorSetLayout = context->device->logicalDevice.get().createDescriptorSetLayout(lightsCreateInfo);
 
 #ifndef NDEBUG
             context->device->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
@@ -594,7 +594,7 @@ namespace core
             createInfo.pPoolSizes = poolSizes.data();
             createInfo.maxSets = (nObjects * 2) + 2; // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker 
 
-            descriptorPool = context->device->logicalDevice.createDescriptorPool(createInfo);
+            descriptorPool = context->device->logicalDevice.get().createDescriptorPool(createInfo);
         }
     };
 }; // namespace core

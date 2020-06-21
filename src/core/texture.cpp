@@ -33,7 +33,7 @@ protected:
         samplerInfo.maxLod = static_cast<uint32_t>(mipLevels);
         samplerInfo.minLod = 0;
 
-        sampler = device->logicalDevice.createSampler(samplerInfo);
+        sampler = device->logicalDevice.get().createSampler(samplerInfo);
     }
 
 public:
@@ -42,17 +42,17 @@ public:
 
     Texture() {}
 
-    Texture(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path)
+    Texture(std::shared_ptr<core::Context> context, std::string path)
     {
         this->context = context;
 
-        createTextureImage(context, device, path);
+        createTextureImage(context, path);
         createSampler();
     }
 
     void destroy()
     {
-        device->logicalDevice.destroySampler(sampler);
+        device->logicalDevice.get().destroySampler(sampler);
         core::Image::destroy();
     }
 
@@ -62,9 +62,9 @@ public:
         return vk::DescriptorImageInfo{sampler, view, vk::ImageLayout::eShaderReadOnlyOptimal};
     }
 private:
-    void createTextureImage(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path)
+    void createTextureImage(std::shared_ptr<core::Context> context, std::string path)
     {
-        this->device = device;
+        this->device = context->device;
         this->context = context;
         
         // Load image from file

@@ -26,7 +26,7 @@ class Picker
     void createFence()
     {
         vk::FenceCreateInfo fenceInfo;
-        renderFinished = device->logicalDevice.createFence(fenceInfo);
+        renderFinished = device->logicalDevice.get().createFence(fenceInfo);
     }
 
     void createCommandBuffer(const core::CommandPool& commandPool)
@@ -49,7 +49,7 @@ class Picker
         fbInfo.height = height;
         fbInfo.layers = 1;
 
-        framebuffer = device->logicalDevice.createFramebuffer(fbInfo);
+        framebuffer = device->logicalDevice.get().createFramebuffer(fbInfo);
     }
 
     void createRessources()
@@ -87,7 +87,7 @@ class Picker
 
         vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
-        descriptorSetLayout = device->logicalDevice.createDescriptorSetLayout(createInfo);
+        descriptorSetLayout = device->logicalDevice.get().createDescriptorSetLayout(createInfo);
     }
 
     void createRenderPass()
@@ -141,7 +141,7 @@ class Picker
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDependency;
 
-        renderPass = device->logicalDevice.createRenderPass(renderPassInfo);
+        renderPass = device->logicalDevice.get().createRenderPass(renderPassInfo);
 #ifndef NDEBUG
         device->setDebugUtilsObjectName(renderPass, "Picker renderpass");
 #endif
@@ -192,10 +192,10 @@ class Picker
         depthImage.destroy();
 
         pipeline.destroy();
-        device->logicalDevice.destroyRenderPass(renderPass);
-        device->logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
-        device->logicalDevice.destroyFence(renderFinished);
-        device->logicalDevice.destroyFramebuffer(framebuffer);
+        device->logicalDevice.get().destroyRenderPass(renderPass);
+        device->logicalDevice.get().destroyDescriptorSetLayout(descriptorSetLayout);
+        device->logicalDevice.get().destroyFence(renderFinished);
+        device->logicalDevice.get().destroyFramebuffer(framebuffer);
     }
 
     void render(std::vector<SceneObject> models, glm::vec2 target)
@@ -256,8 +256,8 @@ class Picker
         // TODO: Call that elsewhere
         render(models, target);
 
-        device->logicalDevice.waitForFences(renderFinished, VK_TRUE, UINT64_MAX);
-        device->logicalDevice.resetFences(renderFinished);
+        device->logicalDevice.get().waitForFences(renderFinished, VK_TRUE, UINT64_MAX);
+        device->logicalDevice.get().resetFences(renderFinished);
 
         core::Image stagingImage = core::Image(device, width, height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst,
                                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view

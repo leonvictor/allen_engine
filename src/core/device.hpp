@@ -30,7 +30,7 @@ struct SwapchainSupportDetails {
 class Device  {
 public:
     vk::PhysicalDevice physicalDevice;
-    vk::Device logicalDevice;
+    vk::UniqueDevice logicalDevice;
 
     vk::Instance instance;
     
@@ -73,7 +73,7 @@ public:
     }
     
     /** @brief Typecast to vk::Device */
-    operator vk::Device() {return logicalDevice; };
+    // operator vk::Device() {return logicalDevice.get(); };
 
     static bool checkDeviceExtensionsSupport(const vk::PhysicalDevice &dev, std::vector<const char*> requiredExtensions) {
         // Populate available extensions list
@@ -137,7 +137,7 @@ public:
     template<class T>
     void setDebugUtilsObjectName(T object, std::string name) {
         vk::DebugUtilsObjectNameInfoEXT debugName { object.objectType, (uint64_t) (typename T::CType) object, name.c_str()};
-        logicalDevice.setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
+        logicalDevice.get().setDebugUtilsObjectNameEXT( debugName, vk::DispatchLoaderDynamic{ instance , vkGetInstanceProcAddr});
     }
 
 private:
@@ -175,11 +175,11 @@ private:
             deviceCreateInfo.enabledLayerCount = 0;
         }
 
-        logicalDevice = physicalDevice.createDevice(deviceCreateInfo);
+        logicalDevice = physicalDevice.createDeviceUnique(deviceCreateInfo);
         
-        graphicsQueue = logicalDevice.getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
-        presentQueue = logicalDevice.getQueue(queueFamilyIndices.presentFamily.value(), 0);
-        transferQueue = logicalDevice.getQueue(queueFamilyIndices.transferFamily.value(), 0);
+        graphicsQueue = logicalDevice.get().getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
+        presentQueue = logicalDevice.get().getQueue(queueFamilyIndices.presentFamily.value(), 0);
+        transferQueue = logicalDevice.get().getQueue(queueFamilyIndices.transferFamily.value(), 0);
     }
 
     void initProperties() {

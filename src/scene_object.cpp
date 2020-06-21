@@ -43,7 +43,7 @@ public:
         // TODO: Texture is a component.
         if (!texturePath.empty())
         {
-            texture = core::Texture(context, device, texturePath);
+            texture = core::Texture(context, texturePath);
         }
     }
 
@@ -63,7 +63,7 @@ public:
     {
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
+        descriptorSet = device->logicalDevice.get().allocateDescriptorSets(allocInfo)[0];
 
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
 
@@ -92,13 +92,13 @@ public:
         auto materialDescriptor = material.getBufferDescriptor();
         writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
 
-        device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+        device->logicalDevice.get().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
     void createColorDescriptorSet(vk::DescriptorPool &descriptorPool, vk::DescriptorSetLayout &descriptorSetLayout)
     {
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        colorDescriptorSet = device->logicalDevice.allocateDescriptorSets(allocInfo)[0];
+        colorDescriptorSet = device->logicalDevice.get().allocateDescriptorSets(allocInfo)[0];
 
         std::array<vk::WriteDescriptorSet, 1> writeDescriptors = {};
 
@@ -110,7 +110,7 @@ public:
         auto uniformDescriptor = mesh.uniformBuffer.getDescriptor();
         writeDescriptors[0].pBufferInfo = &uniformDescriptor;
 
-        device->logicalDevice.updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+        device->logicalDevice.get().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
     void destroy()

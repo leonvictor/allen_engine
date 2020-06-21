@@ -58,11 +58,12 @@ class Context
 
     void destroy()
     {
-        device->logicalDevice.destroyCommandPool(graphicsCommandPool);
-        device->logicalDevice.destroyCommandPool(transferCommandPool);
-        device->logicalDevice.destroy();
-
-        // instance->destroySurfaceKHR(surface);
+        device->logicalDevice.get().destroyCommandPool(graphicsCommandPool);
+        device->logicalDevice.get().destroyCommandPool(transferCommandPool);
+        
+        // TODO: Remove when RAII is functionnal
+        device->logicalDevice.get().destroy();
+        instance->destroySurfaceKHR(surface.get());
     }
     
   private:

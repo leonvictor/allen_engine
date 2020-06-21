@@ -24,7 +24,7 @@ namespace core {
         void destroy() override 
         {
             Allocation::destroy();
-            device->logicalDevice.destroyBuffer(buffer);
+            device->logicalDevice.get().destroyBuffer(buffer);
         }
 
         void copyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions)
@@ -82,14 +82,14 @@ namespace core {
             bufferInfo.queueFamilyIndexCount = 2;
             bufferInfo.pQueueFamilyIndices = queues;
         
-            buffer = device->logicalDevice.createBuffer(bufferInfo);
+            buffer = device->logicalDevice.get().createBuffer(bufferInfo);
         }
 
         void allocate(const vk::MemoryPropertyFlags& memProperties)
         {
-            vk::MemoryRequirements memRequirements = device->logicalDevice.getBufferMemoryRequirements(buffer);
+            vk::MemoryRequirements memRequirements = device->logicalDevice.get().getBufferMemoryRequirements(buffer);
             Allocation::allocate(memRequirements, memProperties);
-            device->logicalDevice.bindBufferMemory(buffer, memory, 0);
+            device->logicalDevice.get().bindBufferMemory(buffer, memory, 0);
         }
     };
 }
