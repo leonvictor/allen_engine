@@ -49,7 +49,7 @@ public:
 
     Device() {};
 
-    Device(const vk::Instance& instance, const vk::SurfaceKHR& surface) {
+    Device(const vk::Instance& instance, const vk::UniqueSurfaceKHR& surface) {
         this->instance = instance;
         // Pick a suitable device
         physicalDevice = pickPhysicalDevice(instance, surface);
@@ -63,7 +63,7 @@ public:
         // TODO
     }
 
-    SwapchainSupportDetails getSwapchainSupport(const vk::SurfaceKHR &surface) {
+    SwapchainSupportDetails getSwapchainSupport(const vk::UniqueSurfaceKHR &surface) {
         /* TODO: Store support as class attribute ? */
         return querySwapchainSupport(physicalDevice, surface);
     }
@@ -128,7 +128,6 @@ public:
     	vk::FormatProperties formatProps = physicalDevice.getFormatProperties(vk::Format::eR8G8B8A8Unorm);
 		if (!(formatProps.linearTilingFeatures & vk::FormatFeatureFlagBits::eBlitDst))
         {
-			std::cerr << "Device does not support blitting to linear tiled images, using copy instead of blit!" << std::endl;
 			return false;
 		}
         return true;
@@ -143,7 +142,7 @@ public:
 
 private:
 
-    void createLogicalDevice(const vk::SurfaceKHR& surface, const bool enableValidationLayers = true) {
+    void createLogicalDevice(const vk::UniqueSurfaceKHR& surface, const bool enableValidationLayers = true) {
         queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
 
         std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -189,7 +188,7 @@ private:
         queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
     }
 
-    vk::PhysicalDevice pickPhysicalDevice(const vk::Instance& instance, const vk::SurfaceKHR &surface) {
+    vk::PhysicalDevice pickPhysicalDevice(const vk::Instance& instance, const vk::UniqueSurfaceKHR &surface) {
         std::vector<vk::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
 
         if (devices.size() == 0) {
@@ -205,11 +204,11 @@ private:
         throw std::runtime_error("Failed to find a suitable GPU.");
     }
     
-    static SwapchainSupportDetails querySwapchainSupport(const vk::PhysicalDevice& device,  const vk::SurfaceKHR &surface){
+    static SwapchainSupportDetails querySwapchainSupport(const vk::PhysicalDevice& device,  const vk::UniqueSurfaceKHR &surface){
         SwapchainSupportDetails details;
-        details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
-        details.formats = device.getSurfaceFormatsKHR(surface);
-        details.presentModes = device.getSurfacePresentModesKHR(surface);
+        details.capabilities = device.getSurfaceCapabilitiesKHR(surface.get());
+        details.formats = device.getSurfaceFormatsKHR(surface.get());
+        details.presentModes = device.getSurfacePresentModesKHR(surface.get());
         return details;
     };
 
@@ -228,7 +227,7 @@ private:
     }
 
     /* TODO: This is static but only used internally. We may aswell remove the static part and assert that physical device has been picked. */
-    static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, const vk::SurfaceKHR& surface) {
+    static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, const vk::UniqueSurfaceKHR& surface) {
         QueueFamilyIndices indices;
         // Assign index to queue families that could be found
         uint32_t queueFamilyCount = 0;
@@ -242,7 +241,7 @@ private:
                 indices.transferFamily = i;
             }
 
-            if (device.getSurfaceSupportKHR(i, surface)) {
+            if (device.getSurfaceSupportKHR(i, surface.get())) {
                 indices.presentFamily = i;
             }
             //TODO : It's very likely that the queue family that has the "present" capability is the same as
@@ -258,7 +257,7 @@ private:
         return indices;
     }
 
-    static bool isDeviceSuitable(const vk::PhysicalDevice &device, const vk::SurfaceKHR &surface, std::vector<const char*> requiredExtensions) {
+    static bool isDeviceSuitable(const vk::PhysicalDevice &device, const vk::UniqueSurfaceKHR &surface, std::vector<const char*> requiredExtensions) {
         core::QueueFamilyIndices familyIndices = findQueueFamilies(device, surface);
         bool extensionsSupported = checkDeviceExtensionsSupport(device, requiredExtensions);
 

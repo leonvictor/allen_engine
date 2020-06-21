@@ -25,8 +25,8 @@ class Context
 {
   public:
     vk::UniqueInstance instance;
+    vk::UniqueSurfaceKHR surface;
     std::shared_ptr<core::Device> device;
-    vk::SurfaceKHR surface;
 
     core::CommandPool graphicsCommandPool;
     core::CommandPool transferCommandPool;
@@ -62,7 +62,7 @@ class Context
         device->logicalDevice.destroyCommandPool(transferCommandPool);
         device->logicalDevice.destroy();
 
-        instance->destroySurfaceKHR(surface);
+        // instance->destroySurfaceKHR(surface);
     }
     
   private:
@@ -108,14 +108,14 @@ class Context
 
     void createSurface(GLFWwindow* window)
     {
-        VkSurfaceKHR pSurface = VkSurfaceKHR(surface);
+        VkSurfaceKHR pSurface;
         VkInstance pInstance = (VkInstance) instance.get();
         if (glfwCreateWindowSurface(pInstance, window, nullptr, &pSurface) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create window surface.");
         }
 
-        surface = vk::SurfaceKHR(pSurface);
+        surface = vk::UniqueSurfaceKHR(pSurface);
     }
 
     bool checkValidationLayersSupport()

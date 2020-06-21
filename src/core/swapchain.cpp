@@ -387,7 +387,7 @@ namespace core
             }
 
             vk::SwapchainCreateInfoKHR sCreateInfo;
-            sCreateInfo.surface = context->surface;
+            sCreateInfo.surface = context->surface.get();
             sCreateInfo.minImageCount = imageCount;
             sCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
             sCreateInfo.imageFormat = surfaceFormat.format;
