@@ -45,7 +45,7 @@ class Context
     {
         createInstance();
         createSurface(window);
-        device = std::make_shared<core::Device>(instance.get(), surface);
+        device = std::make_shared<core::Device>(instance, surface);
         createCommandPools();
         setupDebugMessenger();
     }
@@ -60,12 +60,20 @@ class Context
     {
         device->logical.get().destroyCommandPool(graphicsCommandPool);
         device->logical.get().destroyCommandPool(transferCommandPool);
-        
+
         // TODO: Remove when RAII is functionnal
         device->logical.get().destroy();
         instance->destroySurfaceKHR(surface.get());
     }
-    
+
+    /* Helper function to add a name to a vulkan object for debugging purposes. */
+    template <class T>
+    void setDebugUtilsObjectName(T object, std::string name)
+    {
+        vk::DebugUtilsObjectNameInfoEXT debugName{object.objectType, (uint64_t)(typename T::CType) object, name.c_str()};
+        device->logical.get().setDebugUtilsObjectNameEXT(debugName, vk::DispatchLoaderDynamic{instance.get(), vkGetInstanceProcAddr});
+    }
+
   private:
     void createInstance()
     {

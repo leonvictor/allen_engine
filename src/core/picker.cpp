@@ -69,8 +69,8 @@ class Picker
         });
 
 #ifndef NDEBUG
-        device->setDebugUtilsObjectName(depthImage.image, "Picker depth image");
-        device->setDebugUtilsObjectName(image.image, "Picker color image");
+        context->setDebugUtilsObjectName(depthImage.image, "Picker depth image");
+        context->setDebugUtilsObjectName(image.image, "Picker color image");
 #endif
     }
 
@@ -143,7 +143,7 @@ class Picker
 
         renderPass = device->logical.get().createRenderPass(renderPassInfo);
 #ifndef NDEBUG
-        device->setDebugUtilsObjectName(renderPass, "Picker renderpass");
+        context->setDebugUtilsObjectName(renderPass, "Picker renderpass");
 #endif
     }
 
@@ -160,7 +160,7 @@ class Picker
         pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout}));
 
 #ifndef NDEBUG
-        device->setDebugUtilsObjectName(pipeline.graphicsPipeline, "Picker graphics Pipeline");
+        context->setDebugUtilsObjectName(pipeline.graphicsPipeline, "Picker graphics Pipeline");
 #endif
         // TODO: Create object picking pipeline
         //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing

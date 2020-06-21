@@ -146,8 +146,8 @@ namespace core
 
 // TODO: Get rid of the double negative
 #ifndef NDEBUG
-            context->device->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
-            context->device->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
+            context->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
+            context->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
 #endif
         }
 
@@ -160,7 +160,7 @@ namespace core
             skyboxDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayout({{}, (uint32_t)setsLayoutBindings.size(), setsLayoutBindings.data()});
 
 #ifndef NDEBUG
-            context->device->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
+            context->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
 #endif
         }
 
@@ -523,7 +523,7 @@ namespace core
                                      vk::ImageAspectFlagBits::eColor);
 
 #ifndef NDEBUG
-            context->device->setDebugUtilsObjectName(colorImage.view, "Color Image View");
+            context->setDebugUtilsObjectName(colorImage.view, "Color Image View");
 #endif
         }
 
@@ -570,8 +570,8 @@ namespace core
             lightsDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayout(lightsCreateInfo);
 
 #ifndef NDEBUG
-            context->device->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
-            context->device->setDebugUtilsObjectName(lightsDescriptorSetLayout, "Lights Descriptor Set Layout");
+            context->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
+            context->setDebugUtilsObjectName(lightsDescriptorSetLayout, "Lights Descriptor Set Layout");
 #endif
         }
 
