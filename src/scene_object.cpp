@@ -1,16 +1,16 @@
 #pragma once
 
-#include "mesh.cpp"
-#include "core/texture.cpp"
-#include "material.cpp"
 #include "core/device.hpp"
-#include <glm/glm.hpp>
+#include "core/texture.hpp"
+#include "material.cpp"
+#include "mesh.cpp"
 #include "transform.cpp"
 #include "utils/color_uid.cpp"
+#include <glm/glm.hpp>
 
 class SceneObject
 {
-public:
+  public:
     Mesh mesh;
     core::Texture texture;
     Material material;
@@ -59,7 +59,7 @@ public:
 
     // TODO: Descriptor allocation and update is managed by the swapchain.
     // We could extract this part and use a method where each objects requests a descriptor from the pool ?
-    void createDescriptorSet(vk::DescriptorPool &descriptorPool, vk::DescriptorSetLayout &descriptorSetLayout)
+    void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout)
     {
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
@@ -95,7 +95,7 @@ public:
         device->logical.get().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
-    void createColorDescriptorSet(vk::DescriptorPool &descriptorPool, vk::DescriptorSetLayout &descriptorSetLayout)
+    void createColorDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout)
     {
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
         colorDescriptorSet = device->logical.get().allocateDescriptorSets(allocInfo)[0];
@@ -120,6 +120,6 @@ public:
         material.destroy();
     }
 
-private:
+  private:
     glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
 };
