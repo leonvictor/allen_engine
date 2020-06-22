@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 project(custom-engine VERSION 0.1)
 # TODO: Find a better way to include all sources
-set(SOURCE "src/main.cpp" "src/core/context.cpp")
+set(SOURCE "src/main.cpp" "src/core/context.cpp" "src/core/device.cpp")
 
 find_package(Vulkan REQUIRED)
 
