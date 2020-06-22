@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
 
 project(custom-engine VERSION 0.1)
-set(SOURCE "src/main.cpp")
+# TODO: Find a better way to include all sources
+set(SOURCE "src/main.cpp" "src/core/context.cpp")
 
 find_package(Vulkan REQUIRED)
 
