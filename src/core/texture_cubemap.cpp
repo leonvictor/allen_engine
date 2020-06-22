@@ -4,7 +4,7 @@
 
 #include "context.hpp"
 #include "device.hpp"
-#include "image.cpp"
+#include "image.hpp"
 #include "texture.cpp"
 
 namespace core

@@ -4,7 +4,7 @@
 #include "commandpool.cpp"
 #include "context.hpp"
 #include "device.hpp"
-#include "image.cpp"
+#include "image.hpp"
 #include "pipeline.cpp"
 
 class Picker
@@ -162,8 +162,7 @@ class Picker
 #ifndef NDEBUG
         context->setDebugUtilsObjectName(pipeline.graphicsPipeline, "Picker graphics Pipeline");
 #endif
-        // TODO: Create object picking pipeline
-        //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
+        // TODO: Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
     }
 
   public:

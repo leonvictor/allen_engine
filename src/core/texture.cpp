@@ -1,18 +1,18 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
-#include <memory>
-#include "image.cpp"
-#include "device.hpp"
 #include "buffer.cpp"
 #include "context.hpp"
+#include "device.hpp"
+#include "image.hpp"
+#include <memory>
+#include <vulkan/vulkan.hpp>
 
 namespace core
 {
 // TODO: 2D and 3D
 class Texture : public core::Image
 {
-protected:
+  protected:
     void createSampler(vk::SamplerAddressMode adressMode = vk::SamplerAddressMode::eRepeat)
     {
         vk::SamplerCreateInfo samplerInfo;
@@ -36,7 +36,7 @@ protected:
         sampler = device->logical.get().createSampler(samplerInfo);
     }
 
-public:
+  public:
     vk::Sampler sampler; // TODO: Does each image have a sampler or do they share it ?
     std::shared_ptr<core::Context> context;
 
@@ -61,12 +61,13 @@ public:
     {
         return vk::DescriptorImageInfo{sampler, view, vk::ImageLayout::eShaderReadOnlyOptimal};
     }
-private:
+
+  private:
     void createTextureImage(std::shared_ptr<core::Context> context, std::string path)
     {
         this->device = context->device;
         this->context = context;
-        
+
         // Load image from file
         core::ImageFile img = core::ImageFile(path);
 
@@ -104,7 +105,7 @@ private:
 
     // TODO :
     // - Move to image ? It's weird as long as we need context
-    // 
+    //
     void generateMipMaps(vk::Image image, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
     {
 
