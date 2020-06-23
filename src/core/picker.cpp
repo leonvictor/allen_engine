@@ -64,7 +64,7 @@ class Picker
                             vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
                             vk::ImageAspectFlagBits::eColor);
 
-        context->graphicsCommandPool.execute([&](vk::CommandBuffer cb) {
+        context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             image.transitionLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
         });
 
@@ -262,11 +262,11 @@ class Picker
                                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
 
         // TODO: OPTIMIZE Use a single command buffer to do all necessary operations
-        context->transferCommandPool.execute([&](vk::CommandBuffer cb) {
+        context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
             stagingImage.transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
         });
 
-        context->graphicsCommandPool.execute([&](vk::CommandBuffer cb) {
+        context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             image.transitionLayout(cb, vk::ImageLayout::eTransferSrcOptimal);
 
             if (device->supportsBlittingToLinearImages())

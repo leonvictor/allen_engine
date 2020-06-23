@@ -1,5 +1,7 @@
 #pragma once
 
+#include "commandpool.cpp"
+#include "queue.hpp"
 #include <assert.h>
 #include <set>
 #include <vulkan/vulkan.hpp>
@@ -30,18 +32,6 @@ struct SwapchainSupportDetails
     std::vector<vk::PresentModeKHR> presentModes;
 };
 
-struct Queue
-{
-    // TODO: Find a better API (this leads to a lot of queue.queue 's or queues.graphics.queue)
-    // Maybe a simple getter ?
-    vk::Queue queue;
-    uint32_t family;
-
-    Queue(vk::Device& device, uint32_t family);
-    Queue() {}
-    operator vk::Queue() { return queue; }
-};
-
 class Device
 {
   public:
@@ -58,18 +48,23 @@ class Device
         VK_KHR_SWAPCHAIN_EXTENSION_NAME}; // TODO: This is == to the reqExtensions parameters everywhere
 
     vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
-    // vk::Queue graphicsQueue, presentQueue, transferQueue;
 
     struct
     {
-        Queue graphics;
-        Queue present;
-        Queue transfer;
+        core::Queue graphics;
+        core::Queue present;
+        core::Queue transfer;
     } queues;
 
-    Device();
+    struct
+    {
+        core::CommandPool graphics;
+        core::CommandPool transfer;
+    } commandpools;
 
+    Device();
     Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface);
+    void destroy();
 
     SwapchainSupportDetails getSwapchainSupport(const vk::UniqueSurfaceKHR& surface);
 
@@ -87,7 +82,7 @@ class Device
 
   private:
     void createLogicalDevice(const vk::UniqueSurfaceKHR& surface, const bool enableValidationLayers = true);
-
+    void createCommandPools();
     void initProperties();
 
     static SwapchainSupportDetails querySwapchainSupport(const vk::PhysicalDevice& device, const vk::UniqueSurfaceKHR& surface);

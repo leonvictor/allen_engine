@@ -4,7 +4,7 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
-#include "device.hpp"
+#include "queue.hpp"
 
 namespace core
 {
@@ -15,17 +15,18 @@ class CommandPool
     // shared_ptr ?
     vk::CommandPool pool;
     core::Queue queue;
-    std::shared_ptr<core::Device> device;
+    // std::shared_ptr<core::Device> device;
+    vk::Device device;
 
     CommandPool() {} // TODO: We shouldn't need this
 
-    CommandPool(std::shared_ptr<core::Device> device, core::Queue& queue, vk::CommandPoolCreateFlagBits flags = vk::CommandPoolCreateFlagBits())
+    CommandPool(vk::Device& device, core::Queue& queue, vk::CommandPoolCreateFlagBits flags = vk::CommandPoolCreateFlagBits())
     {
         this->device = device;
         this->queue = queue;
 
         vk::CommandPoolCreateInfo createInfo(flags, queue.family);
-        pool = device->logical.get().createCommandPool(createInfo);
+        pool = device.createCommandPool(createInfo);
     }
 
     operator vk::CommandPool() { return pool; }
@@ -43,7 +44,7 @@ class CommandPool
         allocInfo.commandPool = pool;
         allocInfo.commandBufferCount = 1;
 
-        auto commandBuffers = device->logical.get().allocateCommandBuffers(allocInfo);
+        auto commandBuffers = device.allocateCommandBuffers(allocInfo);
 
         // Immediately start recording
         vk::CommandBufferBeginInfo beginInfo;
@@ -59,7 +60,7 @@ class CommandPool
     inline void execute(const std::function<void(vk::CommandBuffer cb)>& func)
     {
         vk::CommandBufferAllocateInfo cbai{this->pool, vk::CommandBufferLevel::ePrimary, 1};
-        auto cbs = device->logical.get().allocateCommandBuffers(cbai);
+        auto cbs = device.allocateCommandBuffers(cbai);
         cbs[0].begin(vk::CommandBufferBeginInfo{});
         func(cbs[0]);
         cbs[0].end();
@@ -68,7 +69,7 @@ class CommandPool
         submitInfo.pCommandBuffers = cbs.data();
         queue.queue.submit(submitInfo, vk::Fence{});
         queue.queue.waitIdle(); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
-        device->logical.get().freeCommandBuffers(pool, cbs);
+        device.freeCommandBuffers(pool, cbs);
     }
 
     // TODO: This would make more sense in a Queue class, which can decide how to handle the commands.
@@ -88,7 +89,7 @@ class CommandPool
         queue.queue.submit(submitInfo, nullptr);
         queue.queue.waitIdle(); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
 
-        device->logical.get().freeCommandBuffers(pool, commandBuffers);
+        device.freeCommandBuffers(pool, commandBuffers);
     }
 
     std::vector<vk::CommandBuffer> allocateCommandBuffers(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const
@@ -98,7 +99,7 @@ class CommandPool
         allocInfo.commandBufferCount = count;
         allocInfo.level = level; // Or secondary
 
-        return device->logical.get().allocateCommandBuffers(allocInfo);
+        return device.allocateCommandBuffers(allocInfo);
     }
 
   private:

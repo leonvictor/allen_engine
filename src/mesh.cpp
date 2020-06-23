@@ -110,7 +110,7 @@ class Mesh
         vertexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         // TODO: Group buffer copies in a cb
-        context->transferCommandPool.execute([&](vk::CommandBuffer cb) {
+        context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
             stagingBuffer.copyTo(cb, vertexBuffer, bufferSize);
         });
 
@@ -128,7 +128,7 @@ class Mesh
         stagingBuffer.unmap();
 
         indexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        context->transferCommandPool.execute([&](vk::CommandBuffer cb) {
+        context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
             stagingBuffer.copyTo(cb, indexBuffer, bufferSize);
         });
 

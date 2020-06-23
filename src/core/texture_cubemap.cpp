@@ -80,12 +80,12 @@ void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, s
 
     allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    context->transferCommandPool.execute([&](vk::CommandBuffer cb) {
+    context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
         stagingBuffer.copyTo(cb, image, bufferCopyRegions);
     });
 
-    context->graphicsCommandPool.execute([&](vk::CommandBuffer cb) {
+    context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
     });
 

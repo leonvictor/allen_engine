@@ -175,7 +175,7 @@ class Engine
         // Use any command queue
 
         // TODO: Make the single time buffer usage more fluid
-        context->graphicsCommandPool.execute([&](vk::CommandBuffer cb) {
+        context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
             ImGui_ImplVulkan_CreateFontsTexture(cb);
         });
@@ -257,7 +257,7 @@ class Engine
     void initVulkan()
     {
         context = std::make_shared<core::Context>(window);
-        swapchain.init(context, context->graphicsCommandPool, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        swapchain.init(context, context->device->commandpools.graphics, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
 
         /* Application related stuff */
         loadModels();
@@ -420,7 +420,7 @@ class Engine
 
         swapchain.cleanup();
 
-        swapchain.recreate(window, context->graphicsCommandPool, MAX_MODELS);
+        swapchain.recreate(window, context->device->commandpools.graphics, MAX_MODELS);
         swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 

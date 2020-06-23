@@ -81,7 +81,7 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::st
     allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     // Transition the image to transfer dst layout
-    context->transferCommandPool.execute([&](vk::CommandBuffer cb) {
+    context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
         stagingBuffer.copyTo(cb, image, img.width, img.height);
     });
@@ -100,7 +100,7 @@ void Texture::generateMipMaps(vk::Image image, vk::Format format, uint32_t texWi
 {
 
     auto formatProperties = device->physical.getFormatProperties(format);
-    auto commandBuffers = context->graphicsCommandPool.beginSingleTimeCommands();
+    auto commandBuffers = context->device->commandpools.graphics.beginSingleTimeCommands();
 
     vk::ImageMemoryBarrier barrier;
     barrier.image = image;
@@ -181,6 +181,6 @@ void Texture::generateMipMaps(vk::Image image, vk::Format format, uint32_t texWi
         nullptr,
         barrier);
 
-    context->graphicsCommandPool.endSingleTimeCommands(commandBuffers); // TODO: Use simpler API
+    context->device->commandpools.graphics.endSingleTimeCommands(commandBuffers); // TODO: Use simpler API
 }
 } // namespace core

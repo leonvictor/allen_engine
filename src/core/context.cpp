@@ -21,23 +21,15 @@ Context::Context(GLFWwindow* window)
     createInstance();
     createSurface(window);
     device = std::make_shared<core::Device>(instance, surface);
-    createCommandPools();
     setupDebugMessenger();
-}
-
-void Context::createCommandPools()
-{
-    graphicsCommandPool = core::CommandPool(device, device->queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-    transferCommandPool = core::CommandPool(device, device->queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
 }
 
 void Context::destroy()
 {
     // TODO: Remove when RAII is functionnal
-    device->logical.get().destroyCommandPool(graphicsCommandPool.pool);
-    device->logical.get().destroyCommandPool(transferCommandPool.pool);
+    // TODO: Move to device
 
-    device->logical.get().destroy();
+    device->destroy();
     instance->destroySurfaceKHR(surface.get());
 }
 

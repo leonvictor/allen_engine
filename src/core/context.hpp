@@ -28,8 +28,7 @@ class Context
     vk::UniqueSurfaceKHR surface;
     std::shared_ptr<core::Device> device;
 
-    core::CommandPool graphicsCommandPool;
-    core::CommandPool transferCommandPool;
+    // TODO: Should device hold the command pools ?
 
     vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> debugMessenger;
 

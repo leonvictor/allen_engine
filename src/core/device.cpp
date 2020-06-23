@@ -1,16 +1,11 @@
 #include "device.hpp"
+#include "commandpool.cpp"
 #include <assert.h>
 #include <set>
 #include <vulkan/vulkan.hpp>
 
 namespace core
 {
-
-Queue::Queue(vk::Device& device, uint32_t family)
-{
-    queue = device.getQueue(family, 0);
-    this->family = family;
-}
 
 Device::Device() {}
 
@@ -21,7 +16,21 @@ Device::Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& s
     initProperties();
     // Create logical device
     createLogicalDevice(surface);
+    createCommandPools();
     msaaSamples = getMaxUsableSampleCount();
+}
+
+void Device::destroy()
+{
+    logical.get().destroyCommandPool(commandpools.graphics.pool);
+    logical.get().destroyCommandPool(commandpools.transfer.pool);
+    logical.get().destroy();
+}
+
+void Device::createCommandPools()
+{
+    commandpools.graphics = core::CommandPool(logical.get(), queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+    commandpools.transfer = core::CommandPool(logical.get(), queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
 }
 
 SwapchainSupportDetails Device::getSwapchainSupport(const vk::UniqueSurfaceKHR& surface)
