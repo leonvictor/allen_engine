@@ -36,14 +36,14 @@ struct Viewport : vk::Viewport
 struct Pipeline
 {
     std::shared_ptr<core::Device> device;
-    vk::Pipeline graphicsPipeline; // Should be family-agnostic ? (i.e rename to "pipeline")
+    vk::Pipeline pipeline;
     vk::PipelineLayout layout;
 
     Pipeline() {}
 
     void destroy()
     {
-        device->logical.get().destroyPipeline(graphicsPipeline);
+        device->logical.get().destroyPipeline(pipeline);
         device->logical.get().destroyPipelineLayout(layout);
     }
 };
@@ -150,7 +150,7 @@ class PipelineFactory
         Pipeline pipeline;
         pipeline.device = device;
         pipeline.layout = layout;
-        pipeline.graphicsPipeline = graphicsPipeline;
+        pipeline.pipeline = graphicsPipeline;
 
         return pipeline;
     }

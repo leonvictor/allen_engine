@@ -145,8 +145,8 @@ class Swapchain
 
 // TODO: Get rid of the double negative
 #ifndef NDEBUG
-        context->setDebugUtilsObjectName(pipelines.skybox.graphicsPipeline, "Skybox Pipeline");
-        context->setDebugUtilsObjectName(pipelines.objects.graphicsPipeline, "Objects Pipeline");
+        context->setDebugUtilsObjectName(pipelines.skybox.pipeline, "Skybox Pipeline");
+        context->setDebugUtilsObjectName(pipelines.objects.pipeline, "Objects Pipeline");
 #endif
     }
 
@@ -294,11 +294,11 @@ class Swapchain
         images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skybox.descriptorSet, nullptr);
         images[index].commandbuffer.bindVertexBuffers(0, skybox.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
         images[index].commandbuffer.bindIndexBuffer(skybox.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.graphicsPipeline);
+        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.pipeline);
         images[index].commandbuffer.drawIndexed(skybox.mesh.indices.size(), 1, 0, 0, 0);
 
         // Objects
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.graphicsPipeline);
+        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.pipeline);
         images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
 
         for (auto model : models)

@@ -160,7 +160,7 @@ class Picker
         pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout}));
 
 #ifndef NDEBUG
-        context->setDebugUtilsObjectName(pipeline.graphicsPipeline, "Picker graphics Pipeline");
+        context->setDebugUtilsObjectName(pipeline.pipeline, "Picker graphics Pipeline");
 #endif
         // TODO: Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
     }
@@ -220,7 +220,7 @@ class Picker
 
         commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.graphicsPipeline);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.pipeline);
 
         vk::Rect2D scissor = {
             // vk::Offset2D {target.x, target.y},
