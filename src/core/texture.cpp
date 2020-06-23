@@ -1,5 +1,5 @@
 #include "texture.hpp"
-#include "buffer.cpp"
+#include "buffer.hpp"
 #include "context.hpp"
 #include "device.hpp"
 #include "image.hpp"

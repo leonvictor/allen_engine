@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../skybox.cpp"
-#include "buffer.cpp"
+#include "buffer.hpp"
 #include "commandpool.cpp"
 #include "context.hpp"
 #include "device.hpp"

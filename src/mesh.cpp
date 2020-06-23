@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "core/buffer.cpp"
+#include "core/buffer.hpp"
 #include "core/context.hpp"
 #include "core/device.hpp"
 #include "vertex.hpp"

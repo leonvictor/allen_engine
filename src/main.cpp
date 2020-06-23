@@ -27,7 +27,7 @@
 #include <vector>
 
 #include "camera.cpp" // TODO: Create .h
-#include "core/buffer.cpp"
+#include "core/buffer.hpp"
 #include "core/context.hpp"
 #include "core/device.hpp"
 #include "core/pipeline.cpp"

@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
-#include "buffer.cpp"
+#include "buffer.hpp"
 #include "commandpool.cpp"
 #include "device.hpp"
 
