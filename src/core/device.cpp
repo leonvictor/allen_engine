@@ -6,6 +6,12 @@
 namespace core
 {
 
+Queue::Queue(vk::Device& device, uint32_t family)
+{
+    queue = device.getQueue(family, 0);
+    this->family = family;
+}
+
 Device::Device() {}
 
 Device::Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface)
@@ -137,9 +143,9 @@ void Device::createLogicalDevice(const vk::UniqueSurfaceKHR& surface, const bool
 
     logical = physical.createDeviceUnique(deviceCreateInfo);
 
-    graphicsQueue = logical.get().getQueue(queueFamilyIndices.graphicsFamily.value(), 0);
-    presentQueue = logical.get().getQueue(queueFamilyIndices.presentFamily.value(), 0);
-    transferQueue = logical.get().getQueue(queueFamilyIndices.transferFamily.value(), 0);
+    queues.graphics = Queue(logical.get(), queueFamilyIndices.graphicsFamily.value());
+    queues.present = Queue(logical.get(), queueFamilyIndices.presentFamily.value());
+    queues.transfer = Queue(logical.get(), queueFamilyIndices.transferFamily.value());
 }
 
 void Device::initProperties()

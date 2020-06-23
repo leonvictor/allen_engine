@@ -27,8 +27,8 @@ Context::Context(GLFWwindow* window)
 
 void Context::createCommandPools()
 {
-    graphicsCommandPool = core::CommandPool(device, device->queueFamilyIndices.graphicsFamily.value(), vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-    transferCommandPool = core::CommandPool(device, device->queueFamilyIndices.transferFamily.value(), vk::CommandPoolCreateFlagBits::eTransient);
+    graphicsCommandPool = core::CommandPool(device, device->queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+    transferCommandPool = core::CommandPool(device, device->queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
 }
 
 void Context::destroy()

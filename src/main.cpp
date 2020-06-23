@@ -161,7 +161,7 @@ class Engine
         init_info.PhysicalDevice = context->device->physical;
         init_info.Device = context->device->logical.get();
         init_info.QueueFamily = context->device->queueFamilyIndices.presentFamily.value();
-        init_info.Queue = context->device->presentQueue;
+        init_info.Queue = context->device->queues.present.queue;
         init_info.PipelineCache = nullptr;
         init_info.DescriptorPool = swapchain.descriptorPool;
         init_info.Allocator = nullptr;
@@ -175,7 +175,7 @@ class Engine
         // Use any command queue
 
         // TODO: Make the single time buffer usage more fluid
-        context->graphicsCommandPool.execute(context->device->graphicsQueue, [&](vk::CommandBuffer cb) {
+        context->graphicsCommandPool.execute([&](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
             ImGui_ImplVulkan_CreateFontsTexture(cb);
         });
@@ -600,7 +600,7 @@ class Engine
         submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
 
         context->device->logical.get().resetFences(swapchain.inFlightFences[currentFrame]);
-        context->device->graphicsQueue.submit(submitInfo, swapchain.inFlightFences[currentFrame]);
+        context->device->queues.graphics.queue.submit(submitInfo, swapchain.inFlightFences[currentFrame]);
 
         vk::PresentInfoKHR presentInfo;
         presentInfo.swapchainCount = 1;
@@ -614,7 +614,7 @@ class Engine
         vk::Result result;
         try
         {
-            result = context->device->graphicsQueue.presentKHR(presentInfo);
+            result = context->device->queues.graphics.queue.presentKHR(presentInfo);
         }
         catch (vk::OutOfDateKHRError const& e)
         {
