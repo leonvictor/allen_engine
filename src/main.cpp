@@ -110,8 +110,13 @@ class Engine
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
 
+    // TODO: Models should be held in smart pointers so that I can move them around
+    // and hold references in clickables.
+    // Maybe unique_ptr and pass around weak_ptrs ? We pass the list to the swapchain when recording commands.
+    // We also need to notify the selected field if an object is deleted
     std::vector<SceneObject> models;
     std::map<ColorUID, SceneObject*> clickables;
+    SceneObject* selectedObject;
     std::vector<Light> lights;
     Skybox skybox;
 
@@ -122,6 +127,9 @@ class Engine
 
     int objectToDelete = -1; // Index of objects marked for deletion
     int objectsToCreate = 0; // Number of objects to create
+
+    // GUI toggles
+    bool showTransformGUI = false;
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
     {
@@ -225,6 +233,8 @@ class Engine
         m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, SceneObject*>(m.colorId, &m));
+        // Debug
+        auto truc = clickables[m.colorId];
     }
 
     void removeObject(int index)
@@ -281,7 +291,10 @@ class Engine
             m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, SceneObject*>(m.colorId, &m));
+            // DEBUG
+            auto truc = clickables[m.colorId];
         }
+        selectedObject = clickables[models[1].colorId];
 
         // ECS Version
         // for (int i = 0; i < N_MODELS; i++) {
@@ -499,15 +512,21 @@ class Engine
                 // TODO: Handle background
                 // TODO: Make sure ColorUID has a reserved id for the background
                 // TODO: Display in inspector
-                // TODO: Keep a ref to the currently selected object
-                SceneObject* selected = clickables[cID];
+                selectedObject = clickables[cID];
                 // std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
 
             swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
 
             // Draw ImGUI components
-            ImGui::ShowDemoWindow();
+            // FIXME: Transforms somehow get scrumbled during the process ?
+            if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
+            {
+                ImGui::InputFloat("x", &selectedObject->transform.position.x, 0.01f, 1.0f, "%.3f");
+                ImGui::InputFloat("y", &selectedObject->transform.position.y, 0.01f, 1.0f, "%.3f");
+                ImGui::InputFloat("z", &selectedObject->transform.position.z, 0.01f, 1.0f, "%.3f");
+            }
+            ImGui::End();
 
             endDrawFrame(imageIndex);
         }
