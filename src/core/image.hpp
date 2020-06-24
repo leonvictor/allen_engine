@@ -4,7 +4,6 @@
 #include <vulkan/vulkan.hpp>
 
 #include "allocation.hpp"
-#include "commandpool.cpp"
 #include "context.hpp"
 #include "device.hpp"
 

@@ -1,5 +1,5 @@
 #include "device.hpp"
-#include "commandpool.cpp"
+#include "commandpool.hpp"
 #include <assert.h>
 #include <set>
 #include <vulkan/vulkan.hpp>

@@ -1,6 +1,5 @@
 #include "image.hpp"
 #include "allocation.hpp"
-#include "commandpool.cpp"
 #include "context.hpp"
 #include "device.hpp"
 #include <fstream>

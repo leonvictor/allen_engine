@@ -2,7 +2,7 @@
 
 #include "../skybox.cpp"
 #include "buffer.hpp"
-#include "commandpool.cpp"
+#include "commandpool.hpp"
 #include "context.hpp"
 #include "device.hpp"
 #include "image.hpp"
@@ -109,7 +109,6 @@ class Swapchain
         createRenderPass();
         createDescriptorSetLayout();
         createSkyboxDescriptorSetLayout();
-
         createPipelines();
         createFramebuffers();
         createSyncObjects();

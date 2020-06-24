@@ -5,7 +5,6 @@
 #include <vulkan/vulkan.hpp>
 
 #include "buffer.hpp"
-#include "commandpool.cpp"
 #include "device.hpp"
 
 #include <iostream>
@@ -54,7 +53,6 @@ class Context
   private:
     void createInstance();
     void createSurface(GLFWwindow* window);
-    void createCommandPools();
 
     // Support and versions queries
     bool checkValidationLayersSupport();

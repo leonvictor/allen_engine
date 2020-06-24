@@ -1,7 +1,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "../scene_object.cpp"
-#include "commandpool.cpp"
+#include "commandpool.hpp"
 #include "context.hpp"
 #include "device.hpp"
 #include "image.hpp"

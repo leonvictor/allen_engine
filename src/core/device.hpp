@@ -1,6 +1,6 @@
 #pragma once
 
-#include "commandpool.cpp"
+#include "commandpool.hpp"
 #include "queue.hpp"
 #include <assert.h>
 #include <set>

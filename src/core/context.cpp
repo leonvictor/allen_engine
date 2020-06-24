@@ -6,7 +6,6 @@
 #include <vulkan/vulkan.hpp>
 
 #include "buffer.hpp"
-#include "commandpool.cpp"
 #include "device.hpp"
 
 #include "context.hpp"
