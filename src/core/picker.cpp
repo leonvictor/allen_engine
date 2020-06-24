@@ -197,7 +197,7 @@ class Picker
         device->logical.get().destroyFramebuffer(framebuffer);
     }
 
-    void render(std::vector<SceneObject> models, glm::vec2 target)
+    void render(std::vector<std::shared_ptr<SceneObject>> models, glm::vec2 target)
     {
         // TODO: Color is mesh-wide and should be passed by uniform
         // TODO: Restrict the info attached to each vertex. We only need the pos.
@@ -233,10 +233,10 @@ class Picker
 
         for (auto model : models)
         {
-            commandBuffer.bindVertexBuffers(0, model.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
-            commandBuffer.bindIndexBuffer(model.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, model.colorDescriptorSet, nullptr);
-            commandBuffer.drawIndexed(model.mesh.indices.size(), 1, 0, 0, 0);
+            commandBuffer.bindVertexBuffers(0, model->mesh.vertexBuffer.buffer, vk::DeviceSize{0});
+            commandBuffer.bindIndexBuffer(model->mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, model->colorDescriptorSet, nullptr);
+            commandBuffer.drawIndexed(model->mesh.indices.size(), 1, 0, 0, 0);
         }
 
         commandBuffer.endRenderPass();
@@ -250,7 +250,7 @@ class Picker
         device->queues.graphics.queue.submit(submitInfo, renderFinished);
     }
 
-    glm::vec3 pickColor(std::vector<SceneObject> models, glm::vec2 target)
+    glm::vec3 pickColor(std::vector<std::shared_ptr<SceneObject>> models, glm::vec2 target)
     {
         // TODO: Call that elsewhere
         render(models, target);

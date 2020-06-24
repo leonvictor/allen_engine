@@ -287,7 +287,7 @@ class Swapchain
         images[index].commandbuffer.end();
     }
 
-    void recordCommandBuffer(uint32_t index, std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
+    void recordCommandBuffer(uint32_t index, std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
     {
         // Skybox
         images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skybox.descriptorSet, nullptr);
@@ -302,14 +302,14 @@ class Swapchain
 
         for (auto model : models)
         {
-            images[index].commandbuffer.bindVertexBuffers(0, model.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
-            images[index].commandbuffer.bindIndexBuffer(model.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-            images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model.descriptorSet, nullptr);
-            images[index].commandbuffer.drawIndexed(model.mesh.indices.size(), 1, 0, 0, 0);
+            images[index].commandbuffer.bindVertexBuffers(0, model->mesh.vertexBuffer.buffer, vk::DeviceSize{0});
+            images[index].commandbuffer.bindIndexBuffer(model->mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+            images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model->descriptorSet, nullptr);
+            images[index].commandbuffer.drawIndexed(model->mesh.indices.size(), 1, 0, 0, 0);
         }
     }
 
-    void recordCommandBuffers(std::vector<SceneObject> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
+    void recordCommandBuffers(std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
     {
         for (size_t i = 0; i < images.size(); i++)
         {

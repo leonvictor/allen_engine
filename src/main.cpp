@@ -114,9 +114,9 @@ class Engine
     // and hold references in clickables.
     // Maybe unique_ptr and pass around weak_ptrs ? We pass the list to the swapchain when recording commands.
     // We also need to notify the selected field if an object is deleted
-    std::vector<SceneObject> models;
-    std::map<ColorUID, SceneObject*> clickables;
-    SceneObject* selectedObject;
+    std::vector<std::shared_ptr<SceneObject>> models;
+    std::map<ColorUID, std::shared_ptr<SceneObject>> clickables;
+    std::shared_ptr<SceneObject> selectedObject;
     std::vector<Light> lights;
     Skybox skybox;
 
@@ -228,21 +228,21 @@ class Engine
     {
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
-        SceneObject m = SceneObject(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
-        m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
-        m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
+        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
+        m->createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+        m->createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
         models.push_back(m);
-        clickables.insert(std::pair<ColorUID, SceneObject*>(m.colorId, &m));
+        clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         // Debug
-        auto truc = clickables[m.colorId];
+        auto truc = clickables[m->colorId];
     }
 
     void removeObject(int index)
     {
         if (models.size() > 0)
         {
-            clickables.erase(models[index].colorId);
-            models[index].destroy();
+            clickables.erase(models[index]->colorId);
+            models[index]->destroy();
             models.erase(models.begin() + index);
         }
     }
@@ -286,15 +286,15 @@ class Engine
     {
         for (int i = 0; i < cubePositions.size(); i++)
         {
-            auto m = SceneObject(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
-            m.createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
-            m.createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
+            auto m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
+            m->createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
+            m->createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
             models.push_back(m);
-            clickables.insert(std::pair<ColorUID, SceneObject*>(m.colorId, &m));
+            clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
             // DEBUG
-            auto truc = clickables[m.colorId];
+            auto truc = clickables[m->colorId];
         }
-        selectedObject = clickables[models[1].colorId];
+        selectedObject = nullptr;
 
         // ECS Version
         // for (int i = 0; i < N_MODELS; i++) {
@@ -494,7 +494,7 @@ class Engine
             for (auto model : models)
             {
                 glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = model.getModelMatrix();
+                modelMatrix = model->getModelMatrix();
 
                 core::UniformBufferObject ubo;
                 ubo.model = modelMatrix;
@@ -502,7 +502,7 @@ class Engine
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1;                                                                                                    // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.cameraPos = camera.position;
-                model.mesh.updateUniformBuffers(ubo);
+                model->mesh.updateUniformBuffers(ubo);
             }
 
             if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true))
@@ -665,7 +665,7 @@ class Engine
 
         for (auto model : models)
         {
-            model.destroy();
+            model->destroy();
         }
 
         skybox.destroy();
