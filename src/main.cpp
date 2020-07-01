@@ -228,13 +228,12 @@ class Engine
     {
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
+        // TODO:
         std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         m->createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
         m->createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
-        // Debug
-        auto truc = clickables[m->colorId];
     }
 
     void removeObject(int index)
@@ -286,13 +285,12 @@ class Engine
     {
         for (int i = 0; i < cubePositions.size(); i++)
         {
+            // TODO: This logic is a duplicate of addObject.
             auto m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             m->createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
             m->createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
-            // DEBUG
-            auto truc = clickables[m->colorId];
         }
         selectedObject = nullptr;
 
@@ -505,7 +503,7 @@ class Engine
                 model->mesh.updateUniformBuffers(ubo);
             }
 
-            if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true))
+            if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())
             {
                 auto rgb = swapchain.picker.pickColor(models, lastMousePos);
                 auto cID = ColorUID(rgb);
