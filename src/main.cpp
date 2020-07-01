@@ -509,7 +509,6 @@ class Engine
                 auto cID = ColorUID(rgb);
                 // TODO: Handle background
                 // TODO: Make sure ColorUID has a reserved id for the background
-                // TODO: Display in inspector
                 selectedObject = clickables[cID];
                 // std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
@@ -520,12 +519,34 @@ class Engine
             // FIXME: Transforms somehow get scrumbled during the process ?
             if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
             {
-                ImGui::InputFloat("x", &selectedObject->transform.position.x, 0.01f, 1.0f, "%.3f");
-                ImGui::InputFloat("y", &selectedObject->transform.position.y, 0.01f, 1.0f, "%.3f");
-                ImGui::InputFloat("z", &selectedObject->transform.position.z, 0.01f, 1.0f, "%.3f");
+                ImGui::PushItemWidth(60);
+                // TODO: vec3 might deserve a helper function to create ui for the 3 components...
+                // Position
+                ImGui::Text("Position");
+                ImGui::DragFloat("x##Position", &selectedObject->transform.position.x, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("y##Position", &selectedObject->transform.position.y, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("z##Position", &selectedObject->transform.position.z, 1.0f);
+
+                // Rotation
+                ImGui::Text("Rotation");
+                ImGui::DragFloat("x##Rotation", &selectedObject->transform.rotation.x, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("y##Rotation", &selectedObject->transform.rotation.y, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("z##Rotation", &selectedObject->transform.rotation.z, 1.0f);
+
+                // Scale
+                ImGui::Text("Scale");
+                ImGui::DragFloat("x##Scale", &selectedObject->transform.scale.x, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("y##Scale", &selectedObject->transform.scale.y, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("z##Scale", &selectedObject->transform.scale.z, 1.0f);
             }
             ImGui::End();
-
+            ImGui::ShowDemoWindow();
             endDrawFrame(imageIndex);
         }
 

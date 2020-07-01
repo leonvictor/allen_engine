@@ -49,6 +49,7 @@ class SceneObject
 
     glm::mat4 getModelMatrix()
     {
+        // TODO: Add rotation
         return glm::translate(glm::scale(modelMatrix, transform.scale), transform.position);
     }
 
