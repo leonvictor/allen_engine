@@ -185,7 +185,6 @@ class Engine
         // TODO: Make the single time buffer usage more fluid
         context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
-            ImGui_ImplVulkan_CreateFontsTexture(cb);
         });
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
