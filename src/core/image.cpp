@@ -54,7 +54,7 @@ void Image::initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     imageInfo.sharingMode = vk::SharingMode::eExclusive;
     imageInfo.samples = numSamples;
 
-    image = device->logical.get().createImage(imageInfo);
+    image = device->logical.get().createImageUnique(imageInfo);
 
     this->layout = layout;
     this->mipLevels = mipLevels;
@@ -66,15 +66,15 @@ void Image::initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
 
 void Image::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    vk::MemoryRequirements memRequirements = device->logical.get().getImageMemoryRequirements(image);
+    vk::MemoryRequirements memRequirements = device->logical.get().getImageMemoryRequirements(image.get());
     Allocation::allocate(memRequirements, memProperties);
-    device->logical.get().bindImageMemory(image, memory, 0);
+    device->logical.get().bindImageMemory(image.get(), memory, 0);
 }
 
 void Image::initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
     assert(!view && "Image view is already initialized.");
-    view = createImageView(device, this->image, format, aspectMask, mipLevels, viewtype, arrayLayers);
+    view = createImageViewUnique(device, image.get(), format, aspectMask, mipLevels, viewtype, arrayLayers);
 }
 
 Image::Image() {}
@@ -104,13 +104,17 @@ Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t heig
 
 void Image::destroy()
 {
-    // TODO: We might not need this with Unique stuff ?
-    device->logical.get().destroyImageView(view);
-    device->logical.get().destroyImage(image);
+    // TODO: Remove when everything is RAII-ready
+    // TODO: The class works without this but we have a problem of destruction order:
+    //  - some images like staging can handle self destroying
+    //  - as long as swapchain/context doesn't use raii, images need to be manually destroyed when we specify
+    // out of scope
+    view.reset();
+    image.reset();
     Allocation::destroy();
 }
 
-Image::operator vk::Image() { return image; }
+Image::operator vk::Image() { return image.get(); } // TODO: This is prone to confusion, get rid of it.
 
 void Image::transitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 {
@@ -122,7 +126,7 @@ void Image::transitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
     memoryBarrier.newLayout = newLayout;
     memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    memoryBarrier.image = image;
+    memoryBarrier.image = image.get();
     memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
     memoryBarrier.subresourceRange.layerCount = arrayLayers;
     memoryBarrier.subresourceRange.baseArrayLayer = 0;
@@ -242,8 +246,8 @@ void Image::blit(vk::CommandBuffer cb, core::Image& dstImage, int width, int hei
     imageBlitRegion.dstOffsets[1] = blitSize;
 
     cb.blitImage(
-        image, vk::ImageLayout::eTransferSrcOptimal,
-        dstImage.image, vk::ImageLayout::eTransferDstOptimal,
+        image.get(), vk::ImageLayout::eTransferSrcOptimal,
+        dstImage.image.get(), vk::ImageLayout::eTransferDstOptimal,
         imageBlitRegion,
         vk::Filter::eNearest);
 }
@@ -265,8 +269,8 @@ void Image::copyTo(vk::CommandBuffer cb, core::Image& dstImage, int width, int h
     imageCopyRegion.extent.depth = 1;
 
     cb.copyImage(
-        image, vk::ImageLayout::eTransferSrcOptimal,
-        dstImage.image, vk::ImageLayout::eTransferDstOptimal,
+        image.get(), vk::ImageLayout::eTransferSrcOptimal,
+        dstImage.image.get(), vk::ImageLayout::eTransferDstOptimal,
         imageCopyRegion);
 }
 
@@ -276,7 +280,7 @@ void Image::save(std::string filename, bool colorSwizzle)
 {
     // TODO: Swizzle or not based on format
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image, subresource);
+    auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image.get(), subresource);
 
     if (mapped == nullptr)
     {
@@ -322,7 +326,7 @@ void Image::save(std::string filename, bool colorSwizzle)
 glm::vec3 Image::pixelAt(int x, int y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image, subresource);
+    auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image.get(), subresource);
 
     if (mapped == nullptr)
     {
@@ -383,5 +387,20 @@ vk::ImageView Image::createImageView(std::shared_ptr<core::Device> device, vk::I
     createInfo.subresourceRange.baseMipLevel = 0;
 
     return device->logical.get().createImageView(createInfo);
+}
+
+vk::UniqueImageView Image::createImageViewUnique(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype, int layerCount)
+{
+    vk::ImageViewCreateInfo createInfo;
+    createInfo.format = format;
+    createInfo.image = image;
+    createInfo.viewType = viewtype;
+    createInfo.subresourceRange.aspectMask = aspectMask;
+    createInfo.subresourceRange.layerCount = layerCount;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.levelCount = mipLevels;
+    createInfo.subresourceRange.baseMipLevel = 0;
+
+    return std::move(device->logical.get().createImageViewUnique(createInfo));
 }
 } // namespace core

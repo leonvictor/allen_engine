@@ -37,8 +37,8 @@ class Image : public Allocation
     void initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
 
   public:
-    vk::Image image;
-    vk::ImageView view;
+    vk::UniqueImage image;
+    vk::UniqueImageView view;
 
     vk::ImageLayout layout;
     vk::Format format;
@@ -85,5 +85,7 @@ class Image : public Allocation
     // If so what would be a good place ? Inside device ?
     //
     static vk::ImageView createImageView(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1);
+    static vk::UniqueImageView createImageViewUnique(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1);
+
 };
 } // namespace core

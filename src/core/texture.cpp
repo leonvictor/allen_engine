@@ -50,7 +50,7 @@ void Texture::destroy()
 // TODO: This could come from a Descriptible interface (common w/ buffers)
 vk::DescriptorImageInfo Texture::getDescriptor()
 {
-    return vk::DescriptorImageInfo{sampler, view, vk::ImageLayout::eShaderReadOnlyOptimal};
+    return vk::DescriptorImageInfo{sampler, view.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
 }
 
 void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::string path)
@@ -83,10 +83,10 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::st
     // Transition the image to transfer dst layout
     context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-        stagingBuffer.copyTo(cb, image, img.width, img.height);
+        stagingBuffer.copyTo(cb, image.get(), img.width, img.height);
     });
 
-    generateMipMaps(image, vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
+    generateMipMaps(image.get(), vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
 
     initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 

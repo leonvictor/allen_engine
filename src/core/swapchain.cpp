@@ -53,7 +53,6 @@ class Swapchain
     // Object picking
     Picker picker;
 
-    // vk::SurfaceKHR surface;
     vk::SwapchainKHR swapchain;
     vk::PresentInfoKHR presentInfo;
 
@@ -476,6 +475,7 @@ class Swapchain
 
         for (vk::Image swapImage : imgs)
         {
+            // TODO: This uses a helper function which doesn't do much.
             vk::ImageView view = core::Image::createImageView(context->device, swapImage, imageFormat, vk::ImageAspectFlagBits::eColor, 1);
             SwapchainImage image = SwapchainImage{
                 nullptr,
@@ -490,8 +490,8 @@ class Swapchain
     vk::Framebuffer createFramebuffer(vk::ImageView view, vk::RenderPass renderPass)
     {
         std::array<vk::ImageView, 3> attachments = {
-            colorImage.view,
-            depthImage.view,
+            colorImage.view.get(),
+            depthImage.view.get(),
             view};
 
         vk::FramebufferCreateInfo framebufferInfo;
@@ -511,6 +511,7 @@ class Swapchain
         depthImage = core::Image(context->device, extent.width, extent.height, 1, context->device->msaaSamples,
                                  format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                  vk::ImageAspectFlagBits::eDepth);
+        context->setDebugUtilsObjectName(depthImage.image.get(), "Swapchain depth image");
     }
 
     void createColorResources()
@@ -518,10 +519,8 @@ class Swapchain
         colorImage = core::Image(context->device, extent.width, extent.height, 1, context->device->msaaSamples, this->imageFormat,
                                  vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                  vk::ImageAspectFlagBits::eColor);
-
-#ifndef NDEBUG
-        context->setDebugUtilsObjectName(colorImage.view, "Color Image View");
-#endif
+        context->setDebugUtilsObjectName(colorImage.image.get(), "Swapchain color image");
+        context->setDebugUtilsObjectName(colorImage.view.get(), "Color Image View");
     }
 
     void createDescriptorSetLayout()

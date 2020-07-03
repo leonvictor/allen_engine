@@ -82,7 +82,7 @@ void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, s
 
     context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-        stagingBuffer.copyTo(cb, image, bufferCopyRegions);
+        stagingBuffer.copyTo(cb, image.get(), bufferCopyRegions);
     });
 
     context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {

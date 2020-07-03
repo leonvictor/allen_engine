@@ -37,8 +37,8 @@ class Picker
     void createFramebuffer()
     {
         std::array<vk::ImageView, 2> attachments = {
-            image.view,
-            depthImage.view,
+            image.view.get(),
+            depthImage.view.get(),
         };
 
         vk::FramebufferCreateInfo fbInfo;
@@ -60,17 +60,20 @@ class Picker
                                  dFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                  vk::ImageAspectFlagBits::eDepth);
 
+        context->setDebugUtilsObjectName(depthImage.image.get(), "Picker depth Image");
         image = core::Image(device, width, height, 1, vk::SampleCountFlagBits::e1, colorImageFormat,
                             vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
                             vk::ImageAspectFlagBits::eColor);
+
+        context->setDebugUtilsObjectName(image.image.get(), "Picker color image");
 
         context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             image.transitionLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
         });
 
 #ifndef NDEBUG
-        context->setDebugUtilsObjectName(depthImage.image, "Picker depth image");
-        context->setDebugUtilsObjectName(image.image, "Picker color image");
+        context->setDebugUtilsObjectName(depthImage.image.get(), "Picker depth image");
+        context->setDebugUtilsObjectName(image.image.get(), "Picker color image");
 #endif
     }
 
@@ -260,6 +263,8 @@ class Picker
 
         core::Image stagingImage = core::Image(device, width, height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst,
                                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
+
+        context->setDebugUtilsObjectName(stagingImage.image.get(), "Picker staging image");
 
         // TODO: OPTIMIZE Use a single command buffer to do all necessary operations
         context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
