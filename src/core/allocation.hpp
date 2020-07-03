@@ -1,31 +1,35 @@
 // Adapted from https://github.com/jherico/Vulkan/blob/cpp/base/vks/allocation.hpp
 #pragma once
 
-#include <vulkan/vulkan.hpp>
 #include "device.hpp"
+#include <vulkan/vulkan.hpp>
 
-namespace core {
+namespace core
+{
 
 // A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
 // but only as a base class providing common functionality for the classes below.
 //
 // Provides easy to use mechanisms for mapping, unmapping and copying host data to the device memory
-struct Allocation {
+struct Allocation
+{
     std::shared_ptr<core::Device> device;
-    vk::DeviceMemory memory;
-    vk::DeviceSize size{ 0 };
-    vk::DeviceSize alignment{ 0 };
-    vk::DeviceSize allocSize{ 0 };
-    void* mapped{ nullptr };
+    vk::UniqueDeviceMemory memory;
+    vk::DeviceSize size{0};
+    vk::DeviceSize alignment{0};
+    vk::DeviceSize allocSize{0};
+    void* mapped{nullptr};
 
     template <typename T = void>
-    inline T* map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) {
-        mapped = device->logical.get().mapMemory(memory, offset, size, vk::MemoryMapFlags());
-        return (T*)mapped;
+    inline T* map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE)
+    {
+        mapped = device->logical.get().mapMemory(memory.get(), offset, size, vk::MemoryMapFlags());
+        return (T*) mapped;
     }
 
-    inline void unmap() {
-        device->logical.get().unmapMemory(memory);
+    inline void unmap()
+    {
+        device->logical.get().unmapMemory(memory.get());
         mapped = nullptr;
     }
 
@@ -52,8 +56,9 @@ struct Allocation {
         *
         * @return VkResult of the flush call
         */
-    void flush(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0) {
-        return device->logical.get().flushMappedMemoryRanges(vk::MappedMemoryRange{ memory, offset, size });
+    void flush(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
+    {
+        return device->logical.get().flushMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
     }
 
     /**
@@ -66,8 +71,9 @@ struct Allocation {
         *
         * @return VkResult of the invalidate call
         */
-    void invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0) {
-        return device->logical.get().invalidateMappedMemoryRanges(vk::MappedMemoryRange{ memory, offset, size });
+    void invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
+    {
+        return device->logical.get().invalidateMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
     }
 
     virtual void allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
@@ -76,17 +82,21 @@ struct Allocation {
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
 
-        memory = device->logical.get().allocateMemory(allocInfo, nullptr);
+        memory = device->logical.get().allocateMemoryUnique(allocInfo, nullptr);
     }
 
-    virtual void destroy() {
-        if (nullptr != mapped) {
+    virtual void destroy()
+    {
+        if (nullptr != mapped)
+        {
             unmap();
         }
-        if (memory) {
-            device->logical.get().freeMemory(memory);
-            memory = vk::DeviceMemory();
+        if (memory)
+        {
+            // device->logical.get().freeMemory(memory);
+            memory.reset();
+            // memory = vk::DeviceMemory();
         }
     }
 };
-}  // namespace vks
+} // namespace core

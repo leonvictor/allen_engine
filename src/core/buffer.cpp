@@ -81,6 +81,6 @@ void Buffer::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
     vk::MemoryRequirements memRequirements = device->logical.get().getBufferMemoryRequirements(buffer);
     Allocation::allocate(memRequirements, memProperties);
-    device->logical.get().bindBufferMemory(buffer, memory, 0);
+    device->logical.get().bindBufferMemory(buffer, memory.get(), 0);
 }
 }; // namespace core

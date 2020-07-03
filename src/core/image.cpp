@@ -68,7 +68,7 @@ void Image::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
     vk::MemoryRequirements memRequirements = device->logical.get().getImageMemoryRequirements(image.get());
     Allocation::allocate(memRequirements, memProperties);
-    device->logical.get().bindImageMemory(image.get(), memory, 0);
+    device->logical.get().bindImageMemory(image.get(), memory.get(), 0);
 }
 
 void Image::initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
