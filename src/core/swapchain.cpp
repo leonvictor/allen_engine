@@ -63,7 +63,6 @@ class Swapchain
     vk::UniqueRenderPass renderPass;
 
     std::shared_ptr<core::Context> context; // TODO: Fuse device, context and swapchain somehow
-    core::CommandPool commandPool;
 
     std::vector<vk::UniqueSemaphore> imageAvailableSemaphores;
     std::vector<vk::UniqueSemaphore> renderFinishedSemaphores;
@@ -81,7 +80,7 @@ class Swapchain
 
     Swapchain() {}
 
-    void recreate(GLFWwindow* window, core::CommandPool& commandPool, int maxObjects)
+    void recreate(GLFWwindow* window, int maxObjects)
     {
         createSwapchain(window);
         createImages();
@@ -91,13 +90,13 @@ class Swapchain
         createColorResources();
         createFramebuffers();
         createDescriptorPool(maxObjects);
-        createCommandBuffers(commandPool);
+        createCommandBuffers();
 
         // TODO : Add descriptor sets and command buffers here
     }
 
     // TODO: Normalize object construction
-    void init(std::shared_ptr<core::Context> context, core::CommandPool& commandPool, GLFWwindow* window, int maxObjects)
+    void init(std::shared_ptr<core::Context> context, GLFWwindow* window, int maxObjects)
     {
         this->context = context;
 
@@ -112,8 +111,8 @@ class Swapchain
         createFramebuffers();
         createSyncObjects();
         createDescriptorPool(maxObjects);
-        createCommandBuffers(commandPool);
-        picker.setup(context, context->device, commandPool);
+        createCommandBuffers();
+        picker.setup(context, context->device, context->device->commandpools.graphics);
     }
 
     void createPipelines()
@@ -242,11 +241,10 @@ class Swapchain
         renderPass = context->device->logical.get().createRenderPassUnique(renderPassInfo);
     }
 
-    void createCommandBuffers(const core::CommandPool& commandPool)
+    void createCommandBuffers()
     {
         // TODO: This has to happen somewhere else
-        this->commandPool = commandPool;
-        auto commandBuffers = commandPool.allocateCommandBuffers(images.size());
+        auto commandBuffers = context->device->commandpools.graphics.allocateCommandBuffers(images.size());
 
         for (size_t i = 0; i < images.size(); i++)
         {
@@ -332,7 +330,7 @@ class Swapchain
 
         for (auto img : images)
         {
-            img.cleanup(context->device->logical.get(), commandPool.pool);
+            img.cleanup(context->device->logical.get(), context->device->commandpools.graphics.pool.get());
         }
 
         pipelines.objects.destroy();

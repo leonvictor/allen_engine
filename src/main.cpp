@@ -265,7 +265,7 @@ class Engine
     void initVulkan()
     {
         context = std::make_shared<core::Context>(window);
-        swapchain.init(context, context->device->commandpools.graphics, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        swapchain.init(context, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
 
         /* Application related stuff */
         loadModels();
@@ -430,7 +430,7 @@ class Engine
 
         swapchain.cleanup();
 
-        swapchain.recreate(window, context->device->commandpools.graphics, MAX_MODELS);
+        swapchain.recreate(window, MAX_MODELS);
         swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 

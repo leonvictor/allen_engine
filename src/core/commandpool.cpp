@@ -13,7 +13,7 @@ CommandPool::CommandPool(vk::Device& device, core::Queue& queue, vk::CommandPool
     this->queue = queue;
 
     vk::CommandPoolCreateInfo createInfo(flags, queue.family);
-    pool = device.createCommandPool(createInfo);
+    pool = device.createCommandPoolUnique(createInfo);
 }
 
 std::vector<vk::CommandBuffer> CommandPool::beginSingleTimeCommands()
@@ -50,13 +50,13 @@ void CommandPool::endSingleTimeCommands(std::vector<vk::CommandBuffer> commandBu
     queue.queue.submit(submitInfo, nullptr);
     queue.queue.waitIdle(); // TODO: Replace this by a fence so that we can schedule multiple transfers and wait for them all to complete
 
-    device.freeCommandBuffers(pool, commandBuffers);
+    device.freeCommandBuffers(pool.get(), commandBuffers);
 }
 
 std::vector<vk::CommandBuffer> CommandPool::allocateCommandBuffers(int count, vk::CommandBufferLevel level) const
 {
     vk::CommandBufferAllocateInfo allocInfo;
-    allocInfo.commandPool = pool;
+    allocInfo.commandPool = pool.get();
     allocInfo.commandBufferCount = count;
     allocInfo.level = level; // Or secondary
 
