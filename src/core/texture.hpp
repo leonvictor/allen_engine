@@ -16,7 +16,7 @@ class Texture : public core::Image
     void createSampler(vk::SamplerAddressMode adressMode = vk::SamplerAddressMode::eRepeat);
 
   public:
-    vk::Sampler sampler; // TODO: Does each image have a sampler or do they share it ?
+    vk::UniqueSampler sampler; // TODO: Does each image have a sampler or do they share it ?
     std::shared_ptr<core::Context> context;
 
     Texture();

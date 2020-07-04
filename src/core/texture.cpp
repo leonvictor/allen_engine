@@ -28,7 +28,7 @@ void Texture::createSampler(vk::SamplerAddressMode adressMode)
     samplerInfo.maxLod = static_cast<uint32_t>(mipLevels);
     samplerInfo.minLod = 0;
 
-    sampler = device->logical.get().createSampler(samplerInfo);
+    sampler = device->logical.get().createSamplerUnique(samplerInfo);
 }
 
 Texture::Texture() {}
@@ -43,14 +43,15 @@ Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
 
 void Texture::destroy()
 {
-    device->logical.get().destroySampler(sampler);
+    // device->logical.get().destroySampler(sampler);
+    sampler.reset();
     core::Image::destroy();
 }
 
 // TODO: This could come from a Descriptible interface (common w/ buffers)
 vk::DescriptorImageInfo Texture::getDescriptor()
 {
-    return vk::DescriptorImageInfo{sampler, view.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
+    return vk::DescriptorImageInfo{sampler.get(), view.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
 }
 
 void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::string path)
