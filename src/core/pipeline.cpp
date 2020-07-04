@@ -68,7 +68,7 @@ class PipelineFactory
         init();
     }
 
-    core::Pipeline create(std::vector<vk::DescriptorSetLayout> descriptorSetLayouts)
+    std::unique_ptr<core::Pipeline> create(std::vector<vk::DescriptorSetLayout> descriptorSetLayouts)
     {
         auto vertextAttributeDescriptions = Vertex::getAttributeDescription();
         auto vertexBindingDescription = Vertex::getBindingDescription();
@@ -151,12 +151,12 @@ class PipelineFactory
         clearShaders();
         dynamicStates.clear();
 
-        Pipeline pipeline;
-        pipeline.device = device;
-        pipeline.layout = std::move(layout);
-        pipeline.pipeline = std::move(graphicsPipeline);
+        std::unique_ptr<Pipeline> pipeline = std::make_unique<Pipeline>();
+        pipeline->device = device;
+        pipeline->layout = std::move(layout);
+        pipeline->pipeline = std::move(graphicsPipeline);
 
-        return pipeline;
+        return std::move(pipeline);
     }
 
     // Set viewport and scissors to match a whole extent.

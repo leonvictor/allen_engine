@@ -46,8 +46,8 @@ class Swapchain
 
     struct
     {
-        core::Pipeline objects;
-        core::Pipeline skybox;
+        std::unique_ptr<core::Pipeline> objects;
+        std::unique_ptr<core::Pipeline> skybox;
     } pipelines;
 
     // Object picking
@@ -130,8 +130,8 @@ class Swapchain
         factory.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
         pipelines.skybox = factory.create(std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout.get()}));
 
-        context->setDebugUtilsObjectName(pipelines.skybox.pipeline.get(), "Skybox Pipeline");
-        context->setDebugUtilsObjectName(pipelines.objects.pipeline.get(), "Objects Pipeline");
+        context->setDebugUtilsObjectName(pipelines.skybox->pipeline.get(), "Skybox Pipeline");
+        context->setDebugUtilsObjectName(pipelines.objects->pipeline.get(), "Objects Pipeline");
     }
 
     void createSkyboxDescriptorSetLayout()
@@ -271,21 +271,21 @@ class Swapchain
     void recordCommandBuffer(uint32_t index, std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
     {
         // Skybox
-        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout.get(), 0, skybox.descriptorSet, nullptr);
+        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox->layout.get(), 0, skybox.descriptorSet, nullptr);
         images[index].commandbuffer.bindVertexBuffers(0, skybox.mesh.vertexBuffer.buffer.get(), vk::DeviceSize{0});
         images[index].commandbuffer.bindIndexBuffer(skybox.mesh.indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.pipeline.get());
+        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox->pipeline.get());
         images[index].commandbuffer.drawIndexed(skybox.mesh.indices.size(), 1, 0, 0, 0);
 
         // Objects
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.pipeline.get());
-        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout.get(), 0, lightsDescriptorSet, nullptr);
+        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects->pipeline.get());
+        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 0, lightsDescriptorSet, nullptr);
 
         for (auto model : models)
         {
             images[index].commandbuffer.bindVertexBuffers(0, model->mesh.vertexBuffer.buffer.get(), vk::DeviceSize{0});
             images[index].commandbuffer.bindIndexBuffer(model->mesh.indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
-            images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout.get(), 1, model->descriptorSet, nullptr);
+            images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet, nullptr);
             images[index].commandbuffer.drawIndexed(model->mesh.indices.size(), 1, 0, 0, 0);
         }
     }
@@ -327,8 +327,8 @@ class Swapchain
         }
         images.clear();
 
-        pipelines.objects.destroy();
-        pipelines.skybox.destroy();
+        pipelines.objects.reset();
+        pipelines.skybox.reset();
 
         renderPass.reset();
         swapchain.reset();
