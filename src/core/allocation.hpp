@@ -85,6 +85,7 @@ struct Allocation
         memory = device->logical.get().allocateMemoryUnique(allocInfo, nullptr);
     }
 
+    // TODO: Remove when everything uses RAII
     virtual void destroy()
     {
         if (nullptr != mapped)

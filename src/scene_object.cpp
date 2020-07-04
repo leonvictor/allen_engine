@@ -114,13 +114,6 @@ class SceneObject
         device->logical.get().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
-    void destroy()
-    {
-        mesh.destroy();
-        texture.destroy();
-        material.destroy();
-    }
-
   private:
     glm::mat4 modelMatrix = glm::mat4(1.0f); // TODO
 };

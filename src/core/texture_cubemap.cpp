@@ -92,6 +92,5 @@ void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, s
     initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 
     createSampler(vk::SamplerAddressMode::eClampToEdge);
-    stagingBuffer.destroy();
 };
 } // namespace core

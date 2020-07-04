@@ -22,8 +22,6 @@ class Texture : public core::Image
     Texture();
     Texture(std::shared_ptr<core::Context> context, std::string path);
 
-    void destroy();
-
     // TODO: This could come from a Descriptible interface (common w/ buffers)
     vk::DescriptorImageInfo getDescriptor();
 

@@ -113,8 +113,6 @@ class Mesh
         context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
             stagingBuffer.copyTo(cb, vertexBuffer, bufferSize);
         });
-
-        stagingBuffer.destroy();
     }
 
     void createIndexBuffer()
@@ -131,8 +129,6 @@ class Mesh
         context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
             stagingBuffer.copyTo(cb, indexBuffer, bufferSize);
         });
-
-        stagingBuffer.destroy();
     }
 
     void createUniformBuffer()
@@ -145,13 +141,6 @@ class Mesh
         uniformBuffer.map(0, sizeof(ubo));
         uniformBuffer.copy(&ubo, sizeof(ubo));
         uniformBuffer.unmap();
-    }
-
-    void destroy()
-    {
-        vertexBuffer.destroy();
-        indexBuffer.destroy();
-        uniformBuffer.destroy();
     }
 
     void revertNormals()

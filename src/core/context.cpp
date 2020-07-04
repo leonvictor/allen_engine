@@ -23,15 +23,6 @@ Context::Context(GLFWwindow* window)
     setupDebugMessenger();
 }
 
-void Context::destroy()
-{
-    // TODO: Remove when RAII is functionnal
-    // TODO: Move to device
-
-    device->destroy();
-    instance->destroySurfaceKHR(surface.get());
-}
-
 void Context::createInstance()
 {
     if (enableValidationLayers && !checkValidationLayersSupport())

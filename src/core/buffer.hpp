@@ -15,7 +15,6 @@ class Buffer : public Allocation
 
     Buffer(); // Empty ctor is required for now. Todo: Remove when we can
     Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memProperties);
-    void destroy() override;
 
     void copyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions) const;
     void copyTo(vk::CommandBuffer& cb, vk::Image& image, const uint32_t width, const uint32_t height) const;

@@ -41,13 +41,6 @@ Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
     createSampler();
 }
 
-void Texture::destroy()
-{
-    // device->logical.get().destroySampler(sampler);
-    sampler.reset();
-    core::Image::destroy();
-}
-
 // TODO: This could come from a Descriptible interface (common w/ buffers)
 vk::DescriptorImageInfo Texture::getDescriptor()
 {
@@ -90,8 +83,6 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::st
     generateMipMaps(image.get(), vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
 
     initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
-
-    stagingBuffer.destroy();
 }
 
 // TODO :

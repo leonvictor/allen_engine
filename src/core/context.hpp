@@ -23,9 +23,9 @@ struct UniformBufferObject
 class Context
 {
   public:
+    std::shared_ptr<core::Device> device;
     vk::UniqueInstance instance;
     vk::UniqueSurfaceKHR surface;
-    std::shared_ptr<core::Device> device;
 
     // TODO: Should device hold the command pools ?
 
@@ -40,7 +40,6 @@ class Context
     bool enableValidationLayers = true; // TODO: Move that somewhere else (global config)
 
     Context(GLFWwindow* window);
-    void destroy();
 
     // Add a name to a vulkan object for debugging purposes.
     template <class T>

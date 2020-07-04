@@ -81,13 +81,19 @@ class Engine
         cleanup();
     }
 
+    ~Engine()
+    {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+
   private:
     GLFWwindow* window;
     std::shared_ptr<core::Context> context;
 
     Coordinator gCoordinator;
 
-    core::Swapchain swapchain;
+    std::shared_ptr<core::Swapchain> swapchain;
     int frameCount = 0;
 
     size_t currentFrame = 0;
@@ -115,7 +121,7 @@ class Engine
     // Maybe unique_ptr and pass around weak_ptrs ? We pass the list to the swapchain when recording commands.
     // We also need to notify the selected field if an object is deleted
     std::vector<std::shared_ptr<SceneObject>> models;
-    std::map<ColorUID, std::shared_ptr<SceneObject>> clickables;
+    std::map<ColorUID, std::shared_ptr<SceneObject>> clickables; // Good candidate for weak_ptrs ?
     std::shared_ptr<SceneObject> selectedObject;
     std::vector<Light> lights;
     Skybox skybox;
@@ -171,13 +177,13 @@ class Engine
         init_info.QueueFamily = context->device->queueFamilyIndices.presentFamily.value();
         init_info.Queue = context->device->queues.present.queue;
         init_info.PipelineCache = nullptr;
-        init_info.DescriptorPool = swapchain.descriptorPool.get();
+        init_info.DescriptorPool = swapchain->descriptorPool.get();
         init_info.Allocator = nullptr;
         init_info.MinImageCount = 2;
-        init_info.ImageCount = swapchain.images.size();
+        init_info.ImageCount = swapchain->images.size();
         init_info.CheckVkResultFn = nullptr;
         init_info.MSAASamples = (VkSampleCountFlagBits) context->device->msaaSamples;
-        ImGui_ImplVulkan_Init(&init_info, swapchain.renderPass.get());
+        ImGui_ImplVulkan_Init(&init_info, swapchain->renderPass.get());
 
         // Upload Fonts
         // Use any command queue
@@ -229,8 +235,8 @@ class Engine
 
         // TODO:
         std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
-        m->createDescriptorSet(swapchain.descriptorPool.get(), swapchain.objectsDescriptorSetLayout.get());
-        m->createColorDescriptorSet(swapchain.descriptorPool.get(), swapchain.picker.descriptorSetLayout);
+        m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
+        m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout);
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
     }
@@ -240,7 +246,7 @@ class Engine
         if (models.size() > 0)
         {
             clickables.erase(models[index]->colorId);
-            models[index]->destroy();
+            // models[index].reset();
             models.erase(models.begin() + index);
         }
     }
@@ -265,7 +271,7 @@ class Engine
     void initVulkan()
     {
         context = std::make_shared<core::Context>(window);
-        swapchain.init(context, window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        swapchain = std::make_shared<core::Swapchain>(std::shared_ptr(context), window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
 
         /* Application related stuff */
         loadModels();
@@ -286,8 +292,8 @@ class Engine
         {
             // TODO: This logic is a duplicate of addObject.
             auto m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
-            m->createDescriptorSet(swapchain.descriptorPool.get(), swapchain.objectsDescriptorSetLayout.get());
-            m->createColorDescriptorSet(swapchain.descriptorPool.get(), swapchain.picker.descriptorSetLayout);
+            m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
+            m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout);
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         }
@@ -316,7 +322,7 @@ class Engine
     void setupSkyBox()
     {
         skybox = Skybox(context, context->device, "", MODEL_PATH);
-        skybox.createDescriptorSet(swapchain.descriptorPool.get(), swapchain.skyboxDescriptorSetLayout.get());
+        skybox.createDescriptorSet(swapchain->descriptorPool.get(), swapchain->skyboxDescriptorSetLayout.get());
         updateSkyboxUBO();
     }
 
@@ -324,9 +330,9 @@ class Engine
     {
         core::UniformBufferObject ubo;
         ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-        ubo.view = glm::mat4(1.0f);                                                                                                    // eye/camera position, center position, up axis
-        ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        ubo.projection[1][1] *= -1;                                                                                                    // GLM is designed for OpenGL which uses inverted y coordinates
+        ubo.view = glm::mat4(1.0f);                                                                                                      // eye/camera position, center position, up axis
+        ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
         ubo.cameraPos = camera.position;
         skybox.updateUniformBuffer(ubo);
     }
@@ -389,7 +395,7 @@ class Engine
 
     void createLightsDescriptorSet()
     {
-        vk::DescriptorSetAllocateInfo allocInfo{swapchain.descriptorPool.get(), 1, &swapchain.lightsDescriptorSetLayout.get()};
+        vk::DescriptorSetAllocateInfo allocInfo{swapchain->descriptorPool.get(), 1, &swapchain->lightsDescriptorSetLayout.get()};
         lightsDescriptorSet = context->device->logical.get().allocateDescriptorSets(allocInfo)[0];
 
         vk::DescriptorBufferInfo lightsBufferInfo;
@@ -428,10 +434,10 @@ class Engine
 
         context->device->logical.get().waitIdle();
 
-        swapchain.cleanup();
+        swapchain->cleanup();
 
-        swapchain.recreate(window, MAX_MODELS);
-        swapchain.recordCommandBuffers(models, lightsDescriptorSet, skybox);
+        swapchain->recreate(window, MAX_MODELS);
+        swapchain->recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
     void mainLoop()
@@ -495,16 +501,16 @@ class Engine
 
                 core::UniformBufferObject ubo;
                 ubo.model = modelMatrix;
-                ubo.view = camera.getViewMatrix();                                                                                             // eye/camera position, center position, up axis
-                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float) swapchain.extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-                ubo.projection[1][1] *= -1;                                                                                                    // GLM is designed for OpenGL which uses inverted y coordinates
+                ubo.view = camera.getViewMatrix();                                                                                               // eye/camera position, center position, up axis
+                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+                ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.cameraPos = camera.position;
                 model->mesh.updateUniformBuffers(ubo);
             }
 
             if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())
             {
-                auto rgb = swapchain.picker.pickColor(models, lastMousePos);
+                auto rgb = swapchain->picker.pickColor(models, lastMousePos);
                 auto cID = ColorUID(rgb);
                 // TODO: Handle background
                 // TODO: Make sure ColorUID has a reserved id for the background
@@ -512,7 +518,7 @@ class Engine
                 // std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
 
-            swapchain.recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
+            swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
 
             // Draw ImGUI components
             // FIXME: Transforms somehow get scrumbled during the process ?
@@ -578,11 +584,11 @@ class Engine
     uint8_t beginDrawFrame()
     {
         // Wait for the fence
-        context->device->logical.get().waitForFences(swapchain.inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
+        context->device->logical.get().waitForFences(swapchain->inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
-        vk::Result result = context->device->logical.get().acquireNextImageKHR(swapchain.swapchain.get(), UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
+        vk::Result result = context->device->logical.get().acquireNextImageKHR(swapchain->swapchain.get(), UINT64_MAX, swapchain->imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
         if (result == vk::Result::eErrorOutOfDateKHR)
         {
             recreateSwapchain();
@@ -593,15 +599,15 @@ class Engine
         }
 
         // Check if a previous frame is using the image
-        if (swapchain.images[imageIndex].fence)
+        if (swapchain->images[imageIndex].fence)
         {
-            context->device->logical.get().waitForFences(swapchain.images[imageIndex].fence, VK_TRUE, UINT64_MAX);
+            context->device->logical.get().waitForFences(swapchain->images[imageIndex].fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
-        swapchain.images[imageIndex].fence = swapchain.inFlightFences[currentFrame].get();
+        swapchain->images[imageIndex].fence = swapchain->inFlightFences[currentFrame].get();
 
-        swapchain.beginDrawFrame(imageIndex);
+        swapchain->beginDrawFrame(imageIndex);
 
         // ImGui
         ImGui_ImplVulkan_NewFrame();
@@ -616,35 +622,35 @@ class Engine
 
         ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain.images[imageIndex].commandbuffer);
+        ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer);
 
-        swapchain.endDrawFrame(imageIndex);
+        swapchain->endDrawFrame(imageIndex);
         vk::SubmitInfo submitInfo;
 
         // At which stage should we wait for each semaphores (in the same order)
-        vk::Semaphore waitSemaphores = {swapchain.imageAvailableSemaphores[currentFrame].get()};
+        vk::Semaphore waitSemaphores = {swapchain->imageAvailableSemaphores[currentFrame].get()};
         vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
         submitInfo.pWaitDstStageMask = waitStages;    // In which stage of the pipeline to wait
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &swapchain.images[imageIndex].commandbuffer;
+        submitInfo.pCommandBuffers = &swapchain->images[imageIndex].commandbuffer;
 
         // Which semaphores to signal when job is done
-        vk::Semaphore signalSemaphores[] = {swapchain.renderFinishedSemaphores[currentFrame].get()};
+        vk::Semaphore signalSemaphores[] = {swapchain->renderFinishedSemaphores[currentFrame].get()};
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame].get();
+        submitInfo.pSignalSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
 
-        context->device->logical.get().resetFences(swapchain.inFlightFences[currentFrame].get());
-        context->device->queues.graphics.queue.submit(submitInfo, swapchain.inFlightFences[currentFrame].get());
+        context->device->logical.get().resetFences(swapchain->inFlightFences[currentFrame].get());
+        context->device->queues.graphics.queue.submit(submitInfo, swapchain->inFlightFences[currentFrame].get());
 
         vk::PresentInfoKHR presentInfo;
         presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = &swapchain.swapchain.get();
+        presentInfo.pSwapchains = &swapchain->swapchain.get();
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &swapchain.renderFinishedSemaphores[currentFrame].get();
+        presentInfo.pWaitSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
         presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
 
         bool recreationNeeded = false;
@@ -673,29 +679,18 @@ class Engine
 
     void cleanup()
     {
-
         // Cleanup ImGui
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
-        swapchain.destroy();
+        swapchain.reset();
 
-        for (auto model : models)
-        {
-            model->destroy();
-        }
-
-        skybox.destroy();
+        models.clear();
+        clickables.clear();
+        selectedObject.reset();
         cleanupLights();
-
-        context->destroy();
-
-        // TODO: either destroy surface at the same time as the rest of the swap chain,
-        // or move it out.
-
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        context.reset();
     }
 };
 

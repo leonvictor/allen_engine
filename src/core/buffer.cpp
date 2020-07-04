@@ -17,13 +17,6 @@ Buffer::Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::Bu
     allocate(memProperties);
 }
 
-void Buffer::destroy()
-{
-    Allocation::destroy();
-    // device->logical.get().destroyBuffer(buffer);
-    buffer.reset();
-}
-
 void Buffer::copyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions) const
 {
     cb.copyBufferToImage(this->buffer.get(), image, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);

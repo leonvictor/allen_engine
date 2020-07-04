@@ -20,18 +20,6 @@ Device::Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& s
     msaaSamples = getMaxUsableSampleCount();
 }
 
-void Device::destroy()
-{
-    // logical.get().destroyCommandPool(commandpools.graphics.pool);
-    // logical.get().destroyCommandPool(commandpools.transfer.pool);
-
-    commandpools.graphics.pool.reset();
-    commandpools.transfer.pool.reset();
-
-    // logical.get().destroy();
-    logical.reset();
-}
-
 void Device::createCommandPools()
 {
     commandpools.graphics = core::CommandPool(logical.get(), queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);

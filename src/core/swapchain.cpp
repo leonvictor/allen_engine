@@ -78,25 +78,7 @@ class Swapchain
     vk::UniqueDescriptorSetLayout skyboxDescriptorSetLayout;
     vk::UniqueDescriptorPool descriptorPool;
 
-    Swapchain() {}
-
-    void recreate(GLFWwindow* window, int maxObjects)
-    {
-        createSwapchain(window);
-        createImages();
-        createRenderPass();
-        createPipelines();
-        createDepthResources();
-        createColorResources();
-        createFramebuffers();
-        createDescriptorPool(maxObjects);
-        createCommandBuffers();
-
-        // TODO : Add descriptor sets and command buffers here
-    }
-
-    // TODO: Normalize object construction
-    void init(std::shared_ptr<core::Context> context, GLFWwindow* window, int maxObjects)
+    Swapchain(std::shared_ptr<core::Context> context, GLFWwindow* window, int maxObjects)
     {
         this->context = context;
 
@@ -112,7 +94,22 @@ class Swapchain
         createSyncObjects();
         createDescriptorPool(maxObjects);
         createCommandBuffers();
-        picker.setup(context, context->device, context->device->commandpools.graphics);
+        picker.setup(context);
+    }
+
+    void recreate(GLFWwindow* window, int maxObjects)
+    {
+        createSwapchain(window);
+        createImages();
+        createRenderPass();
+        createPipelines();
+        createDepthResources();
+        createColorResources();
+        createFramebuffers();
+        createDescriptorPool(maxObjects);
+        createCommandBuffers();
+
+        // TODO : Add descriptor sets and command buffers here
     }
 
     void createPipelines()
@@ -325,6 +322,7 @@ class Swapchain
     // Destroy the parts we need to recreate
     void cleanup()
     {
+        // TODO: Replace with delete calls ?
         colorImage.destroy();
         depthImage.destroy();
 
@@ -336,39 +334,9 @@ class Swapchain
         pipelines.objects.destroy();
         pipelines.skybox.destroy();
 
-        // TODO: Clean when RAII is complete
-        // context->device->logical.get().destroyRenderPass(renderPass);
         renderPass.reset();
-
-        // context->device->logical.get().destroySwapchainKHR(swapchain);
         swapchain.reset();
-
-        // context->device->logical.get().destroyDescriptorPool(descriptorPool.get());
         descriptorPool.reset();
-    }
-
-    void destroy()
-    {
-        cleanup();
-        picker.destroy();
-
-        // context->device->logical.get().destroyDescriptorSetLayout(objectsDescriptorSetLayout.get());
-        // context->device->logical.get().destroyDescriptorSetLayout(lightsDescriptorSetLayout.get());
-        // context->device->logical.get().destroyDescriptorSetLayout(skyboxDescriptorSetLayout.get());
-
-        objectsDescriptorSetLayout.reset();
-        lightsDescriptorSetLayout.reset();
-        skyboxDescriptorSetLayout.reset();
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        {
-            // context->device->logical.get().destroySemaphore(imageAvailableSemaphores[i]);
-            // context->device->logical.get().destroySemaphore(renderFinishedSemaphores[i]);
-            // context->device->logical.get().destroyFence(inFlightFences[i]);
-            imageAvailableSemaphores[i].reset();
-            renderFinishedSemaphores[i].reset();
-            inFlightFences[i].reset();
-        }
     }
 
   private:
