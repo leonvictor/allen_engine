@@ -84,20 +84,5 @@ struct Allocation
 
         memory = device->logical.get().allocateMemoryUnique(allocInfo, nullptr);
     }
-
-    // TODO: Remove when everything uses RAII
-    virtual void destroy()
-    {
-        if (nullptr != mapped)
-        {
-            unmap();
-        }
-        if (memory)
-        {
-            // device->logical.get().freeMemory(memory);
-            memory.reset();
-            // memory = vk::DeviceMemory();
-        }
-    }
 };
 } // namespace core

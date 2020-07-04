@@ -54,13 +54,8 @@ class Image : public Allocation
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
 
     // Create an image without a view.
-    // TODO: Handle this case in destroy()
     Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
-
-    // TODO: Remove when picker uses RAII
-    // TODO: In some cases we need to explicitely destroy an image and recreate it later. How do we handle this case memory-wise ?
-    void destroy() override;
 
     operator vk::Image();
 

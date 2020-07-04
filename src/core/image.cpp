@@ -92,7 +92,6 @@ Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t heig
 }
 
 // Create an image without a view.
-// TODO: Handle this case in destroy()
 Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageLayout layout)
 {
@@ -100,18 +99,6 @@ Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t heig
 
     initImage(width, height, mipLevels, numSamples, format, tiling, usage, 1, {}, layout);
     allocate(memProperties);
-}
-
-void Image::destroy()
-{
-    // TODO: Remove when everything is RAII-ready
-    // TODO: The class works without this but we have a problem of destruction order:
-    //  - some images like staging can handle self destroying
-    //  - as long as swapchain/context doesn't use raii, images need to be manually destroyed when we specify
-    // out of scope
-    view.reset();
-    image.reset();
-    Allocation::destroy();
 }
 
 Image::operator vk::Image() { return image.get(); } // TODO: This is prone to confusion, get rid of it.

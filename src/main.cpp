@@ -343,27 +343,27 @@ class Engine
     // - For now swapchain holds the layout of the descriptor
     // - The descriptor itself is allocated and registered here
     vk::DescriptorSet lightsDescriptorSet;
-    core::Buffer lightsBuffer;
+    std::unique_ptr<core::Buffer> lightsBuffer;
 
     void createLightsBuffer()
     {
         // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = core::Buffer(context->device, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        lightsBuffer = std::make_unique<core::Buffer>(context->device, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     void updateLightBufferCount(int count)
     {
-        lightsBuffer.map(0, sizeof(int)); // TODO: Respect spec alignment for int
-        lightsBuffer.copy(&count, sizeof(int));
-        lightsBuffer.unmap();
+        lightsBuffer->map(0, sizeof(int)); // TODO: Respect spec alignment for int
+        lightsBuffer->copy(&count, sizeof(int));
+        lightsBuffer->unmap();
     }
 
     void updateLightsBuffer(Light light, int index)
     {
         auto ubo = light.getUniform();
-        lightsBuffer.map(sizeof(int) + index * sizeof(LightUniform), sizeof(LightUniform));
-        lightsBuffer.copy(&ubo, sizeof(LightUniform));
-        lightsBuffer.unmap();
+        lightsBuffer->map(sizeof(int) + index * sizeof(LightUniform), sizeof(LightUniform));
+        lightsBuffer->copy(&ubo, sizeof(LightUniform));
+        lightsBuffer->unmap();
     }
 
     void setUpLights()
@@ -399,7 +399,7 @@ class Engine
         lightsDescriptorSet = context->device->logical.get().allocateDescriptorSets(allocInfo)[0];
 
         vk::DescriptorBufferInfo lightsBufferInfo;
-        lightsBufferInfo.buffer = lightsBuffer.buffer.get(); // TODO: How do we update the lights array ?
+        lightsBufferInfo.buffer = lightsBuffer->buffer.get(); // TODO: How do we update the lights array ?
         lightsBufferInfo.offset = 0;
         lightsBufferInfo.range = VK_WHOLE_SIZE;
 
@@ -416,7 +416,7 @@ class Engine
 
     void cleanupLights()
     {
-        lightsBuffer.destroy();
+        lightsBuffer.reset();
     }
 
 #pragma endregion

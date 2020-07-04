@@ -19,42 +19,37 @@ struct MaterialBufferObject
 class Material
 {
   private:
-    core::Buffer buffer;
+    std::unique_ptr<core::Buffer> buffer;
 
   public:
     Material() {}
 
     Material(std::shared_ptr<core::Device> device)
     {
-        buffer = core::Buffer(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        buffer = std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
     }
 
     Material(std::shared_ptr<core::Device> device, MaterialBufferObject material)
     {
-        buffer = core::Buffer(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        buffer = std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
         update(material);
     }
 
     void update(MaterialBufferObject material)
     {
-        buffer.map(0, sizeof(material));
-        buffer.copy(&material, sizeof(material));
-        buffer.unmap();
+        buffer->map(0, sizeof(material));
+        buffer->copy(&material, sizeof(material));
+        buffer->unmap();
     }
 
     // TODO: Not used. Remove ?
     vk::Buffer getBuffer()
     {
-        return buffer.buffer.get();
+        return buffer->buffer.get();
     }
 
     vk::DescriptorBufferInfo getBufferDescriptor()
     {
-        return buffer.getDescriptor();
-    }
-
-    void destroy()
-    {
-        buffer.destroy();
+        return buffer->getDescriptor();
     }
 };
