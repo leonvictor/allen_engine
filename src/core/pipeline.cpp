@@ -36,15 +36,17 @@ struct Viewport : vk::Viewport
 struct Pipeline
 {
     std::shared_ptr<core::Device> device;
-    vk::Pipeline pipeline;
-    vk::PipelineLayout layout;
+    vk::UniquePipeline pipeline;
+    vk::UniquePipelineLayout layout;
 
     Pipeline() {}
 
     void destroy()
     {
-        device->logical.get().destroyPipeline(pipeline);
-        device->logical.get().destroyPipelineLayout(layout);
+        // device->logical.get().destroyPipeline(pipeline);
+        // device->logical.get().destroyPipelineLayout(layout);
+        pipeline.reset();
+        layout.reset();
     }
 };
 
@@ -115,7 +117,7 @@ class PipelineFactory
         layoutInfo.setLayoutCount = descriptorSetLayouts.size(); // Update when we have more layouts
         layoutInfo.pSetLayouts = descriptorSetLayouts.data();
 
-        auto layout = device->logical.get().createPipelineLayout(layoutInfo);
+        auto layout = device->logical.get().createPipelineLayoutUnique(layoutInfo);
 
         // Shader stages
         pipelineCreateInfo.stageCount = shaderStages.size();
@@ -135,22 +137,24 @@ class PipelineFactory
         pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
         // Pipeline layout
-        pipelineCreateInfo.layout = layout;
+        pipelineCreateInfo.layout = layout.get();
 
         // Render pass
         pipelineCreateInfo.subpass = 0;
         pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
-        auto pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH);                                          // TODO
-        auto graphicsPipeline = device->logical.get().createGraphicsPipeline(pipelineCache.get(), pipelineCreateInfo); // TODO
+        auto pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH);                                                // TODO
+        auto graphicsPipeline = device->logical.get().createGraphicsPipelineUnique(pipelineCache.get(), pipelineCreateInfo); // TODO
+
+        // TODO: Save pipeline cache
 
         clearShaders();
         dynamicStates.clear();
 
         Pipeline pipeline;
         pipeline.device = device;
-        pipeline.layout = layout;
-        pipeline.pipeline = graphicsPipeline;
+        pipeline.layout = std::move(layout);
+        pipeline.pipeline = std::move(graphicsPipeline);
 
         return pipeline;
     }

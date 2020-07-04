@@ -141,8 +141,8 @@ class Swapchain
         factory.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
         pipelines.skybox = factory.create(std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout.get()}));
 
-        context->setDebugUtilsObjectName(pipelines.skybox.pipeline, "Skybox Pipeline");
-        context->setDebugUtilsObjectName(pipelines.objects.pipeline, "Objects Pipeline");
+        context->setDebugUtilsObjectName(pipelines.skybox.pipeline.get(), "Skybox Pipeline");
+        context->setDebugUtilsObjectName(pipelines.objects.pipeline.get(), "Objects Pipeline");
     }
 
     void createSkyboxDescriptorSetLayout()
@@ -283,21 +283,21 @@ class Swapchain
     void recordCommandBuffer(uint32_t index, std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
     {
         // Skybox
-        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout, 0, skybox.descriptorSet, nullptr);
+        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox.layout.get(), 0, skybox.descriptorSet, nullptr);
         images[index].commandbuffer.bindVertexBuffers(0, skybox.mesh.vertexBuffer.buffer, vk::DeviceSize{0});
         images[index].commandbuffer.bindIndexBuffer(skybox.mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.pipeline);
+        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox.pipeline.get());
         images[index].commandbuffer.drawIndexed(skybox.mesh.indices.size(), 1, 0, 0, 0);
 
         // Objects
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.pipeline);
-        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 0, lightsDescriptorSet, nullptr);
+        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects.pipeline.get());
+        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout.get(), 0, lightsDescriptorSet, nullptr);
 
         for (auto model : models)
         {
             images[index].commandbuffer.bindVertexBuffers(0, model->mesh.vertexBuffer.buffer, vk::DeviceSize{0});
             images[index].commandbuffer.bindIndexBuffer(model->mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-            images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout, 1, model->descriptorSet, nullptr);
+            images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects.layout.get(), 1, model->descriptorSet, nullptr);
             images[index].commandbuffer.drawIndexed(model->mesh.indices.size(), 1, 0, 0, 0);
         }
     }
