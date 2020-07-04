@@ -53,31 +53,31 @@ class Swapchain
     // Object picking
     Picker picker;
 
-    vk::SwapchainKHR swapchain;
+    vk::UniqueSwapchainKHR swapchain;
     vk::PresentInfoKHR presentInfo;
 
     std::vector<SwapchainImage> images;
 
     vk::Format imageFormat;
     vk::Extent2D extent;
-    vk::RenderPass renderPass;
+    vk::UniqueRenderPass renderPass;
 
     std::shared_ptr<core::Context> context; // TODO: Fuse device, context and swapchain somehow
     core::CommandPool commandPool;
 
-    std::vector<vk::Semaphore> imageAvailableSemaphores;
-    std::vector<vk::Semaphore> renderFinishedSemaphores;
-    std::vector<vk::Fence> inFlightFences;
+    std::vector<vk::UniqueSemaphore> imageAvailableSemaphores;
+    std::vector<vk::UniqueSemaphore> renderFinishedSemaphores;
+    std::vector<vk::UniqueFence> inFlightFences;
 
     int currentFrame = 0;
     bool frame_active = false;
     uint32_t activeFrameIndex;
 
     // There is probably a better place for those
-    vk::DescriptorSetLayout objectsDescriptorSetLayout;
-    vk::DescriptorSetLayout lightsDescriptorSetLayout;
-    vk::DescriptorSetLayout skyboxDescriptorSetLayout;
-    vk::DescriptorPool descriptorPool;
+    vk::UniqueDescriptorSetLayout objectsDescriptorSetLayout;
+    vk::UniqueDescriptorSetLayout lightsDescriptorSetLayout;
+    vk::UniqueDescriptorSetLayout skyboxDescriptorSetLayout;
+    vk::UniqueDescriptorPool descriptorPool;
 
     Swapchain() {}
 
@@ -119,12 +119,12 @@ class Swapchain
     void createPipelines()
     {
         core::PipelineFactory factory = core::PipelineFactory(context->device);
-        factory.setRenderPass(renderPass);
+        factory.setRenderPass(renderPass.get());
         factory.setExtent(extent);
 
         factory.registerShader("shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
         factory.registerShader("shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
-        pipelines.objects = factory.create(std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout, objectsDescriptorSetLayout}));
+        pipelines.objects = factory.create(std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout.get(), objectsDescriptorSetLayout.get()}));
 
         // TODO: Create object picking pipeline
         //  * No actual rendering
@@ -139,13 +139,10 @@ class Swapchain
         factory.registerShader("shaders/skybox.frag.spv", vk::ShaderStageFlagBits::eFragment);
         factory.depthStencil.depthWriteEnable = VK_FALSE;
         factory.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
-        pipelines.skybox = factory.create(std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout}));
+        pipelines.skybox = factory.create(std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout.get()}));
 
-// TODO: Get rid of the double negative
-#ifndef NDEBUG
         context->setDebugUtilsObjectName(pipelines.skybox.pipeline, "Skybox Pipeline");
         context->setDebugUtilsObjectName(pipelines.objects.pipeline, "Objects Pipeline");
-#endif
     }
 
     void createSkyboxDescriptorSetLayout()
@@ -154,18 +151,15 @@ class Swapchain
             {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
             {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-        skyboxDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayout({{}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data()});
-
-#ifndef NDEBUG
-        context->setDebugUtilsObjectName(skyboxDescriptorSetLayout, "Skybox Descriptor Set Layout");
-#endif
+        skyboxDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique({{}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data()});
+        context->setDebugUtilsObjectName(skyboxDescriptorSetLayout.get(), "Skybox Descriptor Set Layout");
     }
 
     void createFramebuffers()
     {
         for (int i = 0; i < images.size(); i++)
         {
-            images[i].framebuffer = createFramebuffer(images[i].imageView, renderPass);
+            images[i].framebuffer = createFramebuffer(images[i].imageView, renderPass.get());
         }
     }
 
@@ -245,7 +239,7 @@ class Swapchain
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDependency;
 
-        renderPass = context->device->logical.get().createRenderPass(renderPassInfo);
+        renderPass = context->device->logical.get().createRenderPassUnique(renderPassInfo);
     }
 
     void createCommandBuffers(const core::CommandPool& commandPool)
@@ -266,7 +260,7 @@ class Swapchain
 
         // Start a render pass.
         vk::RenderPassBeginInfo renderPassInfo;
-        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.renderPass = renderPass.get();
         renderPassInfo.framebuffer = images[index].framebuffer;
         renderPassInfo.renderArea.extent = extent;
         renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
@@ -324,9 +318,9 @@ class Swapchain
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            imageAvailableSemaphores.push_back(context->device->logical.get().createSemaphore(semaphoreInfo, nullptr));
-            renderFinishedSemaphores.push_back(context->device->logical.get().createSemaphore(semaphoreInfo, nullptr));
-            inFlightFences.push_back(context->device->logical.get().createFence(fenceInfo, nullptr));
+            imageAvailableSemaphores.push_back(context->device->logical.get().createSemaphoreUnique(semaphoreInfo, nullptr));
+            renderFinishedSemaphores.push_back(context->device->logical.get().createSemaphoreUnique(semaphoreInfo, nullptr));
+            inFlightFences.push_back(context->device->logical.get().createFenceUnique(fenceInfo, nullptr));
         }
     }
 
@@ -344,11 +338,15 @@ class Swapchain
         pipelines.objects.destroy();
         pipelines.skybox.destroy();
 
-        context->device->logical.get().destroyRenderPass(renderPass);
+        // TODO: Clean when RAII is complete
+        // context->device->logical.get().destroyRenderPass(renderPass);
+        renderPass.reset();
 
-        context->device->logical.get().destroySwapchainKHR(swapchain);
+        // context->device->logical.get().destroySwapchainKHR(swapchain);
+        swapchain.reset();
 
-        context->device->logical.get().destroyDescriptorPool(descriptorPool);
+        // context->device->logical.get().destroyDescriptorPool(descriptorPool.get());
+        descriptorPool.reset();
     }
 
     void destroy()
@@ -356,15 +354,22 @@ class Swapchain
         cleanup();
         picker.destroy();
 
-        context->device->logical.get().destroyDescriptorSetLayout(objectsDescriptorSetLayout);
-        context->device->logical.get().destroyDescriptorSetLayout(lightsDescriptorSetLayout);
-        context->device->logical.get().destroyDescriptorSetLayout(skyboxDescriptorSetLayout);
+        // context->device->logical.get().destroyDescriptorSetLayout(objectsDescriptorSetLayout.get());
+        // context->device->logical.get().destroyDescriptorSetLayout(lightsDescriptorSetLayout.get());
+        // context->device->logical.get().destroyDescriptorSetLayout(skyboxDescriptorSetLayout.get());
+
+        objectsDescriptorSetLayout.reset();
+        lightsDescriptorSetLayout.reset();
+        skyboxDescriptorSetLayout.reset();
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            context->device->logical.get().destroySemaphore(imageAvailableSemaphores[i]);
-            context->device->logical.get().destroySemaphore(renderFinishedSemaphores[i]);
-            context->device->logical.get().destroyFence(inFlightFences[i]);
+            // context->device->logical.get().destroySemaphore(imageAvailableSemaphores[i]);
+            // context->device->logical.get().destroySemaphore(renderFinishedSemaphores[i]);
+            // context->device->logical.get().destroyFence(inFlightFences[i]);
+            imageAvailableSemaphores[i].reset();
+            renderFinishedSemaphores[i].reset();
+            inFlightFences[i].reset();
         }
     }
 
@@ -414,7 +419,7 @@ class Swapchain
         sCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
         sCreateInfo.oldSwapchain = {(VkSwapchainKHR_T*) 0}; // TODO : Pass the old swapchain to reuse most of the info.
 
-        swapchain = context->device->logical.get().createSwapchainKHR(sCreateInfo);
+        swapchain = context->device->logical.get().createSwapchainKHRUnique(sCreateInfo);
 
         this->extent = extent;
         imageFormat = surfaceFormat.format;
@@ -471,7 +476,7 @@ class Swapchain
 
     void createImages()
     {
-        std::vector<vk::Image> imgs = context->device->logical.get().getSwapchainImagesKHR(swapchain);
+        std::vector<vk::Image> imgs = context->device->logical.get().getSwapchainImagesKHR(swapchain.get());
 
         for (vk::Image swapImage : imgs)
         {
@@ -551,7 +556,7 @@ class Swapchain
 
         vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
-        objectsDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayout(createInfo);
+        objectsDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique(createInfo);
 
         vk::DescriptorSetLayoutBinding lightsLayoutBinding;
         lightsLayoutBinding.binding = 0;
@@ -563,12 +568,10 @@ class Swapchain
         lightsCreateInfo.bindingCount = 1;
         lightsCreateInfo.pBindings = &lightsLayoutBinding;
 
-        lightsDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayout(lightsCreateInfo);
+        lightsDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique(lightsCreateInfo);
 
-#ifndef NDEBUG
-        context->setDebugUtilsObjectName(objectsDescriptorSetLayout, "Object Descriptor Layout");
-        context->setDebugUtilsObjectName(lightsDescriptorSetLayout, "Lights Descriptor Set Layout");
-#endif
+        context->setDebugUtilsObjectName(objectsDescriptorSetLayout.get(), "Object Descriptor Layout");
+        context->setDebugUtilsObjectName(lightsDescriptorSetLayout.get(), "Lights Descriptor Set Layout");
     }
 
     void createDescriptorPool(int nObjects)
@@ -590,7 +593,7 @@ class Swapchain
         createInfo.pPoolSizes = poolSizes.data();
         createInfo.maxSets = (nObjects * 2) + 2; // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker
 
-        descriptorPool = context->device->logical.get().createDescriptorPool(createInfo);
+        descriptorPool = context->device->logical.get().createDescriptorPoolUnique(createInfo);
     }
 };
 }; // namespace core

@@ -171,13 +171,13 @@ class Engine
         init_info.QueueFamily = context->device->queueFamilyIndices.presentFamily.value();
         init_info.Queue = context->device->queues.present.queue;
         init_info.PipelineCache = nullptr;
-        init_info.DescriptorPool = swapchain.descriptorPool;
+        init_info.DescriptorPool = swapchain.descriptorPool.get();
         init_info.Allocator = nullptr;
         init_info.MinImageCount = 2;
         init_info.ImageCount = swapchain.images.size();
         init_info.CheckVkResultFn = nullptr;
         init_info.MSAASamples = (VkSampleCountFlagBits) context->device->msaaSamples;
-        ImGui_ImplVulkan_Init(&init_info, swapchain.renderPass);
+        ImGui_ImplVulkan_Init(&init_info, swapchain.renderPass.get());
 
         // Upload Fonts
         // Use any command queue
@@ -229,8 +229,8 @@ class Engine
 
         // TODO:
         std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
-        m->createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
-        m->createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
+        m->createDescriptorSet(swapchain.descriptorPool.get(), swapchain.objectsDescriptorSetLayout.get());
+        m->createColorDescriptorSet(swapchain.descriptorPool.get(), swapchain.picker.descriptorSetLayout);
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
     }
@@ -286,8 +286,8 @@ class Engine
         {
             // TODO: This logic is a duplicate of addObject.
             auto m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
-            m->createDescriptorSet(swapchain.descriptorPool, swapchain.objectsDescriptorSetLayout);
-            m->createColorDescriptorSet(swapchain.descriptorPool, swapchain.picker.descriptorSetLayout);
+            m->createDescriptorSet(swapchain.descriptorPool.get(), swapchain.objectsDescriptorSetLayout.get());
+            m->createColorDescriptorSet(swapchain.descriptorPool.get(), swapchain.picker.descriptorSetLayout);
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         }
@@ -316,7 +316,7 @@ class Engine
     void setupSkyBox()
     {
         skybox = Skybox(context, context->device, "", MODEL_PATH);
-        skybox.createDescriptorSet(swapchain.descriptorPool, swapchain.skyboxDescriptorSetLayout);
+        skybox.createDescriptorSet(swapchain.descriptorPool.get(), swapchain.skyboxDescriptorSetLayout.get());
         updateSkyboxUBO();
     }
 
@@ -389,7 +389,7 @@ class Engine
 
     void createLightsDescriptorSet()
     {
-        vk::DescriptorSetAllocateInfo allocInfo{swapchain.descriptorPool, 1, &swapchain.lightsDescriptorSetLayout};
+        vk::DescriptorSetAllocateInfo allocInfo{swapchain.descriptorPool.get(), 1, &swapchain.lightsDescriptorSetLayout.get()};
         lightsDescriptorSet = context->device->logical.get().allocateDescriptorSets(allocInfo)[0];
 
         vk::DescriptorBufferInfo lightsBufferInfo;
@@ -578,11 +578,11 @@ class Engine
     uint8_t beginDrawFrame()
     {
         // Wait for the fence
-        context->device->logical.get().waitForFences(swapchain.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        context->device->logical.get().waitForFences(swapchain.inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
-        vk::Result result = context->device->logical.get().acquireNextImageKHR(swapchain.swapchain, UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame], nullptr, &imageIndex);
+        vk::Result result = context->device->logical.get().acquireNextImageKHR(swapchain.swapchain.get(), UINT64_MAX, swapchain.imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
         if (result == vk::Result::eErrorOutOfDateKHR)
         {
             recreateSwapchain();
@@ -599,7 +599,7 @@ class Engine
         }
 
         // Mark the image as now being in use by this frame
-        swapchain.images[imageIndex].fence = swapchain.inFlightFences[currentFrame];
+        swapchain.images[imageIndex].fence = swapchain.inFlightFences[currentFrame].get();
 
         swapchain.beginDrawFrame(imageIndex);
 
@@ -622,7 +622,7 @@ class Engine
         vk::SubmitInfo submitInfo;
 
         // At which stage should we wait for each semaphores (in the same order)
-        vk::Semaphore waitSemaphores = {swapchain.imageAvailableSemaphores[currentFrame]};
+        vk::Semaphore waitSemaphores = {swapchain.imageAvailableSemaphores[currentFrame].get()};
         vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
         submitInfo.waitSemaphoreCount = 1;
@@ -632,19 +632,19 @@ class Engine
         submitInfo.pCommandBuffers = &swapchain.images[imageIndex].commandbuffer;
 
         // Which semaphores to signal when job is done
-        vk::Semaphore signalSemaphores[] = {swapchain.renderFinishedSemaphores[currentFrame]};
+        vk::Semaphore signalSemaphores[] = {swapchain.renderFinishedSemaphores[currentFrame].get()};
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
+        submitInfo.pSignalSemaphores = &swapchain.renderFinishedSemaphores[currentFrame].get();
 
-        context->device->logical.get().resetFences(swapchain.inFlightFences[currentFrame]);
-        context->device->queues.graphics.queue.submit(submitInfo, swapchain.inFlightFences[currentFrame]);
+        context->device->logical.get().resetFences(swapchain.inFlightFences[currentFrame].get());
+        context->device->queues.graphics.queue.submit(submitInfo, swapchain.inFlightFences[currentFrame].get());
 
         vk::PresentInfoKHR presentInfo;
         presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = &swapchain.swapchain;
+        presentInfo.pSwapchains = &swapchain.swapchain.get();
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &swapchain.renderFinishedSemaphores[currentFrame];
+        presentInfo.pWaitSemaphores = &swapchain.renderFinishedSemaphores[currentFrame].get();
         presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
 
         bool recreationNeeded = false;
