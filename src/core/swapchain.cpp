@@ -323,6 +323,7 @@ class Swapchain
     void cleanup()
     {
         // TODO: Replace with delete calls ?
+        // Are they properly destroyed if we call the constructor again ?
         colorImage.destroy();
         depthImage.destroy();
 

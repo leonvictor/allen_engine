@@ -236,7 +236,7 @@ class Engine
         // TODO:
         std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
-        m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout);
+        m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout.get());
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
     }
@@ -293,7 +293,7 @@ class Engine
             // TODO: This logic is a duplicate of addObject.
             auto m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
-            m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout);
+            m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout.get());
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         }

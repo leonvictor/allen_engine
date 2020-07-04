@@ -10,13 +10,13 @@
 class Picker
 {
   private:
-    vk::RenderPass renderPass;
+    vk::UniqueRenderPass renderPass;
     core::Image image;
     core::Image depthImage;
-    vk::Framebuffer framebuffer;
+    vk::UniqueFramebuffer framebuffer;
     core::Pipeline pipeline;
     vk::CommandBuffer commandBuffer;
-    vk::Fence renderFinished;
+    vk::UniqueFence renderFinished;
     uint32_t height, width;
     vk::Format colorImageFormat;
 
@@ -25,7 +25,7 @@ class Picker
     void createFence()
     {
         vk::FenceCreateInfo fenceInfo;
-        renderFinished = context->device->logical.get().createFence(fenceInfo);
+        renderFinished = context->device->logical.get().createFenceUnique(fenceInfo);
     }
 
     void createCommandBuffer()
@@ -41,14 +41,14 @@ class Picker
         };
 
         vk::FramebufferCreateInfo fbInfo;
-        fbInfo.renderPass = renderPass;
+        fbInfo.renderPass = renderPass.get();
         fbInfo.attachmentCount = 2;
         fbInfo.pAttachments = attachments.data();
         fbInfo.width = width;
         fbInfo.height = height;
         fbInfo.layers = 1;
 
-        framebuffer = context->device->logical.get().createFramebuffer(fbInfo);
+        framebuffer = context->device->logical.get().createFramebufferUnique(fbInfo);
     }
 
     void createRessources()
@@ -89,7 +89,7 @@ class Picker
 
         vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
-        descriptorSetLayout = context->device->logical.get().createDescriptorSetLayout(createInfo);
+        descriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique(createInfo);
     }
 
     void createRenderPass()
@@ -143,28 +143,28 @@ class Picker
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDependency;
 
-        renderPass = context->device->logical.get().createRenderPass(renderPassInfo);
-        context->setDebugUtilsObjectName(renderPass, "Picker renderpass");
+        renderPass = context->device->logical.get().createRenderPassUnique(renderPassInfo);
+        context->setDebugUtilsObjectName(renderPass.get(), "Picker renderpass");
     }
 
     void createPipeline()
     {
         core::PipelineFactory factory = core::PipelineFactory(context->device);
-        factory.setRenderPass(renderPass);
+        factory.setRenderPass(renderPass.get());
         factory.setExtent(vk::Extent2D{width, height});
         factory.addDynamicState(vk::DynamicState::eScissor);
         factory.multisample.rasterizationSamples = vk::SampleCountFlagBits::e1; // TODO: set all of those at once.
 
         factory.registerShader("shaders/picker.vert.spv", vk::ShaderStageFlagBits::eVertex);
         factory.registerShader("shaders/picker.frag.spv", vk::ShaderStageFlagBits::eFragment);
-        pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout}));
+        pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout.get()}));
 
         context->setDebugUtilsObjectName(pipeline.pipeline.get(), "Picker graphics Pipeline");
         // TODO: Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
     }
 
   public:
-    vk::DescriptorSetLayout descriptorSetLayout;
+    vk::UniqueDescriptorSetLayout descriptorSetLayout;
 
     void setup(std::shared_ptr<core::Context> context)
     {
@@ -182,18 +182,6 @@ class Picker
         createFence();
     }
 
-    void destroy()
-    {
-        image.destroy();
-        depthImage.destroy();
-
-        pipeline.destroy();
-        context->device->logical.get().destroyRenderPass(renderPass);
-        context->device->logical.get().destroyDescriptorSetLayout(descriptorSetLayout);
-        context->device->logical.get().destroyFence(renderFinished);
-        context->device->logical.get().destroyFramebuffer(framebuffer);
-    }
-
     void render(std::vector<std::shared_ptr<SceneObject>> models, glm::vec2 target)
     {
         // TODO: Color is mesh-wide and should be passed by uniform
@@ -203,8 +191,8 @@ class Picker
 
         // Start a render pass.
         vk::RenderPassBeginInfo renderPassInfo;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = framebuffer;
+        renderPassInfo.renderPass = renderPass.get();
+        renderPassInfo.framebuffer = framebuffer.get();
         renderPassInfo.renderArea.extent = vk::Extent2D(width, height); // TODO ?
         // renderPassInfo.renderArea.offset = vk::Offset2D{target.x, target.y}; // TODO -3 ?
         renderPassInfo.renderArea.offset = vk::Offset2D{0, 0}; // TODO -3 ?
@@ -244,7 +232,7 @@ class Picker
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        context->device->queues.graphics.queue.submit(submitInfo, renderFinished);
+        context->device->queues.graphics.queue.submit(submitInfo, renderFinished.get());
     }
 
     glm::vec3 pickColor(std::vector<std::shared_ptr<SceneObject>> models, glm::vec2 target)
@@ -252,8 +240,8 @@ class Picker
         // TODO: Call that elsewhere
         render(models, target);
 
-        context->device->logical.get().waitForFences(renderFinished, VK_TRUE, UINT64_MAX);
-        context->device->logical.get().resetFences(renderFinished);
+        context->device->logical.get().waitForFences(renderFinished.get(), VK_TRUE, UINT64_MAX);
+        context->device->logical.get().resetFences(renderFinished.get());
 
         core::Image stagingImage = core::Image(context->device, width, height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst,
                                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
@@ -293,8 +281,6 @@ class Picker
         // TODO: Grab only the value in the middle pixel
         stagingImage.save("debug.ppm", colorSwizzle);
         glm::vec3 pixelValue = stagingImage.pixelAt(target.x, target.y);
-
-        stagingImage.destroy();
         return pixelValue;
     }
 };
