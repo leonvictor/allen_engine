@@ -78,11 +78,16 @@ class Engine
     void run()
     {
         mainLoop();
-        cleanup();
     }
 
     ~Engine()
     {
+        // Cleanup ImGui
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+
+        // Destroy the glfw context
         glfwDestroyWindow(window);
         glfwTerminate();
     }
@@ -414,11 +419,6 @@ class Engine
         context->device->logical.get().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
-    void cleanupLights()
-    {
-        lightsBuffer.reset();
-    }
-
 #pragma endregion
 
     void recreateSwapchain()
@@ -675,22 +675,6 @@ class Engine
         }
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
-
-    void cleanup()
-    {
-        // Cleanup ImGui
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-
-        // TODO: Let destructor handle this
-        swapchain.reset();
-        models.clear();
-        clickables.clear();
-        selectedObject.reset();
-        cleanupLights();
-        context.reset();
     }
 };
 

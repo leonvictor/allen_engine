@@ -22,6 +22,8 @@ namespace core
 // TODO: Rework to use core::Image
 //   * more info: this is problematic when it comes to destruction because
 //     swapchain images shouldn't be deleted manually
+// TODO: Make sure everything is destroyed properly when swapchain goes out of scope
+// TODO: Make everythin Unique ? (except image)
 struct SwapchainImage
 {
     vk::Framebuffer framebuffer;

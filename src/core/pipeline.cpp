@@ -40,14 +40,6 @@ struct Pipeline
     vk::UniquePipelineLayout layout;
 
     Pipeline() {}
-
-    void destroy()
-    {
-        // device->logical.get().destroyPipeline(pipeline);
-        // device->logical.get().destroyPipelineLayout(layout);
-        pipeline.reset();
-        layout.reset();
-    }
 };
 
 // An helper class for pipeline creation
