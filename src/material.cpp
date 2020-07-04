@@ -18,10 +18,10 @@ struct MaterialBufferObject
 
 class Material
 {
-private:
+  private:
     core::Buffer buffer;
 
-public:
+  public:
     Material() {}
 
     Material(std::shared_ptr<core::Device> device)
@@ -42,12 +42,14 @@ public:
         buffer.unmap();
     }
 
+    // TODO: Not used. Remove ?
     vk::Buffer getBuffer()
     {
-        return buffer.buffer;
+        return buffer.buffer.get();
     }
 
-    vk::DescriptorBufferInfo getBufferDescriptor() {
+    vk::DescriptorBufferInfo getBufferDescriptor()
+    {
         return buffer.getDescriptor();
     }
 

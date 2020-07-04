@@ -393,7 +393,7 @@ class Engine
         lightsDescriptorSet = context->device->logical.get().allocateDescriptorSets(allocInfo)[0];
 
         vk::DescriptorBufferInfo lightsBufferInfo;
-        lightsBufferInfo.buffer = lightsBuffer.buffer; // TODO: How do we update the lights array ?
+        lightsBufferInfo.buffer = lightsBuffer.buffer.get(); // TODO: How do we update the lights array ?
         lightsBufferInfo.offset = 0;
         lightsBufferInfo.range = VK_WHOLE_SIZE;
 

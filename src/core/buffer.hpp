@@ -11,7 +11,7 @@ namespace core
 class Buffer : public Allocation
 {
   public:
-    vk::Buffer buffer;
+    vk::UniqueBuffer buffer;
 
     Buffer(); // Empty ctor is required for now. Todo: Remove when we can
     Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memProperties);
@@ -23,7 +23,7 @@ class Buffer : public Allocation
 
     inline vk::DescriptorBufferInfo getDescriptor() const
     {
-        return vk::DescriptorBufferInfo(buffer, 0, size);
+        return vk::DescriptorBufferInfo(buffer.get(), 0, size);
     }
 
     operator vk::Buffer();

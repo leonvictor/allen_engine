@@ -20,12 +20,13 @@ Buffer::Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::Bu
 void Buffer::destroy()
 {
     Allocation::destroy();
-    device->logical.get().destroyBuffer(buffer);
+    // device->logical.get().destroyBuffer(buffer);
+    buffer.reset();
 }
 
 void Buffer::copyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions) const
 {
-    cb.copyBufferToImage(this->buffer, image, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
+    cb.copyBufferToImage(this->buffer.get(), image, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
 }
 
 void Buffer::copyTo(vk::CommandBuffer& cb, vk::Image& image, const uint32_t width, const uint32_t height) const
@@ -41,7 +42,7 @@ void Buffer::copyTo(vk::CommandBuffer& cb, vk::Image& image, const uint32_t widt
     copy.imageSubresource.mipLevel = 0;
     copy.imageOffset = vk::Offset3D{0, 0, 0};
 
-    cb.copyBufferToImage(this->buffer, image, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
+    cb.copyBufferToImage(this->buffer.get(), image, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
 }
 
 void Buffer::copyTo(vk::CommandBuffer& cb, core::Buffer& dstBuffer, vk::DeviceSize size) const
@@ -51,12 +52,12 @@ void Buffer::copyTo(vk::CommandBuffer& cb, core::Buffer& dstBuffer, vk::DeviceSi
     copyRegion.dstOffset = 0;
     copyRegion.size = size;
 
-    cb.copyBuffer(this->buffer, dstBuffer.buffer, copyRegion);
+    cb.copyBuffer(this->buffer.get(), dstBuffer.buffer.get(), copyRegion);
 }
 
 Buffer::operator vk::Buffer()
 {
-    return buffer;
+    return buffer.get();
 }
 
 void Buffer::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage)
@@ -74,13 +75,13 @@ void Buffer::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage)
     bufferInfo.queueFamilyIndexCount = 2;
     bufferInfo.pQueueFamilyIndices = queues;
 
-    buffer = device->logical.get().createBuffer(bufferInfo);
+    buffer = device->logical.get().createBufferUnique(bufferInfo);
 }
 
 void Buffer::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    vk::MemoryRequirements memRequirements = device->logical.get().getBufferMemoryRequirements(buffer);
+    vk::MemoryRequirements memRequirements = device->logical.get().getBufferMemoryRequirements(buffer.get());
     Allocation::allocate(memRequirements, memProperties);
-    device->logical.get().bindBufferMemory(buffer, memory.get(), 0);
+    device->logical.get().bindBufferMemory(buffer.get(), memory.get(), 0);
 }
 }; // namespace core
