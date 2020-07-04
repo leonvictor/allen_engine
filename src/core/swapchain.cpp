@@ -41,8 +41,8 @@ struct SwapchainImage
 class Swapchain
 {
   public:
-    core::Image colorImage;
-    core::Image depthImage;
+    std::unique_ptr<core::Image> colorImage;
+    std::unique_ptr<core::Image> depthImage;
 
     struct
     {
@@ -115,22 +115,15 @@ class Swapchain
     void createPipelines()
     {
         core::PipelineFactory factory = core::PipelineFactory(context->device);
+
+        // Create the object rendering pipeline
         factory.setRenderPass(renderPass.get());
         factory.setExtent(extent);
-
         factory.registerShader("shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
         factory.registerShader("shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
         pipelines.objects = factory.create(std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout.get(), objectsDescriptorSetLayout.get()}));
 
-        // TODO: Create object picking pipeline
-        //  * No actual rendering
-        //  * Write vertex color to a specific buffer
-        //  * Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
-        //  *
-
-        // 1) register simple color shaders
-        // 2)
-
+        // Skybox pipeline
         factory.registerShader("shaders/skybox.vert.spv", vk::ShaderStageFlagBits::eVertex);
         factory.registerShader("shaders/skybox.frag.spv", vk::ShaderStageFlagBits::eFragment);
         factory.depthStencil.depthWriteEnable = VK_FALSE;
@@ -324,13 +317,15 @@ class Swapchain
     {
         // TODO: Replace with delete calls ?
         // Are they properly destroyed if we call the constructor again ?
-        colorImage.destroy();
-        depthImage.destroy();
+        // Is it better to clear the objects and initialize them again ?
+        colorImage.reset();
+        depthImage.reset();
 
         for (auto img : images)
         {
             img.cleanup(context->device->logical.get(), context->device->commandpools.graphics.pool.get());
         }
+        images.clear();
 
         pipelines.objects.destroy();
         pipelines.skybox.destroy();
@@ -462,8 +457,8 @@ class Swapchain
     vk::Framebuffer createFramebuffer(vk::ImageView view, vk::RenderPass renderPass)
     {
         std::array<vk::ImageView, 3> attachments = {
-            colorImage.view.get(),
-            depthImage.view.get(),
+            colorImage->view.get(),
+            depthImage->view.get(),
             view};
 
         vk::FramebufferCreateInfo framebufferInfo;
@@ -480,19 +475,19 @@ class Swapchain
     {
         vk::Format format = context->device->findDepthFormat();
 
-        depthImage = core::Image(context->device, extent.width, extent.height, 1, context->device->msaaSamples,
-                                 format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                 vk::ImageAspectFlagBits::eDepth);
-        context->setDebugUtilsObjectName(depthImage.image.get(), "Swapchain depth image");
+        depthImage = std::make_unique<core::Image>(context->device, extent.width, extent.height, 1, context->device->msaaSamples,
+                                                   format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                                   vk::ImageAspectFlagBits::eDepth);
+        context->setDebugUtilsObjectName(depthImage->image.get(), "Swapchain depth image");
     }
 
     void createColorResources()
     {
-        colorImage = core::Image(context->device, extent.width, extent.height, 1, context->device->msaaSamples, this->imageFormat,
-                                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                 vk::ImageAspectFlagBits::eColor);
-        context->setDebugUtilsObjectName(colorImage.image.get(), "Swapchain color image");
-        context->setDebugUtilsObjectName(colorImage.view.get(), "Color Image View");
+        colorImage = std::make_unique<core::Image>(context->device, extent.width, extent.height, 1, context->device->msaaSamples, this->imageFormat,
+                                                   vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                                   vk::ImageAspectFlagBits::eColor);
+        context->setDebugUtilsObjectName(colorImage->image.get(), "Swapchain color image");
+        context->setDebugUtilsObjectName(colorImage->view.get(), "Color Image View");
     }
 
     void createDescriptorSetLayout()

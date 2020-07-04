@@ -684,8 +684,8 @@ class Engine
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
+        // TODO: Let destructor handle this
         swapchain.reset();
-
         models.clear();
         clickables.clear();
         selectedObject.reset();
