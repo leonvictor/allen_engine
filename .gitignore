@@ -6,3 +6,7 @@
 
 # CMake generated stuff
 build
+
+# ImgUI cache
+imgui.ini
+debug.ppm
