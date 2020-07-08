@@ -87,6 +87,15 @@ class Engine
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
+        clickables.clear();
+        models.clear();
+        selectedObject.reset();
+        lightsBuffer.reset();
+        lightsDescriptorSet.reset();
+        skybox.reset();
+        swapchain.reset();
+        context.reset();
+
         // Destroy the glfw context
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -129,7 +138,7 @@ class Engine
     std::map<ColorUID, std::shared_ptr<SceneObject>> clickables; // Good candidate for weak_ptrs ?
     std::shared_ptr<SceneObject> selectedObject;
     std::vector<Light> lights;
-    Skybox skybox;
+    std::shared_ptr<Skybox> skybox;
 
     std::array<glm::vec3, 4> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -326,8 +335,8 @@ class Engine
 
     void setupSkyBox()
     {
-        skybox = Skybox(context, context->device, "", MODEL_PATH);
-        skybox.createDescriptorSet(swapchain->descriptorPool.get(), swapchain->skyboxDescriptorSetLayout.get());
+        skybox = std::make_shared<Skybox>(context, context->device, "", MODEL_PATH);
+        skybox->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->skyboxDescriptorSetLayout.get());
         updateSkyboxUBO();
     }
 
@@ -339,7 +348,7 @@ class Engine
         ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
         ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
         ubo.cameraPos = camera.position;
-        skybox.updateUniformBuffer(ubo);
+        skybox->updateUniformBuffer(ubo);
     }
 
 #pragma region lights_descriptor
@@ -347,7 +356,7 @@ class Engine
     // - All the lights in a scene share a buffer (so Scene should hold them)
     // - For now swapchain holds the layout of the descriptor
     // - The descriptor itself is allocated and registered here
-    vk::DescriptorSet lightsDescriptorSet;
+    vk::UniqueDescriptorSet lightsDescriptorSet;
     std::unique_ptr<core::Buffer> lightsBuffer;
 
     void createLightsBuffer()
@@ -401,7 +410,8 @@ class Engine
     void createLightsDescriptorSet()
     {
         vk::DescriptorSetAllocateInfo allocInfo{swapchain->descriptorPool.get(), 1, &swapchain->lightsDescriptorSetLayout.get()};
-        lightsDescriptorSet = context->device->logical.get().allocateDescriptorSets(allocInfo)[0];
+        auto sets = context->device->logical.get().allocateDescriptorSetsUnique(allocInfo);
+        lightsDescriptorSet = std::move(sets[0]);
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer->buffer.get(); // TODO: How do we update the lights array ?
@@ -409,7 +419,7 @@ class Engine
         lightsBufferInfo.range = VK_WHOLE_SIZE;
 
         vk::WriteDescriptorSet writeDescriptor;
-        writeDescriptor.dstSet = lightsDescriptorSet;
+        writeDescriptor.dstSet = lightsDescriptorSet.get();
         writeDescriptor.dstBinding = 0;
         writeDescriptor.dstArrayElement = 0;
         writeDescriptor.descriptorType = vk::DescriptorType::eStorageBuffer;
@@ -437,7 +447,7 @@ class Engine
         swapchain->cleanup();
 
         swapchain->recreate(window, MAX_MODELS);
-        swapchain->recordCommandBuffers(models, lightsDescriptorSet, skybox);
+        swapchain->recordCommandBuffers(models, lightsDescriptorSet.get(), skybox);
     }
 
     void mainLoop()
@@ -518,7 +528,7 @@ class Engine
                 // std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
 
-            swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
+            swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet.get(), skybox);
 
             // Draw ImGUI components
             // FIXME: Transforms somehow get scrumbled during the process ?
@@ -622,7 +632,7 @@ class Engine
 
         ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer);
+        ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
 
         swapchain->endDrawFrame(imageIndex);
         vk::SubmitInfo submitInfo;
@@ -635,7 +645,7 @@ class Engine
         submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
         submitInfo.pWaitDstStageMask = waitStages;    // In which stage of the pipeline to wait
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &swapchain->images[imageIndex].commandbuffer;
+        submitInfo.pCommandBuffers = &swapchain->images[imageIndex].commandbuffer.get();
 
         // Which semaphores to signal when job is done
         vk::Semaphore signalSemaphores[] = {swapchain->renderFinishedSemaphores[currentFrame].get()};
@@ -680,18 +690,18 @@ class Engine
 
 int main()
 {
-    Engine app;
+    std::unique_ptr<Engine> app = std::make_unique<Engine>();
 
     try
     {
-        app.run();
+        app->run();
     }
     catch (const std::exception& e)
     {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-
+    app.reset();
     return EXIT_SUCCESS;
     // TODO: There is an error when the app variable is released (i think). Why ?
     // It seems to stumble onto a segfault.

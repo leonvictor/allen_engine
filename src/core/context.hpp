@@ -23,15 +23,11 @@ struct UniformBufferObject
 class Context
 {
   public:
-    std::shared_ptr<core::Device> device;
     vk::UniqueInstance instance;
     vk::UniqueSurfaceKHR surface;
-
-    // TODO: Should device hold the command pools ?
+    std::shared_ptr<core::Device> device;
 
     vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> debugMessenger;
-
-    // const std::string TEXTURE_PATH = "assets/textures/camel.jpg"; // TODO: Nope ! Chuck testa
 
     const std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
@@ -40,7 +36,7 @@ class Context
     bool enableValidationLayers = true; // TODO: Move that somewhere else (global config)
 
     Context(GLFWwindow* window);
-
+    ~Context();
     // Add a name to a vulkan object for debugging purposes.
     template <class T>
     void setDebugUtilsObjectName(T object, std::string name)
@@ -50,6 +46,8 @@ class Context
     }
 
   private:
+    vk::DispatchLoaderDynamic dldInstance;
+
     void createInstance();
     void createSurface(GLFWwindow* window);
 

@@ -62,4 +62,14 @@ std::vector<vk::CommandBuffer> CommandPool::allocateCommandBuffers(int count, vk
 
     return device.allocateCommandBuffers(allocInfo);
 }
+
+std::vector<vk::UniqueCommandBuffer> CommandPool::allocateCommandBuffersUnique(int count, vk::CommandBufferLevel level) const
+{
+    vk::CommandBufferAllocateInfo allocInfo;
+    allocInfo.commandPool = pool.get();
+    allocInfo.commandBufferCount = count;
+    allocInfo.level = level; // Or secondary
+
+    return device.allocateCommandBuffersUnique(allocInfo);
+}
 }; // namespace core

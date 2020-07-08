@@ -20,6 +20,11 @@ Device::Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& s
     msaaSamples = getMaxUsableSampleCount();
 }
 
+Device::~Device()
+{
+    // TODO !!!
+}
+
 void Device::createCommandPools()
 {
     commandpools.graphics = core::CommandPool(logical.get(), queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
@@ -46,7 +51,7 @@ bool Device::checkDeviceExtensionsSupport(const vk::PhysicalDevice& dev, std::ve
     std::set<std::string> requiredExtentionsSet(requiredExtensions.begin(), requiredExtensions.end());
     for (const auto& extension : availableExtensions)
     {
-        requiredExtentionsSet.erase(extension.extensionName);
+        requiredExtentionsSet.erase((std::string) extension.extensionName);
     }
 
     return requiredExtentionsSet.empty();

@@ -13,7 +13,7 @@ class Skybox
   public:
     Mesh mesh;
     core::TextureCubeMap texture;
-    vk::DescriptorSet descriptorSet;
+    vk::UniqueDescriptorSet descriptorSet;
     Transform transform;
     std::shared_ptr<core::Device> device;
 
@@ -33,13 +33,13 @@ class Skybox
     {
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = device->logical.get().allocateDescriptorSets(allocInfo)[0];
+        descriptorSet = std::move(device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
 
         auto uboDescriptor = mesh.uniformBuffer.getDescriptor();
         auto cubeMapDescriptor = texture.getDescriptor();
 
-        std::vector<vk::WriteDescriptorSet> writeDescriptors({{descriptorSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &uboDescriptor, nullptr},
-                                                              {descriptorSet, 1, 0, 1, vk::DescriptorType::eCombinedImageSampler, &cubeMapDescriptor, nullptr, nullptr}});
+        std::vector<vk::WriteDescriptorSet> writeDescriptors({{descriptorSet.get(), 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &uboDescriptor, nullptr},
+                                                              {descriptorSet.get(), 1, 0, 1, vk::DescriptorType::eCombinedImageSampler, &cubeMapDescriptor, nullptr, nullptr}});
 
         device->logical.get().updateDescriptorSets(writeDescriptors, nullptr);
     }

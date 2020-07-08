@@ -46,5 +46,6 @@ class CommandPool
     void endSingleTimeCommands(std::vector<vk::CommandBuffer> commandBuffers);
 
     std::vector<vk::CommandBuffer> allocateCommandBuffers(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
+    std::vector<vk::UniqueCommandBuffer> allocateCommandBuffersUnique(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
 };
 }; // namespace core

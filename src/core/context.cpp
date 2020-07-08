@@ -23,6 +23,14 @@ Context::Context(GLFWwindow* window)
     setupDebugMessenger();
 }
 
+Context::~Context()
+{
+    debugMessenger.reset();
+    device.reset();
+    surface.reset();
+    instance.reset();
+}
+
 void Context::createInstance()
 {
     if (enableValidationLayers && !checkValidationLayersSupport())
@@ -66,13 +74,12 @@ void Context::createInstance()
 void Context::createSurface(GLFWwindow* window)
 {
     VkSurfaceKHR pSurface;
-    VkInstance pInstance = (VkInstance) instance.get();
-    if (glfwCreateWindowSurface(pInstance, window, nullptr, &pSurface) != VK_SUCCESS)
+    if (glfwCreateWindowSurface(*instance, window, nullptr, &pSurface) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create window surface.");
     }
 
-    surface = vk::UniqueSurfaceKHR(pSurface);
+    surface = vk::UniqueSurfaceKHR(pSurface, instance.get());
 }
 
 bool Context::checkValidationLayersSupport()
@@ -150,9 +157,9 @@ void Context::setupDebugMessenger()
     if (!enableValidationLayers)
         return;
 
+    dldInstance = vk::DispatchLoaderDynamic{instance.get(), vkGetInstanceProcAddr};
     debugMessenger = instance->createDebugUtilsMessengerEXTUnique(
         getDebugMessengerCreateInfo(),
-        nullptr,
-        vk::DispatchLoaderDynamic{*instance, vkGetInstanceProcAddr});
+        nullptr, dldInstance);
 }
 }; // namespace core

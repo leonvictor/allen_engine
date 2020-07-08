@@ -26,18 +26,18 @@ namespace core
 // TODO: Make everythin Unique ? (except image)
 struct SwapchainImage
 {
-    vk::Framebuffer framebuffer;
-    vk::CommandBuffer commandbuffer;
-    vk::Image image;
-    vk::ImageView imageView;
+    vk::UniqueFramebuffer framebuffer;
+    vk::UniqueCommandBuffer commandbuffer;
+    vk::Image image; // Image is managed by the vk swapchain
+    vk::UniqueImageView imageView;
     vk::Fence fence;
 
-    void cleanup(vk::Device& device, const vk::CommandPool& commandPool)
-    {
-        device.destroyFramebuffer(framebuffer);
-        device.freeCommandBuffers(commandPool, commandbuffer);
-        device.destroyImageView(imageView);
-    }
+    // void cleanup(vk::Device& device, const vk::CommandPool& commandPool)
+    // {
+    //     device.destroyFramebuffer(framebuffer);
+    //     device.freeCommandBuffers(commandPool, commandbuffer);
+    //     device.destroyImageView(imageView);
+    // }
 };
 
 class Swapchain
@@ -150,7 +150,7 @@ class Swapchain
     {
         for (int i = 0; i < images.size(); i++)
         {
-            images[i].framebuffer = createFramebuffer(images[i].imageView, renderPass.get());
+            images[i].framebuffer = createFramebuffer(images[i].imageView.get(), renderPass.get());
         }
     }
 
@@ -236,22 +236,22 @@ class Swapchain
     void createCommandBuffers()
     {
         // TODO: This has to happen somewhere else
-        auto commandBuffers = context->device->commandpools.graphics.allocateCommandBuffers(images.size());
+        auto commandBuffers = context->device->commandpools.graphics.allocateCommandBuffersUnique(images.size());
 
         for (size_t i = 0; i < images.size(); i++)
         {
-            images[i].commandbuffer = commandBuffers[i];
+            images[i].commandbuffer = std::move(commandBuffers[i]);
         }
     }
 
     void beginDrawFrame(uint32_t index)
     {
-        images[index].commandbuffer.begin(vk::CommandBufferBeginInfo{});
+        images[index].commandbuffer->begin(vk::CommandBufferBeginInfo{});
 
         // Start a render pass.
         vk::RenderPassBeginInfo renderPassInfo;
         renderPassInfo.renderPass = renderPass.get();
-        renderPassInfo.framebuffer = images[index].framebuffer;
+        renderPassInfo.framebuffer = images[index].framebuffer.get();
         renderPassInfo.renderArea.extent = extent;
         renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
 
@@ -261,38 +261,38 @@ class Swapchain
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
-        images[index].commandbuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+        images[index].commandbuffer->beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
     }
 
     void endDrawFrame(uint32_t index)
     {
-        images[index].commandbuffer.endRenderPass();
-        images[index].commandbuffer.end();
+        images[index].commandbuffer->endRenderPass();
+        images[index].commandbuffer->end();
     }
 
-    void recordCommandBuffer(uint32_t index, std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
+    void recordCommandBuffer(uint32_t index, std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
     {
         // Skybox
-        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox->layout.get(), 0, skybox.descriptorSet, nullptr);
-        images[index].commandbuffer.bindVertexBuffers(0, skybox.mesh.vertexBuffer.buffer.get(), vk::DeviceSize{0});
-        images[index].commandbuffer.bindIndexBuffer(skybox.mesh.indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox->pipeline.get());
-        images[index].commandbuffer.drawIndexed(skybox.mesh.indices.size(), 1, 0, 0, 0);
+        images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox->layout.get(), 0, skybox->descriptorSet.get(), nullptr);
+        images[index].commandbuffer->bindVertexBuffers(0, skybox->mesh.vertexBuffer.buffer.get(), vk::DeviceSize{0});
+        images[index].commandbuffer->bindIndexBuffer(skybox->mesh.indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
+        images[index].commandbuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox->pipeline.get());
+        images[index].commandbuffer->drawIndexed(skybox->mesh.indices.size(), 1, 0, 0, 0);
 
         // Objects
-        images[index].commandbuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects->pipeline.get());
-        images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 0, lightsDescriptorSet, nullptr);
+        images[index].commandbuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects->pipeline.get());
+        images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 0, lightsDescriptorSet, nullptr);
 
         for (auto model : models)
         {
-            images[index].commandbuffer.bindVertexBuffers(0, model->mesh.vertexBuffer.buffer.get(), vk::DeviceSize{0});
-            images[index].commandbuffer.bindIndexBuffer(model->mesh.indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
-            images[index].commandbuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet, nullptr);
-            images[index].commandbuffer.drawIndexed(model->mesh.indices.size(), 1, 0, 0, 0);
+            images[index].commandbuffer->bindVertexBuffers(0, model->mesh.vertexBuffer.buffer.get(), vk::DeviceSize{0});
+            images[index].commandbuffer->bindIndexBuffer(model->mesh.indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
+            images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet, nullptr);
+            images[index].commandbuffer->drawIndexed(model->mesh.indices.size(), 1, 0, 0, 0);
         }
     }
 
-    void recordCommandBuffers(std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, Skybox& skybox)
+    void recordCommandBuffers(std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
     {
         for (size_t i = 0; i < images.size(); i++)
         {
@@ -323,10 +323,10 @@ class Swapchain
         colorImage.reset();
         depthImage.reset();
 
-        for (auto img : images)
-        {
-            img.cleanup(context->device->logical.get(), context->device->commandpools.graphics.pool.get());
-        }
+        // for (auto& img : images)
+        // {
+        //     img.cleanup(context->device->logical.get(), context->device->commandpools.graphics.pool.get());
+        // }
         images.clear();
 
         pipelines.objects.reset();
@@ -445,18 +445,17 @@ class Swapchain
         for (vk::Image swapImage : imgs)
         {
             // TODO: This uses a helper function which doesn't do much.
-            vk::ImageView view = core::Image::createImageView(context->device, swapImage, imageFormat, vk::ImageAspectFlagBits::eColor, 1);
-            SwapchainImage image = SwapchainImage{
-                nullptr,
-                nullptr,
-                swapImage,
-                view,
-                vk::Fence()};
-            this->images.push_back(image);
-        }
+            vk::UniqueImageView view = core::Image::createImageViewUnique(context->device, swapImage, imageFormat, vk::ImageAspectFlagBits::eColor, 1);
+            SwapchainImage image;
+            image.image = swapImage;
+            image.imageView = std::move(view);
+            image.fence = vk::Fence();
+
+            this->images.push_back(std::move(image));
+        };
     }
 
-    vk::Framebuffer createFramebuffer(vk::ImageView view, vk::RenderPass renderPass)
+    vk::UniqueFramebuffer createFramebuffer(vk::ImageView view, vk::RenderPass renderPass)
     {
         std::array<vk::ImageView, 3> attachments = {
             colorImage->view.get(),
@@ -470,7 +469,7 @@ class Swapchain
         framebufferInfo.width = extent.width;
         framebufferInfo.height = extent.height;
         framebufferInfo.layers = 1; // Nb of layers in image array.
-        return context->device->logical.get().createFramebuffer(framebufferInfo);
+        return context->device->logical.get().createFramebufferUnique(framebufferInfo);
     }
 
     void createDepthResources()
@@ -559,5 +558,5 @@ class Swapchain
 
         descriptorPool = context->device->logical.get().createDescriptorPoolUnique(createInfo);
     }
-};
+}; // namespace core
 }; // namespace core
