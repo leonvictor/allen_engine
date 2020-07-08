@@ -87,6 +87,7 @@ class Engine
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
+        // Cleanup vulkan objects
         clickables.clear();
         models.clear();
         selectedObject.reset();
@@ -95,6 +96,7 @@ class Engine
         skybox.reset();
         swapchain.reset();
         context.reset();
+        // TODO: The debugger is lost here. Something bad might be happening
 
         // Destroy the glfw context
         glfwDestroyWindow(window);
@@ -130,8 +132,6 @@ class Engine
     float deltaTime = 0.0f;
     float lastFrameTime = 0.0f;
 
-    // TODO: Models should be held in smart pointers so that I can move them around
-    // and hold references in clickables.
     // Maybe unique_ptr and pass around weak_ptrs ? We pass the list to the swapchain when recording commands.
     // We also need to notify the selected field if an object is deleted
     std::vector<std::shared_ptr<SceneObject>> models;
@@ -259,6 +259,7 @@ class Engine
     {
         if (models.size() > 0)
         {
+            // TODO: clear selectedObject if this is this one
             clickables.erase(models[index]->colorId);
             // models[index].reset();
             models.erase(models.begin() + index);
@@ -287,7 +288,6 @@ class Engine
         context = std::make_shared<core::Context>(window);
         swapchain = std::make_shared<core::Swapchain>(std::shared_ptr(context), window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
 
-        /* Application related stuff */
         loadModels();
         setUpLights();
         setupSkyBox();
@@ -297,7 +297,6 @@ class Engine
         //  - Do not update if no object were modified
         //  - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
-        // TODO: Skybox is a sceneobject with a mesh and a cubemap texture, BUT it should be unique
     }
 
     void loadModels()
@@ -444,8 +443,8 @@ class Engine
 
         context->device->logical.get().waitIdle();
 
+        // TODO: This could go inside a single function call
         swapchain->cleanup();
-
         swapchain->recreate(window, MAX_MODELS);
         swapchain->recordCommandBuffers(models, lightsDescriptorSet.get(), skybox);
     }
@@ -525,13 +524,11 @@ class Engine
                 // TODO: Handle background
                 // TODO: Make sure ColorUID has a reserved id for the background
                 selectedObject = clickables[cID];
-                // std::cout << "Pixel found: [Color: R" << rgb.x << ", G" << rgb.y << ", B" << rgb.z << ", ID: " << cID.id << "]" << std::endl;
             }
 
             swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet.get(), skybox);
 
             // Draw ImGUI components
-            // FIXME: Transforms somehow get scrumbled during the process ?
             if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
             {
                 ImGui::PushItemWidth(60);
@@ -629,7 +626,6 @@ class Engine
 
     void endDrawFrame(uint32_t imageIndex)
     {
-
         ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
         ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
@@ -703,7 +699,4 @@ int main()
     }
     app.reset();
     return EXIT_SUCCESS;
-    // TODO: There is an error when the app variable is released (i think). Why ?
-    // It seems to stumble onto a segfault.
-    // ideas: it might be due to one of the attributes to the Engine class not being destroyed properly. (resource already freed)
 }

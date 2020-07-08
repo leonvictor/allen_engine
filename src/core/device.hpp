@@ -64,7 +64,6 @@ class Device
 
     Device();
     Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface);
-    ~Device();
 
     SwapchainSupportDetails getSwapchainSupport(const vk::UniqueSurfaceKHR& surface);
 

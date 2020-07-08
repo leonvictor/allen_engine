@@ -11,18 +11,11 @@ Device::Device() {}
 
 Device::Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface)
 {
-    // Pick a suitable device
     physical = pickPhysicalDevice(instance, surface);
     initProperties();
-    // Create logical device
     createLogicalDevice(surface);
     createCommandPools();
     msaaSamples = getMaxUsableSampleCount();
-}
-
-Device::~Device()
-{
-    // TODO !!!
 }
 
 void Device::createCommandPools()

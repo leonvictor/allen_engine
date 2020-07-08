@@ -23,14 +23,6 @@ Context::Context(GLFWwindow* window)
     setupDebugMessenger();
 }
 
-Context::~Context()
-{
-    debugMessenger.reset();
-    device.reset();
-    surface.reset();
-    instance.reset();
-}
-
 void Context::createInstance()
 {
     if (enableValidationLayers && !checkValidationLayersSupport())

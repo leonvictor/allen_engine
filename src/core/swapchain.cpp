@@ -22,8 +22,6 @@ namespace core
 // TODO: Rework to use core::Image
 //   * more info: this is problematic when it comes to destruction because
 //     swapchain images shouldn't be deleted manually
-// TODO: Make sure everything is destroyed properly when swapchain goes out of scope
-// TODO: Make everythin Unique ? (except image)
 struct SwapchainImage
 {
     vk::UniqueFramebuffer framebuffer;
@@ -31,13 +29,6 @@ struct SwapchainImage
     vk::Image image; // Image is managed by the vk swapchain
     vk::UniqueImageView imageView;
     vk::Fence fence;
-
-    // void cleanup(vk::Device& device, const vk::CommandPool& commandPool)
-    // {
-    //     device.destroyFramebuffer(framebuffer);
-    //     device.freeCommandBuffers(commandPool, commandbuffer);
-    //     device.destroyImageView(imageView);
-    // }
 };
 
 class Swapchain
@@ -317,16 +308,9 @@ class Swapchain
     // Destroy the parts we need to recreate
     void cleanup()
     {
-        // TODO: Replace with delete calls ?
-        // Are they properly destroyed if we call the constructor again ?
-        // Is it better to clear the objects and initialize them again ?
         colorImage.reset();
         depthImage.reset();
 
-        // for (auto& img : images)
-        // {
-        //     img.cleanup(context->device->logical.get(), context->device->commandpools.graphics.pool.get());
-        // }
         images.clear();
 
         pipelines.objects.reset();
@@ -554,8 +538,8 @@ class Swapchain
         vk::DescriptorPoolCreateInfo createInfo;
         createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         createInfo.pPoolSizes = poolSizes.data();
-        createInfo.maxSets = (nObjects * 2) + 2; // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker
-
+        createInfo.maxSets = (nObjects * 2) + 2;                                 // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker
+        createInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // Necessary for automatic freeing
         descriptorPool = context->device->logical.get().createDescriptorPoolUnique(createInfo);
     }
 }; // namespace core
