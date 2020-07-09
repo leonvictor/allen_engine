@@ -140,7 +140,7 @@ class Engine
     std::vector<Light> lights;
     std::shared_ptr<Skybox> skybox;
 
-    std::array<glm::vec3, 4> cubePositions = {
+    std::array<glm::vec3, 3> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(2.0f, 5.0f, -15.0f),
         LIGHT_POSITION};
