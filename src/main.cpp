@@ -514,7 +514,7 @@ class Engine
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.cameraPos = camera.position;
-                model->mesh.updateUniformBuffers(ubo);
+                model->getComponent<Mesh>()->updateUniformBuffers(ubo);
             }
 
             if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())

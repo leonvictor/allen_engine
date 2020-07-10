@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "components.hpp"
 #include "core/buffer.hpp"
 #include "core/context.hpp"
 #include "core/device.hpp"
@@ -11,7 +12,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-class Mesh
+class Mesh : public Component
 {
   public:
     std::vector<Vertex> vertices;

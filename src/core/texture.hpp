@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../components.hpp"
 #include "buffer.hpp"
 #include "context.hpp"
 #include "device.hpp"
@@ -10,7 +11,7 @@
 namespace core
 {
 // TODO: 2D and 3D
-class Texture : public core::Image
+class Texture : public core::Image, public Component
 {
   protected:
     void createSampler(vk::SamplerAddressMode adressMode = vk::SamplerAddressMode::eRepeat);
