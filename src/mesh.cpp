@@ -21,23 +21,39 @@ class Mesh
     core::Buffer indexBuffer;
     core::Buffer uniformBuffer;
 
-    std::shared_ptr<core::Context> context;
-    std::shared_ptr<core::Device> device;
-
     Mesh() {}
 
-    Mesh(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device)
+    std::string getFileExtension(const std::string& FileName)
     {
-        this->context = context;
-        this->device = device;
+        if (FileName.find_last_of(".") != std::string::npos)
+            return FileName.substr(FileName.find_last_of(".") + 1);
+        return "";
     }
 
-    static Mesh fromObj(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path,
-                        glm::vec3 color = {1.0f, 1.0f, 1.0f})
+    Mesh(std::shared_ptr<core::Device> device, std::string path, glm::vec3 verticesColor = {1.0f, 1.0f, 1.0f})
     {
+        std::string fileExtension = getFileExtension(path);
+        if (fileExtension.compare("") == 0)
+        {
+            throw std::runtime_error("No file extension found in: " + path);
+        }
+        else if (fileExtension.compare(".obj"))
+        {
+            std::cout << "obj file" << std::endl;
+            loadFromObj(path, verticesColor);
+        }
+        else
+        {
+            throw std::runtime_error("File extension " + fileExtension + " is not supported.");
+        }
 
-        Mesh mesh(context, device);
+        createVertexBuffer(device);
+        createIndexBuffer(device);
+        createUniformBuffer(device);
+    }
 
+    void loadFromObj(std::string path, glm::vec3 verticesColor = {1.0f, 1.0f, 1.0f})
+    {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
@@ -69,7 +85,7 @@ class Mesh
                     };
                 }
 
-                vertex.color = color;
+                vertex.color = verticesColor;
 
                 if (index.normal_index >= 0)
                 {
@@ -82,22 +98,16 @@ class Mesh
 
                 if (uniqueVertices.count(vertex) == 0)
                 {
-                    uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size());
-                    mesh.vertices.push_back(vertex);
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    this->vertices.push_back(vertex);
                 }
 
-                mesh.indices.push_back(uniqueVertices[vertex]);
+                this->indices.push_back(uniqueVertices[vertex]);
             }
         }
-
-        mesh.createVertexBuffer();
-        mesh.createIndexBuffer();
-        mesh.createUniformBuffer();
-
-        return mesh;
     }
 
-    void createVertexBuffer()
+    void createVertexBuffer(std::shared_ptr<core::Device> device)
     {
         vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -109,13 +119,13 @@ class Mesh
 
         vertexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-        // TODO: Group buffer copies in a cb
-        context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
+        // TODO: Group buffer copies in a single cb
+        device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
             stagingBuffer.copyTo(cb, vertexBuffer, bufferSize);
         });
     }
 
-    void createIndexBuffer()
+    void createIndexBuffer(std::shared_ptr<core::Device> device)
     {
         vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -126,12 +136,12 @@ class Mesh
         stagingBuffer.unmap();
 
         indexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
+        device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
             stagingBuffer.copyTo(cb, indexBuffer, bufferSize);
         });
     }
 
-    void createUniformBuffer()
+    void createUniformBuffer(std::shared_ptr<core::Device> device)
     {
         uniformBuffer = core::Buffer(device, sizeof(core::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }

@@ -24,7 +24,7 @@ class Skybox
         this->device = device;
 
         texture.loadFromDirectory(context, device, texturePath);
-        mesh = Mesh::fromObj(context, device, modelPath);
+        mesh = Mesh(device, modelPath);
         transform.scale = glm::vec3(25.0f);
     }
 

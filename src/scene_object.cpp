@@ -33,7 +33,7 @@ class SceneObject
         colorId.generate();
 
         // TODO: Mesh is a component.
-        mesh = Mesh::fromObj(context, device, modelPath, colorId.toRGB());
+        mesh = Mesh(device, modelPath, colorId.toRGB());
 
         transform.position = position;
 
