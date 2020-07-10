@@ -1,5 +1,6 @@
 #pragma once
 
+#include "components.hpp"
 #include "core/device.hpp"
 #include "core/texture.hpp"
 #include "material.cpp"
@@ -8,14 +9,12 @@
 #include "utils/color_uid.cpp"
 #include <glm/glm.hpp>
 
-class SceneObject
+class SceneObject : public Entity
 {
   public:
     Mesh mesh;
     core::Texture texture;
     Material material;
-
-    Transform transform;
 
     std::shared_ptr<core::Device> device;
     vk::DescriptorSet descriptorSet;
@@ -35,7 +34,9 @@ class SceneObject
         // TODO: Mesh is a component.
         mesh = Mesh(device, modelPath, colorId.toRGB());
 
-        transform.position = position;
+        std::shared_ptr<Transform> transform = std::make_shared<Transform>();
+        transform->position = position;
+        addComponent<Transform>(transform);
 
         // TODO: Material is a component.
         addMaterial(material);
@@ -49,12 +50,14 @@ class SceneObject
 
     glm::mat4 getModelMatrix()
     {
+        // TODO: This is a system
+        std::shared_ptr<Transform> transform = getComponent<Transform>();
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, transform.position);
-        model = glm::rotate(model, glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
-        model = glm::rotate(model, glm::radians(transform.rotation.y), glm::vec3(0, 1, 0));
-        model = glm::rotate(model, glm::radians(transform.rotation.z), glm::vec3(0, 0, 1));
-        model = glm::scale(model, transform.scale);
+        model = glm::translate(model, transform->position);
+        model = glm::rotate(model, glm::radians(transform->rotation.x), glm::vec3(1, 0, 0));
+        model = glm::rotate(model, glm::radians(transform->rotation.y), glm::vec3(0, 1, 0));
+        model = glm::rotate(model, glm::radians(transform->rotation.z), glm::vec3(0, 0, 1));
+        model = glm::scale(model, transform->scale);
         return model;
     }
 
