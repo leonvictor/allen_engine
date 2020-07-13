@@ -7,6 +7,7 @@
 #include "core/buffer.hpp"
 #include "core/context.hpp"
 #include "core/device.hpp"
+#include "utils/files.cpp"
 #include "vertex.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -15,6 +16,8 @@
 class Mesh : public Component
 {
   public:
+    // TODO: Move vector/buffer pairs to structs
+    // TODO: Before that, is there a reason for us to keep vertices/indices data around ?
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -24,23 +27,16 @@ class Mesh : public Component
 
     Mesh() {}
 
-    std::string getFileExtension(const std::string& FileName)
-    {
-        if (FileName.find_last_of(".") != std::string::npos)
-            return FileName.substr(FileName.find_last_of(".") + 1);
-        return "";
-    }
-
     Mesh(std::shared_ptr<core::Device> device, std::string path, glm::vec3 verticesColor = {1.0f, 1.0f, 1.0f})
     {
-        std::string fileExtension = getFileExtension(path);
+        // TODO: Store supported file types as enum
+        std::string fileExtension = utils::getFileExtension(path);
         if (fileExtension.compare("") == 0)
         {
             throw std::runtime_error("No file extension found in: " + path);
         }
         else if (fileExtension.compare(".obj"))
         {
-            std::cout << "obj file" << std::endl;
             loadFromObj(path, verticesColor);
         }
         else
@@ -48,6 +44,11 @@ class Mesh : public Component
             throw std::runtime_error("File extension " + fileExtension + " is not supported.");
         }
 
+        // About using a single cb for createVertex/createIndex:
+        // The program fails when using our lambda execute(...)
+        // because staging buffers in both function go out of scope and get destroyed
+        // before the the cb is submitted.
+        // Is there a way to keep their variables around for a bit longer than just its scope ?
         createVertexBuffer(device);
         createIndexBuffer(device);
         createUniformBuffer(device);
