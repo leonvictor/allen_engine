@@ -5,7 +5,7 @@
 #include "core/texture.hpp"
 #include "material.cpp"
 #include "mesh.cpp"
-#include "transform.cpp"
+#include "transform.hpp"
 #include "utils/color_uid.cpp"
 #include <glm/glm.hpp>
 
@@ -36,6 +36,7 @@ class SceneObject : public Entity
         addComponent<Transform>(transform);
 
         // TODO: Material is a component.
+        // ... But for now everything about them is poopy
         addMaterial(material);
 
         if (!texturePath.empty())

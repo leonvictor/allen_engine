@@ -4,7 +4,7 @@
 #include "mesh.cpp"
 
 #include "core/context.hpp"
-#include "transform.cpp"
+#include "transform.hpp"
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
