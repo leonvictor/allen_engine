@@ -13,7 +13,7 @@
                 "${myDefaultIncludePath}",
                 "C:\\Libraries\\GLFW\\include",
                 "C:\\Libraries\\glm",
-                "C:\\VulkanSDK\\1.2.131.2\\Include",
+                "C:\\VulkanSDK\\1.2.141.2\\Include",
                 "C:\\Libraries\\stb",
                 "C:\\Libraries\\tiny_obj_loader"
             ],

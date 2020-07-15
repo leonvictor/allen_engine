@@ -1,5 +1,6 @@
 #include <glm/glm.hpp>
 
+// TODO: Refactor
 struct MaterialBufferObject
 {
     alignas(16) glm::vec3 ambient;

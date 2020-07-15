@@ -11,7 +11,7 @@ extern Coordinator gCoordinator; // TODO: Global variable are poopy.
 class RenderSystem : public ecs::System {
     public:
 
-    void createDescriptor(Entity entity) {
+    void createDescriptor(ecs::Entity entity) {
         auto& renderable = gCoordinator.getComponent<ecs::components::Renderable>(entity);
         
 

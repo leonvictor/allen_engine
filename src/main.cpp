@@ -126,7 +126,7 @@ class Engine
     const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
     const glm::vec3 WORLD_DOWN = -WORLD_UP;
 
-    Camera camera = Camera(WORLD_BACKWARD * 2.0f, WORLD_UP, 90.0f, 0.0f, 0.0f);
+    Camera camera = Camera(WORLD_BACKWARD * 2.0f);
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
 
     float deltaTime = 0.0f;
@@ -346,7 +346,7 @@ class Engine
         ubo.view = glm::mat4(1.0f);                                                                                                      // eye/camera position, center position, up axis
         ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
         ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
-        ubo.cameraPos = camera.position;
+        ubo.cameraPos = camera.transform.position;
         skybox->updateUniformBuffer(ubo);
     }
 
@@ -513,7 +513,7 @@ class Engine
                 ubo.view = camera.getViewMatrix();                                                                                               // eye/camera position, center position, up axis
                 ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
                 ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
-                ubo.cameraPos = camera.position;
+                ubo.cameraPos = camera.transform.position;
                 model->getComponent<Mesh>()->updateUniformBuffers(ubo);
             }
 
