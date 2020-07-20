@@ -35,22 +35,7 @@ Texture::Texture() {}
 
 Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
 {
-    this->context = context;
-
-    createTextureImage(context, path);
-    createSampler();
-}
-
-// TODO: This could come from a Descriptible interface (common w/ buffers)
-vk::DescriptorImageInfo Texture::getDescriptor()
-{
-    return vk::DescriptorImageInfo{sampler.get(), view.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
-}
-
-void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::string path)
-{
     this->device = context->device;
-    this->context = context;
 
     // Load image from file
     core::ImageFile img = core::ImageFile(path);
@@ -63,11 +48,41 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::st
     stagingBuffer.copy(img.pixels, static_cast<size_t>(imageSize));
     stagingBuffer.unmap();
 
+    createTextureImage(context, stagingBuffer, img.width, img.height);
+    createSampler();
+}
+
+Texture::Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, vk::Format format, uint32_t texWidth, uint32_t texHeight,
+                 vk::Filter filter,
+                 vk::ImageUsageFlagBits imageUsageFlags,
+                 vk::ImageLayout layout)
+{
+    // TODO: Most parameters are not used
+    this->device = context->device;
+
+    core::Buffer stagingBuffer = core::Buffer(context->device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    stagingBuffer.map(0, bufferSize);
+    stagingBuffer.copy(buffer, bufferSize);
+    stagingBuffer.unmap();
+
+    createTextureImage(context, stagingBuffer, texWidth, texHeight);
+    createSampler();
+}
+
+// TODO: This could come from a Descriptible interface (common w/ buffers)
+vk::DescriptorImageInfo Texture::getDescriptor()
+{
+    return vk::DescriptorImageInfo{sampler.get(), view.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
+}
+
+void Texture::createTextureImage(std::shared_ptr<core::Context> context, core::Buffer& buffer, uint32_t texWidth, uint32_t texHeight)
+{
     // TODO: Move mipmaps generation out. Do we *need* it to happen before view creation ? We can also recreate the view
     // TODO: Can we change the "mipLevel" field of an image on the fly (to initialize it at 1 here)
-    mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(img.width, img.height)))) + 1;
+    mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
-    initImage(img.width, img.height, mipLevels, vk::SampleCountFlagBits::e1,
+    initImage(texWidth, texHeight, mipLevels, vk::SampleCountFlagBits::e1,
               vk::Format::eR8G8B8A8Srgb,
               vk::ImageTiling::eOptimal,
               vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc);
@@ -77,10 +92,10 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::st
     // Transition the image to transfer dst layout
     context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-        stagingBuffer.copyTo(cb, image.get(), img.width, img.height);
+        buffer.copyTo(cb, image.get(), texWidth, texHeight);
     });
 
-    generateMipMaps(image.get(), vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
+    generateMipMaps(context, vk::Format::eR8G8B8A8Srgb, texWidth, texHeight, mipLevels);
 
     initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 }
@@ -88,14 +103,14 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, std::st
 // TODO :
 // - Move to image ? It's weird as long as we need context
 //
-void Texture::generateMipMaps(vk::Image image, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
+void Texture::generateMipMaps(std::shared_ptr<core::Context> context, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
 {
 
     auto formatProperties = device->physical.getFormatProperties(format);
     auto commandBuffers = context->device->commandpools.graphics.beginSingleTimeCommands();
 
     vk::ImageMemoryBarrier barrier;
-    barrier.image = image;
+    barrier.image = image.get();
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -136,8 +151,8 @@ void Texture::generateMipMaps(vk::Image image, vk::Format format, uint32_t texWi
         blit.dstSubresource.baseArrayLayer = 0;
 
         commandBuffers[0].blitImage(
-            image, vk::ImageLayout::eTransferSrcOptimal,
-            image, vk::ImageLayout::eTransferDstOptimal,
+            *image, vk::ImageLayout::eTransferSrcOptimal,
+            *image, vk::ImageLayout::eTransferDstOptimal,
             blit, vk::Filter::eLinear);
 
         barrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;

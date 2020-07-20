@@ -18,20 +18,26 @@ class Texture : public core::Image, public Component
 
   public:
     vk::UniqueSampler sampler; // TODO: Does each image have a sampler or do they share it ?
-    std::shared_ptr<core::Context> context;
 
     Texture();
+
+    // Load a texture from a file
     Texture(std::shared_ptr<core::Context> context, std::string path);
+
+    // Load from a buffer
+    Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, vk::Format format, uint32_t texWidth, uint32_t texHeight,
+            vk::Filter filter = vk::Filter::eLinear,
+            vk::ImageUsageFlagBits imageUsageFlags = vk::ImageUsageFlagBits::eSampled,
+            vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal);
 
     // TODO: This could come from a Descriptible interface (common w/ buffers)
     vk::DescriptorImageInfo getDescriptor();
 
   private:
-    void createTextureImage(std::shared_ptr<core::Context> context, std::string path);
+    void createTextureImage(std::shared_ptr<core::Context> context, core::Buffer& buffer, uint32_t texWidth, uint32_t texHeight);
 
     // TODO :
     // - Move to image ? It's weird as long as we need context
-    //
-    void generateMipMaps(vk::Image image, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels);
+    void generateMipMaps(std::shared_ptr<core::Context> context, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels);
 };
 } // namespace core

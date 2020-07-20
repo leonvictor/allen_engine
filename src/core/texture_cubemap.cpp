@@ -22,7 +22,7 @@ std::array<std::string, 6> faces = {
 
 void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path)
 {
-    this->context = context;
+    // this->context = context;
     this->device = device;
 
     // TODO: Remove hardcoded path to textures
