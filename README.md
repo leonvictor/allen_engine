@@ -3,6 +3,20 @@
 My experiments using Vulkan. I plan to make a simple renderer to begin with, then I'll switch my focus to tooling (especially Animation)
 The first raw edition of the program was developped following [this tutorial](https://vulkan-tutorial.com/).
 
+# Setting up a dev environment (VSCode on Windows)
+ - Download and install Vulkan (TODO: version; link)
+ - Download and install CMake (TODO: version; link)
+ - Download and install a c++ compiler (tested with mingw-w64)
+ - Make sure your c++ compiler path is in your PATH environment variable
+ 
+ - Clone this repository
+ - Pull the submodules: `git submodule update --init`
+ - Open the folder in VSCode
+ - Download the CMake Tools extension
+ - In `.vscode/c_cpp_properties.json`, update `myCompilerPath` with the path to your `gcc.exe`
+ - In `.vscode/launch.json`, update `miDebuggerPath` with the path to your `gdb.exe`
+ 
+
 # TODO
  - Use dynamic states for viewport and scissors to make window resizing more efficient
  - Improve shaders compilation (for now we have to do it manually beforehand)
