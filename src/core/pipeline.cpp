@@ -135,8 +135,8 @@ class PipelineFactory
         pipelineCreateInfo.subpass = 0;
         pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
-        auto pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH);                                                // TODO
-        auto graphicsPipeline = device->logical.get().createGraphicsPipelineUnique(pipelineCache.get(), pipelineCreateInfo); // TODO
+        vk::UniquePipelineCache pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH);                                           // TODO
+        vk::UniquePipeline graphicsPipeline = device->logical.get().createGraphicsPipelineUnique(pipelineCache.get(), pipelineCreateInfo); // TODO
 
         // TODO: Save pipeline cache
 
@@ -172,6 +172,7 @@ class PipelineFactory
 
     void clearShaders()
     {
+        // TODO: Let the Shaders auto-destroy when they go out of scope
         for (const auto& shader : shaderStages)
         {
             device->logical.get().destroyShaderModule(shader.module);
