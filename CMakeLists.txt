@@ -7,6 +7,10 @@ set(SOURCE "src/main.cpp" "src/core/context.cpp" "src/core/device.cpp" "src/core
 
 find_package(Vulkan REQUIRED)
 
+add_library(shaderc UNKNOWN IMPORTED)
+set_target_properties(shaderc PROPERTIES IMPORTED_LOCATION $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib)
+set_property(TARGET shaderc PROPERTY INTERFACE_INCLUDE_DIRECTORIES $ENV{VULKAN_SDK}/Include)
+
 include_directories(${Vulkan_INCLUDE_DIRS})
 include_directories("external/glfw/include")
 include_directories("external/glm")
@@ -30,8 +34,7 @@ add_executable(main ${SOURCE})
 
 target_compile_features(main PUBLIC cxx_std_17)
 
-target_link_libraries(main glfw)
-target_link_libraries(main ${Vulkan_LIBRARIES})
+target_link_libraries(main glfw shaderc ${Vulkan_LIBRARIES})
 
 set(CMAKE_CXX_STANDARD 17) 
 set(CMAKE_CXX_STANDARD_REQUIRED True)
