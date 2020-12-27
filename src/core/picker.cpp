@@ -222,7 +222,7 @@ class Picker
             auto mesh = model->getComponent<Mesh>();
             commandBuffer.bindVertexBuffers(0, mesh->vertexBuffer.buffer.get(), vk::DeviceSize{0});
             commandBuffer.bindIndexBuffer(mesh->indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->layout.get(), 0, model->colorDescriptorSet, nullptr);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->layout.get(), 0, model->colorDescriptorSet.get(), nullptr);
             commandBuffer.drawIndexed(mesh->indices.size(), 1, 0, 0, 0);
         }
 

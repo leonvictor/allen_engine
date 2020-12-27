@@ -16,12 +16,14 @@ class Skybox
     vk::UniqueDescriptorSet descriptorSet;
     Transform transform;
     std::shared_ptr<core::Device> device;
+    std::shared_ptr<core::Context> context;
 
     Skybox() {}
 
     Skybox(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string texturePath, std::string modelPath)
     {
         this->device = device;
+        this->context = context;
 
         texture.loadFromDirectory(context, device, texturePath);
         mesh = Mesh(device, modelPath);
@@ -34,6 +36,7 @@ class Skybox
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
         descriptorSet = std::move(device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
+        context->setDebugUtilsObjectName(descriptorSet.get(), "Skybox DescriptorSet");
 
         auto uboDescriptor = mesh.uniformBuffer.getDescriptor();
         auto cubeMapDescriptor = texture.getDescriptor();

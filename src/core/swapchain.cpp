@@ -280,7 +280,7 @@ class Swapchain
             auto mesh = model->getComponent<Mesh>();
             images[index].commandbuffer->bindVertexBuffers(0, mesh->vertexBuffer.buffer.get(), vk::DeviceSize{0});
             images[index].commandbuffer->bindIndexBuffer(mesh->indexBuffer.buffer.get(), 0, vk::IndexType::eUint32);
-            images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet, nullptr);
+            images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet.get(), nullptr);
             images[index].commandbuffer->drawIndexed(mesh->indices.size(), 1, 0, 0, 0);
         }
     }

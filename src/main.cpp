@@ -409,8 +409,8 @@ class Engine
     void createLightsDescriptorSet()
     {
         vk::DescriptorSetAllocateInfo allocInfo{swapchain->descriptorPool.get(), 1, &swapchain->lightsDescriptorSetLayout.get()};
-        auto sets = context->device->logical.get().allocateDescriptorSetsUnique(allocInfo);
-        lightsDescriptorSet = std::move(sets[0]);
+        lightsDescriptorSet = std::move(context->device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
+        context->setDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer->buffer.get(); // TODO: How do we update the lights array ?

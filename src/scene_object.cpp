@@ -15,8 +15,10 @@ class SceneObject : public Entity
     Material material;
 
     std::shared_ptr<core::Device> device;
-    vk::DescriptorSet descriptorSet;
-    vk::DescriptorSet colorDescriptorSet;
+    std::shared_ptr<core::Context> context;
+
+    vk::UniqueDescriptorSet descriptorSet;
+    vk::UniqueDescriptorSet colorDescriptorSet;
 
     ColorUID colorId;
 
@@ -27,6 +29,8 @@ class SceneObject : public Entity
                 std::string texturePath = "")
     {
         this->device = device;
+        this->context = context;
+
         colorId.generate();
 
         addComponent<Mesh>(std::make_shared<Mesh>(device, modelPath, colorId.toRGB()));
@@ -73,11 +77,12 @@ class SceneObject : public Entity
 
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = device->logical.get().allocateDescriptorSets(allocInfo)[0];
+        descriptorSet = std::move(device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
+        context->setDebugUtilsObjectName(descriptorSet.get(), "SceneObject Descriptor Set");
 
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
 
-        writeDescriptors[0].dstSet = descriptorSet;
+        writeDescriptors[0].dstSet = descriptorSet.get();
         writeDescriptors[0].dstBinding = 0;      // Binding index
         writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
         writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -85,7 +90,7 @@ class SceneObject : public Entity
         auto uniformDescriptor = mesh->uniformBuffer.getDescriptor();
         writeDescriptors[0].pBufferInfo = &uniformDescriptor;
 
-        writeDescriptors[1].dstSet = descriptorSet;
+        writeDescriptors[1].dstSet = descriptorSet.get();
         writeDescriptors[1].dstBinding = 1;      // Binding index
         writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
         writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
@@ -94,7 +99,7 @@ class SceneObject : public Entity
         writeDescriptors[1].pImageInfo = &textureDescriptor;
 
         // TODO: Materials presumably don't change so they don't need a binding
-        writeDescriptors[2].dstSet = descriptorSet;
+        writeDescriptors[2].dstSet = descriptorSet.get();
         writeDescriptors[2].dstBinding = 2;
         writeDescriptors[2].dstArrayElement = 0;
         writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -110,11 +115,11 @@ class SceneObject : public Entity
         auto mesh = getComponent<Mesh>();
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        colorDescriptorSet = device->logical.get().allocateDescriptorSets(allocInfo)[0];
+        colorDescriptorSet = std::move(device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
 
         std::array<vk::WriteDescriptorSet, 1> writeDescriptors = {};
 
-        writeDescriptors[0].dstSet = colorDescriptorSet;
+        writeDescriptors[0].dstSet = colorDescriptorSet.get();
         writeDescriptors[0].dstBinding = 0;      // Binding index
         writeDescriptors[0].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
         writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
