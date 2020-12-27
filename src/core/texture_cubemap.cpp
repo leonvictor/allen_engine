@@ -27,7 +27,7 @@ void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, s
 
     // TODO: Remove hardcoded path to textures
     // TODO: Load the first face before the loop to initialize buffers
-    auto facePath = "assets/skyboxes/daybreak/CloudyCrown_Daybreak_" + faces[0] + ".png";
+    auto facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[0] + ".png";
     // TODO: Load face with stbi
     // Load image from file
     ImageFile img = ImageFile(facePath);
@@ -56,7 +56,7 @@ void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, s
 
     for (uint32_t i = 1; i < faces.size(); i++)
     {
-        facePath = "assets/skyboxes/daybreak/CloudyCrown_Daybreak_" + faces[i] + ".png";
+        facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[i] + ".png";
         img.load(facePath);
         // Copy data to staging buffer
         stagingBuffer.map(i * faceSize, faceSize);
