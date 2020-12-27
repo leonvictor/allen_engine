@@ -112,13 +112,13 @@ class Swapchain
         // Create the object rendering pipeline
         factory.setRenderPass(renderPass.get());
         factory.setExtent(extent);
-        factory.registerShader("shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
-        factory.registerShader("shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
+        factory.registerShader("shaders/shader.vert", vk::ShaderStageFlagBits::eVertex);
+        factory.registerShader("shaders/shader.frag", vk::ShaderStageFlagBits::eFragment);
         pipelines.objects = factory.create(std::vector<vk::DescriptorSetLayout>({lightsDescriptorSetLayout.get(), objectsDescriptorSetLayout.get()}));
 
         // Skybox pipeline
-        factory.registerShader("shaders/skybox.vert.spv", vk::ShaderStageFlagBits::eVertex);
-        factory.registerShader("shaders/skybox.frag.spv", vk::ShaderStageFlagBits::eFragment);
+        factory.registerShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
+        factory.registerShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
         factory.depthStencil.depthWriteEnable = VK_FALSE;
         factory.rasterizer.cullMode = vk::CullModeFlagBits::eNone;
         pipelines.skybox = factory.create(std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout.get()}));

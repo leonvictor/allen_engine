@@ -155,8 +155,8 @@ class Picker
         factory.addDynamicState(vk::DynamicState::eScissor);
         factory.multisample.rasterizationSamples = vk::SampleCountFlagBits::e1; // TODO: set all of those at once.
 
-        factory.registerShader("shaders/picker.vert.spv", vk::ShaderStageFlagBits::eVertex);
-        factory.registerShader("shaders/picker.frag.spv", vk::ShaderStageFlagBits::eFragment);
+        factory.registerShader("shaders/picker.vert", vk::ShaderStageFlagBits::eVertex);
+        factory.registerShader("shaders/picker.frag", vk::ShaderStageFlagBits::eFragment);
         pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout.get()}));
 
         context->setDebugUtilsObjectName(pipeline->pipeline.get(), "Picker graphics Pipeline");
