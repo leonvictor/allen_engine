@@ -36,7 +36,7 @@ void Context::createInstance()
         VK_MAKE_VERSION(1, 0, 0),
         "Not-so-poopy engine",
         VK_MAKE_VERSION(1, 0, 0),
-        VK_API_VERSION_1_0);
+        VK_API_VERSION_1_2);
 
     auto extensions = getRequiredExtensions();
     vk::InstanceCreateInfo iCreateInfo;
