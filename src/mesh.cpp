@@ -44,13 +44,7 @@ class Mesh : public Component
             throw std::runtime_error("File extension " + fileExtension + " is not supported.");
         }
 
-        // About using a single cb for createVertex/createIndex:
-        // The program fails when using our lambda execute(...)
-        // because staging buffers in both function go out of scope and get destroyed
-        // before the the cb is submitted.
-        // Is there a way to keep their variables around for a bit longer than just its scope ?
-        createVertexBuffer(device);
-        createIndexBuffer(device);
+        createDataBuffers(device);
         createUniformBuffer(device);
     }
 
@@ -109,37 +103,32 @@ class Mesh : public Component
         }
     }
 
-    void createVertexBuffer(std::shared_ptr<core::Device> device)
+    void createDataBuffers(std::shared_ptr<core::Device> device)
     {
-        vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+        // Note: buffer creation and copy from staging buffer might deserve its own method
+        // Create vertex buffer
+        vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
 
-        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        core::Buffer vertexStagingBuffer(device, vertexBufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        vertexStagingBuffer.map(0, vertexBufferSize);
+        vertexStagingBuffer.copy(vertices.data(), (size_t) vertexBufferSize);
+        vertexStagingBuffer.unmap();
 
-        stagingBuffer.map(0, bufferSize);
-        stagingBuffer.copy(vertices.data(), (size_t) bufferSize);
-        stagingBuffer.unmap();
+        vertexBuffer = core::Buffer(device, vertexBufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-        vertexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        // Create index buffer
+        vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
 
-        // TODO: Group buffer copies in a single cb
+        core::Buffer indexStagingBuffer(device, indexBufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        indexStagingBuffer.map(0, indexBufferSize);
+        indexStagingBuffer.copy(indices.data(), (size_t) indexBufferSize);
+        indexStagingBuffer.unmap();
+
+        indexBuffer = core::Buffer(device, indexBufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
         device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
-            stagingBuffer.copyTo(cb, vertexBuffer, bufferSize);
-        });
-    }
-
-    void createIndexBuffer(std::shared_ptr<core::Device> device)
-    {
-        vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-        core::Buffer stagingBuffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-        stagingBuffer.map(0, bufferSize);
-        stagingBuffer.copy(indices.data(), (size_t) bufferSize);
-        stagingBuffer.unmap();
-
-        indexBuffer = core::Buffer(device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
-            stagingBuffer.copyTo(cb, indexBuffer, bufferSize);
+            vertexStagingBuffer.copyTo(cb, vertexBuffer, vertexBufferSize);
+            indexStagingBuffer.copyTo(cb, indexBuffer, indexBufferSize);
         });
     }
 
