@@ -99,10 +99,7 @@ class Swapchain
         createDepthResources();
         createColorResources();
         createFramebuffers();
-        createDescriptorPool(maxObjects);
         createCommandBuffers();
-
-        // TODO : Add descriptor sets and command buffers here
     }
 
     void createPipelines()
@@ -261,7 +258,7 @@ class Swapchain
         images[index].commandbuffer->end();
     }
 
-    void recordCommandBuffer(uint32_t index, std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
+    void recordCommandBuffer(uint32_t index, std::vector<std::shared_ptr<SceneObject>> models, vk::UniqueDescriptorSet& lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
     {
         // Skybox
         images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.skybox->layout.get(), 0, skybox->descriptorSet.get(), nullptr);
@@ -272,7 +269,7 @@ class Swapchain
 
         // Objects
         images[index].commandbuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects->pipeline.get());
-        images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 0, lightsDescriptorSet, nullptr);
+        images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 0, lightsDescriptorSet.get(), nullptr);
 
         for (auto model : models)
         {
@@ -285,7 +282,7 @@ class Swapchain
         }
     }
 
-    void recordCommandBuffers(std::vector<std::shared_ptr<SceneObject>> models, vk::DescriptorSet lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
+    void recordCommandBuffers(std::vector<std::shared_ptr<SceneObject>> models, vk::UniqueDescriptorSet& lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
     {
         for (size_t i = 0; i < images.size(); i++)
         {
@@ -320,7 +317,6 @@ class Swapchain
 
         renderPass.reset();
         swapchain.reset();
-        descriptorPool.reset();
     }
 
   private:

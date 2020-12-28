@@ -96,7 +96,6 @@ class Engine
         skybox.reset();
         swapchain.reset();
         context.reset();
-        // TODO: The debugger is lost here. Something bad might be happening
 
         // Destroy the glfw context
         glfwDestroyWindow(window);
@@ -445,8 +444,10 @@ class Engine
 
         // TODO: This could go inside a single function call
         swapchain->cleanup();
+        // TODO: Resizing pb: Descriptor Sets are not recreated while DescriptorPools are
+        // What's the desired behavior ?
         swapchain->recreate(window, MAX_MODELS);
-        swapchain->recordCommandBuffers(models, lightsDescriptorSet.get(), skybox);
+        // swapchain->recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
     void mainLoop()
@@ -526,7 +527,7 @@ class Engine
                 selectedObject = clickables[cID];
             }
 
-            swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet.get(), skybox);
+            swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
 
             // Draw ImGUI components
             if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
@@ -673,8 +674,8 @@ class Engine
 
         if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized)
         {
-            framebufferResized = true;
             recreateSwapchain();
+            framebufferResized = false;
         }
         else if (result != vk::Result::eSuccess)
         {
