@@ -52,10 +52,7 @@ Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
     createSampler();
 }
 
-Texture::Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, vk::Format format, uint32_t texWidth, uint32_t texHeight,
-                 vk::Filter filter,
-                 vk::ImageUsageFlagBits imageUsageFlags,
-                 vk::ImageLayout layout)
+Texture::Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight)
 {
     // TODO: Most parameters are not used
     this->device = context->device;
@@ -95,7 +92,9 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, core::B
         buffer.copyTo(cb, image.get(), texWidth, texHeight);
     });
 
-    generateMipMaps(context, vk::Format::eR8G8B8A8Srgb, texWidth, texHeight, mipLevels);
+    context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
+        generateMipMaps(cb, vk::Format::eR8G8B8A8Srgb, texWidth, texHeight, mipLevels);
+    });
 
     initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 }
@@ -103,11 +102,9 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, core::B
 // TODO :
 // - Move to image ? It's weird as long as we need context
 //
-void Texture::generateMipMaps(std::shared_ptr<core::Context> context, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
+void Texture::generateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
 {
-
     auto formatProperties = device->physical.getFormatProperties(format);
-    auto commandBuffers = context->device->commandpools.graphics.beginSingleTimeCommands();
 
     vk::ImageMemoryBarrier barrier;
     barrier.image = image.get();
@@ -129,7 +126,7 @@ void Texture::generateMipMaps(std::shared_ptr<core::Context> context, vk::Format
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
         barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
 
-        commandBuffers[0].pipelineBarrier(
+        cb.pipelineBarrier(
             vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer,
             vk::DependencyFlags(),
             nullptr,
@@ -150,7 +147,7 @@ void Texture::generateMipMaps(std::shared_ptr<core::Context> context, vk::Format
         blit.dstSubresource.layerCount = 1;
         blit.dstSubresource.baseArrayLayer = 0;
 
-        commandBuffers[0].blitImage(
+        cb.blitImage(
             *image, vk::ImageLayout::eTransferSrcOptimal,
             *image, vk::ImageLayout::eTransferDstOptimal,
             blit, vk::Filter::eLinear);
@@ -160,7 +157,7 @@ void Texture::generateMipMaps(std::shared_ptr<core::Context> context, vk::Format
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 
-        commandBuffers[0].pipelineBarrier(
+        cb.pipelineBarrier(
             vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
             vk::DependencyFlags(),
             nullptr,
@@ -181,13 +178,11 @@ void Texture::generateMipMaps(std::shared_ptr<core::Context> context, vk::Format
     barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 
     // Transition the last mip level to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    commandBuffers[0].pipelineBarrier(
+    cb.pipelineBarrier(
         vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
         vk::DependencyFlags(),
         nullptr,
         nullptr,
         barrier);
-
-    context->device->commandpools.graphics.endSingleTimeCommands(commandBuffers); // TODO: Use simpler API
 }
 } // namespace core

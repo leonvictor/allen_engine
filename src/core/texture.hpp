@@ -25,11 +25,7 @@ class Texture : public core::Image, public Component
     Texture(std::shared_ptr<core::Context> context, std::string path);
 
     // Load from a buffer
-    Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, vk::Format format, uint32_t texWidth, uint32_t texHeight,
-            vk::Filter filter = vk::Filter::eLinear,
-            vk::ImageUsageFlagBits imageUsageFlags = vk::ImageUsageFlagBits::eSampled,
-            vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal);
-
+    Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight);
     // TODO: This could come from a Descriptible interface (common w/ buffers)
     vk::DescriptorImageInfo getDescriptor();
 
@@ -38,6 +34,6 @@ class Texture : public core::Image, public Component
 
     // TODO :
     // - Move to image ? It's weird as long as we need context
-    void generateMipMaps(std::shared_ptr<core::Context> context, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels);
+    void generateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels);
 };
 } // namespace core
