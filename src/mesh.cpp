@@ -13,6 +13,15 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
+// TODO: Complete gltf format
+// In glTF, meshes are defined as arrays of primitives. Primitives correspond to the data required for GPU draw calls. Primitives specify one or more attributes, corresponding to the vertex attributes used in the draw calls.
+struct Primitive
+{
+    uint32_t firstIndex;
+    uint32_t indexCount;
+    uint32_t materialIndex;
+};
+
 class Mesh : public Component
 {
   public:
@@ -24,6 +33,8 @@ class Mesh : public Component
     core::Buffer vertexBuffer;
     core::Buffer indexBuffer;
     core::Buffer uniformBuffer;
+
+    std::vector<Primitive> primitives;
 
     Mesh() {}
 
@@ -66,6 +77,7 @@ class Mesh : public Component
         {
             for (const auto& index : shape.mesh.indices)
             {
+                // TODO: Build primitives on the go
                 Vertex vertex = {};
 
                 vertex.pos = {
@@ -77,7 +89,7 @@ class Mesh : public Component
                 {
                     vertex.texCoord = {
                         attrib.texcoords[2 * index.texcoord_index + 0],
-                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1] // Flip the vertical component (.obj files assume 0 means bottom of immage, we assume it means top)
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1] // Flip the vertical component (.obj files assume 0 means bottom of image, we assume it means top)
                     };
                 }
 
@@ -100,7 +112,11 @@ class Mesh : public Component
 
                 this->indices.push_back(uniqueVertices[vertex]);
             }
+
+            // TODO: Each shape is a primitive
         }
+
+        this->primitives.push_back({0, (uint32_t) this->indices.size(), 0});
     }
 
     void createDataBuffers(std::shared_ptr<core::Device> device)

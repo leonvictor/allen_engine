@@ -20,6 +20,7 @@ struct Allocation
     vk::DeviceSize allocSize{0};
     void* mapped{nullptr};
 
+    // TODO: Default to own size attribute
     template <typename T = void>
     inline T* map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE)
     {

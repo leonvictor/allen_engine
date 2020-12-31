@@ -65,7 +65,6 @@ class Image : public Allocation
     void blit(vk::CommandBuffer cb, core::Image& dstImage, int width, int height);
 
     void copyTo(vk::CommandBuffer cb, core::Image& dstImage);
-
     void copyTo(vk::CommandBuffer cb, core::Image& dstImage, int width, int height);
 
     // Save image on disk as a ppm file.

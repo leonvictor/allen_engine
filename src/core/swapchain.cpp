@@ -522,6 +522,7 @@ class Swapchain
     void createDescriptorPool(int nObjects)
     {
         // TODO: Refactor
+        // Where should pools live ?
         std::array<vk::DescriptorPoolSize, 3> poolSizes;
 
         poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
@@ -540,5 +541,5 @@ class Swapchain
         createInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // Necessary for automatic freeing
         descriptorPool = context->device->logical.get().createDescriptorPoolUnique(createInfo);
     }
-}; // namespace core
-}; // namespace core
+};
+} // namespace core

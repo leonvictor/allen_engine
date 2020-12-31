@@ -7,9 +7,12 @@ set(SOURCE "src/main.cpp" "src/core/context.cpp" "src/core/device.cpp" "src/core
 
 find_package(Vulkan REQUIRED)
 
+# Translate env path to CMake style 
+file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_SDK)
+
 add_library(shaderc UNKNOWN IMPORTED)
-set_target_properties(shaderc PROPERTIES IMPORTED_LOCATION $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib)
-set_property(TARGET shaderc PROPERTY INTERFACE_INCLUDE_DIRECTORIES $ENV{VULKAN_SDK}/Include)
+set_target_properties(shaderc PROPERTIES IMPORTED_LOCATION ${VULKAN_SDK}/Lib/shaderc_shared.lib)
+set_property(TARGET shaderc PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}/Include)
 
 include_directories(${Vulkan_INCLUDE_DIRS})
 include_directories("external/glfw/include")

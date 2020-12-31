@@ -8,13 +8,31 @@ namespace core
 {
 Buffer::Buffer() {} // Empty ctor is required for now. Todo: Remove when we can
 
-Buffer::Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memProperties)
+Buffer::Buffer(std::shared_ptr<core::Device> device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memProperties, void* data)
 {
     this->device = device;
     this->size = size;
 
     createBuffer(size, usage);
     allocate(memProperties);
+
+    if (data != nullptr)
+    {
+        map(0, size);
+        copy(data, size);
+
+        // If host coherency hasn't been requested, do a manual flush to make writes visible
+        // From samples
+        if (!(memProperties & vk::MemoryPropertyFlagBits::eHostCoherent))
+        {
+            vk::MappedMemoryRange mappedRange;
+            mappedRange.memory = *memory;
+            mappedRange.offset = 0;
+            mappedRange.size = size;
+            device->logical->flushMappedMemoryRanges(mappedRange);
+        }
+        unmap();
+    }
 }
 
 void Buffer::copyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions) const

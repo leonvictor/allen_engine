@@ -8,6 +8,10 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
+// TODO: Where should skyboxes live ?
+//  - They're unique
+//  - They're static (for now at least)
+// Unity has them as an attribute of the camera
 class Skybox
 {
   public:
@@ -35,7 +39,7 @@ class Skybox
     {
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = std::move(device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
+        descriptorSet = std::move(device->logical->.allocateDescriptorSetsUnique(allocInfo)[0]);
         context->setDebugUtilsObjectName(descriptorSet.get(), "Skybox DescriptorSet");
 
         auto uboDescriptor = mesh.uniformBuffer.getDescriptor();

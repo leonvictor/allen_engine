@@ -23,7 +23,7 @@ The first raw edition of the program was developped following [this tutorial](ht
  - "The right way to allocate memory for a large number of objects at the same time is to create a custom allocator that splits up a single allocation among many different objects by using the offset parameters that we've seen in many functions. You can either implement such an allocator yourself, or use the VulkanMemoryAllocator library provided by the GPUOpen initiative. However, for this tutorial it's okay to use a separate allocation for every resource, because we won't come close to hitting any of these limits for now.""
  - cont. [Store multiple buffers into a single VkBuffer and use offsets (aliasing)](https://developer.nvidia.com/vulkan-memory-management)
  - Font Rendering
- - Dear Imgui panels
+ - ~~Dear Imgui panels~~
  - Fix camera gimbal lock
  - Asset loading with assimp
  - Pick and stick to a clang format (w/ assorted config file)
@@ -35,6 +35,8 @@ The first raw edition of the program was developped following [this tutorial](ht
  - Add specialization constants to specify light types to the pipeline (and the shaders) at creation time
  - Unify naming to using a single convention (Google ?)
  - Create a custom ECS framework
+ - Display gizmos (maybe with [this ?](https://github.com/CedricGuillemet/ImGuizmo), and look&feel from [this ?](https://github.com/john-chapman/im3d))
+ - https://github.com/nfrechette/acl
 
 Ideas of todos proposed by the tutorial :
 
@@ -57,6 +59,7 @@ Ideas of todos proposed by the tutorial :
  - tinyobjloader
  - stb
  - entt
+ - tiny_gltf
 
 # Assets
 Skyboxes from : https://github.com/PhannGor/Cloudy-Crown
