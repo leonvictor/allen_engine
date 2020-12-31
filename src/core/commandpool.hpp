@@ -11,18 +11,12 @@ namespace core
 class CommandPool
 {
   public:
-    // TODO: refine handling of commandPools. Using RAII would be cool, but multiple classes hold references to the same pools (Swapchain images, picker, etc.)
-    // shared_ptr ?
     vk::UniqueCommandPool pool;
     core::Queue queue;
     vk::Device device;
 
     CommandPool(){}; // TODO: We shouldn't need this
     CommandPool(vk::Device& device, core::Queue& queue, vk::CommandPoolCreateFlagBits flags = vk::CommandPoolCreateFlagBits());
-
-    // operator vk::CommandPool() { return pool.get(); }
-    //TODO: Delete when we're done transfering to c++
-    // operator VkCommandPool() { return VkCommandPool(pool); }
 
     inline void execute(const std::function<void(vk::CommandBuffer cb)>& func)
     {

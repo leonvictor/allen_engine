@@ -68,13 +68,13 @@ void Buffer::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage)
     bufferInfo.queueFamilyIndexCount = 2;
     bufferInfo.pQueueFamilyIndices = queues;
 
-    buffer = device->logical.get().createBufferUnique(bufferInfo);
+    buffer = device->logical->createBufferUnique(bufferInfo);
 }
 
 void Buffer::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    vk::MemoryRequirements memRequirements = device->logical.get().getBufferMemoryRequirements(buffer.get());
+    vk::MemoryRequirements memRequirements = device->logical->getBufferMemoryRequirements(buffer.get());
     Allocation::allocate(memRequirements, memProperties);
-    device->logical.get().bindBufferMemory(buffer.get(), memory.get(), 0);
+    device->logical->bindBufferMemory(buffer.get(), memory.get(), 0);
 }
 }; // namespace core

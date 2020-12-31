@@ -34,6 +34,7 @@ std::vector<vk::CommandBuffer> CommandPool::beginSingleTimeCommands()
 }
 
 // TODO: This would make more sense in a Queue class, which can decide how to handle the commands.
+// TODO: Replace by the new API. Might still see some use (with modification for finer control over the schedule)
 void CommandPool::endSingleTimeCommands(std::vector<vk::CommandBuffer> commandBuffers)
 {
     assert(pool && "You are trying to use an unallocated command pool.");

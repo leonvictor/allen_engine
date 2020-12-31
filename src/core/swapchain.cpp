@@ -422,7 +422,7 @@ class Swapchain
 
     void createImages()
     {
-        std::vector<vk::Image> imgs = context->device->logical.get().getSwapchainImagesKHR(swapchain.get());
+        std::vector<vk::Image> imgs = context->device->logical->getSwapchainImagesKHR(swapchain.get());
 
         for (vk::Image swapImage : imgs)
         {
