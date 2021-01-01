@@ -444,10 +444,7 @@ class Engine
 
         // TODO: This could go inside a single function call
         swapchain->cleanup();
-        // TODO: Resizing pb: Descriptor Sets are not recreated while DescriptorPools are
-        // What's the desired behavior ?
         swapchain->recreate(window, MAX_MODELS);
-        // swapchain->recordCommandBuffers(models, lightsDescriptorSet, skybox);
     }
 
     void mainLoop()

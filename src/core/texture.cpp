@@ -52,20 +52,21 @@ Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
     createSampler();
 }
 
-Texture::Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight)
-{
-    // TODO: Most parameters are not used
-    this->device = context->device;
+// Never used...
+// Texture::Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight)
+// {
+//     // TODO: Most parameters are not used
+//     this->device = context->device;
 
-    core::Buffer stagingBuffer = core::Buffer(context->device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+//     core::Buffer stagingBuffer = core::Buffer(context->device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-    stagingBuffer.map(0, bufferSize);
-    stagingBuffer.copy(buffer, bufferSize);
-    stagingBuffer.unmap();
+//     stagingBuffer.map(0, bufferSize);
+//     stagingBuffer.copy(buffer, bufferSize);
+//     stagingBuffer.unmap();
 
-    createTextureImage(context, stagingBuffer, texWidth, texHeight);
-    createSampler();
-}
+//     createTextureImage(context, stagingBuffer, texWidth, texHeight);
+//     createSampler();
+// }
 
 // TODO: This could come from a Descriptible interface (common w/ buffers)
 vk::DescriptorImageInfo Texture::getDescriptor()

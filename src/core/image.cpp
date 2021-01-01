@@ -101,8 +101,6 @@ Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t heig
     allocate(memProperties);
 }
 
-Image::operator vk::Image() { return image.get(); } // TODO: This is prone to confusion, get rid of it.
-
 void Image::transitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 {
     if (layout == newLayout)
@@ -360,22 +358,6 @@ glm::vec3 Image::pixelAt(int x, int y, bool colorSwizzle)
 // Helper function to create image views
 // @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places.
 // If so what would be a good place ? Inside device ?
-//
-vk::ImageView Image::createImageView(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype, int layerCount)
-{
-    vk::ImageViewCreateInfo createInfo;
-    createInfo.format = format;
-    createInfo.image = image;
-    createInfo.viewType = viewtype;
-    createInfo.subresourceRange.aspectMask = aspectMask;
-    createInfo.subresourceRange.layerCount = layerCount;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.levelCount = mipLevels;
-    createInfo.subresourceRange.baseMipLevel = 0;
-
-    return device->logical->createImageView(createInfo);
-}
-
 vk::UniqueImageView Image::createImageViewUnique(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype, int layerCount)
 {
     vk::ImageViewCreateInfo createInfo;
