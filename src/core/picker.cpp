@@ -25,7 +25,7 @@ class Picker
     void createFence()
     {
         vk::FenceCreateInfo fenceInfo;
-        renderFinished = context->device->logical.get().createFenceUnique(fenceInfo);
+        renderFinished = context->device->logical->createFenceUnique(fenceInfo);
     }
 
     void createCommandBuffer()
@@ -48,7 +48,7 @@ class Picker
         fbInfo.height = height;
         fbInfo.layers = 1;
 
-        framebuffer = context->device->logical.get().createFramebufferUnique(fbInfo);
+        framebuffer = context->device->logical->createFramebufferUnique(fbInfo);
     }
 
     void createRessources()
@@ -89,7 +89,7 @@ class Picker
 
         vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
-        descriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique(createInfo);
+        descriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique(createInfo);
     }
 
     void createRenderPass()
@@ -143,7 +143,7 @@ class Picker
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDependency;
 
-        renderPass = context->device->logical.get().createRenderPassUnique(renderPassInfo);
+        renderPass = context->device->logical->createRenderPassUnique(renderPassInfo);
         context->setDebugUtilsObjectName(renderPass.get(), "Picker renderpass");
     }
 
@@ -242,8 +242,8 @@ class Picker
         // TODO: Call that elsewhere
         render(models, target);
 
-        context->device->logical.get().waitForFences(renderFinished.get(), VK_TRUE, UINT64_MAX);
-        context->device->logical.get().resetFences(renderFinished.get());
+        context->device->logical->waitForFences(renderFinished.get(), VK_TRUE, UINT64_MAX);
+        context->device->logical->resetFences(renderFinished.get());
 
         core::Image stagingImage = core::Image(context->device, width, height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst,
                                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view

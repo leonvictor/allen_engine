@@ -41,7 +41,7 @@ class Context
     void setDebugUtilsObjectName(T object, std::string name)
     {
         vk::DebugUtilsObjectNameInfoEXT debugName{object.objectType, (uint64_t)(typename T::CType) object, name.c_str()};
-        device->logical.get().setDebugUtilsObjectNameEXT(debugName, vk::DispatchLoaderDynamic{instance.get(), vkGetInstanceProcAddr});
+        device->logical->setDebugUtilsObjectNameEXT(debugName, vk::DispatchLoaderDynamic{instance.get(), vkGetInstanceProcAddr});
     }
 
   private:

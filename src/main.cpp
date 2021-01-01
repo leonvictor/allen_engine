@@ -202,7 +202,6 @@ class Engine
         // Upload Fonts
         // Use any command queue
 
-        // TODO: Make the single time buffer usage more fluid
         context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
         });
@@ -409,7 +408,7 @@ class Engine
     void createLightsDescriptorSet()
     {
         vk::DescriptorSetAllocateInfo allocInfo{swapchain->descriptorPool.get(), 1, &swapchain->lightsDescriptorSetLayout.get()};
-        lightsDescriptorSet = std::move(context->device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
+        lightsDescriptorSet = std::move(context->device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
         context->setDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
@@ -425,7 +424,7 @@ class Engine
         writeDescriptor.descriptorCount = 1;
         writeDescriptor.pBufferInfo = &lightsBufferInfo;
 
-        context->device->logical.get().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        context->device->logical->updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
 #pragma endregion
@@ -441,7 +440,7 @@ class Engine
             glfwWaitEvents(); // Pause the app.
         }
 
-        context->device->logical.get().waitIdle();
+        context->device->logical->waitIdle();
 
         // TODO: This could go inside a single function call
         swapchain->cleanup();
@@ -565,7 +564,7 @@ class Engine
             endDrawFrame(imageIndex);
         }
 
-        context->device->logical.get().waitIdle();
+        context->device->logical->waitIdle();
     }
 
     void processKeyboardInput(GLFWwindow* window)
@@ -594,11 +593,11 @@ class Engine
     uint8_t beginDrawFrame()
     {
         // Wait for the fence
-        context->device->logical.get().waitForFences(swapchain->inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
+        context->device->logical->waitForFences(swapchain->inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
-        vk::Result result = context->device->logical.get().acquireNextImageKHR(swapchain->swapchain.get(), UINT64_MAX, swapchain->imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
+        vk::Result result = context->device->logical->acquireNextImageKHR(swapchain->swapchain.get(), UINT64_MAX, swapchain->imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
         if (result == vk::Result::eErrorOutOfDateKHR)
         {
             recreateSwapchain();
@@ -611,7 +610,7 @@ class Engine
         // Check if a previous frame is using the image
         if (swapchain->images[imageIndex].fence)
         {
-            context->device->logical.get().waitForFences(swapchain->images[imageIndex].fence, VK_TRUE, UINT64_MAX);
+            context->device->logical->waitForFences(swapchain->images[imageIndex].fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
@@ -651,7 +650,7 @@ class Engine
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
 
-        context->device->logical.get().resetFences(swapchain->inFlightFences[currentFrame].get());
+        context->device->logical->resetFences(swapchain->inFlightFences[currentFrame].get());
         context->device->queues.graphics.queue.submit(submitInfo, swapchain->inFlightFences[currentFrame].get());
 
         vk::PresentInfoKHR presentInfo;

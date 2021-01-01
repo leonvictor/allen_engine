@@ -14,12 +14,12 @@ vk::ShaderModule createShaderModule(std::shared_ptr<core::Device> device, const 
     if (ext == "spv")
     {
         std::vector<char> code = utils::readFile(filename);
-        return device->logical.get().createShaderModule({{}, code.size() * sizeof(char), reinterpret_cast<uint32_t*>(code.data())});
+        return device->logical->createShaderModule({{}, code.size() * sizeof(char), reinterpret_cast<uint32_t*>(code.data())});
     }
     else if (ext == "vert" || ext == "frag")
     {
         std::vector<uint32_t> code = compileGlslToSpvBinary(filename, shaderc_glsl_infer_from_source, false);
-        return device->logical.get().createShaderModule({{}, code.size() * sizeof(uint32_t), code.data()});
+        return device->logical->createShaderModule({{}, code.size() * sizeof(uint32_t), code.data()});
     }
     else
     {

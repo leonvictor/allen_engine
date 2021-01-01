@@ -77,7 +77,7 @@ class SceneObject : public Entity
 
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = std::move(device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
+        descriptorSet = std::move(device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
         context->setDebugUtilsObjectName(descriptorSet.get(), "SceneObject Descriptor Set");
 
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
@@ -107,7 +107,7 @@ class SceneObject : public Entity
         auto materialDescriptor = material.getBufferDescriptor();
         writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
 
-        device->logical.get().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+        device->logical->updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
     void createColorDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout)
@@ -115,7 +115,7 @@ class SceneObject : public Entity
         auto mesh = getComponent<Mesh>();
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        colorDescriptorSet = std::move(device->logical.get().allocateDescriptorSetsUnique(allocInfo)[0]);
+        colorDescriptorSet = std::move(device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
 
         std::array<vk::WriteDescriptorSet, 1> writeDescriptors = {};
 
@@ -127,6 +127,6 @@ class SceneObject : public Entity
         auto uniformDescriptor = mesh->uniformBuffer.getDescriptor();
         writeDescriptors[0].pBufferInfo = &uniformDescriptor;
 
-        device->logical.get().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+        device->logical->updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 };

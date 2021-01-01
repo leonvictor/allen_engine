@@ -28,7 +28,7 @@ void Texture::createSampler(vk::SamplerAddressMode adressMode)
     samplerInfo.maxLod = static_cast<uint32_t>(mipLevels);
     samplerInfo.minLod = 0;
 
-    sampler = device->logical.get().createSamplerUnique(samplerInfo);
+    sampler = device->logical->createSamplerUnique(samplerInfo);
 }
 
 Texture::Texture() {}

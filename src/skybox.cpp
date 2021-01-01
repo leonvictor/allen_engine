@@ -39,7 +39,7 @@ class Skybox
     {
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = std::move(device->logical->.allocateDescriptorSetsUnique(allocInfo)[0]);
+        descriptorSet = std::move(device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
         context->setDebugUtilsObjectName(descriptorSet.get(), "Skybox DescriptorSet");
 
         auto uboDescriptor = mesh.uniformBuffer.getDescriptor();
@@ -48,7 +48,7 @@ class Skybox
         std::vector<vk::WriteDescriptorSet> writeDescriptors({{descriptorSet.get(), 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &uboDescriptor, nullptr},
                                                               {descriptorSet.get(), 1, 0, 1, vk::DescriptorType::eCombinedImageSampler, &cubeMapDescriptor, nullptr, nullptr}});
 
-        device->logical.get().updateDescriptorSets(writeDescriptors, nullptr);
+        device->logical->updateDescriptorSets(writeDescriptors, nullptr);
     }
 
     void updateUniformBuffer(core::UniformBufferObject ubo)

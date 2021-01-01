@@ -24,13 +24,13 @@ struct Allocation
     template <typename T = void>
     inline T* map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE)
     {
-        mapped = device->logical.get().mapMemory(memory.get(), offset, size, vk::MemoryMapFlags());
+        mapped = device->logical->mapMemory(memory.get(), offset, size, vk::MemoryMapFlags());
         return (T*) mapped;
     }
 
     inline void unmap()
     {
-        device->logical.get().unmapMemory(memory.get());
+        device->logical->unmapMemory(memory.get());
         mapped = nullptr;
     }
 
@@ -59,7 +59,7 @@ struct Allocation
         */
     void flush(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
     {
-        return device->logical.get().flushMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
+        return device->logical->flushMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
     }
 
     /**
@@ -74,7 +74,7 @@ struct Allocation
         */
     void invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
     {
-        return device->logical.get().invalidateMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
+        return device->logical->invalidateMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
     }
 
     virtual void allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
@@ -83,7 +83,7 @@ struct Allocation
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
 
-        memory = device->logical.get().allocateMemoryUnique(allocInfo, nullptr);
+        memory = device->logical->allocateMemoryUnique(allocInfo, nullptr);
     }
 };
 } // namespace core

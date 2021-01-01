@@ -157,7 +157,7 @@ void Device::initProperties()
 
 vk::PhysicalDevice Device::pickPhysicalDevice(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface)
 {
-    std::vector<vk::PhysicalDevice> devices = instance.get().enumeratePhysicalDevices();
+    std::vector<vk::PhysicalDevice> devices = instance->enumeratePhysicalDevices();
 
     if (devices.size() == 0)
     {

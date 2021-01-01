@@ -134,7 +134,7 @@ class Swapchain
             {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
             {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-        skyboxDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique({{}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data()});
+        skyboxDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique({{}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data()});
         context->setDebugUtilsObjectName(skyboxDescriptorSetLayout.get(), "Skybox Descriptor Set Layout");
     }
 
@@ -222,7 +222,7 @@ class Swapchain
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDependency;
 
-        renderPass = context->device->logical.get().createRenderPassUnique(renderPassInfo);
+        renderPass = context->device->logical->createRenderPassUnique(renderPassInfo);
     }
 
     void createCommandBuffers()
@@ -302,9 +302,9 @@ class Swapchain
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            imageAvailableSemaphores.push_back(context->device->logical.get().createSemaphoreUnique(semaphoreInfo, nullptr));
-            renderFinishedSemaphores.push_back(context->device->logical.get().createSemaphoreUnique(semaphoreInfo, nullptr));
-            inFlightFences.push_back(context->device->logical.get().createFenceUnique(fenceInfo, nullptr));
+            imageAvailableSemaphores.push_back(context->device->logical->createSemaphoreUnique(semaphoreInfo, nullptr));
+            renderFinishedSemaphores.push_back(context->device->logical->createSemaphoreUnique(semaphoreInfo, nullptr));
+            inFlightFences.push_back(context->device->logical->createFenceUnique(fenceInfo, nullptr));
         }
     }
 
@@ -369,7 +369,7 @@ class Swapchain
         sCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
         sCreateInfo.oldSwapchain = {(VkSwapchainKHR_T*) 0}; // TODO : Pass the old swapchain to reuse most of the info.
 
-        swapchain = context->device->logical.get().createSwapchainKHRUnique(sCreateInfo);
+        swapchain = context->device->logical->createSwapchainKHRUnique(sCreateInfo);
 
         this->extent = extent;
         imageFormat = surfaceFormat.format;
@@ -426,7 +426,7 @@ class Swapchain
 
     void createImages()
     {
-        std::vector<vk::Image> imgs = context->device->logical.get().getSwapchainImagesKHR(swapchain.get());
+        std::vector<vk::Image> imgs = context->device->logical->getSwapchainImagesKHR(swapchain.get());
 
         for (vk::Image swapImage : imgs)
         {
@@ -455,7 +455,7 @@ class Swapchain
         framebufferInfo.width = extent.width;
         framebufferInfo.height = extent.height;
         framebufferInfo.layers = 1; // Nb of layers in image array.
-        return context->device->logical.get().createFramebufferUnique(framebufferInfo);
+        return context->device->logical->createFramebufferUnique(framebufferInfo);
     }
 
     void createDepthResources()
@@ -505,7 +505,7 @@ class Swapchain
 
         vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
-        objectsDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique(createInfo);
+        objectsDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique(createInfo);
 
         vk::DescriptorSetLayoutBinding lightsLayoutBinding;
         lightsLayoutBinding.binding = 0;
@@ -517,7 +517,7 @@ class Swapchain
         lightsCreateInfo.bindingCount = 1;
         lightsCreateInfo.pBindings = &lightsLayoutBinding;
 
-        lightsDescriptorSetLayout = context->device->logical.get().createDescriptorSetLayoutUnique(lightsCreateInfo);
+        lightsDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique(lightsCreateInfo);
 
         context->setDebugUtilsObjectName(objectsDescriptorSetLayout.get(), "Object Descriptor Layout");
         context->setDebugUtilsObjectName(lightsDescriptorSetLayout.get(), "Lights Descriptor Set Layout");
@@ -543,7 +543,7 @@ class Swapchain
         createInfo.pPoolSizes = poolSizes.data();
         createInfo.maxSets = (nObjects * 2) + 2;                                 // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker
         createInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // Necessary for automatic freeing
-        descriptorPool = context->device->logical.get().createDescriptorPoolUnique(createInfo);
+        descriptorPool = context->device->logical->createDescriptorPoolUnique(createInfo);
     }
 };
 } // namespace core

@@ -54,7 +54,7 @@ void Image::initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     imageInfo.sharingMode = vk::SharingMode::eExclusive;
     imageInfo.samples = numSamples;
 
-    image = device->logical.get().createImageUnique(imageInfo);
+    image = device->logical->createImageUnique(imageInfo);
 
     this->layout = layout;
     this->mipLevels = mipLevels;
@@ -66,9 +66,9 @@ void Image::initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
 
 void Image::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    vk::MemoryRequirements memRequirements = device->logical.get().getImageMemoryRequirements(image.get());
+    vk::MemoryRequirements memRequirements = device->logical->getImageMemoryRequirements(image.get());
     Allocation::allocate(memRequirements, memProperties);
-    device->logical.get().bindImageMemory(image.get(), memory.get(), 0);
+    device->logical->bindImageMemory(image.get(), memory.get(), 0);
 }
 
 void Image::initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
@@ -267,7 +267,7 @@ void Image::save(std::string filename, bool colorSwizzle)
 {
     // TODO: Swizzle or not based on format
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image.get(), subresource);
+    auto subResourceLayout = device->logical->getImageSubresourceLayout(image.get(), subresource);
 
     if (mapped == nullptr)
     {
@@ -313,7 +313,7 @@ void Image::save(std::string filename, bool colorSwizzle)
 glm::vec3 Image::pixelAt(int x, int y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = device->logical.get().getImageSubresourceLayout(image.get(), subresource);
+    auto subResourceLayout = device->logical->getImageSubresourceLayout(image.get(), subresource);
 
     if (mapped == nullptr)
     {
@@ -373,7 +373,7 @@ vk::ImageView Image::createImageView(std::shared_ptr<core::Device> device, vk::I
     createInfo.subresourceRange.levelCount = mipLevels;
     createInfo.subresourceRange.baseMipLevel = 0;
 
-    return device->logical.get().createImageView(createInfo);
+    return device->logical->createImageView(createInfo);
 }
 
 vk::UniqueImageView Image::createImageViewUnique(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype, int layerCount)
@@ -388,6 +388,6 @@ vk::UniqueImageView Image::createImageViewUnique(std::shared_ptr<core::Device> d
     createInfo.subresourceRange.levelCount = mipLevels;
     createInfo.subresourceRange.baseMipLevel = 0;
 
-    return std::move(device->logical.get().createImageViewUnique(createInfo));
+    return std::move(device->logical->createImageViewUnique(createInfo));
 }
 } // namespace core
