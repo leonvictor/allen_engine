@@ -12,8 +12,6 @@
 namespace core
 {
 
-const std::string PIPELINE_CACHE_PATH = "pipeline_cache_data.bin";
-
 struct Viewport : vk::Viewport
 {
 
@@ -60,7 +58,7 @@ class PipelineFactory
         init();
     }
 
-    std::unique_ptr<core::Pipeline> create(std::vector<vk::DescriptorSetLayout> descriptorSetLayouts)
+    std::unique_ptr<core::Pipeline> create(std::vector<vk::DescriptorSetLayout> descriptorSetLayouts, std::string cachePath = "")
     {
         auto vertextAttributeDescriptions = Vertex::getAttributeDescription();
         auto vertexBindingDescription = Vertex::getBindingDescription();
@@ -109,7 +107,7 @@ class PipelineFactory
         layoutInfo.setLayoutCount = descriptorSetLayouts.size(); // Update when we have more layouts
         layoutInfo.pSetLayouts = descriptorSetLayouts.data();
 
-        auto layout = device->logical.get().createPipelineLayoutUnique(layoutInfo);
+        auto layout = device->logical->createPipelineLayoutUnique(layoutInfo);
 
         // Shader stages
         pipelineCreateInfo.stageCount = shaderStages.size();
@@ -135,10 +133,29 @@ class PipelineFactory
         pipelineCreateInfo.subpass = 0;
         pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
-        vk::UniquePipelineCache pipelineCache = loadCachedPipeline(device, PIPELINE_CACHE_PATH);                                           // TODO
-        vk::UniquePipeline graphicsPipeline = device->logical.get().createGraphicsPipelineUnique(pipelineCache.get(), pipelineCreateInfo); // TODO
+        // TODO: Generate different pipeline cache path depending on the options
+        vk::UniquePipelineCache pipelineCache = loadCachedPipeline(device, cachePath);                                                // TODO
+        vk::UniquePipeline graphicsPipeline = device->logical->createGraphicsPipelineUnique(pipelineCache.get(), pipelineCreateInfo); // TODO
 
-        // TODO: Save pipeline cache
+        // TODO: Avoid saving if not needed
+        // Store away the cache that we've populated.  This could conceivably happen
+        // earlier, depends on when the pipeline cache stops being populated
+        // internally.
+        std::vector<uint8_t> endCacheData = device->logical->getPipelineCacheData(pipelineCache.get());
+
+        // Write the file to disk, overwriting whatever was there
+        std::ofstream writeCacheStream(cachePath, std::ios_base::out | std::ios_base::binary);
+        if (writeCacheStream.good())
+        {
+            writeCacheStream.write(reinterpret_cast<char const*>(endCacheData.data()), endCacheData.size());
+            writeCacheStream.close();
+            std::cout << "  cacheData written to " << cachePath << "\n";
+        }
+        else
+        {
+            // Something bad happened
+            std::cout << "  Unable to write cache data to disk!\n";
+        }
 
         clearShaders();
         dynamicStates.clear();
@@ -175,7 +192,7 @@ class PipelineFactory
         // TODO: Let the Shaders auto-destroy when they go out of scope
         for (const auto& shader : shaderStages)
         {
-            device->logical.get().destroyShaderModule(shader.module);
+            device->logical->destroyShaderModule(shader.module);
         }
         shaderStages.clear();
     }
@@ -329,7 +346,7 @@ class PipelineFactory
             }
         }
         // Feed the initial cache data into cache creation
-        vk::UniquePipelineCache pipelineCache = device->logical.get().createPipelineCacheUnique(
+        vk::UniquePipelineCache pipelineCache = device->logical->createPipelineCacheUnique(
             vk::PipelineCacheCreateInfo(vk::PipelineCacheCreateFlags(), startCacheSize, startCacheData));
         // Free our initialData now that pipeline cache has been created
         free(startCacheData);

@@ -10,3 +10,6 @@ build
 # ImgUI cache
 imgui.ini
 debug.ppm
+
+# Binary files (ex: pipeline caches)
+*.bin

@@ -157,7 +157,7 @@ class Picker
 
         factory.registerShader("shaders/picker.vert", vk::ShaderStageFlagBits::eVertex);
         factory.registerShader("shaders/picker.frag", vk::ShaderStageFlagBits::eFragment);
-        pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout.get()}));
+        pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout.get()}), "picker_pipeline_cache_data.bin");
 
         context->setDebugUtilsObjectName(pipeline->pipeline.get(), "Picker graphics Pipeline");
         // TODO: Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
