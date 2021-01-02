@@ -121,30 +121,17 @@ class Mesh : public Component
 
     void createDataBuffers(std::shared_ptr<core::Device> device)
     {
-        // Note: buffer creation and copy from staging buffer might deserve its own method
         // Create vertex buffer
-        vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-
-        core::Buffer vertexStagingBuffer(device, vertexBufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        vertexStagingBuffer.map(0, vertexBufferSize);
-        vertexStagingBuffer.copy(vertices.data(), (size_t) vertexBufferSize);
-        vertexStagingBuffer.unmap();
-
-        vertexBuffer = core::Buffer(device, vertexBufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        core::Buffer vertexStagingBuffer(device, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertices);
+        vertexBuffer = core::Buffer(device, vertexStagingBuffer.size, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         // Create index buffer
-        vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
-
-        core::Buffer indexStagingBuffer(device, indexBufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        indexStagingBuffer.map(0, indexBufferSize);
-        indexStagingBuffer.copy(indices.data(), (size_t) indexBufferSize);
-        indexStagingBuffer.unmap();
-
-        indexBuffer = core::Buffer(device, indexBufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        core::Buffer indexStagingBuffer(device, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, indices);
+        indexBuffer = core::Buffer(device, indexStagingBuffer.size, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
-            vertexStagingBuffer.copyTo(cb, vertexBuffer, vertexBufferSize);
-            indexStagingBuffer.copyTo(cb, indexBuffer, indexBufferSize);
+            vertexStagingBuffer.copyTo(cb, vertexBuffer);
+            indexStagingBuffer.copyTo(cb, indexBuffer);
         });
     }
 

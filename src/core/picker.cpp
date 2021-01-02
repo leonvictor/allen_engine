@@ -257,11 +257,11 @@ class Picker
 
             if (context->device->supportsBlittingToLinearImages())
             {
-                colorImage.blit(cb, stagingImage, width, height);
+                colorImage.blit(cb, stagingImage);
             }
             else
             {
-                colorImage.copyTo(cb, stagingImage, width, height);
+                colorImage.copyTo(cb, stagingImage);
             }
 
             stagingImage.transitionLayout(cb, vk::ImageLayout::eGeneral);

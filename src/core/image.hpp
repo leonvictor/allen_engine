@@ -42,9 +42,9 @@ class Image : public Allocation
 
     vk::ImageLayout layout;
     vk::Format format;
-    int mipLevels;
-    int arrayLayers;
-    int width, height;
+    uint32_t mipLevels;
+    uint32_t arrayLayers;
+    uint32_t width, height;
 
     // Empty ctor to avoid errors. We should be able to get rid of it later on
     Image();
@@ -64,6 +64,8 @@ class Image : public Allocation
     void blit(vk::CommandBuffer cb, core::Image& dstImage);
     void blit(vk::CommandBuffer cb, core::Image& dstImage, int width, int height);
 
+    // TODO: Would copyFrom methods be better ?
+    // It's cool to keep data ownership
     void copyTo(vk::CommandBuffer cb, core::Image& dstImage);
     void copyTo(vk::CommandBuffer cb, core::Image& dstImage, int width, int height);
 
