@@ -12,7 +12,6 @@
 
 #include "../scene_object.cpp"
 #include "picker.cpp"
-#include <GLFW/glfw3.h>
 #include <array>
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -71,11 +70,11 @@ class Swapchain
     vk::UniqueDescriptorSetLayout skyboxDescriptorSetLayout;
     vk::UniqueDescriptorPool descriptorPool;
 
-    Swapchain(std::shared_ptr<core::Context> context, GLFWwindow* window, int maxObjects)
+    Swapchain(std::shared_ptr<core::Context> context, uint32_t width, uint32_t height, int maxObjects)
     {
         this->context = context;
 
-        createSwapchain(window);
+        createSwapchain(width, height);
         createImages();
         createDepthResources();
         createColorResources();
@@ -87,12 +86,12 @@ class Swapchain
         createSyncObjects();
         createDescriptorPool(maxObjects);
         createCommandBuffers();
-        picker.setup(context);
+        picker = Picker(context, width, height);
     }
 
-    void recreate(GLFWwindow* window, int maxObjects)
+    void recreate(uint32_t width, uint32_t height, int maxObjects)
     {
-        createSwapchain(window);
+        createSwapchain(width, height);
         createImages();
         createRenderPass();
         createPipelines();
@@ -100,6 +99,7 @@ class Swapchain
         createColorResources();
         createFramebuffers();
         createCommandBuffers();
+        picker.initialize(width, height);
     }
 
     void createPipelines()
@@ -324,13 +324,13 @@ class Swapchain
     }
 
   private:
-    void createSwapchain(GLFWwindow* window)
+    void createSwapchain(uint32_t width, uint32_t height)
     {
         core::SwapchainSupportDetails swapchainSupport = context->device->getSwapchainSupport(context->surface);
         vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
         vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
 
-        vk::Extent2D extent = chooseSwapExtent(swapchainSupport.capabilities, window);
+        vk::Extent2D extent = chooseSwapExtent(swapchainSupport.capabilities, width, height);
 
         uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
         if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
@@ -401,7 +401,7 @@ class Swapchain
         return vk::PresentModeKHR::eFifo;
     }
 
-    vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, GLFWwindow* window)
+    vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height)
     {
         if (capabilities.currentExtent.width != UINT32_MAX)
         {
@@ -411,9 +411,6 @@ class Swapchain
         {
             // Some window managers do not specify the resolution (indicated by special max value)
             // In this case, use the resolution that best matches the window within the ImageExtent bounds
-            int width, height;
-            glfwGetFramebufferSize(window, &width, &height);
-
             VkExtent2D extent = {
                 static_cast<uint32_t>(width),
                 static_cast<uint32_t>(height)};

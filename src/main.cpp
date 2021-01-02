@@ -284,8 +284,11 @@ class Engine
 
     void initVulkan()
     {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+
         context = std::make_shared<core::Context>(window);
-        swapchain = std::make_shared<core::Swapchain>(std::shared_ptr(context), window, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        swapchain = std::make_shared<core::Swapchain>(context, width, height, MAX_MODELS); // TODO: Swapchain are part of a Context ?
 
         loadModels();
         setUpLights();
@@ -431,7 +434,7 @@ class Engine
 
     void recreateSwapchain()
     {
-        int width = 0, height = 0;
+        int width, height;
         glfwGetFramebufferSize(window, &width, &height);
 
         while (width == 0 || height == 0)
@@ -444,7 +447,7 @@ class Engine
 
         // TODO: This could go inside a single function call
         swapchain->cleanup();
-        swapchain->recreate(window, MAX_MODELS);
+        swapchain->recreate(width, height, MAX_MODELS);
     }
 
     void mainLoop()
