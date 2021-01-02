@@ -21,7 +21,7 @@ include_directories("external/stb")
 include_directories("external/tinyobjloader")
 include_directories("external/imgui")
 include_directories("external/imgui/examples")
-include_directories("include")
+include_directories("external")
 
 file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")
 set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/examples/imgui_impl_vulkan.cpp" "external/imgui/examples/imgui_impl_glfw.cpp")
