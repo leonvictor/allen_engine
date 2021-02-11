@@ -42,13 +42,30 @@ Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
 
     // Copy data to staging buffer
     vk::DeviceSize imageSize = img.width * img.height * 4;
-    core::Buffer stagingBuffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    core::Buffer stagingBuffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, img.pixels);
+    // TODO: Move mipmaps generation out. Do we *need* it to happen before view creation ? We can also recreate the view
+    // TODO: Can we change the "mipLevel" field of an image on the fly (to initialize it at 1 here)
+    mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(img.width, img.height)))) + 1;
 
-    stagingBuffer.map(0, imageSize);
-    stagingBuffer.copy(img.pixels, static_cast<size_t>(imageSize));
-    stagingBuffer.unmap();
+    initImage(img.width, img.height, mipLevels, vk::SampleCountFlagBits::e1,
+              vk::Format::eR8G8B8A8Srgb,
+              vk::ImageTiling::eOptimal,
+              vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc);
 
-    createTextureImage(context, stagingBuffer, img.width, img.height);
+    allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
+        transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+        // TODO: CopyFrom would be better her for example
+        stagingBuffer.copyTo(cb, image.get(), img.width, img.height);
+    });
+
+    context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
+        // TODO: this-> format ?
+        generateMipMaps(cb, vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
+    });
+
+    initView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
     createSampler();
 }
 

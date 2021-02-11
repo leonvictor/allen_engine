@@ -108,7 +108,6 @@ void Device::createLogicalDevice(const vk::UniqueSurfaceKHR& surface, const bool
     queueFamilyIndices = findQueueFamilies(physical, surface);
 
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    // Added transfer as a separate queue
     std::set<uint32_t> uniqueQueueFamilies = {queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.presentFamily.value(), queueFamilyIndices.transferFamily.value()};
 
     float queuePriority = 1.0f; // We can assign a priority (float [0,1]) to queue families. Needed even if we have only one
