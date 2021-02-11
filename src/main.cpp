@@ -37,7 +37,7 @@
 #include "ecs/components.hpp"
 #include "ecs/coordinator.cpp"
 #include "ecs/systems.cpp"
-#include "gltf_loader.hpp"
+// #include "gltf_loader.hpp"
 #include "input_monitor.cpp"
 #include "light.cpp"
 #include "scene_object.cpp"

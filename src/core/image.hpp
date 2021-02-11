@@ -66,7 +66,7 @@ class Image : public Allocation
 
     void copyTo(vk::CommandBuffer cb, core::Image& dstImage);
     void copyTo(vk::CommandBuffer cb, core::Image& dstImage, int width, int height);
-
+    void generateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels);
     // Save image on disk as a ppm file.
     // FIXME: This only works in 8-bits per channel formats
     void save(std::string filename, bool colorSwizzle = false);
