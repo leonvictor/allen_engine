@@ -33,10 +33,6 @@
 #include "core/pipeline.cpp"
 #include "core/swapchain.cpp"
 #include "core/texture_cubemap.hpp"
-#include "ecs/common.cpp"
-#include "ecs/components.hpp"
-#include "ecs/coordinator.cpp"
-#include "ecs/systems.cpp"
 // #include "gltf_loader.hpp"
 #include "input_monitor.cpp"
 #include "light.cpp"
@@ -106,9 +102,6 @@ class Engine
   private:
     GLFWwindow* window;
     std::shared_ptr<core::Context> context;
-
-    Coordinator gCoordinator;
-
     std::shared_ptr<core::Swapchain> swapchain;
     int frameCount = 0;
 
