@@ -18,6 +18,7 @@ vk::ShaderModule createShaderModule(std::shared_ptr<core::Device> device, const 
     }
     else if (ext == "vert" || ext == "frag")
     {
+        // TODO: Maybe infer entrypoint ?
         std::vector<uint32_t> code = compileGlslToSpvBinary(filename, shaderc_glsl_infer_from_source, false);
         return device->logical->createShaderModule({{}, code.size() * sizeof(uint32_t), code.data()});
     }
@@ -27,13 +28,13 @@ vk::ShaderModule createShaderModule(std::shared_ptr<core::Device> device, const 
     }
 }
 
-vk::PipelineShaderStageCreateInfo loadShader(std::shared_ptr<core::Device> device, const std::string& filename, vk::ShaderStageFlagBits stage, const std::string& entryPoint)
+vk::PipelineShaderStageCreateInfo loadShader(std::shared_ptr<core::Device> device, const std::string& filename, const vk::ShaderStageFlagBits stage, const std::string& entryPoint)
 {
     auto shaderModule = createShaderModule(device, filename);
     vk::PipelineShaderStageCreateInfo createInfo;
     createInfo.stage = stage;
     createInfo.module = shaderModule;
-    createInfo.pName = entryPoint.c_str();
+    createInfo.pName = strdup(entryPoint.c_str());
     // pSpecializationInfo : We can set values for constants in the shader.
     // Then we can use a single shader module and have its behavior configured at pipeline creation (here)
     return createInfo;

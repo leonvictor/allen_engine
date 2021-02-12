@@ -3,6 +3,7 @@
 #include "commandpool.hpp"
 #include "queue.hpp"
 #include <assert.h>
+#include <optional>
 #include <set>
 #include <vulkan/vulkan.hpp>
 
