@@ -25,14 +25,10 @@ class Material
   public:
     Material() {}
 
-    Material(std::shared_ptr<core::Device> device)
-    {
-        buffer = std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
-    }
+    explicit Material(std::shared_ptr<core::Device> device) : buffer(std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible)) {}
 
-    Material(std::shared_ptr<core::Device> device, MaterialBufferObject material)
+    Material(std::shared_ptr<core::Device> device, MaterialBufferObject material) : buffer(std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible))
     {
-        buffer = std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
         update(material);
     }
 

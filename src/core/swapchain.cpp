@@ -62,7 +62,6 @@ class Swapchain
 
     int currentFrame = 0;
     bool frame_active = false;
-    uint32_t activeFrameIndex;
 
     // There is probably a better place for those
     vk::UniqueDescriptorSetLayout objectsDescriptorSetLayout;
@@ -286,7 +285,7 @@ class Swapchain
         }
     }
 
-    void recordCommandBuffers(std::vector<std::shared_ptr<SceneObject>> models, vk::UniqueDescriptorSet& lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
+    void recordCommandBuffers(const std::vector<std::shared_ptr<SceneObject>>& models, vk::UniqueDescriptorSet& lightsDescriptorSet, std::shared_ptr<Skybox> skybox)
     {
         for (size_t i = 0; i < images.size(); i++)
         {
@@ -330,7 +329,7 @@ class Swapchain
         vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
         vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
 
-        vk::Extent2D extent = chooseSwapExtent(swapchainSupport.capabilities, width, height);
+        this->extent = chooseSwapExtent(swapchainSupport.capabilities, width, height);
 
         uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
         if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
@@ -343,7 +342,7 @@ class Swapchain
         sCreateInfo.minImageCount = imageCount;
         sCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
         sCreateInfo.imageFormat = surfaceFormat.format;
-        sCreateInfo.imageExtent = extent;
+        sCreateInfo.imageExtent = this->extent;
         sCreateInfo.imageArrayLayers = 1;
         sCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
         sCreateInfo.presentMode = presentMode;
@@ -371,7 +370,6 @@ class Swapchain
 
         swapchain = context->device->logical->createSwapchainKHRUnique(sCreateInfo);
 
-        this->extent = extent;
         imageFormat = surfaceFormat.format;
     }
 
@@ -411,12 +409,12 @@ class Swapchain
         {
             // Some window managers do not specify the resolution (indicated by special max value)
             // In this case, use the resolution that best matches the window within the ImageExtent bounds
-            VkExtent2D extent = {
+            VkExtent2D mextent = {
                 static_cast<uint32_t>(width),
                 static_cast<uint32_t>(height)};
 
-            extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-            extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+            mextent.width = std::clamp(mextent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+            mextent.height = std::clamp(mextent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
             return extent;
         }
     }

@@ -1,5 +1,3 @@
-#include <vulkan/vulkan.hpp>
-
 #include "../scene_object.cpp"
 #include "commandpool.hpp"
 #include "context.hpp"
@@ -157,11 +155,9 @@ class Picker
 
     Picker() {}
 
-    Picker(std::shared_ptr<core::Context> context, uint32_t width, uint32_t height)
+    Picker(std::shared_ptr<core::Context> context, uint32_t width, uint32_t height) : colorImageFormat(vk::Format::eR8G8B8A8Unorm)
     {
         this->context = context;
-
-        colorImageFormat = vk::Format::eR8G8B8A8Unorm;
         createObjectDescriptorSetLayout();
         initialize(width, height);
         renderFinished = context->device->logical->createFenceUnique({});
@@ -234,7 +230,7 @@ class Picker
         context->device->queues.graphics.queue.submit(submitInfo, renderFinished.get());
     }
 
-    glm::vec3 pickColor(std::vector<std::shared_ptr<SceneObject>> models, glm::vec2 target)
+    glm::vec3 pickColor(const std::vector<std::shared_ptr<SceneObject>>& models, glm::vec2 target)
     {
         // TODO: Call that elsewhere
         render(models, target);

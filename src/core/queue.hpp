@@ -10,9 +10,8 @@ struct Queue
     vk::Queue queue;
     uint32_t family;
 
-    Queue(vk::Device& device, uint32_t family)
+    Queue(vk::Device& device, uint32_t family) : queue(device.getQueue(family, 0))
     {
-        queue = device.getQueue(family, 0);
         this->family = family;
     }
 

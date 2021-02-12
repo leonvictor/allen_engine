@@ -171,7 +171,7 @@ class Engine
     {
         // Initialize Imgui context
         ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
+        const ImGuiIO& io = ImGui::GetIO();
         (void) io;
         ImGui::StyleColorsDark();
 
@@ -499,9 +499,7 @@ class Engine
 
             for (auto model : models)
             {
-                glm::mat4 modelMatrix = glm::mat4(1.0f);
-                modelMatrix = model->getModelMatrix();
-
+                glm::mat4 modelMatrix = model->getModelMatrix();
                 core::UniformBufferObject ubo;
                 ubo.model = modelMatrix;
                 ubo.view = camera.getViewMatrix();                                                                                               // eye/camera position, center position, up axis

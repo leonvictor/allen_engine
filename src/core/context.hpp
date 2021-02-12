@@ -35,8 +35,11 @@ class Context
 
     bool enableValidationLayers = true; // TODO: Move that somewhere else (global config)
 
-    Context(GLFWwindow* window);
-    // Add a name to a vulkan object for debugging purposes.
+    explicit Context(GLFWwindow* window);
+
+    /// @brief Add a name to a vulkan object for debugging purposes.
+    /// @param object: vulkan object to add a debug name to
+    /// @param name: debug name
     template <class T>
     void setDebugUtilsObjectName(T object, std::string name)
     {

@@ -52,7 +52,7 @@ class PipelineFactory
     core::Viewport viewport;
     vk::Rect2D scissor;
 
-    PipelineFactory(std::shared_ptr<core::Device> device)
+    explicit PipelineFactory(std::shared_ptr<core::Device> device)
     {
         this->device = device;
         init();
@@ -63,6 +63,7 @@ class PipelineFactory
         auto vertextAttributeDescriptions = Vertex::getAttributeDescription();
         auto vertexBindingDescription = Vertex::getBindingDescription();
 
+        vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertextAttributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = vertextAttributeDescriptions.data();
         vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -107,7 +108,7 @@ class PipelineFactory
         layoutInfo.setLayoutCount = descriptorSetLayouts.size(); // Update when we have more layouts
         layoutInfo.pSetLayouts = descriptorSetLayouts.data();
 
-        auto layout = device->logical->createPipelineLayoutUnique(layoutInfo);
+        layout = device->logical->createPipelineLayoutUnique(layoutInfo);
 
         // Shader stages
         pipelineCreateInfo.stageCount = shaderStages.size();
@@ -204,10 +205,10 @@ class PipelineFactory
 
   private:
     std::shared_ptr<core::Device> device;
-    vk::PipelineLayout layout;
+    vk::UniquePipelineLayout layout;
     vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
     std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
-    vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
+    // vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
     std::vector<vk::DynamicState> dynamicStates;
 
     void init()
@@ -297,7 +298,7 @@ class PipelineFactory
 
             // Check each field and report bad values before freeing existing cache
             bool badCache = false;
-            if (headerLength <= 0)
+            if (headerLength == 0)
             {
                 badCache = true;
                 std::cout << "  Bad header length in " << path << ".\n";

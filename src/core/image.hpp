@@ -23,7 +23,7 @@ struct ImageFile
     stbi_uc* pixels;
     int width, height, channels;
 
-    ImageFile(std::string path);
+    explicit ImageFile(std::string path);
     void load(std::string path);
 };
 
