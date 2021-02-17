@@ -1,33 +1,48 @@
-#include <iomanip>
-#include <iostream>
-#include <vulkan/vulkan.hpp>
+#pragma once
 
-namespace core
-{
+#define UUID_SYSTEM_GENERATOR
+#include <uuids.h>
+
 class UUID
 {
-  public:
-    explicit UUID(uint8_t const data[VK_UUID_SIZE])
+  private:
+    uuids::uuid m_id;
+    bool m_isValid;
+
+    UUID(bool isValid)
     {
-        memcpy(m_data, data, VK_UUID_SIZE * sizeof(uint8_t));
+        m_isValid = false;
     }
 
-    uint8_t m_data[VK_UUID_SIZE];
+  public:
+    static const UUID InvalidID;
+
+    UUID() : m_id(uuids::uuid_system_generator{}())
+    {
+        m_isValid = true;
+    }
+
+    // TODO: copy constructor is explicit ?
+    // UUID(const UUID& uuid)
+    // {
+    //     m_id = uuid.m_id;
+    //     m_isValid = uuid.m_isValid;
+    // }
+
+    bool IsValid() const
+    {
+        return m_isValid;
+    }
+
+    bool operator==(const UUID& other) const
+    {
+        return m_id == other.m_id;
+    }
+
+    bool operator!=(const UUID& other) const
+    {
+        return !operator==(other);
+    }
 };
 
-// TODO: shouldn't this be inside the class ?
-std::ostream& operator<<(std::ostream& os, UUID uuid)
-{
-    os << std::setfill('0') << std::hex;
-    for (int j = 0; j < VK_UUID_SIZE; ++j)
-    {
-        os << std::setw(2) << static_cast<uint32_t>(uuid.m_data[j]);
-        if (j == 3 || j == 5 || j == 7 || j == 9)
-        {
-            std::cout << '-';
-        }
-    }
-    os << std::setfill(' ') << std::dec;
-    return os;
-}
-} // namespace core
+const UUID UUID::InvalidID = UUID(false);
