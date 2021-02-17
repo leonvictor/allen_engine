@@ -1,0 +1,432 @@
+#include "entity.hpp"
+#include <assert.h>
+#include <stdexcept>
+#include <vector>
+
+Entity::Entity(){};
+
+/// @brief Triggers registration with the systems (local and global)
+void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
+{
+    // TODO: entities are activated once all components are loaded and initialized
+    assert(IsLoaded());
+
+    // From youtube:
+    // Initialize spatial hierachy
+    // Transforms are set at serial time so we have all the info available to update
+    if (IsSpatialEntity())
+    {
+        // Calculate the initial world transform but do not trigger the callback to the component
+        // TODO: ?
+        m_pRootSpatialComponent->CalculateWorldTransform(false);
+    }
+
+    for (auto pComponent : m_components)
+    {
+        if (pComponent->IsInitialized())
+        {
+            // Register each component with all local systems...
+            for (auto pSystem : m_systems)
+            {
+                pSystem->RegisterComponent(pComponent);
+            }
+
+            // ... and all global systems
+            loadingContext.m_registerWithGlobalSystems(this, pComponent);
+        }
+    }
+
+    // Create per-status local system update lists
+    GenerateSystemUpdateList();
+
+    // Creates (spatial) entity attachments if required
+    // TODO: also create the scheduling info (which entity update before the other)
+    if (IsSpatialEntity())
+    {
+        if (m_pParentSpatialEntity != nullptr)
+        {
+            AttachToParent();
+        }
+
+        RefreshEntityAttachments();
+    }
+
+    m_status = Status::Activated;
+    loadingContext.m_registerEntityUpdate(this);
+}
+
+void Entity::Deactivate(const ObjectModel::LoadingContext& loadingContext)
+{
+    // Exact opposite of Activate
+    assert(m_status == Status::Activated);
+
+    loadingContext.m_unregisterEntityUpdate(this);
+
+    // Spatial attachments
+    if (m_isAttachedToParent)
+    {
+        DetachFromParent();
+    }
+
+    // Clear system update lists
+    for (size_t i = 0; i < (size_t) UpdateStage::NumStages; i++)
+    {
+        m_systemUpdateLists[i].clear();
+    }
+
+    // Unregister components from systems
+    for (auto pComponent : m_components)
+    {
+        for (auto pSystem : m_systems)
+        {
+            pSystem->UnregisterComponent(pComponent);
+        }
+
+        loadingContext.m_unregisterWithGlobalSystems(this, pComponent);
+    }
+
+    m_status = Status::Loaded;
+}
+
+void Entity::GenerateSystemUpdateList()
+{
+    for (size_t i = 0; i < (size_t) UpdateStage::NumStages; i++)
+    {
+        m_systemUpdateLists[i].clear();
+
+        for (auto& pSystem : m_systems)
+        {
+            if (pSystem->GetRequiredUpdatePriorities().IsUpdateStageEnabled((UpdateStage) i))
+            {
+                m_systemUpdateLists[i].push_back(pSystem);
+            }
+        }
+
+        // Sort update list
+        // TODO: what does "T* const& var" mean ?
+        auto comparator = [i](EntitySystem* const& pSystemA, EntitySystem* const& pSystemB) {
+            uint16_t A = pSystemA->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
+            uint16_t B = pSystemB->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
+            return A > B;
+        };
+
+        std::sort(m_systemUpdateLists[i].begin(), m_systemUpdateLists[i].end(), comparator);
+    }
+}
+
+// -------------------------------------------------
+// Systems
+// -------------------------------------------------
+
+void Entity::CreateSystemImmediate(const TypeSystem::TypeInfo* pSystemTypeInfo)
+{
+    // TODO: Assert the requested system type exists
+    // TODO: assert we only have one system of this type
+
+    // wtf
+    auto pSystem = (EntitySystem*) pSystemTypeInfo->m_pTypeHelper->CreateType();
+    m_systems.emplace_back(pSystem);
+}
+
+void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeSystem::TypeInfo* pSystemTypeInfo)
+{
+    CreateSystemImmediate(pSystemTypeInfo);
+    GenerateSystemUpdateList();
+
+    // If already activated, notify the world system that this entity requires a reload
+    if (IsActivated())
+    {
+        loadingContext.m_unregisterEntityUpdate(this);
+        loadingContext.m_registerEntityUpdate(this);
+    }
+}
+
+void Entity::DestroySystemImmediate(const TypeSystem::TypeInfo* pSystemTypeInfo)
+{
+    // TODO: assert that TypeInfo is derived from entitySystem
+    // TODO: find the index of system in m_systems
+
+    auto systemIt = std::find(m_systems.begin(), m_systems.end(), []() {});
+    int systemIdx = 0;
+
+    // TODO: assert that systemIdx is valid
+    m_systems.erase(m_systems.begin() + systemIdx);
+}
+
+void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeSystem::TypeInfo* pSystemTypeInfo)
+{
+    DestroySystemImmediate(pSystemTypeInfo);
+    GenerateSystemUpdateList();
+
+    if (IsActivated())
+    {
+        loadingContext.m_unregisterEntityUpdate(this);
+        loadingContext.m_registerEntityUpdate(this);
+    }
+}
+
+void Entity::UpdateSystems(ObjectModel::UpdateContext const& context)
+{
+    uint8_t const updateStageIdx = (uint8_t) context.GetUpdateStage(); //TODO
+    for (auto pSystem : m_systemUpdateLists[updateStageIdx])
+    {
+        // TODO: assert system has this stage enabled
+        pSystem->Update(context);
+    }
+}
+
+// -------------------------------------------------
+// Components
+// -------------------------------------------------
+void Entity::DestroyComponent(const UUID& componentID)
+{
+    auto componentIt = std::find(m_components.begin(), m_components.end(), [componentID](Component* comp) { comp->GetID() == componentID; });
+    assert(componentIt != m_components.end());
+
+    auto pComponent = m_components[componentIt - m_components.begin()];
+
+    if (IsUnloaded())
+    {
+        // Root removal validation
+        if (pComponent == m_pRootSpatialComponent)
+        {
+            // TODO: Assert that the spatial component has 1 child or less. Otherwise we need to detach the other children first.
+            return
+        }
+
+        DestroyComponentImmediate(pComponent);
+    }
+    else // Defer to the next loading phase
+    {
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::DestroyComponent;
+        action.m_ptr = pComponent;
+
+        // Notify the world system
+        EntityStateUpdateEvent.Execute(this);
+    }
+}
+
+void Entity::DestroyComponentImmediate(Component* pComponent)
+{
+    auto componentIt = std::find(m_components.begin(), m_components.end(), [pComponent](Component* comp) { comp->GetID() == pComponent->GetID(); });
+    assert(componentIt != m_components.end());
+    m_components.erase(componentIt);
+
+    SpatialComponent* pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
+    if (pSpatialComponent != nullptr)
+    {
+        if (m_pRootSpatialComponent == pSpatialComponent)
+        {
+            m_pRootSpatialComponent = nullptr;
+        }
+        else
+        {
+            pSpatialComponent->Detach();
+        }
+    }
+}
+
+void Entity::DestroyComponentDeferred(const ObjectModel::LoadingContext& context, Component* pComponent)
+{
+    DestroyComponentImmediate(pComponent);
+    if (IsLoaded())
+    {
+        context.m_unregisterEntityUpdate(this);
+        context.m_registerEntityUpdate(this);
+    }
+}
+
+void Entity::AddComponent(Component* pComponent, const UUID& parentSpatialComponentID)
+{
+    assert(pComponent != nullptr && pComponent->GetID().IsValid());
+    assert(!pComponent->m_entityID.IsValid() && pComponent->IsUnloaded());
+    // TODO: Assert that m_components does NOT contain a pComponent of this type
+
+    // TODO: KRG uses a custom cast ?
+    SpatialComponent* pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
+
+    // Parent ID can only be set when adding a spatial component
+    if (pSpatialComponent == nullptr)
+    {
+        assert(!parentSpatialComponentID.IsValid(), "Tried to set a parent to a non-spatial component.");
+    }
+
+    if (IsUnloaded())
+    {
+        SpatialComponent* pParentComponent = nullptr;
+        if (parentSpatialComponentID.IsValid())
+        {
+            assert(pSpatialComponent != nullptr);
+
+            auto componentIt = std::find(m_components.begin(), m_components.end(), [parentSpatialComponentID](Component* comp) { comp->GetID() == parentSpatialComponentID; });
+            assert(componentIt != m_components.end());
+
+            pParentComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
+            assert(pParentComponent != nullptr);
+        }
+
+        AddComponentImmediate(pComponent, pParentComponent);
+    }
+    else // Defer to the next loading phase
+    {
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::AddComponent;
+        action.m_ptr = pComponent;
+        action.m_ID = parentSpatialComponentID;
+
+        // Send notification that the internal state changed
+        EntityStateUpdatedEvent.Execute(this);
+    }
+}
+
+void Entity::AddComponentImmediate(Component* pComponent, SpatialComponent* pParentComponent)
+{
+    SpatialComponent* pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
+    if (pSpatialComponent != nullptr)
+    {
+        if (pParentComponent == nullptr)
+        {
+            if (m_pRootSpatialComponent == nullptr)
+            {
+                // The component becomes the root
+                m_pRootSpatialComponent = pSpatialComponent;
+            }
+            else
+            {
+                // The component is attached to the root component.
+                // Side effect: the entity becomes a spatial one !
+
+                // TODO: manage sockets
+                // TODO: do not allow circular dependencies
+                pSpatialComponent->AttachTo(m_pRootSpatialComponent);
+                // m_pRootSpatialComponent->m_spatialChildren.push_back(pSpatialComponent);
+                // pSpatialComponent->m_pSpatialParent = m_pRootSpatialComponent;
+            }
+        }
+        else
+        {
+            // TODO: assert that pSpatialComponent belongs to the same entity
+            // The component is attached to the specified parent
+            pSpatialComponent->AttachTo(pParentComponent);
+            // pParentComponent->m_spatialChildren.push_back(pSpatialComponent);
+            // pSpatialComponent->m_pSpatialParent = pParentComponent;
+        }
+    }
+
+    // TODO: make sure modification made to pSpatialComponent are taken into account here...
+    m_components.emplace_back(pComponent);
+}
+
+void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, Component* pComponent, SpatialComponent* PParentComponent)
+{
+    AddComponentImmediate(pComponent, PParentComponent);
+
+    // If resources have already been loaded, notify the world system that this entity requires a reload
+    if (IsLoaded())
+    {
+        // TODO: should i use the same requests as for system ?
+        context.m_unregisterEntityUpdate(this);
+        context.m_registerEntityUpdate(this);
+    }
+}
+
+// -------------------------------------------------
+// Spatial stuff
+// -------------------------------------------------
+
+SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const UUID& socketID) const
+{
+    assert(pComponentToSearch != nullptr);
+    if (pComponentToSearch->HasSocket(socketID))
+    {
+        return pComponentToSearch;
+    }
+
+    for (auto pChildComponent : pComponentToSearch->m_spatialChildren)
+    {
+        if (auto pFoundComponent = FindSocketAttachmentComponent(pChildComponent, socketID))
+        {
+            return pFoundComponent;
+        }
+    }
+
+    return nullptr;
+}
+
+/// @brief Attach to the parent entity
+void Entity::AttachToParent()
+{
+    assert(IsSpatialEntity());
+    assert(m_pParentSpatialEntity != nullptr && !m_isAttachedToParent);
+
+    // Find component to attach to
+    auto pParentEntity = m_pParentSpatialEntity;
+    SpatialComponent* pParentRootComponent = pParentEntity->m_pRootSpatialComponent;
+
+    // TODO: Set parentAttachmentSocketID when we set the parent entity
+    if (m_parentAttachmentSocketID.IsValid())
+    {
+        if (auto pFoundComponent = pParentEntity->FindSocketAttachmentComponent(m_parentAttachmentSocketID))
+        {
+            pParentRootComponent = pFoundComponent;
+        }
+        else
+        {
+            // TODO: warning: no attachment socked id .. on entity ...
+        }
+    }
+
+    // Perform attachment
+    m_pRootSpatialComponent->AttachTo(pParentRootComponent, m_parentAttachmentSocketID);
+
+    // assert(pParentRootComponent != nullptr);
+
+    // Set component hierarchy values
+    // m_pRootSpatialComponent->m_pSpatialParent = pParentRootComponent;
+    // m_pRootSpatialComponent->m_parentAttachmentSocketID = m_parentAttachmentSocketID;
+
+    // TODO: should we calculate world transform everytime a component is attached to another ?
+    // Or only here ?
+    // m_pRootSpatialComponent->CalculateWorldTransform();
+
+    // Add to the list of child components on the component to attach to
+    // pParentRootComponent->m_spatialChildren.emplace_back(m_pRootSpatialComponent);
+
+    m_isAttachedToParent = true;
+}
+
+/// @brief Detach from the parent entity
+void Entity::DetachFromParent()
+{
+    assert(IsSpatialEntity());
+    assert(m_pParentSpatialEntity != nullptr && m_isAttachedToParent);
+
+    // TODO: Is there a reason *not* to use component.Detach() ?
+    // Remove from parent component child list
+    m_pRootSpatialComponent->Detach();
+    // auto pParentComponent = m_pRootSpatialComponent->m_pSpatialParent;
+    // auto foundIter = std::find(pParentComponent->m_spatialChildren.begin(), pParentComponent->m_spatialChildren.end(), m_pRootSpatialComponent);
+    // assert(foundIter != pParentComponent->m_spatialChildren.end());
+    // pParentComponent->m_spatialChildren.erase(foundIter);
+
+    // Remove component hierarchy values
+    // m_pRootSpatialComponent->m_pSpatialParent = nullptr;
+    // m_pRootSpatialComponent->m_parentAttachmentSocketID = UUID::InvalidID;
+
+    m_isAttachedToParent = false;
+}
+
+void Entity::RefreshEntityAttachments()
+{
+    assert(IsSpatialEntity());
+    for (auto pAttachedEntity : m_attachedEntities)
+    {
+        // Only refresh active attachments
+        if (pAttachedEntity->m_isAttachedToParent)
+        {
+            pAttachedEntity->DetachFromParent();
+            pAttachedEntity->AttachToParent();
+        }
+    }
+}
