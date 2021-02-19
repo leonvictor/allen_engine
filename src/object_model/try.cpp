@@ -8,14 +8,15 @@ template <typename T>
 class TypeHelper
 {
   public:
-    typedef T m_type;
     T CreateType() { return T(); }
 };
 
 class ITypeInfo
 {
   public:
-    // Get the registered type infos. The first call to this method will create the registry.
+    std::type_index m_ID = std::type_index(typeid(ITypeInfo));
+
+    /// @brief Get the registered type infos. The first call to this method will create the registry.
     static std::unordered_map<std::type_index, std::shared_ptr<ITypeInfo>>& GetRegisteredTypeInfos()
     {
         static std::unordered_map<std::type_index, std::shared_ptr<ITypeInfo>> m_registeredTypeInfos;
@@ -28,21 +29,23 @@ class TypeInfo : public ITypeInfo
 {
   public:
     // TODO: disable other creation type
-    TypeHelper<T> m_typeHelper;
-    std::type_index m_ID = std::type_index(typeid(T));
-    // TODO: m_ID can be static as TypeInfo<Type> should be a singleton
+    std::shared_ptr<TypeHelper<T>> m_typeHelper;
 
     static std::shared_ptr<TypeInfo> CreateTypeInfo()
     {
-        std::shared_ptr<TypeInfo> pTypeInfo = std::make_shared<TypeInfo>();
+        auto id = std::type_index(typeid(T));
 
         // If typeInfo is already registered, return the registered instance
-        if (GetRegisteredTypeInfos().find(pTypeInfo->m_ID) != GetRegisteredTypeInfos().end())
+        if (GetRegisteredTypeInfos().find(id) != GetRegisteredTypeInfos().end())
         {
-            return static_pointer_cast<TypeInfo>(GetRegisteredTypeInfos()[pTypeInfo->m_ID]);
+            return static_pointer_cast<TypeInfo>(GetRegisteredTypeInfos()[id]);
         }
 
-        GetRegisteredTypeInfos().insert(std::make_pair(pTypeInfo->m_ID, pTypeInfo));
+        std::shared_ptr<TypeInfo> pTypeInfo = std::make_shared<TypeInfo>();
+        pTypeInfo->m_ID = id;
+        pTypeInfo->m_typeHelper = std::make_shared<TypeHelper<T>>();
+
+        GetRegisteredTypeInfos().insert(std::make_pair(id, pTypeInfo));
         return pTypeInfo;
     }
 
@@ -50,6 +53,7 @@ class TypeInfo : public ITypeInfo
     bool IsDerivedFrom(std::type_index typeIndex)
     {
         auto otherType = GetRegisteredTypeInfos()[typeIndex];
+        // auto otherTypeInstance = otherType->m_typeHelper.CreateType();
         return true;
     }
 };
@@ -83,7 +87,7 @@ template <typename T>
 T Truc()
 {
     static_assert(std::is_base_of<Base, T>::value);
-    T truc = T::GetTypeInfo()->m_typeHelper.CreateType();
+    T truc = T::GetTypeInfo()->m_typeHelper->CreateType();
     return truc;
 }
 
