@@ -1,36 +1,52 @@
+#include <assert.h>
 #include <iostream>
 #include <map>
+#include <set>
 #include <typeindex>
 #include <typeinfo>
 #include <unordered_map>
 
-template <typename T>
-class TypeHelper
+class ITypeHelper
 {
   public:
-    T CreateType() { return T(); }
+    virtual std::shared_ptr<void> CreateType() = 0;
+    virtual bool IsBaseOf(std::shared_ptr<void> pType) = 0;
 };
 
-class ITypeInfo
+template <typename T>
+class TypeHelper : public ITypeHelper
 {
-  public:
-    std::type_index m_ID = std::type_index(typeid(ITypeInfo));
 
-    /// @brief Get the registered type infos. The first call to this method will create the registry.
-    static std::unordered_map<std::type_index, std::shared_ptr<ITypeInfo>>& GetRegisteredTypeInfos()
+  public:
+    std::shared_ptr<void> CreateType() override
     {
-        static std::unordered_map<std::type_index, std::shared_ptr<ITypeInfo>> m_registeredTypeInfos;
-        return m_registeredTypeInfos;
+        std::shared_ptr<void> type = std::make_shared<T>();
+        return type;
+    }
+
+    bool IsBaseOf(std::shared_ptr<void> pType)
+    {
+        return dynamic_pointer_cast<T>(pType) != nullptr;
     }
 };
 
-template <typename T>
-class TypeInfo : public ITypeInfo
+class TypeInfo
 {
   public:
     // TODO: disable other creation type
-    std::shared_ptr<TypeHelper<T>> m_typeHelper;
+    std::type_index m_ID = std::type_index(typeid(TypeInfo));
+    std::shared_ptr<ITypeHelper> m_pTypeHelper;
+    std::set<std::type_index> m_bases;
 
+    /// @brief Get the registered type infos. The first call to this method will create the registry.
+    static std::unordered_map<std::type_index, std::shared_ptr<TypeInfo>>&
+    GetRegisteredTypeInfos()
+    {
+        static std::unordered_map<std::type_index, std::shared_ptr<TypeInfo>> registeredTypeInfos;
+        return registeredTypeInfos;
+    }
+
+    template <typename T>
     static std::shared_ptr<TypeInfo> CreateTypeInfo()
     {
         auto id = std::type_index(typeid(T));
@@ -43,7 +59,24 @@ class TypeInfo : public ITypeInfo
 
         std::shared_ptr<TypeInfo> pTypeInfo = std::make_shared<TypeInfo>();
         pTypeInfo->m_ID = id;
-        pTypeInfo->m_typeHelper = std::make_shared<TypeHelper<T>>();
+        pTypeInfo->m_pTypeHelper = std::make_shared<TypeHelper<T>>();
+
+        // TODO: Loop over registered types and add inheritance links.
+        auto pTypeInstance = pTypeInfo->m_pTypeHelper->CreateType();
+        for (auto it : GetRegisteredTypeInfos())
+        {
+            auto otherInstance = it.second->m_pTypeHelper->CreateType();
+            if (dynamic_pointer_cast<T>(otherInstance) != nullptr)
+            {
+                // This TypeInfo is base of otherInstance
+                it.second->m_bases.insert(id);
+            }
+            if (it.second->m_pTypeHelper->IsBaseOf(pTypeInstance))
+            {
+                // it.second is base of this TypeInfo
+                pTypeInfo->m_bases.insert(it.second->m_ID);
+            }
+        }
 
         GetRegisteredTypeInfos().insert(std::make_pair(id, pTypeInfo));
         return pTypeInfo;
@@ -52,9 +85,8 @@ class TypeInfo : public ITypeInfo
     /// @brief Check if a system type is derived from another one
     bool IsDerivedFrom(std::type_index typeIndex)
     {
-        auto otherType = GetRegisteredTypeInfos()[typeIndex];
-        // auto otherTypeInstance = otherType->m_typeHelper.CreateType();
-        return true;
+        // auto otherTypeInfo = GetRegisteredTypeInfos()[typeIndex].get();
+        return m_bases.find(typeIndex) != m_bases.end();
     }
 };
 
@@ -66,37 +98,39 @@ class Base
 class Derived : public Base
 {
   public:
-    void DerivedThing() { std::cout << "Derived" << std::endl; }
+    // void DerivedThing() { std::cout << "Derived" << std::endl; }
     // TODO: TypeInfo = static variable.
-    static std::shared_ptr<TypeInfo<Derived>> GetTypeInfo()
+    static std::shared_ptr<TypeInfo> GetTypeInfo()
     {
-        return TypeInfo<Derived>::CreateTypeInfo();
+        return TypeInfo::CreateTypeInfo<Derived>();
     }
 };
 
 class DerivedTwice : public Derived
 {
   public:
-    static std::shared_ptr<TypeInfo<DerivedTwice>> GetTypeInfo()
+    static std::shared_ptr<TypeInfo> GetTypeInfo()
     {
-        return TypeInfo<DerivedTwice>::CreateTypeInfo();
+        return TypeInfo::CreateTypeInfo<DerivedTwice>();
     }
 };
 
 template <typename T>
-T Truc()
+std::shared_ptr<T> Truc()
 {
-    static_assert(std::is_base_of<Base, T>::value);
-    T truc = T::GetTypeInfo()->m_typeHelper->CreateType();
+    static_assert(std::is_base_of_v<Base, T>);
+    std::shared_ptr<T> truc = std::static_pointer_cast<T>(T::GetTypeInfo()->m_pTypeHelper->CreateType());
     return truc;
 }
 
 int main()
 {
-    DerivedTwice d2 = Truc<DerivedTwice>();
-    Derived d = Truc<Derived>();
+    std::shared_ptr<DerivedTwice> d2 = Truc<DerivedTwice>();
+    std::shared_ptr<Derived> d = Truc<Derived>();
     // d.DerivedThing();
-    bool test = d2.GetTypeInfo()->IsDerivedFrom(d.GetTypeInfo()->m_ID);
-    bool test2 = d.GetTypeInfo()->IsDerivedFrom(d2.GetTypeInfo()->m_ID);
+    bool test = d2->GetTypeInfo()->IsDerivedFrom(d->GetTypeInfo()->m_ID);
+    // assert(test);
+    bool test2 = d->GetTypeInfo()->IsDerivedFrom(d2->GetTypeInfo()->m_ID);
+    // assert(!test);
     return 0;
 }
