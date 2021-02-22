@@ -90,13 +90,14 @@ class TypeInfo
     {
         return m_bases.find(typeIndex) != m_bases.end();
     }
+
+    // TODO: Operators == and !=
 };
 
 class Base
 {
   public:
     virtual ~Base() {}
-    virtual std::shared_ptr<TypeInfo<Base>> GetTypeInfo() = 0;
 };
 
 class Derived : public Base
@@ -134,6 +135,6 @@ int main()
     bool test = d2->GetTypeInfo()->IsDerivedFrom(d->GetTypeInfo()->m_ID);
     assert(test);
     bool test2 = d->GetTypeInfo()->IsDerivedFrom(d2->GetTypeInfo()->m_ID);
-    assert(!test);
+    assert(!test2);
     return 0;
 }
