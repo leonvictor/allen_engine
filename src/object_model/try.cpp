@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <typeindex>
 #include <typeinfo>
@@ -9,89 +10,113 @@
 class ITypeHelper
 {
   public:
-    virtual std::shared_ptr<void> CreateType() = 0;
-    virtual bool IsBaseOf(std::shared_ptr<void> pType) = 0;
+    /// @brief Factory method to create an object of the type described by this TypeHelper.
+    virtual std::shared_ptr<void> CreateType() const = 0;
+
+    /// @brief Whether the type of the passed pointer is
+    virtual bool IsBaseOf(const std::shared_ptr<void> pOtherType) const = 0;
 };
 
+/// @brief Holds common routines related to the custom type reflection system (Creation, inheritance tests)
+/// @param TBase: The shared base type used by the parent TypeInfo
+/// @param T: The specialized class this TypeHelper represents.
 template <typename TBase, typename T>
 class TypeHelper : public ITypeHelper
 {
     static_assert(std::is_base_of_v<TBase, T>);
 
   public:
-    std::shared_ptr<void> CreateType() override
+    std::shared_ptr<void> CreateType() const override
     {
         std::shared_ptr<void> type = std::make_shared<T>();
         return type;
     }
 
-    bool IsBaseOf(std::shared_ptr<void> pType)
+    bool IsBaseOf(const std::shared_ptr<void> pOtherType) const
     {
-        return dynamic_pointer_cast<T>(static_pointer_cast<TBase>(pType)) != nullptr;
+        // TODO: Accept std::shared_ptr<TBase>
+        // Difficult for now as the virtual call doesn't know about TBase
+        auto pBaseType = std::static_pointer_cast<TBase>(pOtherType);
+        return std::dynamic_pointer_cast<T>(pBaseType) != nullptr;
     }
 };
 
+/// @brief Simple custom type reflection. Manages types inheriting from the abstract base class TBase.
 template <typename TBase>
 class TypeInfo
 {
+  private:
+    std::set<std::type_index> m_baseTypes;
+    std::set<std::type_index> m_derivedTypes;
+
   public:
-    // TODO: disable other creation type
+    // TODO: disable other creation methods
     std::type_index m_ID = std::type_index(typeid(TBase));
     std::shared_ptr<ITypeHelper> m_pTypeHelper;
-    std::set<std::type_index> m_bases;
 
     /// @brief Get the registered type infos. The first call to this method will create the registry.
-    static std::unordered_map<std::type_index, std::shared_ptr<TypeInfo>>&
-    GetRegisteredTypeInfos()
+    static std::unordered_map<std::type_index, std::shared_ptr<TypeInfo>>& GetRegisteredTypeInfos()
     {
         static std::unordered_map<std::type_index, std::shared_ptr<TypeInfo>> registeredTypeInfos;
         return registeredTypeInfos;
     }
 
+    /// @brief Get the type info associated to T. The first call to this method will construct and register the TypeInfo.
     template <typename T>
-    static std::shared_ptr<TypeInfo> CreateTypeInfo()
+    static std::shared_ptr<TypeInfo> GetTypeInfo()
     {
         auto id = std::type_index(typeid(T));
 
-        // If typeInfo is already registered, return the registered instance
+        // If the requested TypeInfo is already registered, return the registered instance
         if (GetRegisteredTypeInfos().find(id) != GetRegisteredTypeInfos().end())
         {
-            return static_pointer_cast<TypeInfo>(GetRegisteredTypeInfos()[id]);
+            return std::static_pointer_cast<TypeInfo>(GetRegisteredTypeInfos()[id]);
         }
 
+        // Otherwise build the TypeInfo
         std::shared_ptr<TypeInfo> pTypeInfo = std::make_shared<TypeInfo>();
         pTypeInfo->m_ID = id;
         pTypeInfo->m_pTypeHelper = std::make_shared<TypeHelper<TBase, T>>();
 
         // Loop over registered types and add inheritance links.
-        // TODO: This is quite wonky as it requires creating an instance of each
+        // TODO: This is quite wonky as it requires creating an instance of each type.
         auto pTypeInstance = pTypeInfo->m_pTypeHelper->CreateType();
         for (auto it : GetRegisteredTypeInfos())
         {
             auto otherInstance = it.second->m_pTypeHelper->CreateType();
-            if (dynamic_pointer_cast<T>(static_pointer_cast<TBase>(otherInstance)) != nullptr)
+            if (pTypeInfo->m_pTypeHelper->IsBaseOf(otherInstance))
             {
                 // This TypeInfo is base of otherInstance
-                it.second->m_bases.insert(id);
+                it.second->m_baseTypes.insert(id);
+                pTypeInfo->m_derivedTypes.insert(id);
             }
             if (it.second->m_pTypeHelper->IsBaseOf(pTypeInstance))
             {
-                // it.second is base of this TypeInfo
-                pTypeInfo->m_bases.insert(it.second->m_ID);
+                // otherInstance is base of this TypeInfo
+                pTypeInfo->m_baseTypes.insert(it.second->m_ID);
+                it.second->m_derivedTypes.insert(id);
             }
         }
 
+        // Register the TypeInfo
         GetRegisteredTypeInfos().insert(std::make_pair(id, pTypeInfo));
         return pTypeInfo;
     }
 
-    /// @brief Check if a system type is derived from another one
-    bool IsDerivedFrom(std::type_index typeIndex)
+    /// @brief Check if a type is derived from another one
+    bool IsDerivedFrom(const std::type_index& typeIndex) const
     {
-        return m_bases.find(typeIndex) != m_bases.end();
+        return m_baseTypes.find(typeIndex) != m_baseTypes.end();
     }
 
-    // TODO: Operators == and !=
+    /// @brief Check if a type is the base of another one
+    bool IsBaseOf(const std::type_index& typeIndex) const
+    {
+        return m_derivedTypes.find(typeIndex) != m_derivedTypes.end();
+    }
+
+    const bool operator==(const TypeInfo& other) const { return m_ID == other.m_ID; }
+    const bool operator!=(const TypeInfo& other) const { return !operator==(other); }
 };
 
 class Base
@@ -104,9 +129,11 @@ class Derived : public Base
 {
   public:
     // TODO: TypeInfo = static variable.
+    // TODO: Make this a common method of Base
+    // TODO: Read up on visitor pattern
     static std::shared_ptr<TypeInfo<Base>> GetTypeInfo()
     {
-        return TypeInfo<Base>::CreateTypeInfo<Derived>();
+        return TypeInfo<Base>::GetTypeInfo<Derived>();
     }
 };
 
@@ -115,7 +142,7 @@ class DerivedTwice : public Derived
   public:
     static std::shared_ptr<TypeInfo<Base>> GetTypeInfo()
     {
-        return TypeInfo<Base>::CreateTypeInfo<DerivedTwice>();
+        return TypeInfo<Base>::GetTypeInfo<DerivedTwice>();
     }
 };
 
