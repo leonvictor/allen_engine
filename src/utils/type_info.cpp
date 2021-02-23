@@ -1,10 +1,9 @@
-#include <assert.h>
-#include <iostream>
+#pragma once
+
 #include <map>
 #include <memory>
 #include <set>
 #include <typeindex>
-#include <typeinfo>
 #include <unordered_map>
 
 class ITypeHelper
@@ -118,50 +117,3 @@ class TypeInfo
     const bool operator==(const TypeInfo& other) const { return m_ID == other.m_ID; }
     const bool operator!=(const TypeInfo& other) const { return !operator==(other); }
 };
-
-class Base
-{
-  public:
-    virtual ~Base() {}
-};
-
-class Derived : public Base
-{
-  public:
-    // TODO: TypeInfo = static variable.
-    // TODO: Make this a common method of Base
-    // TODO: Read up on visitor pattern
-    static std::shared_ptr<TypeInfo<Base>> GetTypeInfo()
-    {
-        return TypeInfo<Base>::GetTypeInfo<Derived>();
-    }
-};
-
-class DerivedTwice : public Derived
-{
-  public:
-    static std::shared_ptr<TypeInfo<Base>> GetTypeInfo()
-    {
-        return TypeInfo<Base>::GetTypeInfo<DerivedTwice>();
-    }
-};
-
-template <typename T>
-std::shared_ptr<T> Truc()
-{
-    static_assert(std::is_base_of_v<Base, T>);
-    std::shared_ptr<T> truc = std::static_pointer_cast<T>(T::GetTypeInfo()->m_pTypeHelper->CreateType());
-    return truc;
-}
-
-int main()
-{
-    std::shared_ptr<DerivedTwice> d2 = Truc<DerivedTwice>();
-    std::shared_ptr<Derived> d = Truc<Derived>();
-
-    bool test = d2->GetTypeInfo()->IsDerivedFrom(d->GetTypeInfo()->m_ID);
-    assert(test);
-    bool test2 = d->GetTypeInfo()->IsDerivedFrom(d2->GetTypeInfo()->m_ID);
-    assert(!test2);
-    return 0;
-}
