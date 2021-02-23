@@ -25,13 +25,13 @@ class TypeHelper : public ITypeHelper
     static_assert(std::is_base_of_v<TBase, T>);
 
   public:
-    std::shared_ptr<void> CreateType() const override
+    inline std::shared_ptr<void> CreateType() const override
     {
         std::shared_ptr<void> type = std::make_shared<T>();
         return type;
     }
 
-    bool IsBaseOf(const std::shared_ptr<void> pOtherType) const
+    inline bool IsBaseOf(const std::shared_ptr<void> pOtherType) const
     {
         // TODO: Accept std::shared_ptr<TBase>
         // Difficult for now as the virtual call doesn't know about TBase
@@ -103,13 +103,13 @@ class TypeInfo
     }
 
     /// @brief Check if a type is derived from another one
-    bool IsDerivedFrom(const std::type_index& typeIndex) const
+    inline bool IsDerivedFrom(const std::type_index& typeIndex) const
     {
         return m_baseTypes.find(typeIndex) != m_baseTypes.end();
     }
 
     /// @brief Check if a type is the base of another one
-    bool IsBaseOf(const std::type_index& typeIndex) const
+    inline bool IsBaseOf(const std::type_index& typeIndex) const
     {
         return m_derivedTypes.find(typeIndex) != m_derivedTypes.end();
     }
