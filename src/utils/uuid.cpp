@@ -1,12 +1,17 @@
 #pragma once
 
-#define UUID_SYSTEM_GENERATOR
-#include <uuids.h>
+#include <iostream>
+#include <vector>
 
+#define UUID_SYSTEM_GENERATOR
+#include <stduuids.h>
+
+namespace core
+{
 class UUID
 {
   private:
-    uuids::uuid m_id;
+    uuids::uuid m_ID;
     bool m_isValid;
 
     UUID(bool isValid)
@@ -17,17 +22,25 @@ class UUID
   public:
     static const UUID InvalidID;
 
-    UUID() : m_id(uuids::uuid_system_generator{}())
+    UUID() : m_ID(uuids::uuid_system_generator{}())
     {
         m_isValid = true;
     }
 
-    // TODO: copy constructor is explicit ?
-    // UUID(const UUID& uuid)
-    // {
-    //     m_id = uuid.m_id;
-    //     m_isValid = uuid.m_isValid;
-    // }
+    explicit UUID(std::array<uint8_t, 16> data)
+    {
+        m_ID = uuids::uuid(std::begin(data), std::end(data));
+        m_isValid = true;
+    }
+
+    explicit UUID(uint8_t data[16])
+    {
+        uint8_t cache[16];
+        memcpy(cache, data, 16 * sizeof(uint8_t));
+
+        m_ID = uuids::uuid(std::begin(cache), std::end(cache));
+        m_isValid = true;
+    }
 
     bool IsValid() const
     {
@@ -36,13 +49,28 @@ class UUID
 
     bool operator==(const UUID& other) const
     {
-        return m_id == other.m_id;
+        return m_ID == other.m_ID;
     }
 
     bool operator!=(const UUID& other) const
     {
         return !operator==(other);
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const UUID& uuid);
 };
 
+std::ostream& operator<<(std::ostream& os, const UUID& uuid)
+{
+    if (uuid.m_isValid)
+    {
+        os << "Invalid UUID";
+    }
+    else
+    {
+        os << "Valid UUID (" << uuid.m_ID << ")";
+    }
+    return os;
+}
 const UUID UUID::InvalidID = UUID(false);
+} // namespace core
