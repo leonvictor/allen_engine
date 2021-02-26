@@ -1,4 +1,9 @@
+#pragma once
+
 #include <assert.h>
+
+#include "../utils/type_info.hpp"
+#include "object_model.cpp"
 #include <unordered_map>
 #include <vector>
 
@@ -24,7 +29,7 @@ struct UpdatePriorities
         return m_updatePriorityMap.count(stage) == 1;
     }
 
-    /// @brief Returns the priority for the provided stage. Will fail if the stage is not enabled.
+    /// @brief Returns the priority for the provided stage. Making sure the stage is enabled is the user's responsibility.
     uint8_t GetPriorityForStage(const UpdateStage& stage)
     {
         assert(IsUpdateStageEnabled(stage));
@@ -36,23 +41,27 @@ struct UpdatePriorities
 
 class Component;
 
-// Systems are singletons (only of each type in an entity)
+// Systems are singletons (only one of each type in an entity)
 class EntitySystem
 {
   private:
     UpdatePriorities m_requiredUpdatePriorities;
     std::vector<Component*> m_components;
+    std::shared_ptr<TypeInfo<EntitySystem>> m_pTypeInfo;
 
     // TODO: Explicit Components dependencies (like in "i need a mesh component" to function)
     // -> this should happen in the inherited system classes
     // TODO: prevent the use of the base class + enforce redefinining of Register/Unregister methods
   public:
+    static std::shared_ptr<TypeInfo<EntitySystem>> StaticTypeInfo;
+
     EntitySystem() {}
 
     void Update(ObjectModel::UpdateContext const& context) {}
 
     void RegisterComponent(Component* pComponent)
     {
+        assert(pComponent != nullptr);
         // todo: this is where we check if the furnished component is expected
         // todo: cast as correct component type
         // todo if not nullptr
@@ -71,4 +80,11 @@ class EntitySystem
 
     /// @brief Returns the update priorities for this component.
     UpdatePriorities GetRequiredUpdatePriorities() const { return m_requiredUpdatePriorities; }
+
+    static TypeInfo<EntitySystem>* GetTypeInfo()
+    {
+        // TODO: This won't work because EntitySytem are not designed to be used as is
+        // TODO: Force derived class to implement this function.
+        return TypeInfo<EntitySystem>::GetTypeInfo<EntitySystem>().get();
+    }
 };

@@ -12,10 +12,10 @@ class SpatialComponent : public Component
 
     std::vector<SpatialComponent*> m_spatialChildren;
     SpatialComponent* m_pSpatialParent;
-    std::vector<UUID> m_sockets;
+    std::vector<core::UUID> m_sockets;
 
     // TODO: Handle socket
-    UUID m_parentAttachmentSocketID;
+    core::UUID m_parentAttachmentSocketID;
 
   public:
     // TODO: Local transform
@@ -36,11 +36,11 @@ class SpatialComponent : public Component
         throw std::runtime_error("Not implemented");
     }
 
-    bool HasSocket(const UUID& socketID)
+    bool HasSocket(const core::UUID& socketID)
     {
         // TODO: Does this work ?
         // return std::any_of(m_sockets.begin(), m_sockets.end(), socketID);
-        return std::any_of(m_sockets.begin(), m_sockets.end(), [socketID](UUID id) { return id == socketID; });
+        return std::any_of(m_sockets.begin(), m_sockets.end(), [socketID](core::UUID id) { return id == socketID; });
         // for (StringID id : m_sockets)
         // {
         //     if (id == socketID)
@@ -51,7 +51,7 @@ class SpatialComponent : public Component
         // return false;
     }
 
-    void AttachTo(SpatialComponent* pParentComponent, const UUID& socketID = UUID::InvalidID)
+    void AttachTo(SpatialComponent* pParentComponent, const core::UUID& socketID = core::UUID::InvalidID)
     {
         // TODO: Handle sockets
         assert(m_pSpatialParent == nullptr && pParentComponent != nullptr);
@@ -78,6 +78,6 @@ class SpatialComponent : public Component
 
         // Remove component hierarchy values
         m_pSpatialParent = nullptr;
-        m_parentAttachmentSocketID = UUID::InvalidID;
+        m_parentAttachmentSocketID = core::UUID::InvalidID;
     }
 };

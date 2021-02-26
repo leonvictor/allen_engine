@@ -42,20 +42,10 @@ class UUID
         m_isValid = true;
     }
 
-    bool IsValid() const
-    {
-        return m_isValid;
-    }
+    bool IsValid() const { return m_isValid; }
 
-    bool operator==(const UUID& other) const
-    {
-        return m_ID == other.m_ID;
-    }
-
-    bool operator!=(const UUID& other) const
-    {
-        return !operator==(other);
-    }
+    bool operator==(const UUID& other) const { return m_ID == other.m_ID; }
+    bool operator!=(const UUID& other) const { return !operator==(other); }
 
     friend std::ostream& operator<<(std::ostream& os, const UUID& uuid);
 };

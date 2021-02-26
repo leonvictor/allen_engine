@@ -22,12 +22,12 @@ class Component
     // TODO: is this a singleton ?
 
   protected:
-    UUID m_ID;
+    core::UUID m_ID;
     ComponentStatus m_state;
     bool m_isSingleton; // Can you have multiple components of this type per entity
 
   public:
-    UUID m_entityID;
+    core::UUID m_entityID;
 
     Component() : m_state(ComponentStatus::Unloaded), m_isSingleton(false) {}
 
@@ -70,7 +70,7 @@ class Component
     bool IsLoaded() const { return m_state == ComponentStatus::Loaded; }
     bool IsUnloaded() const { return m_state == ComponentStatus::Unloaded; }
 
-    UUID GetID() const { return m_ID; }
+    core::UUID GetID() const { return m_ID; }
 
     bool operator==(const Component& other) const { return m_ID == other.m_ID; }
     bool operator!=(const Component& other) const { return !operator==(other); }
