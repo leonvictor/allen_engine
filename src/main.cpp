@@ -30,7 +30,7 @@
 #include "core/buffer.hpp"
 #include "core/context.hpp"
 #include "core/device.hpp"
-#include "core/instance.cpp"
+#include "core/instance.hpp"
 #include "core/pipeline.cpp"
 #include "core/swapchain.cpp"
 #include "core/texture_cubemap.hpp"

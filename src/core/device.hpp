@@ -1,7 +1,7 @@
 #pragma once
 
 #include "commandpool.hpp"
-#include "instance.cpp"
+#include "instance.hpp"
 #include "queue.hpp"
 
 #include <assert.h>

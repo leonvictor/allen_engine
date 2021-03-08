@@ -7,7 +7,7 @@
 
 #include "buffer.hpp"
 #include "device.hpp"
-#include "instance.cpp"
+#include "instance.hpp"
 
 #include "context.hpp"
 #include <iostream>
