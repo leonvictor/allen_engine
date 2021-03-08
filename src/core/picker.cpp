@@ -46,20 +46,20 @@ class Picker
                                  dFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                  vk::ImageAspectFlagBits::eDepth);
 
-        context->setDebugUtilsObjectName(depthImage.image.get(), "Picker depth Image");
+        context->device->setDebugUtilsObjectName(depthImage.image.get(), "Picker depth Image");
         colorImage = core::Image(context->device, width, height, 1, vk::SampleCountFlagBits::e1, colorImageFormat,
                                  vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                  vk::ImageAspectFlagBits::eColor);
 
-        context->setDebugUtilsObjectName(colorImage.image.get(), "Picker color image");
+        context->device->setDebugUtilsObjectName(colorImage.image.get(), "Picker color image");
 
         context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             colorImage.transitionLayout(cb, vk::ImageLayout::eColorAttachmentOptimal);
         });
 
 #ifndef NDEBUG
-        context->setDebugUtilsObjectName(depthImage.image.get(), "Picker depth image");
-        context->setDebugUtilsObjectName(colorImage.image.get(), "Picker color image");
+        context->device->setDebugUtilsObjectName(depthImage.image.get(), "Picker depth image");
+        context->device->setDebugUtilsObjectName(colorImage.image.get(), "Picker color image");
 #endif
     }
 
@@ -131,7 +131,7 @@ class Picker
         renderPassInfo.pDependencies = &subpassDependency;
 
         renderPass = context->device->logical->createRenderPassUnique(renderPassInfo);
-        context->setDebugUtilsObjectName(renderPass.get(), "Picker renderpass");
+        context->device->setDebugUtilsObjectName(renderPass.get(), "Picker renderpass");
     }
 
     void createPipeline()
@@ -146,7 +146,7 @@ class Picker
         factory.registerShader("shaders/picker.frag", vk::ShaderStageFlagBits::eFragment);
         pipeline = factory.create(std::vector<vk::DescriptorSetLayout>({descriptorSetLayout.get()}), "picker_pipeline_cache_data.bin");
 
-        context->setDebugUtilsObjectName(pipeline->pipeline.get(), "Picker graphics Pipeline");
+        context->device->setDebugUtilsObjectName(pipeline->pipeline.get(), "Picker graphics Pipeline");
         // TODO: Use a small viewport of around the cursor. We need to be able to specify the viewport dim when drawing
     }
 
@@ -241,7 +241,7 @@ class Picker
         core::Image stagingImage = core::Image(context->device, width, height, 1, vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferDst,
                                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent); // TODO: OPTIMIZE We don't need a view
 
-        context->setDebugUtilsObjectName(stagingImage.image.get(), "Picker staging image");
+        context->device->setDebugUtilsObjectName(stagingImage.image.get(), "Picker staging image");
 
         // TODO: OPTIMIZE Use a single command buffer to do all necessary operations
         context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {

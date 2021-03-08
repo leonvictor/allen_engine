@@ -1,7 +1,9 @@
 #pragma once
 
 #include "commandpool.hpp"
+#include "instance.cpp"
 #include "queue.hpp"
+
 #include <assert.h>
 #include <optional>
 #include <set>
@@ -45,8 +47,7 @@ class Device
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties;
     vk::PhysicalDeviceMemoryProperties memoryProperties;
 
-    std::vector<const char*> extensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME}; // TODO: This is == to the reqExtensions parameters everywhere
+    std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
 
@@ -64,7 +65,7 @@ class Device
     } commandpools;
 
     Device();
-    Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface);
+    Device(const vk::UniqueSurfaceKHR& surface);
 
     SwapchainSupportDetails getSwapchainSupport(const vk::UniqueSurfaceKHR& surface);
 
@@ -80,6 +81,16 @@ class Device
     // TODO: Make more versatile
     bool supportsBlittingToLinearImages();
 
+    /// @brief Add a name to a vulkan object for debugging purposes.
+    /// @param object: vulkan object to add a debug name to
+    /// @param name: debug name
+    template <class T>
+    void setDebugUtilsObjectName(T object, std::string name)
+    {
+        vk::DebugUtilsObjectNameInfoEXT debugName{object.objectType, (uint64_t)(typename T::CType) object, name.c_str()};
+        logical->setDebugUtilsObjectNameEXT(debugName, core::Instance::Singleton().m_dispatchLoaderDynamic);
+    }
+
   private:
     void createLogicalDevice(const vk::UniqueSurfaceKHR& surface, const bool enableValidationLayers = true);
     void createCommandPools();
@@ -92,6 +103,6 @@ class Device
     static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, const vk::UniqueSurfaceKHR& surface);
 
     static bool isDeviceSuitable(const vk::PhysicalDevice& device, const vk::UniqueSurfaceKHR& surface, std::vector<const char*> requiredExtensions);
-    vk::PhysicalDevice pickPhysicalDevice(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface);
+    vk::PhysicalDevice pickPhysicalDevice(const vk::UniqueSurfaceKHR& surface);
 };
 } // namespace core

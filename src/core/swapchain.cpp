@@ -123,8 +123,8 @@ class Swapchain
             std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout.get()}),
             "skybox_pipeline_cache_data.bin");
 
-        context->setDebugUtilsObjectName(pipelines.skybox->pipeline.get(), "Skybox Pipeline");
-        context->setDebugUtilsObjectName(pipelines.objects->pipeline.get(), "Objects Pipeline");
+        context->device->setDebugUtilsObjectName(pipelines.skybox->pipeline.get(), "Skybox Pipeline");
+        context->device->setDebugUtilsObjectName(pipelines.objects->pipeline.get(), "Objects Pipeline");
     }
 
     void createSkyboxDescriptorSetLayout()
@@ -134,7 +134,7 @@ class Swapchain
             {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
         skyboxDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique({{}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data()});
-        context->setDebugUtilsObjectName(skyboxDescriptorSetLayout.get(), "Skybox Descriptor Set Layout");
+        context->device->setDebugUtilsObjectName(skyboxDescriptorSetLayout.get(), "Skybox Descriptor Set Layout");
     }
 
     void createFramebuffers()
@@ -460,7 +460,7 @@ class Swapchain
         depthImage = std::make_unique<core::Image>(context->device, extent.width, extent.height, 1, context->device->msaaSamples,
                                                    format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                                    vk::ImageAspectFlagBits::eDepth);
-        context->setDebugUtilsObjectName(depthImage->image.get(), "Swapchain depth image");
+        context->device->setDebugUtilsObjectName(depthImage->image.get(), "Swapchain depth image");
     }
 
     void createColorResources()
@@ -468,8 +468,8 @@ class Swapchain
         colorImage = std::make_unique<core::Image>(context->device, extent.width, extent.height, 1, context->device->msaaSamples, this->imageFormat,
                                                    vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                                    vk::ImageAspectFlagBits::eColor);
-        context->setDebugUtilsObjectName(colorImage->image.get(), "Swapchain color image");
-        context->setDebugUtilsObjectName(colorImage->view.get(), "Color Image View");
+        context->device->setDebugUtilsObjectName(colorImage->image.get(), "Swapchain color image");
+        context->device->setDebugUtilsObjectName(colorImage->view.get(), "Color Image View");
     }
 
     void createDescriptorSetLayout()
@@ -514,8 +514,8 @@ class Swapchain
 
         lightsDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique(lightsCreateInfo);
 
-        context->setDebugUtilsObjectName(objectsDescriptorSetLayout.get(), "Object Descriptor Layout");
-        context->setDebugUtilsObjectName(lightsDescriptorSetLayout.get(), "Lights Descriptor Set Layout");
+        context->device->setDebugUtilsObjectName(objectsDescriptorSetLayout.get(), "Object Descriptor Layout");
+        context->device->setDebugUtilsObjectName(lightsDescriptorSetLayout.get(), "Lights Descriptor Set Layout");
     }
 
     void createDescriptorPool(int nObjects)

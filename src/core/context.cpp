@@ -7,6 +7,7 @@
 
 #include "buffer.hpp"
 #include "device.hpp"
+#include "instance.cpp"
 
 #include "context.hpp"
 #include <iostream>
@@ -17,61 +18,22 @@ namespace core
 
 Context::Context(GLFWwindow* window)
 {
-    createInstance();
+    auto requiredExtensions = getRequiredExtensions();
+    core::Instance::Singleton().Create(requiredExtensions, enableValidationLayers, validationLayers);
+
     createSurface(window);
-    device = std::make_shared<core::Device>(instance, surface);
-    setupDebugMessenger();
+    device = std::make_shared<core::Device>(surface);
 }
-
-void Context::createInstance()
-{
-    if (enableValidationLayers && !checkValidationLayersSupport())
-    {
-        throw std::runtime_error("validation layers requested but not available");
-    }
-
-    // Populate the ApplicationInfo struct. Optionnal but may provide useful info to the driver
-    vk::ApplicationInfo appInfo(
-        "Not-so-poopy game editor",
-        VK_MAKE_VERSION(1, 0, 0),
-        "Not-so-poopy engine",
-        VK_MAKE_VERSION(1, 0, 0),
-        VK_API_VERSION_1_2);
-
-    auto extensions = getRequiredExtensions();
-    vk::InstanceCreateInfo iCreateInfo;
-
-    iCreateInfo.pApplicationInfo = &appInfo,
-    iCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    iCreateInfo.ppEnabledExtensionNames = extensions.data();
-
-    // Enable validation layers if needed
-    if (enableValidationLayers)
-    {
-        iCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        iCreateInfo.ppEnabledLayerNames = validationLayers.data();
-
-        vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo = getDebugMessengerCreateInfo();
-        iCreateInfo.pNext = (vk::DebugUtilsMessengerCreateInfoEXT*) &dCreateInfo;
-    }
-    else
-    {
-        iCreateInfo.enabledLayerCount = 0;
-        iCreateInfo.pNext = nullptr;
-    }
-
-    instance = vk::createInstanceUnique(iCreateInfo);
-};
 
 void Context::createSurface(GLFWwindow* window)
 {
     VkSurfaceKHR pSurface;
-    if (glfwCreateWindowSurface(*instance, window, nullptr, &pSurface) != VK_SUCCESS)
+    if (glfwCreateWindowSurface((VkInstance) core::Instance::Singleton().Get(), window, nullptr, &pSurface) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create window surface.");
     }
 
-    surface = vk::UniqueSurfaceKHR(pSurface, instance.get());
+    surface = vk::UniqueSurfaceKHR(pSurface, core::Instance::Singleton().Get());
 }
 
 bool Context::checkValidationLayersSupport()
@@ -132,26 +94,5 @@ std::vector<const char*> Context::getRequiredExtensions()
     }
 
     return extensions;
-}
-
-vk::DebugUtilsMessengerCreateInfoEXT Context::getDebugMessengerCreateInfo()
-{
-    vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo;
-    dCreateInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
-    dCreateInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
-    //TODO: Is there something like "all flags" ?
-    dCreateInfo.pfnUserCallback = (PFN_vkDebugUtilsMessengerCallbackEXT) debugCallback;
-    return dCreateInfo;
-}
-
-void Context::setupDebugMessenger()
-{
-    if (!enableValidationLayers)
-        return;
-
-    dldInstance = vk::DispatchLoaderDynamic{instance.get(), vkGetInstanceProcAddr};
-    debugMessenger = instance->createDebugUtilsMessengerEXTUnique(
-        getDebugMessengerCreateInfo(),
-        nullptr, dldInstance);
 }
 }; // namespace core

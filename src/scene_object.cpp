@@ -78,7 +78,7 @@ class SceneObject : public Entity
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
         descriptorSet = std::move(device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
-        context->setDebugUtilsObjectName(descriptorSet.get(), "SceneObject Descriptor Set");
+        context->device->setDebugUtilsObjectName(descriptorSet.get(), "SceneObject Descriptor Set");
 
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
 

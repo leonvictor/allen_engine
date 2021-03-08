@@ -30,6 +30,7 @@
 #include "core/buffer.hpp"
 #include "core/context.hpp"
 #include "core/device.hpp"
+#include "core/instance.cpp"
 #include "core/pipeline.cpp"
 #include "core/swapchain.cpp"
 #include "core/texture_cubemap.hpp"
@@ -178,7 +179,7 @@ class Engine
         ImGui_ImplGlfw_InitForVulkan(window, true);
 
         ImGui_ImplVulkan_InitInfo init_info;
-        init_info.Instance = context->instance.get();
+        init_info.Instance = (VkInstance) core::Instance::Singleton().Get();
         init_info.PhysicalDevice = context->device->physical;
         init_info.Device = context->device->logical.get();
         init_info.QueueFamily = context->device->queueFamilyIndices.presentFamily.value();
@@ -405,7 +406,7 @@ class Engine
     {
         vk::DescriptorSetAllocateInfo allocInfo{swapchain->descriptorPool.get(), 1, &swapchain->lightsDescriptorSetLayout.get()};
         lightsDescriptorSet = std::move(context->device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
-        context->setDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
+        context->device->setDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer->buffer.get(); // TODO: How do we update the lights array ?

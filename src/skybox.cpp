@@ -40,7 +40,7 @@ class Skybox
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
         descriptorSet = std::move(device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
-        context->setDebugUtilsObjectName(descriptorSet.get(), "Skybox DescriptorSet");
+        context->device->setDebugUtilsObjectName(descriptorSet.get(), "Skybox DescriptorSet");
 
         auto uboDescriptor = mesh.uniformBuffer.getDescriptor();
         auto cubeMapDescriptor = texture.getDescriptor();

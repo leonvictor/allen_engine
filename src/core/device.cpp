@@ -9,9 +9,9 @@ namespace core
 
 Device::Device() {}
 
-Device::Device(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface)
+Device::Device(const vk::UniqueSurfaceKHR& surface)
 {
-    physical = pickPhysicalDevice(instance, surface);
+    physical = pickPhysicalDevice(surface);
     initProperties();
     createLogicalDevice(surface);
     createCommandPools();
@@ -154,11 +154,12 @@ void Device::initProperties()
     queueFamilyProperties = physical.getQueueFamilyProperties();
 }
 
-vk::PhysicalDevice Device::pickPhysicalDevice(const vk::UniqueInstance& instance, const vk::UniqueSurfaceKHR& surface)
+vk::PhysicalDevice Device::pickPhysicalDevice(const vk::UniqueSurfaceKHR& surface)
 {
-    std::vector<vk::PhysicalDevice> devices = instance->enumeratePhysicalDevices();
+    // TODO: core::Instance could wrap this call and keep a list of devices cached... but it's not necessary right now
+    std::vector<vk::PhysicalDevice> devices = core::Instance::Singleton().Get().enumeratePhysicalDevices();
 
-    if (devices.size() == 0)
+    if (devices.empty())
     {
         throw std::runtime_error("Failed to find GPUs w/ Vulkan support.");
     }
