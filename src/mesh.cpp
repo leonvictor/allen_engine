@@ -5,7 +5,6 @@
 
 #include "components.hpp"
 #include "core/buffer.hpp"
-#include "core/context.hpp"
 #include "core/device.hpp"
 #include "utils/files.cpp"
 #include "vertex.hpp"

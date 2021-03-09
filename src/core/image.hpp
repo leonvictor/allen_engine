@@ -50,11 +50,11 @@ class Image : public Allocation
     Image();
 
     // TODO: Default arguments
-    Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
 
-    // Create an image without a view.
-    Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    /// @brief Create an image without a view.
+    Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
 
     operator vk::Image();
@@ -73,15 +73,14 @@ class Image : public Allocation
     // FIXME: This only works in 8-bits per channel formats
     void save(std::string filename, bool colorSwizzle = false);
 
-    // Retreive the pixel value at index
-    // FIXME: This won't work if the image is in GPU-specific format
-    // FIXME: This only works in 8-bits per channel formats
+    /// @brief Retreive the pixel value at index
+    /// FIXME: This won't work if the image is in GPU-specific format
+    /// FIXME: This only works in 8-bits per channel formats
     glm::vec3 pixelAt(int x, int y, bool colorSwizzle = false);
 
-    // Helper function to create image views
-    // @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places.
-    // If so what would be a good place ? Inside device ?
-    //
-    static vk::UniqueImageView createImageViewUnique(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1);
+    /// @brief Helper function to create image views
+    /// @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places.
+    /// If so what would be a good place ? Inside pDevice ?
+    static vk::UniqueImageView createImageViewUnique(std::shared_ptr<core::Device> pDevice, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1);
 };
 } // namespace core

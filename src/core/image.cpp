@@ -54,7 +54,7 @@ void Image::initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     imageInfo.sharingMode = vk::SharingMode::eExclusive;
     imageInfo.samples = numSamples;
 
-    image = device->logical->createImageUnique(imageInfo);
+    image = m_pDevice->logical->createImageUnique(imageInfo);
 
     this->layout = layout;
     this->mipLevels = mipLevels;
@@ -66,25 +66,25 @@ void Image::initImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
 
 void Image::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    vk::MemoryRequirements memRequirements = device->logical->getImageMemoryRequirements(image.get());
+    vk::MemoryRequirements memRequirements = m_pDevice->logical->getImageMemoryRequirements(image.get());
     Allocation::allocate(memRequirements, memProperties);
-    device->logical->bindImageMemory(image.get(), memory.get(), 0);
+    m_pDevice->logical->bindImageMemory(image.get(), memory.get(), 0);
 }
 
 void Image::initView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
     assert(!view && "Image view is already initialized.");
-    view = createImageViewUnique(device, image.get(), format, aspectMask, mipLevels, viewtype, arrayLayers);
+    view = createImageViewUnique(m_pDevice, image.get(), format, aspectMask, mipLevels, viewtype, arrayLayers);
 }
 
 Image::Image() {}
 
 // TODO: Default arguments
-Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+Image::Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
 {
 
-    this->device = device;
+    this->m_pDevice = pDevice;
 
     initImage(width, height, mipLevels, numSamples, format, tiling, usage, 1, {}, layout);
     allocate(memProperties);
@@ -92,10 +92,10 @@ Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t heig
 }
 
 // Create an image without a view.
-Image::Image(std::shared_ptr<core::Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+Image::Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageLayout layout)
 {
-    this->device = device;
+    this->m_pDevice = pDevice;
 
     initImage(width, height, mipLevels, numSamples, format, tiling, usage, 1, {}, layout);
     allocate(memProperties);
@@ -265,7 +265,7 @@ void Image::save(std::string filename, bool colorSwizzle)
 {
     // TODO: Swizzle or not based on format
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = device->logical->getImageSubresourceLayout(image.get(), subresource);
+    auto subResourceLayout = m_pDevice->logical->getImageSubresourceLayout(image.get(), subresource);
 
     if (mapped == nullptr)
     {
@@ -311,7 +311,7 @@ void Image::save(std::string filename, bool colorSwizzle)
 glm::vec3 Image::pixelAt(int x, int y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = device->logical->getImageSubresourceLayout(image.get(), subresource);
+    auto subResourceLayout = m_pDevice->logical->getImageSubresourceLayout(image.get(), subresource);
 
     if (mapped == nullptr)
     {
@@ -358,7 +358,7 @@ glm::vec3 Image::pixelAt(int x, int y, bool colorSwizzle)
 // Helper function to create image views
 // @note: TODO: Should this be somewere else ? It doesn't depend on image members at all and is called from other places.
 // If so what would be a good place ? Inside device ?
-vk::UniqueImageView Image::createImageViewUnique(std::shared_ptr<core::Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype, int layerCount)
+vk::UniqueImageView Image::createImageViewUnique(std::shared_ptr<core::Device> pDevice, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype, int layerCount)
 {
     vk::ImageViewCreateInfo createInfo;
     createInfo.format = format;
@@ -370,12 +370,12 @@ vk::UniqueImageView Image::createImageViewUnique(std::shared_ptr<core::Device> d
     createInfo.subresourceRange.levelCount = mipLevels;
     createInfo.subresourceRange.baseMipLevel = 0;
 
-    return std::move(device->logical->createImageViewUnique(createInfo));
+    return std::move(pDevice->logical->createImageViewUnique(createInfo));
 }
 
 void Image::generateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
 {
-    auto formatProperties = device->physical.getFormatProperties(format);
+    auto formatProperties = m_pDevice->physical.getFormatProperties(format);
 
     vk::ImageMemoryBarrier barrier;
     barrier.image = image.get();

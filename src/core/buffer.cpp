@@ -8,9 +8,9 @@ namespace core
 {
 Buffer::Buffer() {} // Empty ctor is required for now. Todo: Remove when we can
 
-Buffer::Buffer(std::shared_ptr<core::Device> device, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
+Buffer::Buffer(std::shared_ptr<core::Device> pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
 {
-    initialize(device, size, usage, memProperties, data);
+    initialize(pDevice, size, usage, memProperties, data);
 }
 
 void Buffer::copyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions) const
@@ -63,7 +63,7 @@ Buffer::operator vk::Buffer()
 void Buffer::createBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags& usage)
 {
     // TODO: Move queues out of this function
-    uint32_t queues[] = {device->queueFamilyIndices.graphicsFamily.value(), device->queueFamilyIndices.transferFamily.value()};
+    uint32_t queues[] = {m_pDevice->queueFamilyIndices.graphicsFamily.value(), m_pDevice->queueFamilyIndices.transferFamily.value()};
 
     vk::BufferCreateInfo bufferInfo;
     bufferInfo.size = size;
@@ -75,19 +75,19 @@ void Buffer::createBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags
     bufferInfo.queueFamilyIndexCount = 2;
     bufferInfo.pQueueFamilyIndices = queues;
 
-    buffer = device->logical->createBufferUnique(bufferInfo);
+    buffer = m_pDevice->logical->createBufferUnique(bufferInfo);
 }
 
 void Buffer::allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    vk::MemoryRequirements memRequirements = device->logical->getBufferMemoryRequirements(buffer.get());
+    vk::MemoryRequirements memRequirements = m_pDevice->logical->getBufferMemoryRequirements(buffer.get());
     Allocation::allocate(memRequirements, memProperties);
-    device->logical->bindBufferMemory(buffer.get(), memory.get(), 0);
+    m_pDevice->logical->bindBufferMemory(buffer.get(), memory.get(), 0);
 }
 
-void Buffer::initialize(std::shared_ptr<core::Device> device, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
+void Buffer::initialize(std::shared_ptr<core::Device> pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
 {
-    this->device = device;
+    this->m_pDevice = pDevice;
     this->size = size;
 
     createBuffer(size, usage);
@@ -106,7 +106,7 @@ void Buffer::initialize(std::shared_ptr<core::Device> device, const vk::DeviceSi
             mappedRange.memory = *memory;
             mappedRange.offset = 0;
             mappedRange.size = size;
-            device->logical->flushMappedMemoryRanges(mappedRange);
+            m_pDevice->logical->flushMappedMemoryRanges(mappedRange);
         }
         unmap();
     }

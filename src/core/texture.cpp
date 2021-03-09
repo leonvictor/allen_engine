@@ -28,21 +28,21 @@ void Texture::createSampler(vk::SamplerAddressMode adressMode)
     samplerInfo.maxLod = static_cast<uint32_t>(mipLevels);
     samplerInfo.minLod = 0;
 
-    sampler = device->logical->createSamplerUnique(samplerInfo);
+    sampler = m_pDevice->logical->createSamplerUnique(samplerInfo);
 }
 
 Texture::Texture() {}
 
-Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
+Texture::Texture(std::shared_ptr<core::Device> pDevice, std::string path)
 {
-    this->device = context->device;
+    this->m_pDevice = pDevice;
 
     // Load image from file
     core::ImageFile img = core::ImageFile(path);
 
     // Copy data to staging buffer
     vk::DeviceSize imageSize = img.width * img.height * 4;
-    core::Buffer stagingBuffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, img.pixels);
+    core::Buffer stagingBuffer(m_pDevice, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, img.pixels);
     // TODO: Move mipmaps generation out. Do we *need* it to happen before view creation ? We can also recreate the view
     // TODO: Can we change the "mipLevel" field of an image on the fly (to initialize it at 1 here)
     mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(img.width, img.height)))) + 1;
@@ -54,13 +54,13 @@ Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
 
     allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
+    m_pDevice->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
         // TODO: CopyFrom would be better her for example
         stagingBuffer.copyTo(cb, image.get(), img.width, img.height);
     });
 
-    context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
+    m_pDevice->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
         // TODO: this-> format ?
         generateMipMaps(cb, vk::Format::eR8G8B8A8Srgb, img.width, img.height, mipLevels);
     });
@@ -73,9 +73,9 @@ Texture::Texture(std::shared_ptr<core::Context> context, std::string path)
 // Texture::Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight)
 // {
 //     // TODO: Most parameters are not used
-//     this->device = context->device;
+//     this->m_pDevice = context->m_pDevice;
 
-//     core::Buffer stagingBuffer = core::Buffer(context->device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+//     core::Buffer stagingBuffer = core::Buffer(context->m_pDevice, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
 //     stagingBuffer.map(0, bufferSize);
 //     stagingBuffer.copy(buffer, bufferSize);
@@ -91,7 +91,7 @@ vk::DescriptorImageInfo Texture::getDescriptor()
     return vk::DescriptorImageInfo{sampler.get(), view.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
 }
 
-void Texture::createTextureImage(std::shared_ptr<core::Context> context, core::Buffer& buffer, uint32_t texWidth, uint32_t texHeight)
+void Texture::createTextureImage(core::Buffer& buffer, uint32_t texWidth, uint32_t texHeight)
 {
     // TODO: Move mipmaps generation out. Do we *need* it to happen before view creation ? We can also recreate the view
     // TODO: Can we change the "mipLevel" field of an image on the fly (to initialize it at 1 here)
@@ -105,12 +105,12 @@ void Texture::createTextureImage(std::shared_ptr<core::Context> context, core::B
     allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     // Transition the image to transfer dst layout
-    context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
+    m_pDevice->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
         buffer.copyTo(cb, image.get(), texWidth, texHeight);
     });
 
-    context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
+    m_pDevice->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
         generateMipMaps(cb, vk::Format::eR8G8B8A8Srgb, texWidth, texHeight, mipLevels);
     });
 

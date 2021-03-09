@@ -13,7 +13,7 @@ namespace core
 // Provides easy to use mechanisms for mapping, unmapping and copying host data to the device memory
 struct Allocation
 {
-    std::shared_ptr<core::Device> device;
+    std::shared_ptr<core::Device> m_pDevice;
     vk::UniqueDeviceMemory memory;
     vk::DeviceSize size{0};
     vk::DeviceSize alignment{0};
@@ -24,13 +24,13 @@ struct Allocation
     template <typename T = void>
     inline T* map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE)
     {
-        mapped = device->logical->mapMemory(memory.get(), offset, size, vk::MemoryMapFlags());
+        mapped = m_pDevice->logical->mapMemory(memory.get(), offset, size, vk::MemoryMapFlags());
         return (T*) mapped;
     }
 
     inline void unmap()
     {
-        device->logical->unmapMemory(memory.get());
+        m_pDevice->logical->unmapMemory(memory.get());
         mapped = nullptr;
     }
 
@@ -59,7 +59,7 @@ struct Allocation
         */
     void flush(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
     {
-        return device->logical->flushMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
+        return m_pDevice->logical->flushMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
     }
 
     /**
@@ -74,16 +74,16 @@ struct Allocation
         */
     void invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
     {
-        return device->logical->invalidateMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
+        return m_pDevice->logical->invalidateMappedMemoryRanges(vk::MappedMemoryRange{memory.get(), offset, size});
     }
 
     virtual void allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
     {
         vk::MemoryAllocateInfo allocInfo;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = device->findMemoryType(memRequirements.memoryTypeBits, memProperties);
+        allocInfo.memoryTypeIndex = m_pDevice->findMemoryType(memRequirements.memoryTypeBits, memProperties);
 
-        memory = device->logical->allocateMemoryUnique(allocInfo, nullptr);
+        memory = m_pDevice->logical->allocateMemoryUnique(allocInfo, nullptr);
     }
 };
 } // namespace core

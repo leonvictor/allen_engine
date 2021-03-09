@@ -25,6 +25,6 @@ class TextureCubeMap : public core::Texture
         "Back",
     };
 
-    void loadFromDirectory(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path);
+    void loadFromDirectory(std::shared_ptr<core::Device> pDevice, std::string path);
 };
 } // namespace core

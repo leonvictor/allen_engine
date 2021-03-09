@@ -2,7 +2,6 @@
 
 #include "../components.hpp"
 #include "buffer.hpp"
-#include "context.hpp"
 #include "device.hpp"
 #include "image.hpp"
 #include <memory>
@@ -22,14 +21,14 @@ class Texture : public core::Image, public Component
     Texture();
 
     // Load a texture from a file
-    Texture(std::shared_ptr<core::Context> context, std::string path);
+    Texture(std::shared_ptr<core::Device> pDevice, std::string path);
 
     // Load from a buffer
-    Texture(std::shared_ptr<core::Context> context, void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight);
+    Texture(void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight);
     // TODO: This could come from a Descriptible interface (common w/ buffers)
     vk::DescriptorImageInfo getDescriptor();
 
   private:
-    void createTextureImage(std::shared_ptr<core::Context> context, core::Buffer& buffer, uint32_t texWidth, uint32_t texHeight);
+    void createTextureImage(core::Buffer& buffer, uint32_t texWidth, uint32_t texHeight);
 };
 } // namespace core

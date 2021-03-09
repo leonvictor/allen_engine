@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
+// #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
@@ -23,7 +23,7 @@ struct UniformBufferObject
 class Context
 {
   public:
-    vk::UniqueSurfaceKHR surface;
+    // vk::UniqueSurfaceKHR surface;
     std::shared_ptr<core::Device> device;
 
     const std::vector<const char*> validationLayers = {
@@ -32,14 +32,10 @@ class Context
 
     bool enableValidationLayers = true; // TODO: Move that somewhere else (global config)
 
-    explicit Context(GLFWwindow* window);
+    explicit Context();
 
   private:
-    void createInstance();
-    void createSurface(GLFWwindow* window);
-
-    // Support and versions queries
-    bool checkValidationLayersSupport();
-    std::vector<const char*> getRequiredExtensions();
+    // void createSurface(GLFWwindow* window);
+    // std::vector<const char*> getRequiredExtensions();
 };
 }; // namespace core

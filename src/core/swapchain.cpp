@@ -54,8 +54,8 @@ class Swapchain
     vk::Extent2D extent;
     vk::UniqueRenderPass renderPass;
 
-    std::shared_ptr<core::Context> context; // TODO: Fuse device, context and swapchain somehow
-
+    // std::shared_ptr<core::Context> context; // TODO: Fuse device, context and swapchain somehow
+    std::shared_ptr<core::Device> m_pDevice;
     std::vector<vk::UniqueSemaphore> imageAvailableSemaphores;
     std::vector<vk::UniqueSemaphore> renderFinishedSemaphores;
     std::vector<vk::UniqueFence> inFlightFences;
@@ -69,11 +69,12 @@ class Swapchain
     vk::UniqueDescriptorSetLayout skyboxDescriptorSetLayout;
     vk::UniqueDescriptorPool descriptorPool;
 
-    Swapchain(std::shared_ptr<core::Context> context, uint32_t width, uint32_t height, int maxObjects)
+    Swapchain(std::shared_ptr<core::Device> pDevice, vk::UniqueSurfaceKHR& surface, uint32_t width, uint32_t height, int maxObjects)
     {
-        this->context = context;
+        m_pDevice = pDevice;
 
-        createSwapchain(width, height);
+        // TODO: pass window ?
+        createSwapchain(surface, width, height);
         createImages();
         createDepthResources();
         createColorResources();
@@ -85,12 +86,12 @@ class Swapchain
         createSyncObjects();
         createDescriptorPool(maxObjects);
         createCommandBuffers();
-        picker = Picker(context, width, height);
+        picker = Picker(pDevice, width, height);
     }
 
-    void recreate(uint32_t width, uint32_t height, int maxObjects)
+    void recreate(vk::UniqueSurfaceKHR& surface, uint32_t width, uint32_t height, int maxObjects)
     {
-        createSwapchain(width, height);
+        createSwapchain(surface, width, height);
         createImages();
         createRenderPass();
         createPipelines();
@@ -103,7 +104,7 @@ class Swapchain
 
     void createPipelines()
     {
-        core::PipelineFactory factory = core::PipelineFactory(context->device);
+        core::PipelineFactory factory = core::PipelineFactory(m_pDevice);
 
         // Create the object rendering pipeline
         factory.setRenderPass(renderPass.get());
@@ -123,8 +124,8 @@ class Swapchain
             std::vector<vk::DescriptorSetLayout>({skyboxDescriptorSetLayout.get()}),
             "skybox_pipeline_cache_data.bin");
 
-        context->device->setDebugUtilsObjectName(pipelines.skybox->pipeline.get(), "Skybox Pipeline");
-        context->device->setDebugUtilsObjectName(pipelines.objects->pipeline.get(), "Objects Pipeline");
+        m_pDevice->setDebugUtilsObjectName(pipelines.skybox->pipeline.get(), "Skybox Pipeline");
+        m_pDevice->setDebugUtilsObjectName(pipelines.objects->pipeline.get(), "Objects Pipeline");
     }
 
     void createSkyboxDescriptorSetLayout()
@@ -133,8 +134,8 @@ class Swapchain
             {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
             {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-        skyboxDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique({{}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data()});
-        context->device->setDebugUtilsObjectName(skyboxDescriptorSetLayout.get(), "Skybox Descriptor Set Layout");
+        skyboxDescriptorSetLayout = m_pDevice->logical->createDescriptorSetLayoutUnique({{}, (uint32_t) setsLayoutBindings.size(), setsLayoutBindings.data()});
+        m_pDevice->setDebugUtilsObjectName(skyboxDescriptorSetLayout.get(), "Skybox Descriptor Set Layout");
     }
 
     void createFramebuffers()
@@ -147,11 +148,11 @@ class Swapchain
 
     void createRenderPass()
     {
-        assert(context->device);
+        assert(m_pDevice);
 
         vk::AttachmentDescription colorAttachment;
         colorAttachment.format = imageFormat;
-        colorAttachment.samples = context->device->msaaSamples;
+        colorAttachment.samples = m_pDevice->msaaSamples;
         // Color and depth data
         colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;   // What to do with the data before ...
         colorAttachment.storeOp = vk::AttachmentStoreOp::eStore; // ... and after rendering
@@ -168,8 +169,8 @@ class Swapchain
         colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
         vk::AttachmentDescription depthAttachment;
-        depthAttachment.format = context->device->findDepthFormat();
-        depthAttachment.samples = context->device->msaaSamples;
+        depthAttachment.format = m_pDevice->findDepthFormat();
+        depthAttachment.samples = m_pDevice->msaaSamples;
         depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
         depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare; // Depth data is not used after drawing has finished
         depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
@@ -221,13 +222,13 @@ class Swapchain
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &subpassDependency;
 
-        renderPass = context->device->logical->createRenderPassUnique(renderPassInfo);
+        renderPass = m_pDevice->logical->createRenderPassUnique(renderPassInfo);
     }
 
     void createCommandBuffers()
     {
         // TODO: This has to happen somewhere else
-        auto commandBuffers = context->device->commandpools.graphics.allocateCommandBuffersUnique(images.size());
+        auto commandBuffers = m_pDevice->commandpools.graphics.allocateCommandBuffersUnique(images.size());
 
         for (size_t i = 0; i < images.size(); i++)
         {
@@ -301,9 +302,9 @@ class Swapchain
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            imageAvailableSemaphores.push_back(context->device->logical->createSemaphoreUnique(semaphoreInfo, nullptr));
-            renderFinishedSemaphores.push_back(context->device->logical->createSemaphoreUnique(semaphoreInfo, nullptr));
-            inFlightFences.push_back(context->device->logical->createFenceUnique(fenceInfo, nullptr));
+            imageAvailableSemaphores.push_back(m_pDevice->logical->createSemaphoreUnique(semaphoreInfo, nullptr));
+            renderFinishedSemaphores.push_back(m_pDevice->logical->createSemaphoreUnique(semaphoreInfo, nullptr));
+            inFlightFences.push_back(m_pDevice->logical->createFenceUnique(fenceInfo, nullptr));
         }
     }
 
@@ -323,9 +324,9 @@ class Swapchain
     }
 
   private:
-    void createSwapchain(uint32_t width, uint32_t height)
+    void createSwapchain(vk::UniqueSurfaceKHR& surface, uint32_t width, uint32_t height)
     {
-        core::SwapchainSupportDetails swapchainSupport = context->device->getSwapchainSupport(context->surface);
+        core::SwapchainSupportDetails swapchainSupport = m_pDevice->getSwapchainSupport(surface);
         vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
         vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
 
@@ -338,7 +339,7 @@ class Swapchain
         }
 
         vk::SwapchainCreateInfoKHR sCreateInfo;
-        sCreateInfo.surface = context->surface.get();
+        sCreateInfo.surface = surface.get();
         sCreateInfo.minImageCount = imageCount;
         sCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
         sCreateInfo.imageFormat = surfaceFormat.format;
@@ -348,7 +349,7 @@ class Swapchain
         sCreateInfo.presentMode = presentMode;
         sCreateInfo.clipped = VK_TRUE; // We don't care about the color of obscured pixels (ex: if another window is on top)
 
-        core::QueueFamilyIndices indices = context->device->getQueueFamilyIndices();
+        core::QueueFamilyIndices indices = m_pDevice->getQueueFamilyIndices();
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         if (indices.graphicsFamily != indices.presentFamily)
@@ -368,7 +369,7 @@ class Swapchain
         sCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
         sCreateInfo.oldSwapchain = {(VkSwapchainKHR_T*) 0}; // TODO : Pass the old swapchain to reuse most of the info.
 
-        swapchain = context->device->logical->createSwapchainKHRUnique(sCreateInfo);
+        swapchain = m_pDevice->logical->createSwapchainKHRUnique(sCreateInfo);
 
         imageFormat = surfaceFormat.format;
     }
@@ -421,12 +422,12 @@ class Swapchain
 
     void createImages()
     {
-        std::vector<vk::Image> imgs = context->device->logical->getSwapchainImagesKHR(swapchain.get());
+        std::vector<vk::Image> imgs = m_pDevice->logical->getSwapchainImagesKHR(swapchain.get());
 
         for (vk::Image swapImage : imgs)
         {
             // TODO: This uses a helper function which doesn't do much.
-            vk::UniqueImageView view = core::Image::createImageViewUnique(context->device, swapImage, imageFormat, vk::ImageAspectFlagBits::eColor, 1);
+            vk::UniqueImageView view = core::Image::createImageViewUnique(m_pDevice, swapImage, imageFormat, vk::ImageAspectFlagBits::eColor, 1);
             SwapchainImage image;
             image.image = swapImage;
             image.imageView = std::move(view);
@@ -450,26 +451,26 @@ class Swapchain
         framebufferInfo.width = extent.width;
         framebufferInfo.height = extent.height;
         framebufferInfo.layers = 1; // Nb of layers in image array.
-        return context->device->logical->createFramebufferUnique(framebufferInfo);
+        return m_pDevice->logical->createFramebufferUnique(framebufferInfo);
     }
 
     void createDepthResources()
     {
-        vk::Format format = context->device->findDepthFormat();
+        vk::Format format = m_pDevice->findDepthFormat();
 
-        depthImage = std::make_unique<core::Image>(context->device, extent.width, extent.height, 1, context->device->msaaSamples,
+        depthImage = std::make_unique<core::Image>(m_pDevice, extent.width, extent.height, 1, m_pDevice->msaaSamples,
                                                    format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                                    vk::ImageAspectFlagBits::eDepth);
-        context->device->setDebugUtilsObjectName(depthImage->image.get(), "Swapchain depth image");
+        m_pDevice->setDebugUtilsObjectName(depthImage->image.get(), "Swapchain depth image");
     }
 
     void createColorResources()
     {
-        colorImage = std::make_unique<core::Image>(context->device, extent.width, extent.height, 1, context->device->msaaSamples, this->imageFormat,
+        colorImage = std::make_unique<core::Image>(m_pDevice, extent.width, extent.height, 1, m_pDevice->msaaSamples, this->imageFormat,
                                                    vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                                    vk::ImageAspectFlagBits::eColor);
-        context->device->setDebugUtilsObjectName(colorImage->image.get(), "Swapchain color image");
-        context->device->setDebugUtilsObjectName(colorImage->view.get(), "Color Image View");
+        m_pDevice->setDebugUtilsObjectName(colorImage->image.get(), "Swapchain color image");
+        m_pDevice->setDebugUtilsObjectName(colorImage->view.get(), "Color Image View");
     }
 
     void createDescriptorSetLayout()
@@ -500,7 +501,7 @@ class Swapchain
 
         vk::DescriptorSetLayoutCreateInfo createInfo{{}, (uint32_t) bindings.size(), bindings.data()};
 
-        objectsDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique(createInfo);
+        objectsDescriptorSetLayout = m_pDevice->logical->createDescriptorSetLayoutUnique(createInfo);
 
         vk::DescriptorSetLayoutBinding lightsLayoutBinding;
         lightsLayoutBinding.binding = 0;
@@ -512,10 +513,10 @@ class Swapchain
         lightsCreateInfo.bindingCount = 1;
         lightsCreateInfo.pBindings = &lightsLayoutBinding;
 
-        lightsDescriptorSetLayout = context->device->logical->createDescriptorSetLayoutUnique(lightsCreateInfo);
+        lightsDescriptorSetLayout = m_pDevice->logical->createDescriptorSetLayoutUnique(lightsCreateInfo);
 
-        context->device->setDebugUtilsObjectName(objectsDescriptorSetLayout.get(), "Object Descriptor Layout");
-        context->device->setDebugUtilsObjectName(lightsDescriptorSetLayout.get(), "Lights Descriptor Set Layout");
+        m_pDevice->setDebugUtilsObjectName(objectsDescriptorSetLayout.get(), "Object Descriptor Layout");
+        m_pDevice->setDebugUtilsObjectName(lightsDescriptorSetLayout.get(), "Lights Descriptor Set Layout");
     }
 
     void createDescriptorPool(int nObjects)
@@ -538,7 +539,7 @@ class Swapchain
         createInfo.pPoolSizes = poolSizes.data();
         createInfo.maxSets = (nObjects * 2) + 2;                                 // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker
         createInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // Necessary for automatic freeing
-        descriptorPool = context->device->logical->createDescriptorPoolUnique(createInfo);
+        descriptorPool = m_pDevice->logical->createDescriptorPoolUnique(createInfo);
     }
 };
 } // namespace core

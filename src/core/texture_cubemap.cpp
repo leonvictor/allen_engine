@@ -20,10 +20,9 @@ std::array<std::string, 6> faces = {
     "Back",
 };
 
-void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string path)
+void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Device> pDevice, std::string path)
 {
-    // this->context = context;
-    this->device = device;
+    this->m_pDevice = pDevice;
 
     // TODO: Remove hardcoded path to textures
     // TODO: Load the first face before the loop to initialize buffers
@@ -33,7 +32,7 @@ void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, s
     ImageFile img = ImageFile(facePath);
 
     vk::DeviceSize faceSize = img.width * img.height * img.channels;
-    core::Buffer stagingBuffer = core::Buffer(device, faceSize * 6, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    core::Buffer stagingBuffer = core::Buffer(m_pDevice, faceSize * 6, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
     stagingBuffer.map(0, faceSize);
     stagingBuffer.copy(img.pixels, static_cast<size_t>(faceSize));
@@ -80,12 +79,12 @@ void TextureCubeMap::loadFromDirectory(std::shared_ptr<core::Context> context, s
 
     allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    context->device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
+    m_pDevice->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
         stagingBuffer.copyTo(cb, image.get(), bufferCopyRegions);
     });
 
-    context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
+    m_pDevice->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
         transitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
     });
 

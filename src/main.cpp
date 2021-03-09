@@ -1,7 +1,8 @@
 // #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
+
+#include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -28,13 +29,14 @@
 
 #include "camera.cpp" // TODO: Create .h
 #include "core/buffer.hpp"
-#include "core/context.hpp"
 #include "core/device.hpp"
 #include "core/instance.hpp"
 #include "core/pipeline.cpp"
 #include "core/swapchain.cpp"
 #include "core/texture_cubemap.hpp"
 // #include "gltf_loader.hpp"
+#include "graphics/window.hpp"
+
 #include "input_monitor.cpp"
 #include "light.cpp"
 #include "scene_object.cpp"
@@ -45,9 +47,6 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
-
-const int WIDTH = 800;
-const int HEIGHT = 600;
 
 const std::string MODEL_PATH = "assets/models/cube.obj";
 const std::string TEXTURE_PATH = "assets/textures/container2.png";
@@ -68,7 +67,18 @@ class Engine
   public:
     Engine()
     {
-        initWindow();
+
+        // TODO: Who is in charge of checking which extensions should be enabled ? probably this class ("app") ?
+        // TODO: This is weird.
+        // Maybe something like
+        // instance.EnableValidationLayers(validationLayers);
+        //...
+        // instance.RegisterDesiredExtension(ext) ?
+        m_window.InitializeWindow();
+        core::Instance::Singleton().Create(enableValidationLayers, validationLayers);
+        m_window.CreateSurface();
+
+        // initWindow();
         initVulkan();
         initImGUI();
     }
@@ -93,16 +103,19 @@ class Engine
         lightsDescriptorSet.reset();
         skybox.reset();
         swapchain.reset();
-        context.reset();
+        m_pDevice.reset();
+        // TODO: surface
 
         // Destroy the glfw context
-        glfwDestroyWindow(window);
+        // TODO: Move to window
+        glfwDestroyWindow(m_window.m_pGlfwWindow);
         glfwTerminate();
     }
 
   private:
-    GLFWwindow* window;
-    std::shared_ptr<core::Context> context;
+    vkg::Window m_window;
+    // TODO: Get rid of the ptr
+    std::shared_ptr<core::Device> m_pDevice;
     std::shared_ptr<core::Swapchain> swapchain;
     int frameCount = 0;
 
@@ -151,23 +164,6 @@ class Engine
         app->framebufferResized = true;
     }
 
-    void initWindow()
-    {
-        glfwInit();                                   // Init glfw
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
-
-        // if (glfwRawMouseMotionSupported()) {
-        //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        // }
-
-        window = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-        glfwSetScrollCallback(window, scrollCallback);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        glfwSetKeyCallback(window, keyCallback);
-    }
-
     void initImGUI()
     {
         // Initialize Imgui context
@@ -176,27 +172,27 @@ class Engine
         (void) io;
         ImGui::StyleColorsDark();
 
-        ImGui_ImplGlfw_InitForVulkan(window, true);
+        ImGui_ImplGlfw_InitForVulkan(m_window.m_pGlfwWindow, true);
 
         ImGui_ImplVulkan_InitInfo init_info;
         init_info.Instance = (VkInstance) core::Instance::Singleton().Get();
-        init_info.PhysicalDevice = context->device->physical;
-        init_info.Device = context->device->logical.get();
-        init_info.QueueFamily = context->device->queueFamilyIndices.presentFamily.value();
-        init_info.Queue = context->device->queues.present.queue;
+        init_info.PhysicalDevice = m_pDevice->physical;
+        init_info.Device = m_pDevice->logical.get();
+        init_info.QueueFamily = m_pDevice->queueFamilyIndices.presentFamily.value();
+        init_info.Queue = m_pDevice->queues.present.queue;
         init_info.PipelineCache = nullptr;
         init_info.DescriptorPool = swapchain->descriptorPool.get();
         init_info.Allocator = nullptr;
         init_info.MinImageCount = 2;
         init_info.ImageCount = swapchain->images.size();
         init_info.CheckVkResultFn = nullptr;
-        init_info.MSAASamples = (VkSampleCountFlagBits) context->device->msaaSamples;
+        init_info.MSAASamples = (VkSampleCountFlagBits) m_pDevice->msaaSamples;
         ImGui_ImplVulkan_Init(&init_info, swapchain->renderPass.get());
 
         // Upload Fonts
         // Use any command queue
 
-        context->device->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
+        m_pDevice->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
         });
         ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -241,7 +237,7 @@ class Engine
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
         // TODO:
-        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
+        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
         m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout.get());
         models.push_back(m);
@@ -278,11 +274,9 @@ class Engine
 
     void initVulkan()
     {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        context = std::make_shared<core::Context>(window);
-        swapchain = std::make_shared<core::Swapchain>(context, width, height, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        auto size = m_window.GetSize();
+        m_pDevice = std::make_shared<core::Device>(m_window.GetSurface());
+        swapchain = std::make_shared<core::Swapchain>(m_pDevice, m_window.GetSurface(), size.width, size.height, MAX_MODELS); // TODO: Swapchain are part of a Context ?
 
         loadModels();
         setUpLights();
@@ -300,7 +294,7 @@ class Engine
         for (int i = 0; i < cubePositions.size(); i++)
         {
             // TODO: This logic is a duplicate of addObject.
-            auto m = std::make_shared<SceneObject>(context, context->device, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
+            auto m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
             m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout.get());
             models.push_back(m);
@@ -330,7 +324,7 @@ class Engine
 
     void setupSkyBox()
     {
-        skybox = std::make_shared<Skybox>(context, context->device, "", MODEL_PATH);
+        skybox = std::make_shared<Skybox>(m_pDevice, "", MODEL_PATH);
         skybox->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->skyboxDescriptorSetLayout.get());
         updateSkyboxUBO();
     }
@@ -357,7 +351,7 @@ class Engine
     void createLightsBuffer()
     {
         // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = std::make_unique<core::Buffer>(context->device, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        lightsBuffer = std::make_unique<core::Buffer>(m_pDevice, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     void updateLightBufferCount(int count)
@@ -405,8 +399,8 @@ class Engine
     void createLightsDescriptorSet()
     {
         vk::DescriptorSetAllocateInfo allocInfo{swapchain->descriptorPool.get(), 1, &swapchain->lightsDescriptorSetLayout.get()};
-        lightsDescriptorSet = std::move(context->device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
-        context->device->setDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
+        lightsDescriptorSet = std::move(m_pDevice->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
+        m_pDevice->setDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer->buffer.get(); // TODO: How do we update the lights array ?
@@ -421,32 +415,36 @@ class Engine
         writeDescriptor.descriptorCount = 1;
         writeDescriptor.pBufferInfo = &lightsBufferInfo;
 
-        context->device->logical->updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        m_pDevice->logical->updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
 #pragma endregion
 
     void recreateSwapchain()
     {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        while (width == 0 || height == 0)
+        // int width, height;
+        // glfwGetFramebufferSize(window, &width, &height);
+        auto size = m_window.GetSize();
+        // TODO: Move to window
+        // TODO: IsMinimized method ?
+        while (size.width == 0 || size.height == 0)
         { // While the window is minimized,
-            glfwGetFramebufferSize(window, &width, &height);
+            // glfwGetFramebufferSize(window, &width, &height);
+            size = m_window.GetSize();
             glfwWaitEvents(); // Pause the app.
         }
 
-        context->device->logical->waitIdle();
+        m_pDevice->logical->waitIdle();
 
         // TODO: This could go inside a single function call
         swapchain->cleanup();
-        swapchain->recreate(width, height, MAX_MODELS);
+        swapchain->recreate(m_window.GetSurface(), size.width, size.height, MAX_MODELS);
     }
 
     void mainLoop()
     {
-        while (!glfwWindowShouldClose(window))
+        // TODO: Move to window
+        while (!glfwWindowShouldClose(m_window.m_pGlfwWindow))
         {
             // std::this_thread::sleep_for(std::chrono::seconds(1));
             frameCount++;
@@ -472,7 +470,7 @@ class Engine
 
             auto imageIndex = beginDrawFrame();
 
-            processKeyboardInput(window);
+            processKeyboardInput(m_window.m_pGlfwWindow);
 
             // This is rough. TODO: Make it better:
             //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
@@ -556,7 +554,7 @@ class Engine
             endDrawFrame(imageIndex);
         }
 
-        context->device->logical->waitIdle();
+        m_pDevice->logical->waitIdle();
     }
 
     void processKeyboardInput(GLFWwindow* window)
@@ -575,7 +573,7 @@ class Engine
     void getMouseMotionDelta(double* dX, double* dY)
     {
         double xpos, ypos;
-        glfwGetCursorPos(window, &xpos, &ypos);
+        glfwGetCursorPos(m_window.m_pGlfwWindow, &xpos, &ypos);
         *dX = xpos - lastMousePos.x;
         *dY = ypos - lastMousePos.y;
         lastMousePos = {xpos, ypos};
@@ -585,11 +583,11 @@ class Engine
     uint8_t beginDrawFrame()
     {
         // Wait for the fence
-        context->device->logical->waitForFences(swapchain->inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
+        m_pDevice->logical->waitForFences(swapchain->inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
 
         // Acquire an image from the swap chain
         uint32_t imageIndex;
-        vk::Result result = context->device->logical->acquireNextImageKHR(swapchain->swapchain.get(), UINT64_MAX, swapchain->imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
+        vk::Result result = m_pDevice->logical->acquireNextImageKHR(swapchain->swapchain.get(), UINT64_MAX, swapchain->imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
         if (result == vk::Result::eErrorOutOfDateKHR)
         {
             recreateSwapchain();
@@ -602,7 +600,7 @@ class Engine
         // Check if a previous frame is using the image
         if (swapchain->images[imageIndex].fence)
         {
-            context->device->logical->waitForFences(swapchain->images[imageIndex].fence, VK_TRUE, UINT64_MAX);
+            m_pDevice->logical->waitForFences(swapchain->images[imageIndex].fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
@@ -642,8 +640,8 @@ class Engine
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
 
-        context->device->logical->resetFences(swapchain->inFlightFences[currentFrame].get());
-        context->device->queues.graphics.queue.submit(submitInfo, swapchain->inFlightFences[currentFrame].get());
+        m_pDevice->logical->resetFences(swapchain->inFlightFences[currentFrame].get());
+        m_pDevice->queues.graphics.queue.submit(submitInfo, swapchain->inFlightFences[currentFrame].get());
 
         vk::PresentInfoKHR presentInfo;
         presentInfo.swapchainCount = 1;
@@ -657,7 +655,7 @@ class Engine
         vk::Result result;
         try
         {
-            result = context->device->queues.graphics.queue.presentKHR(presentInfo);
+            result = m_pDevice->queues.graphics.queue.presentKHR(presentInfo);
         }
         catch (vk::OutOfDateKHRError const& e)
         {

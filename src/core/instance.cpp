@@ -20,6 +20,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     return VK_FALSE;
 }
 
+// TODO: can be static, can be public
 bool Instance::CheckValidationLayersSupport(const std::vector<const char*> validationLayers) const
 {
     std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
@@ -44,11 +45,46 @@ bool Instance::CheckValidationLayersSupport(const std::vector<const char*> valid
     return true;
 }
 
-void Instance::Create(std::vector<const char*> requiredExtensions, bool enableValidationLayers, std::vector<const char*> validationLayers)
+bool Instance::CheckExtensionSupport(std::vector<const char*> extensions)
 {
+    // Check if all extensions required by GLFW are available
+    std::vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
+    for (uint32_t i; i < extensions.size(); ++i)
+    {
+        bool extensionFound = false;
+        for (const auto& extension : availableExtensions)
+        {
+            if (strcmp(extension.extensionName, extensions[i]))
+            {
+                extensionFound = true;
+                break;
+            }
+        }
+
+        if (!extensionFound)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Instance::Create(bool enableValidationLayers, std::vector<const char*> validationLayers)
+{
+
+    if (!CheckExtensionSupport(m_requestedExtensions))
+    {
+        throw std::runtime_error("Vulkan extension requested but not available.");
+    }
+
     if (enableValidationLayers && !CheckValidationLayersSupport(validationLayers))
     {
-        throw std::runtime_error("validation layers requested but not available");
+        throw std::runtime_error("Validation layers requested but not available.");
+    }
+
+    if (enableValidationLayers)
+    {
+        m_requestedExtensions.push_back("VK_EXT_debug_utils");
     }
 
     // Populate the ApplicationInfo struct. Optionnal but may provide useful info to the driver
@@ -59,12 +95,10 @@ void Instance::Create(std::vector<const char*> requiredExtensions, bool enableVa
         VK_MAKE_VERSION(1, 0, 0),
         VK_API_VERSION_1_2);
 
-    // auto extensions = getRequiredExtensions();
-
     vk::InstanceCreateInfo iCreateInfo;
     iCreateInfo.pApplicationInfo = &appInfo,
-    iCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
-    iCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
+    iCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requestedExtensions.size());
+    iCreateInfo.ppEnabledExtensionNames = m_requestedExtensions.data();
 
     // Enable validation layers if needed
     vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo;
@@ -94,5 +128,7 @@ void Instance::Create(std::vector<const char*> requiredExtensions, bool enableVa
             dCreateInfo,
             nullptr, m_dispatchLoaderDynamic);
     }
+
+    m_status = State::Initialized;
 }
-};
+}; // namespace core

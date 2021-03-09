@@ -14,8 +14,7 @@ class SceneObject : public Entity
   public:
     Material material;
 
-    std::shared_ptr<core::Device> device;
-    std::shared_ptr<core::Context> context;
+    std::shared_ptr<core::Device> m_pDevice;
 
     vk::UniqueDescriptorSet descriptorSet;
     vk::UniqueDescriptorSet colorDescriptorSet;
@@ -23,17 +22,16 @@ class SceneObject : public Entity
     ColorUID colorId;
 
     // TODO: Refactor to use composition
-    SceneObject(std::shared_ptr<core::Context> context, std::shared_ptr<core::Device> device, std::string modelPath,
+    SceneObject(std::shared_ptr<core::Device> pDevice, std::string modelPath,
                 glm::vec3 position = glm::vec3(0.0f),
                 MaterialBufferObject material = MaterialBufferObject(),
                 std::string texturePath = "")
     {
-        this->device = device;
-        this->context = context;
+        this->m_pDevice = pDevice;
 
         colorId.generate();
 
-        addComponent<Mesh>(std::make_shared<Mesh>(device, modelPath, colorId.toRGB()));
+        addComponent<Mesh>(std::make_shared<Mesh>(m_pDevice, modelPath, colorId.toRGB()));
 
         std::shared_ptr<Transform> transform = std::make_shared<Transform>();
         transform->position = position;
@@ -45,7 +43,7 @@ class SceneObject : public Entity
 
         if (!texturePath.empty())
         {
-            addComponent<core::Texture>(std::make_shared<core::Texture>(context, texturePath));
+            addComponent<core::Texture>(std::make_shared<core::Texture>(m_pDevice, texturePath));
         }
     }
 
@@ -64,7 +62,7 @@ class SceneObject : public Entity
 
     void addMaterial(MaterialBufferObject newMaterial)
     {
-        material = Material(device, newMaterial);
+        material = Material(m_pDevice, newMaterial);
     }
 
     // TODO: Descriptor allocation and update is managed by the swapchain.
@@ -77,8 +75,8 @@ class SceneObject : public Entity
 
         // TODO: Make sure setLayout is already initialized
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = std::move(device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
-        context->device->setDebugUtilsObjectName(descriptorSet.get(), "SceneObject Descriptor Set");
+        descriptorSet = std::move(m_pDevice->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
+        m_pDevice->setDebugUtilsObjectName(descriptorSet.get(), "SceneObject Descriptor Set");
 
         std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
 
@@ -107,7 +105,7 @@ class SceneObject : public Entity
         auto materialDescriptor = material.getBufferDescriptor();
         writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
 
-        device->logical->updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+        m_pDevice->logical->updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
     void createColorDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout)
@@ -115,7 +113,7 @@ class SceneObject : public Entity
         auto mesh = getComponent<Mesh>();
 
         vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        colorDescriptorSet = std::move(device->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
+        colorDescriptorSet = std::move(m_pDevice->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
 
         std::array<vk::WriteDescriptorSet, 1> writeDescriptors = {};
 
@@ -127,6 +125,6 @@ class SceneObject : public Entity
         auto uniformDescriptor = mesh->uniformBuffer.getDescriptor();
         writeDescriptors[0].pBufferInfo = &uniformDescriptor;
 
-        device->logical->updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+        m_pDevice->logical->updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 };
