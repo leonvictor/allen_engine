@@ -24,6 +24,8 @@ class Window
 
     // TODO: Temporary. Make private when possible
     GLFWwindow* m_pGlfwWindow;
+    // TODO: Temporary. Make private when possible
+    bool m_framebufferResized = false;
 
     /// @brief Initialize the OS window (here GLFW)
     /// TODO: Find a better name, this is confusing
@@ -42,7 +44,7 @@ class Window
         // glfwSetWindowUserPointer(m_pGlfwWindow, this);
         // glfwSetMouseButtonCallback(m_pGlfwWindow, mouseButtonCallback);
         // glfwSetScrollCallback(m_pGlfwWindow, scrollCallback);
-        // glfwSetFramebufferSizeCallback(m_pGlfwWindow, framebufferResizeCallback);
+        glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
         // glfwSetKeyCallback(m_pGlfwWindow, keyCallback);
 
         core::Instance::Singleton().RequestExtensions(GetRequiredExtensions());
@@ -64,9 +66,11 @@ class Window
         m_vkSurface = vk::UniqueSurfaceKHR(pSurface, core::Instance::Singleton().Get());
     }
 
+    /// @brief Return the current size of the display window.
     Size2D GetSize()
     {
         Size2D size;
+        // TODO: Cache size, GetWidth(), GetHeight()
         glfwGetFramebufferSize(m_pGlfwWindow, &size.width, &size.height);
         return size;
     }
@@ -85,20 +89,61 @@ class Window
     };
 
     State m_status;
-    uint8_t m_width, m_height;
     vk::UniqueSurfaceKHR m_vkSurface;
 
     // TODO: find a good way to handle extensions. Maybe populating a list in the singleton instance ?
-    // Right things are weird because we have to split the initialization in two
+    // Right now things are weird because we have to split the initialization in two
     // Glfw must be initialized to get the required extension, then instance needs to be created to build the surface
     std::vector<const char*> GetRequiredExtensions()
     {
-        uint32_t glfwExtensionCount = 0;
+        uint32_t glfwExtensionCount;
         const char** glfwExtensions;
 
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount); // GLFW function that return the extensions it needs
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
         return extensions;
+    }
+
+    static void FramebufferResizeCallback(GLFWwindow* pGlfwWindow, int width, int height)
+    {
+        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
+        window->m_framebufferResized = true;
+    }
+
+    // TODO: Use InputMonitor.
+    // FIXME: GLFW events for keyboard and mouse might share the same identifiers
+    static void KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods)
+    {
+        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
+
+        if (key == GLFW_KEY_Z && action == GLFW_RELEASE)
+        {
+            // window->objectsToCreate++;
+        }
+        else if (key == GLFW_KEY_X && action == GLFW_RELEASE)
+        {
+            // auto index = window->models.size() - 1;
+            // window->objectToDelete = index;
+        }
+    }
+
+    static void ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoffset)
+    {
+        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
+        // // TODO: where do cameras go ?
+        // window->camera.zoom(yoffset);
+    }
+
+    static void MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action, int mods)
+    {
+        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
+
+        //TODO: This doesn't need to happen for every frame
+        double xpos, ypos;
+        glfwGetCursorPos(pGlfwWindow, &xpos, &ypos);
+        // TODO: Where do inputs go ?
+        // window->lastMousePos = {xpos, ypos};
+        // window->input.callback(button, action, mods);
     }
 };
 } // namespace vkg

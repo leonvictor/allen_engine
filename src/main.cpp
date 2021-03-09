@@ -121,7 +121,6 @@ class Engine
 
     size_t currentFrame = 0;
 
-    bool framebufferResized = false;
     glm::vec2 lastMousePos;
     InputMonitor input;
 
@@ -158,12 +157,6 @@ class Engine
     // GUI toggles
     bool showTransformGUI = false;
 
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
-    {
-        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
-        app->framebufferResized = true;
-    }
-
     void initImGUI()
     {
         // Initialize Imgui context
@@ -196,40 +189,6 @@ class Engine
             ImGui_ImplVulkan_CreateFontsTexture(cb);
         });
         ImGui_ImplVulkan_DestroyFontUploadObjects();
-    }
-
-    // TODO: Use InputMonitor.
-    // FIXME: GLFW events for keyboard and mouse might share the same identifiers
-    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-    {
-        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
-
-        if (key == GLFW_KEY_Z && action == GLFW_RELEASE)
-        {
-            app->objectsToCreate++;
-        }
-        else if (key == GLFW_KEY_X && action == GLFW_RELEASE)
-        {
-            auto index = app->models.size() - 1;
-            app->objectToDelete = index;
-        }
-    }
-
-    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-    {
-        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
-        app->camera.zoom(yoffset);
-    }
-
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
-    {
-        auto app = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(window));
-
-        //TODO: This doesn't need to happen for every frame
-        double xpos, ypos;
-        glfwGetCursorPos(window, &xpos, &ypos);
-        app->lastMousePos = {xpos, ypos};
-        app->input.callback(button, action, mods);
     }
 
     void addObject()
@@ -557,6 +516,7 @@ class Engine
         m_pDevice->logical->waitIdle();
     }
 
+    // TODO: Move to inputs
     void processKeyboardInput(GLFWwindow* window)
     {
         const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
@@ -570,6 +530,7 @@ class Engine
             camera.move(cameraSpeed, 0.0f);
     }
 
+    // TODO: Move to inputs
     void getMouseMotionDelta(double* dX, double* dY)
     {
         double xpos, ypos;
@@ -616,6 +577,7 @@ class Engine
         return imageIndex;
     }
 
+    // TODO: Move to "renderer"
     void endDrawFrame(uint32_t imageIndex)
     {
         ImGui::Render();
@@ -662,10 +624,10 @@ class Engine
             result = vk::Result::eErrorOutOfDateKHR;
         }
 
-        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || framebufferResized)
+        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_window.m_framebufferResized)
         {
             recreateSwapchain();
-            framebufferResized = false;
+            m_window.m_framebufferResized = false;
         }
         else if (result != vk::Result::eSuccess)
         {
