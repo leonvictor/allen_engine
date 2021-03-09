@@ -16,6 +16,8 @@ struct Size2D
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
+/// @brief Represent an on-screen window. Holds the OS window and the related vulkan objects.
+/// Also wraps the window library (GLFW).
 class Window
 {
 
@@ -27,43 +29,12 @@ class Window
     // TODO: Temporary. Make private when possible
     bool m_framebufferResized = false;
 
-    /// @brief Initialize the OS window (here GLFW)
-    /// TODO: Find a better name, this is confusing
-    void InitializeWindow()
+    void Initialize()
     {
-        glfwInit();                                   // Init glfw
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
-
-        // if (glfwRawMouseMotionSupported()) {
-        //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        // }
-
-        m_pGlfwWindow = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
-
-        // TODO: where do the callbacks live ?
-        // glfwSetWindowUserPointer(m_pGlfwWindow, this);
-        // glfwSetMouseButtonCallback(m_pGlfwWindow, mouseButtonCallback);
-        // glfwSetScrollCallback(m_pGlfwWindow, scrollCallback);
-        glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
-        // glfwSetKeyCallback(m_pGlfwWindow, keyCallback);
-
-        core::Instance::Singleton().RequestExtensions(GetRequiredExtensions());
-        m_status = State::WindowReady;
-    }
-
-    void CreateSurface()
-    {
-        assert(m_status == State::WindowReady);
-        assert(core::Instance::Singleton().IsInitialized()), "Tried to create the surface before the instance.";
-
-        VkSurfaceKHR pSurface;
-        auto res = glfwCreateWindowSurface((VkInstance) core::Instance::Singleton().Get(), m_pGlfwWindow, nullptr, &pSurface);
-        if (res != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create window surface.");
-        }
-
-        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, core::Instance::Singleton().Get());
+        InitializeWindow();
+        // TODO: This is not that cool
+        core::Instance::Singleton().Create();
+        CreateSurface();
     }
 
     /// @brief Return the current size of the display window.
@@ -144,6 +115,46 @@ class Window
         // TODO: Where do inputs go ?
         // window->lastMousePos = {xpos, ypos};
         // window->input.callback(button, action, mods);
+    }
+
+    /// @brief Initialize the OS window (here GLFW)
+    /// TODO: Find a better name, this is confusing
+    void InitializeWindow()
+    {
+        glfwInit();                                   // Init glfw
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
+
+        // if (glfwRawMouseMotionSupported()) {
+        //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        // }
+
+        m_pGlfwWindow = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
+
+        // TODO: where do the callbacks live ?
+        // glfwSetWindowUserPointer(m_pGlfwWindow, this);
+        // glfwSetMouseButtonCallback(m_pGlfwWindow, mouseButtonCallback);
+        // glfwSetScrollCallback(m_pGlfwWindow, scrollCallback);
+        glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
+        // glfwSetKeyCallback(m_pGlfwWindow, keyCallback);
+
+        core::Instance::Singleton().RequestExtensions(GetRequiredExtensions());
+        m_status = State::WindowReady;
+    }
+
+    /// @brief Create the vulkan surface
+    void CreateSurface()
+    {
+        assert(m_status == State::WindowReady);
+        assert(core::Instance::Singleton().IsInitialized()), "Tried to create the surface before the instance.";
+
+        VkSurfaceKHR pSurface;
+        auto res = glfwCreateWindowSurface((VkInstance) core::Instance::Singleton().Get(), m_pGlfwWindow, nullptr, &pSurface);
+        if (res != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create window surface.");
+        }
+
+        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, core::Instance::Singleton().Get());
     }
 };
 } // namespace vkg

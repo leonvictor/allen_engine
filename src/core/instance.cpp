@@ -20,8 +20,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     return VK_FALSE;
 }
 
-// TODO: can be static, can be public
-bool Instance::CheckValidationLayersSupport(const std::vector<const char*> validationLayers) const
+bool Instance::CheckValidationLayersSupport(const std::vector<const char*> validationLayers)
 {
     std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
 
@@ -69,7 +68,7 @@ bool Instance::CheckExtensionSupport(std::vector<const char*> extensions)
     return true;
 }
 
-void Instance::Create(bool enableValidationLayers, std::vector<const char*> validationLayers)
+void Instance::Create()
 {
 
     if (!CheckExtensionSupport(m_requestedExtensions))
@@ -77,13 +76,14 @@ void Instance::Create(bool enableValidationLayers, std::vector<const char*> vali
         throw std::runtime_error("Vulkan extension requested but not available.");
     }
 
-    if (enableValidationLayers && !CheckValidationLayersSupport(validationLayers))
+    if (ValidationLayersEnabled && !CheckValidationLayersSupport(m_validationLayers))
     {
         throw std::runtime_error("Validation layers requested but not available.");
     }
 
-    if (enableValidationLayers)
+    if (ValidationLayersEnabled)
     {
+        // TODO: Move to ValidationExtension
         m_requestedExtensions.push_back("VK_EXT_debug_utils");
     }
 
@@ -102,15 +102,17 @@ void Instance::Create(bool enableValidationLayers, std::vector<const char*> vali
 
     // Enable validation layers if needed
     vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo;
-    if (enableValidationLayers)
+    if (ValidationLayersEnabled)
     {
-        iCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        iCreateInfo.ppEnabledLayerNames = validationLayers.data();
+        iCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
+        iCreateInfo.ppEnabledLayerNames = m_validationLayers.data();
 
+        // Create the debugger
         dCreateInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
         dCreateInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
         //TODO: Is there something like "all flags" ?
         dCreateInfo.pfnUserCallback = (PFN_vkDebugUtilsMessengerCallbackEXT) DebugCallback;
+
         iCreateInfo.pNext = (vk::DebugUtilsMessengerCreateInfoEXT*) &dCreateInfo;
     }
     else
@@ -121,7 +123,7 @@ void Instance::Create(bool enableValidationLayers, std::vector<const char*> vali
 
     m_vkInstance = vk::createInstanceUnique(iCreateInfo);
 
-    if (enableValidationLayers)
+    if (ValidationLayersEnabled)
     {
         m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{m_vkInstance.get(), vkGetInstanceProcAddr};
         m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(

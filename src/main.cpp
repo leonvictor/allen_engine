@@ -52,33 +52,13 @@ const std::string MODEL_PATH = "assets/models/cube.obj";
 const std::string TEXTURE_PATH = "assets/textures/container2.png";
 const int MAX_MODELS = 50;
 
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation",
-}; // TODO: Remove when we've put this in a final location
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
 class Engine
 {
   public:
     Engine()
     {
+        m_window.Initialize();
 
-        // TODO: Who is in charge of checking which extensions should be enabled ? probably this class ("app") ?
-        // TODO: This is weird.
-        // Maybe something like
-        // instance.EnableValidationLayers(validationLayers);
-        //...
-        // instance.RegisterDesiredExtension(ext) ?
-        m_window.InitializeWindow();
-        core::Instance::Singleton().Create(enableValidationLayers, validationLayers);
-        m_window.CreateSurface();
-
-        // initWindow();
         initVulkan();
         initImGUI();
     }
@@ -214,23 +194,6 @@ class Engine
         }
     }
 
-    // TODO
-    // void initECS() {
-    //     gCoordinator.init();
-
-    //     gCoordinator.registerComponent<ecs::components::Transform>();
-    //     gCoordinator.registerComponent<ecs::components::Renderable>();
-    //     gCoordinator.registerComponent<Mesh>();
-
-    //     auto renderSystem = gCoordinator.registerSystem<RenderSystem>();
-
-    //     ecs::Signature signature;
-    //     signature.set(gCoordinator.getComponentType<ecs::components::Transform>());
-    //     signature.set(gCoordinator.getComponentType<ecs::components::Renderable>());
-    //     signature.set(gCoordinator.getComponentType<Mesh>());
-    //     gCoordinator.setSystemSignature<RenderSystem>(signature);
-    // }
-
     void initVulkan()
     {
         auto size = m_window.GetSize();
@@ -260,25 +223,6 @@ class Engine
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         }
         selectedObject = nullptr;
-
-        // ECS Version
-        // for (int i = 0; i < N_MODELS; i++) {
-        //     auto entity = gCoordinator.createEntity();
-        //     gCoordinator.addComponent(entity, ecs::components::Transform {
-        //         .position = cubePositions[i],
-        //         .rotation = glm::vec3(0.0f),
-        //         .scale = glm::vec3(1.0f)
-        //     });
-
-        //     gCoordinator.addComponent(entity, ecs::components::Renderable {
-        //         .display = true,
-        //         .uniform = core::Buffer(device, sizeof(core::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible)
-        //     });
-
-        //     glm::vec3 color = (i == N_MODELS-1) ? glm::vec3(1.0f, 1.0f, 1.0f): glm::vec3(1.0f, 0.5f, 0.31f); // The last object is the light
-        //     // TODO: Move only mesh specific stuff to its own component
-        //     gCoordinator.addComponent(entity, Mesh::fromObj(context, device, MODEL_PATH, cubePositions[i], color, Material(), TEXTURE_PATH)); // TODO: Mesh
-        // }
     }
 
     void setupSkyBox()

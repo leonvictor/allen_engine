@@ -20,23 +20,33 @@ class Instance
         Initialized
     };
 
+#ifdef NDEBUG
+    const bool ValidationLayersEnabled = false;
+#else
+    const bool ValidationLayersEnabled = true;
+#endif
+
     State m_status = State::Uninitialized;
 
     vk::UniqueInstance m_vkInstance; // Wrapped vulkan instance
     vk::DispatchLoaderDynamic m_dispatchLoaderDynamic;
     vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> m_debugMessenger;
 
-    std::vector<const char*> m_requestedExtensions;
+    std::vector<const char*> m_requestedExtensions = {};
 
-    bool CheckValidationLayersSupport(const std::vector<const char*> validationLayers) const;
+    const std::vector<const char*> m_validationLayers = {
+        "VK_LAYER_KHRONOS_validation",
+    };
 
-    /// @brief Check if an instance supports all the requested extensions.
+    /// @brief Check if the instance supports the validation layers.
+    static bool CheckValidationLayersSupport(const std::vector<const char*> validationLayers);
+
+    /// @brief Check if the instance supports all the requested extensions.
     static bool CheckExtensionSupport(std::vector<const char*> extensions);
 
   public:
     /// @brief Create the application wide instance. Should be called once at program startup.
-    /// TODO: params
-    void Create(bool enableValidationLayers, std::vector<const char*> validationLayers);
+    void Create();
 
     bool IsInitialized() const
     {
@@ -50,11 +60,8 @@ class Instance
         return single;
     }
 
-    /// @brief Get the wrapped vulkan instance
-    inline vk::Instance& Get()
-    {
-        return m_vkInstance.get();
-    }
+    /// @brief Get the wrapped vulkan instance.
+    inline vk::Instance& Get() { return m_vkInstance.get(); }
 
     inline void RequestExtension(const char* extension)
     {
@@ -63,7 +70,7 @@ class Instance
 
     inline void RequestExtensions(std::vector<const char*> extensions)
     {
-        m_requestedExtensions.insert(m_requestedExtensions.begin(), extensions.begin(), extensions.end());
+        m_requestedExtensions.insert(m_requestedExtensions.end(), extensions.begin(), extensions.end());
     }
 };
 } // namespace core
