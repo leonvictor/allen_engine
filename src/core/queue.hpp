@@ -15,6 +15,17 @@ struct Queue
         this->family = family;
     }
 
+    void Submit(std::vector<vk::CommandBuffer> cbs)
+    {
+        vk::SubmitInfo submitInfo{
+            .commandBufferCount = (uint32_t) cbs.size(),
+            .pCommandBuffers = cbs.data(),
+        };
+
+        // TODO: use fences
+        queue.submit(cbs, vk::Fence{});
+    }
+
     Queue() {}
     operator vk::Queue() { return queue; }
 };
