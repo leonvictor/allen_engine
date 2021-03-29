@@ -1,16 +1,14 @@
 #pragma once
 
+#include "allocation.hpp"
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
-#include "allocation.hpp"
-#include "context.hpp"
-#include "device.hpp"
-
+#include <glm/glm/vec3.hpp>
 // #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace core
+namespace vkg
 {
 
 // Minimal Cpp wrapper for STB loader
@@ -47,20 +45,15 @@ class Image : public Allocation
 
   public:
     // Empty ctor to avoid errors. We should be able to get rid of it later on
-    Image();
+    Image(){};
 
     // TODO: Default arguments
-    Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
 
     /// @brief Create an image without a view.
-    Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
-
-    /// @brief Create an image from an existing vkImage
-    Image(std::shared_ptr<core::Device> pDevice, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1);
-
-    operator vk::Image();
 
     void TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout);
 
@@ -71,9 +64,11 @@ class Image : public Allocation
     // It's cool to keep data ownership
     void CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage);
     void CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height);
+
     void GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels);
-    // Save image on disk as a ppm file.
-    // FIXME: This only works in 8-bits per channel formats
+
+    /// @brief Save image on disk as a ppm file.
+    /// FIXME: This only works in 8-bits per channel formats
     void Save(std::string filename, bool colorSwizzle = false);
 
     /// @brief Retreive the pixel value at index
@@ -81,7 +76,11 @@ class Image : public Allocation
     /// FIXME: This only works in 8-bits per channel formats
     glm::vec3 PixelAt(int x, int y, bool colorSwizzle = false);
 
-    vk::Image& GetVkImage() { return m_vkImage; }
-    vk::Imageview& GetVkView() { return m_vkView; }
+    // TODO: Put const back when we've move to copyFrom functions
+    vk::Image& GetVkImage() { return m_vkImage.get(); }
+    const vk::ImageView& GetVkView() const { return m_vkView.get(); }
+
+    uint32_t GetWidth() const { return m_width; }
+    uint32_t GetHeight() const { return m_height; }
 };
-} // namespace core
+} // namespace vkg

@@ -2,8 +2,15 @@ cmake_minimum_required(VERSION 3.17)
 
 project(custom-engine VERSION 0.1)
 # TODO: Find a better way to include all sources
-set(SOURCE "src/main.cpp" "src/core/device.cpp" "src/core/image.cpp" "src/core/shaders.cpp"
-"src/core/texture.cpp" "src/core/texture_cubemap.cpp" "src/core/buffer.cpp" "src/core/commandpool.cpp" "src/core/instance.cpp")
+set(SOURCE "src/main.cpp"
+           "src/graphics/instance.cpp"
+           "src/graphics/device.cpp" 
+           "src/graphics/shaders.cpp"
+           "src/graphics/commandpool.cpp"
+           "src/graphics/resources/buffer.cpp"
+           "src/graphics/resources/image.cpp"
+           "src/graphics/resources/texture_cubemap.cpp"
+           "src/graphics/resources/texture.cpp")
 
 find_package(Vulkan REQUIRED)
 
@@ -35,7 +42,7 @@ add_subdirectory(external/glfw)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_executable(main ${SOURCE})
 
-target_compile_features(main PUBLIC cxx_std_17)
+target_compile_features(main PUBLIC cxx_std_20)
 
 target_link_libraries(main glfw shaderc ${Vulkan_LIBRARIES})
 

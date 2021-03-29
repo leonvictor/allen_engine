@@ -1,27 +1,311 @@
+#pragma once
+
+#include "../light.cpp"
+#include "../scene_object.cpp"
+#include "../skybox.cpp"
+
+#include "device.hpp"
+#include "pipeline.hpp"
+#include "render_pass.hpp"
+#include "swapchain.hpp"
+#include "window.hpp"
+
+#include <vulkan/vulkan.hpp>
+
 namespace vkg
 {
+struct FrameSync
+{
+    vk::UniqueSemaphore imageAvailable;
+    vk::UniqueSemaphore renderFinished;
+    vk::UniqueFence inFlight;
+};
+
+/// @brief Renderer instance used to draw the scenes and the UI.
 class Renderer
 {
+
     enum State
     {
         Uninitialized,
         Initialized
     };
 
+  private:
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+
     State m_state = State::Uninitialized;
+    std::shared_ptr<Device> m_pDevice;
+    Window* m_pWindow;           // Associated window
+    Swapchain m_targetSwapchain; // Target swapchain
+
+    uint32_t m_currentFrameIndex = 0; // Frame index
+    uint32_t m_activeImageIndex;      // Active swapchain image
+
+    // Sync objects
+    std::vector<FrameSync> m_frames;
+
+    // TODO: Decide where attachments should be.
+    // For now they're fine here since only one drawing operation is active at a time.
+    Image colorImage; // Used as an attachment for multisampling
+    Image depthImage; // Used as an attachment to resolve image depth.
+
+    RenderPass m_renderpass;
+
+    struct
+    {
+        Pipeline objects;
+        Pipeline skybox;
+    } pipelines;
 
   public:
-    void Initialize()
+    // Renderer() {}
+
+    void Create(vkg::Window* pWindow)
     {
-        // What are the requirements ?
+        assert(pWindow->IsInitialized());
+
+        m_pWindow = pWindow;
+        m_pDevice = std::make_shared<Device>(m_pWindow->GetSurface());
+        m_targetSwapchain = vkg::Swapchain(m_pDevice, &m_pWindow->GetSurface(), m_pWindow->GetWidth(), m_pWindow->GetHeight());
+
+        // TODO: Grab queue from the device ?
+
+        // Create color resources
+        colorImage = vkg::Image(m_pDevice, m_targetSwapchain.GetWidth(), m_targetSwapchain.GetHeight(), 1, m_pDevice->GetMSAASamples(), m_targetSwapchain.GetImageFormat(),
+                                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                vk::ImageAspectFlagBits::eColor);
+        // TODO: Decide how to set the debug names. Either pass a debug name in the constructor or add a
+        // image.SetDebugName() method.
+        // m_pDevice->setDebugUtilsObjectName(colorImage.image.get(), "Swapchain color image");
+        // m_pDevice->setDebugUtilsObjectName(colorImage.view.get(), "Color Image View");
+
+        // Create depth ressources
+        depthImage = vkg::Image(m_pDevice, m_targetSwapchain.GetWidth(), m_targetSwapchain.GetHeight(), 1, m_pDevice->GetMSAASamples(),
+                                m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                vk::ImageAspectFlagBits::eDepth);
+        // m_pDevice->setDebugUtilsObjectName(dekpthImage->image.get(), "Swapchain depth image");
+
+        // TODO: Decide where renderpasses should be kept.
+        m_renderpass = RenderPass(m_pDevice);
+        m_renderpass.Create(&m_targetSwapchain);
+
+        for (auto& targetImage : m_targetSwapchain.m_images)
+        {
+            // TODO: Where do colorImage and depthImage live ?
+            std::vector<vk::ImageView> attachments = {
+                colorImage.GetVkView(),
+                depthImage.GetVkView(),
+                targetImage.view.get(),
+            };
+
+            m_renderpass.AddFramebuffer(attachments);
+        }
+
+        // Create sync objects
+        // Create fences in the signaled state
+        vk::FenceCreateInfo fenceInfo;
+        fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            m_frames.push_back({
+                .imageAvailable = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr),
+                .renderFinished = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr),
+                .inFlight = m_pDevice->GetVkDevice().createFenceUnique(fenceInfo, nullptr),
+            });
+        }
+
+        CreatePipelines();
+    }
+
+    void CreatePipelines()
+    {
+        // Create the object rendering pipeline
+        pipelines.objects = Pipeline(m_pDevice);
+        pipelines.objects.SetRenderPass(m_renderpass.GetVkRenderPass());
+        pipelines.objects.SetExtent(m_targetSwapchain.GetExtent());
+        pipelines.objects.RegisterShader("shaders/shader.vert", vk::ShaderStageFlagBits::eVertex);
+        pipelines.objects.RegisterShader("shaders/shader.frag", vk::ShaderStageFlagBits::eFragment);
+        pipelines.objects.RegisterDescriptorLayout(Light::GetDescriptorSetLayout(m_pDevice->GetVkDevice()));
+        pipelines.objects.RegisterDescriptorLayout(SceneObject::GetDescriptorSetLayout(m_pDevice->GetVkDevice()));
+        pipelines.objects.Create("objects_pipeline_cache_data.bin");
+        m_pDevice->SetDebugUtilsObjectName(pipelines.objects.GetVkPipeline(), "Objects Pipeline");
+
+        // Skybox pipeline
+        pipelines.skybox = Pipeline(m_pDevice);
+        pipelines.skybox.SetRenderPass(m_renderpass.GetVkRenderPass());
+        pipelines.skybox.SetExtent(m_targetSwapchain.GetExtent());
+        pipelines.skybox.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
+        pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
+        pipelines.skybox.SetDepthTestWriteEnable(true, false);
+        pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
+        pipelines.skybox.RegisterDescriptorLayout(Skybox::GetDescriptorSetLayout(m_pDevice->GetVkDevice()));
+        pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
+        m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
     }
 
     void BeginFrame()
     {
+        // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
+        m_pDevice->GetVkDevice().waitForFences(m_frames[m_currentFrameIndex].inFlight.get(), VK_TRUE, UINT64_MAX);
+
+        // TODO: Handle recreation
+        // Acquire an image from the swap chain
+        m_activeImageIndex = m_targetSwapchain.AcquireNextImage(m_frames[m_currentFrameIndex].imageAvailable.get());
+
+        // TODO: If fences and commandbuffers actually deserve to be in swapchain,
+        // This could be in swapchain as well
+
+        // Check if a previous frame is using the image
+        if (m_targetSwapchain.m_images[m_activeImageIndex].fence)
+        {
+            m_pDevice->GetVkDevice().waitForFences(m_targetSwapchain.m_images[m_activeImageIndex].fence, VK_TRUE, UINT64_MAX);
+        }
+
+        // Mark the image as now being in use by this frame
+        m_targetSwapchain.m_images[m_activeImageIndex].fence = m_frames[m_currentFrameIndex].inFlight.get();
+
+        m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer->begin(vk::CommandBufferBeginInfo{});
+
+        // Start a render pass
+        m_renderpass.Begin(m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get(), m_activeImageIndex);
+
+        // return m_activeImageIndex;
     }
 
     void EndFrame()
     {
+        // TODO: Decide where to put ImGui stuff
+        // ImGui::Render();
+        // ImDrawData* draw_data = ImGui::GetDrawData();
+        // ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
+
+        // TODO: move out
+        m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer->endRenderPass();
+        m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer->end();
+
+        // At which stage should we wait for each semaphores (in the same order)
+        // vk::PipelineStageFlagBits waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+        // Which semaphores to wait for
+        // auto waitSemaphores = {m_imageAvailableSemaphores[m_currentFrameIndex].get()};
+        // Which semaphores to signal when job is done
+        // vk::UniqueSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrameIndex].get()};
+        vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+
+        vk::SubmitInfo submitInfo{
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get(),
+            .pWaitDstStageMask = waitStages,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get(),
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get(),
+        };
+
+        m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
+        // TODO: It would be better to pass the semaphores and cbs directly to the queue class
+        // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
+        m_pDevice->GetGraphicsQueue()
+            .Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
+
+        vk::PresentInfoKHR presentInfo{
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get(),
+            .swapchainCount = 1,
+            .pSwapchains = &m_targetSwapchain.m_vkSwapchain.get(),
+            .pImageIndices = &m_activeImageIndex,
+            .pResults = nullptr, // For checking every individual swap chain results. We only have one so we don't need it
+        };
+
+        // TODO: Rework cuz it's ugly (see https://github.com/liblava/liblava/blob/3bce924a014529a9d18cec9a406d3eab6850e159/liblava/frame/renderer.cpp)
+        // TODO: Handle swapchain recreation
+        bool recreationNeeded = false;
+        vk::Result result;
+        try
+        {
+            result = m_pDevice->GetGraphicsQueue().GetVkQueue().presentKHR(presentInfo);
+        }
+        catch (vk::OutOfDateKHRError const& e)
+        {
+            result = vk::Result::eErrorOutOfDateKHR;
+        }
+
+        // TODO: Shoud this happen in swapchain directly ?
+        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_pWindow->m_framebufferResized)
+        {
+            // TODO:
+            // recreateSwapchain();
+            m_pWindow->m_framebufferResized = false;
+        }
+        else if (result != vk::Result::eSuccess)
+        {
+            throw std::runtime_error("Failed to present swap chain image.");
+        }
+
+        m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
+    // TODO: Link all drawable items with an interface ?
+    // TODO: Get rid of the lights descriptor set ref.
+    void Draw(std::vector<std::shared_ptr<SceneObject>> objects, vk::UniqueDescriptorSet& lightsDescriptorSet)
+    {
+        auto cb = m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get();
+        // Objects
+        // images[index].commandbuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects->pipeline.get());
+        pipelines.objects.Bind(cb);
+        // images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 0, lightsDescriptorSet.get(), nullptr);
+        pipelines.objects.BindDescriptorSet(cb, lightsDescriptorSet.get(), 0);
+        for (auto model : objects)
+        {
+            // TODO: Decouple this.
+            auto mesh = model->getComponent<Mesh>();
+            cb.bindVertexBuffers(0, mesh->vertexBuffer.GetVkBuffer(), vk::DeviceSize{0});
+            cb.bindIndexBuffer(mesh->indexBuffer.GetVkBuffer(), 0, vk::IndexType::eUint32);
+            // images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet.get(), nullptr);
+            pipelines.objects.BindDescriptorSet(cb, model->GetDescriptorSet(), 1);
+            cb.drawIndexed(mesh->indices.size(), 1, 0, 0, 0);
+        }
+    }
+
+    void Draw(std::shared_ptr<Skybox> skybox)
+    {
+        auto cb = m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get();
+
+        // Skybox
+        pipelines.skybox.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
+        // TODO: move to Buffer::Bind(vk::CommandBuffer& cb)
+        cb.bindVertexBuffers(0, skybox->mesh.vertexBuffer.GetVkBuffer(), vk::DeviceSize{0});
+        cb.bindIndexBuffer(skybox->mesh.indexBuffer.GetVkBuffer(), 0, vk::IndexType::eUint32);
+        // images[index].commandbuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox->pipeline.get());
+        pipelines.skybox.Bind(cb);
+        cb.drawIndexed(skybox->mesh.indices.size(), 1, 0, 0, 0);
+    }
+
+    std::shared_ptr<Device> GetDevice()
+    {
+        // TODO: Get rid of all the references.
+        std::cout << "Warning: accessing device outside of renderer context." << std::endl;
+        return m_pDevice;
+    }
+
+    Swapchain& GetSwapchain()
+    {
+        // TODO: Get rid of all the references.
+        std::cout << "Warning: accessing swapchain outside of renderer context." << std::endl;
+        return m_targetSwapchain;
+    }
+
+    RenderPass& GetRenderPass()
+    {
+        // TODO: Get rid of all the references.
+        std::cout << "Warning: accessing renderpass outside of renderer context." << std::endl;
+        return m_renderpass;
+    }
+
+    vk::CommandBuffer& GetActiveImageCommandBuffer()
+    {
+        return m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get();
     }
 };
 } // namespace vkg

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/instance.hpp"
+#include "instance.hpp"
 #include <GLFW/glfw3.h>
 #include <assert.h>
 
@@ -33,12 +33,15 @@ class Window
     {
         InitializeWindow();
         // TODO: This is not that cool
-        core::Instance::Singleton().Create();
+        Instance::Singleton().Create();
         CreateSurface();
+        m_status = State::Initialized;
     }
 
+    inline bool IsInitialized() const { return m_status == State::Initialized; }
+
     /// @brief Return the current size of the display window.
-    Size2D GetSize()
+    Size2D GetSize() const
     {
         Size2D size;
         // TODO: Cache size, GetWidth(), GetHeight()
@@ -46,9 +49,19 @@ class Window
         return size;
     }
 
-    vk::UniqueSurfaceKHR& GetSurface()
+    uint32_t GetWidth() const
     {
-        return m_vkSurface;
+        return (uint32_t) GetSize().width;
+    }
+
+    uint32_t GetHeight() const
+    {
+        return (uint32_t) GetSize().height;
+    }
+
+    vk::SurfaceKHR& GetSurface()
+    {
+        return m_vkSurface.get();
     }
 
   private:
@@ -56,10 +69,10 @@ class Window
     {
         Uninitialized,
         WindowReady,
-        Initinalized
+        Initialized
     };
 
-    State m_status;
+    State m_status = State::Uninitialized;
     vk::UniqueSurfaceKHR m_vkSurface;
 
     // TODO: find a good way to handle extensions. Maybe populating a list in the singleton instance ?
@@ -137,7 +150,7 @@ class Window
         glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
         // glfwSetKeyCallback(m_pGlfwWindow, keyCallback);
 
-        core::Instance::Singleton().RequestExtensions(GetRequiredExtensions());
+        Instance::Singleton().RequestExtensions(GetRequiredExtensions());
         m_status = State::WindowReady;
     }
 
@@ -145,16 +158,16 @@ class Window
     void CreateSurface()
     {
         assert(m_status == State::WindowReady);
-        assert(core::Instance::Singleton().IsInitialized()), "Tried to create the surface before the instance.";
+        assert(Instance::Singleton().IsInitialized()), "Tried to create the surface before the instance.";
 
         VkSurfaceKHR pSurface;
-        auto res = glfwCreateWindowSurface((VkInstance) core::Instance::Singleton().Get(), m_pGlfwWindow, nullptr, &pSurface);
+        auto res = glfwCreateWindowSurface((VkInstance) Instance::Singleton().Get(), m_pGlfwWindow, nullptr, &pSurface);
         if (res != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create window surface.");
         }
 
-        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, core::Instance::Singleton().Get());
+        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, Instance::Singleton().Get());
     }
 };
 } // namespace vkg

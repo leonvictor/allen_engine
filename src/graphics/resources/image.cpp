@@ -1,15 +1,14 @@
 #include "image.hpp"
 #include "allocation.hpp"
-#include "context.hpp"
-#include "device.hpp"
 #include <fstream>
 #include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace core
+namespace vkg
 {
 
 // Minimal Cpp wrapper for STB loader
@@ -39,23 +38,24 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
                       vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
 {
 
-    vk::ImageCreateInfo imageInfo{
-        .flags = flags,
-        .imageType = vk::ImageType::e2D,
-        .extent.width = static_cast<uint32_t>(width),
-        .extent.height = static_cast<uint32_t>(height),
-        .extent.depth = 1,
-        .mipLevels = mipLevels,
-        .arrayLayers = arrayLayers,
-        .format = format,
-        .tiling = tiling,
-        .initialLayout = layout, // The very first iteration will discard the texels
-        .usage = usage,
-        .sharingMode = vk::SharingMode::eExclusive,
-        .samples = numSamples,
-    };
+    vk::ImageCreateInfo imageInfo;
+    imageInfo.flags = flags;
+    imageInfo.imageType = vk::ImageType::e2D;
+    imageInfo.extent = {
+        .width = static_cast<uint32_t>(width),
+        .height = static_cast<uint32_t>(height),
+        .depth = 1,
+    },
+    imageInfo.mipLevels = mipLevels;
+    imageInfo.arrayLayers = arrayLayers;
+    imageInfo.format = format;
+    imageInfo.tiling = tiling;
+    imageInfo.initialLayout = layout; // The very first iteration will discard the texel;
+    imageInfo.usage = usage;
+    imageInfo.sharingMode = vk::SharingMode::eExclusive;
+    imageInfo.samples = numSamples;
 
-    m_vkImage = m_pDevice->logical->createImageUnique(imageInfo);
+    m_vkImage = m_pDevice->GetVkDevice().createImageUnique(imageInfo);
 
     m_layout = layout;
     m_mipLevels = mipLevels;
@@ -67,21 +67,30 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
 
 void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    vk::MemoryRequirements memRequirements = m_pDevice->logical->getImageMemoryRequirements(m_vkImage.get());
+    vk::MemoryRequirements memRequirements = m_pDevice->GetVkDevice().getImageMemoryRequirements(m_vkImage.get());
     Allocation::Allocate(memRequirements, memProperties);
-    m_pDevice->logical->bindImageMemory(m_vkImage.get(), memory.get(), 0);
+    m_pDevice->GetVkDevice().bindImageMemory(m_vkImage.get(), m_memory.get(), 0);
 }
 
 void Image::InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
     assert(!m_vkView && "Image view is already initialized.");
-    m_vkView = createImageViewUnique(m_pDevice, m_vkImage.get(), format, aspectMask, mipLevels, viewtype, arrayLayers);
+
+    vk::ImageViewCreateInfo createInfo;
+    createInfo.format = format;
+    createInfo.image = m_vkImage.get();
+    createInfo.viewType = viewtype;
+    createInfo.subresourceRange.aspectMask = aspectMask;
+    createInfo.subresourceRange.layerCount = m_arrayLayers;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.levelCount = m_mipLevels;
+    createInfo.subresourceRange.baseMipLevel = 0;
+
+    m_vkView = m_pDevice->GetVkDevice().createImageViewUnique(createInfo);
 }
 
-Image::Image() {}
-
 // TODO: Default arguments
-Image::Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
 {
 
@@ -93,7 +102,7 @@ Image::Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t hei
 }
 
 // Create an image without a view.
-Image::Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageLayout layout)
 {
     m_pDevice = pDevice;
@@ -102,33 +111,24 @@ Image::Image(std::shared_ptr<core::Device> pDevice, uint32_t width, uint32_t hei
     Allocate(memProperties);
 }
 
-Image(std::shared_ptr<core::Device> pDevice, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectMask, uint32_t mipLevels, vk::ImageViewType viewtype = vk::ImageViewType::e2D, int layerCount = 1);
-{
-    m_pDevice = pDevice;
-    m_vkImage = image;
-    // TODO: Initialize other fields ?
-    initView(format, aspectMask, viewType);
-}
-
 void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 {
-    if (layout == newLayout)
+    if (m_layout == newLayout)
         return;
 
-    vk::ImageMemoryBarrier memoryBarrier{
-        .oldLayout = layout,
-        .newLayout = newLayout,
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .image = m_vkImage.get(),
-        .subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor,
-        .subresourceRange.layerCount = arrayLayers,
-        .subresourceRange.baseArrayLayer = 0,
-        .subresourceRange.levelCount = mipLevels,
-        .subresourceRange.baseMipLevel = 0,
-        .srcAccessMask = vk::AccessFlags(), // Which operations must happen before the barrier
-        .dstAccessMask = vk::AccessFlags(), // ... and after
-    };
+    vk::ImageMemoryBarrier memoryBarrier;
+    memoryBarrier.oldLayout = m_layout;
+    memoryBarrier.newLayout = newLayout;
+    memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    memoryBarrier.image = m_vkImage.get();
+    memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    memoryBarrier.subresourceRange.layerCount = m_arrayLayers;
+    memoryBarrier.subresourceRange.baseArrayLayer = 0;
+    memoryBarrier.subresourceRange.levelCount = m_mipLevels;
+    memoryBarrier.subresourceRange.baseMipLevel = 0;
+    memoryBarrier.srcAccessMask = vk::AccessFlags(); // Which operations must happen before the barrier
+    memoryBarrier.dstAccessMask = vk::AccessFlags(); // ... and after
 
     vk::PipelineStageFlagBits srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
     vk::PipelineStageFlagBits dstStage = vk::PipelineStageFlagBits::eTopOfPipe;
@@ -136,7 +136,7 @@ void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
     // Specify transition support. See https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#synchronization-access-types-supported
     // TODO: Refactor. This is quite verbose
     // TODO: Fill out reminding transitions
-    switch (layout)
+    switch (m_layout)
     {
     case vk::ImageLayout::eUndefined:
         srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
@@ -221,26 +221,22 @@ void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
     m_layout = newLayout;
 }
 
-void Image::Blit(vk::CommandBuffer cb, core::Image& dstImage)
+void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage)
 {
-    blit(cb, dstImage, width, height);
+    Blit(cb, dstImage, width, height);
 }
 
-void Image::Blit(vk::CommandBuffer cb, core::Image& dstImage, int width, int height)
+void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height)
 {
-    vk::Offset3D blitSize{
-        .x = width,
-        .y = height,
-        .z = 1,
-    };
-    vk::ImageBlit imageBlitRegion{
-        .srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor,
-        .srcSubresource.layerCount = 1,
-        .srcOffsets[1] = blitSize,
-        .dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor,
-        .dstSubresource.layerCount = 1,
-        .dstOffsets[1] = blitSize,
-    };
+    vk::Offset3D blitSize = {width, height, 1};
+
+    vk::ImageBlit imageBlitRegion;
+    imageBlitRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+    imageBlitRegion.srcSubresource.layerCount = 1;
+    imageBlitRegion.srcOffsets[1] = blitSize;
+    imageBlitRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+    imageBlitRegion.dstSubresource.layerCount = 1;
+    imageBlitRegion.dstOffsets[1] = blitSize;
 
     cb.blitImage(
         m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
@@ -249,22 +245,21 @@ void Image::Blit(vk::CommandBuffer cb, core::Image& dstImage, int width, int hei
         vk::Filter::eNearest);
 }
 
-void Image::CopyTo(vk::CommandBuffer cb, core::Image& dstImage)
+void Image::CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage)
 {
     CopyTo(cb, dstImage, width, height);
 }
 
-void Image::CopyTo(vk::CommandBuffer cb, core::Image& dstImage, int width, int height)
+void Image::CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height)
 {
-    vk::ImageCopy imageCopyRegion{
-        .srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor,
-        .srcSubresource.layerCount = 1,
-        .dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor,
-        .dstSubresource.layerCount = 1,
-        .extent.width = width,
-        .extent.height = height,
-        .extent.depth = 1,
-    };
+    vk::ImageCopy imageCopyRegion;
+    imageCopyRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+    imageCopyRegion.srcSubresource.layerCount = 1;
+    imageCopyRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+    imageCopyRegion.dstSubresource.layerCount = 1;
+    imageCopyRegion.extent.width = width;
+    imageCopyRegion.extent.height = height;
+    imageCopyRegion.extent.depth = 1;
 
     cb.copyImage(
         m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
@@ -278,7 +273,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 {
     // TODO: Swizzle or not based on format
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = m_pDevice->logical->getImageSubresourceLayout(m_vkImage.get(), subresource);
+    auto subResourceLayout = m_pDevice->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
 
     if (m_mapped == nullptr)
     {
@@ -324,13 +319,13 @@ void Image::Save(std::string filename, bool colorSwizzle)
 glm::vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = m_pDevice->logical->getImageSubresourceLayout(m_vkImage.get(), subresource);
+    auto subResourceLayout = m_pDevice->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
 
-    if (mapped == nullptr)
+    if (m_mapped == nullptr)
     {
         Map();
     }
-    char* data = static_cast<char*>(mapped);
+    char* data = static_cast<char*>(m_mapped);
     data += subResourceLayout.offset;
 
     // TODO: Offsets depend on image format
@@ -370,17 +365,16 @@ glm::vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
 
 void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
 {
-    auto formatProperties = m_pDevice->physical.getFormatProperties(format);
+    auto formatProperties = m_pDevice->GetFormatProperties(format);
 
-    vk::ImageMemoryBarrier barrier{
-        .image = m_vkImage.get(),
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor,
-        .subresourceRange.baseArrayLayer = 0,
-        .subresourceRange.layerCount = 1,
-        .subresourceRange.levelCount = 1,
-    };
+    vk::ImageMemoryBarrier barrier;
+    barrier.image = m_vkImage.get();
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.levelCount = 1;
 
     int32_t mipWidth = texWidth;
     int32_t mipHeight = texHeight;
@@ -401,24 +395,23 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t t
             barrier);
 
         // TODO: Expand blit method to accept more parameters and use it here
-        vk::ImageBlit blit{
-            .srcOffsets[0] = vk::Offset3D{0, 0, 0},
-            .srcOffsets[1] = vk::Offset3D{mipWidth, mipHeight, 1}, // Where is the data that we will blit from ,
-            .srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor,
-            .srcSubresource.mipLevel = i - 1,
-            .srcSubresource.layerCount = 1,
-            .srcSubresource.baseArrayLayer = 0,
-            .dstOffsets[0] = vk::Offset3D{0, 0, 0},
-            .dstOffsets[1] = vk::Offset3D{mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1},
-            .dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor,
-            .dstSubresource.mipLevel = i,
-            .dstSubresource.layerCount = 1,
-            .dstSubresource.baseArrayLayer = 0,
-        };
+        vk::ImageBlit blit;
+        blit.srcOffsets[0] = vk::Offset3D{0, 0, 0};
+        blit.srcOffsets[1] = vk::Offset3D{mipWidth, mipHeight, 1}; // Where is the data that we will blit from ?
+        blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        blit.srcSubresource.mipLevel = i - 1;
+        blit.srcSubresource.layerCount = 1;
+        blit.srcSubresource.baseArrayLayer = 0;
+        blit.dstOffsets[0] = vk::Offset3D{0, 0, 0};
+        blit.dstOffsets[1] = vk::Offset3D{mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
+        blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        blit.dstSubresource.mipLevel = i;
+        blit.dstSubresource.layerCount = 1;
+        blit.dstSubresource.baseArrayLayer = 0;
 
         cb.blitImage(
-            *m_vkImage, vk::ImageLayout::eTransferSrcOptimal,
-            *m_vkImage, vk::ImageLayout::eTransferDstOptimal,
+            m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
+            m_vkImage.get(), vk::ImageLayout::eTransferDstOptimal,
             blit, vk::Filter::eLinear);
 
         barrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
@@ -456,4 +449,4 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t t
 
     m_mipLevels = mipLevels;
 }
-} // namespace core
+} // namespace vkg
