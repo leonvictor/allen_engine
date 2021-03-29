@@ -1,11 +1,15 @@
 #pragma once
 
-#include "core/texture_cubemap.hpp"
+#include "graphics/device.hpp"
+#include "graphics/resources/texture_cubemap.hpp"
 #include "mesh.cpp"
 
 #include "transform.hpp"
 #include <memory>
+
 #include <vulkan/vulkan.hpp>
+
+// TODO: Update to new syntax
 
 // TODO: Where should skyboxes live ?
 //  - They're unique
@@ -15,41 +19,84 @@ class Skybox
 {
   public:
     Mesh mesh;
-    core::TextureCubeMap texture;
+    vkg::TextureCubeMap texture;
     vk::UniqueDescriptorSet descriptorSet;
     Transform transform;
-    std::shared_ptr<core::Device> m_pDevice;
+    std::shared_ptr<vkg::Device> m_pDevice;
 
     Skybox() {}
 
-    Skybox(std::shared_ptr<core::Device> pDevice, std::string texturePath, std::string modelPath)
+    Skybox(std::shared_ptr<vkg::Device> pDevice, std::string texturePath, std::string modelPath)
     {
-        this->m_pDevice = pDevice;
+        m_pDevice = pDevice;
 
-        texture.loadFromDirectory(m_pDevice, texturePath);
+        texture.LoadFromDirectory(m_pDevice, texturePath);
         mesh = Mesh(m_pDevice, modelPath);
         transform.scale = glm::vec3(25.0f);
+        createDescriptorSet();
     }
 
     // TODO: Maybe move the alloc/update to swapchain ? See mesh.cpp
-    void createDescriptorSet(vk::DescriptorPool& descriptorPool, vk::DescriptorSetLayout& descriptorSetLayout)
+    void createDescriptorSet()
     {
 
-        vk::DescriptorSetAllocateInfo allocInfo{descriptorPool, 1, &descriptorSetLayout};
-        descriptorSet = std::move(m_pDevice->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
-        m_pDevice->setDebugUtilsObjectName(descriptorSet.get(), "Skybox DescriptorSet");
+        descriptorSet = m_pDevice->AllocateDescriptorSet<Skybox>();
+        m_pDevice->SetDebugUtilsObjectName(descriptorSet.get(), "Skybox Descriptor Set");
 
-        auto uboDescriptor = mesh.uniformBuffer.getDescriptor();
-        auto cubeMapDescriptor = texture.getDescriptor();
+        auto uboDescriptor = mesh.uniformBuffer.GetDescriptor();
+        auto cubeMapDescriptor = texture.GetDescriptor();
 
-        std::vector<vk::WriteDescriptorSet> writeDescriptors({{descriptorSet.get(), 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &uboDescriptor, nullptr},
-                                                              {descriptorSet.get(), 1, 0, 1, vk::DescriptorType::eCombinedImageSampler, &cubeMapDescriptor, nullptr, nullptr}});
+        std::vector<vk::WriteDescriptorSet> writeDescriptors = {
+            {
+                .dstSet = descriptorSet.get(),
+                .dstBinding = 0,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                .pImageInfo = nullptr,
+                .pBufferInfo = &uboDescriptor,
+                .pTexelBufferView = nullptr,
+            },
+            {
+                .dstSet = descriptorSet.get(),
+                .dstBinding = 1,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .pImageInfo = &cubeMapDescriptor,
+                .pBufferInfo = nullptr,
+                .pTexelBufferView = nullptr,
+            },
+        };
 
-        m_pDevice->logical->updateDescriptorSets(writeDescriptors, nullptr);
+        m_pDevice->GetVkDevice().updateDescriptorSets(writeDescriptors, nullptr);
     }
 
-    void updateUniformBuffer(core::UniformBufferObject ubo)
+    void updateUniformBuffer(vkg::UniformBufferObject ubo)
     {
         mesh.updateUniformBuffers(ubo);
     }
+
+    /// @todo: accept device wrapper in order to set a debug name.
+    static vk::DescriptorSetLayout& GetDescriptorSetLayout(vk::Device& device)
+    {
+        static vk::UniqueDescriptorSetLayout descriptorLayout;
+
+        if (!descriptorLayout)
+        {
+            std::vector<vk::DescriptorSetLayoutBinding> setsLayoutBindings{
+                {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+                {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
+
+            vk::DescriptorSetLayoutCreateInfo createInfo{
+                .bindingCount = (uint32_t) setsLayoutBindings.size(),
+                .pBindings = setsLayoutBindings.data(),
+            };
+
+            descriptorLayout = device.createDescriptorSetLayoutUnique(createInfo);
+        }
+        return descriptorLayout.get();
+    }
+
+    vk::DescriptorSet& GetDescriptorSet() { return descriptorSet.get(); }
 };

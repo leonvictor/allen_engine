@@ -1,4 +1,5 @@
 // #define GLFW_INCLUDE_VULKAN
+#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 
@@ -28,14 +29,12 @@
 #include <vector>
 
 #include "camera.cpp" // TODO: Create .h
-#include "core/buffer.hpp"
-#include "core/device.hpp"
-#include "core/instance.hpp"
-#include "core/pipeline.cpp"
-#include "core/swapchain.cpp"
 #include "core/texture_cubemap.hpp"
 // #include "gltf_loader.hpp"
+#include "graphics/instance.hpp"
+#include "graphics/renderer.hpp"
 #include "graphics/window.hpp"
+#include "ubo.hpp"
 
 #include "input_monitor.cpp"
 #include "light.cpp"
@@ -82,8 +81,8 @@ class Engine
         lightsBuffer.reset();
         lightsDescriptorSet.reset();
         skybox.reset();
-        swapchain.reset();
-        m_pDevice.reset();
+        // swapchain.reset();
+        // m_renderer.GetDevice().reset();
         // TODO: surface
 
         // Destroy the glfw context
@@ -94,9 +93,11 @@ class Engine
 
   private:
     vkg::Window m_window;
+    vkg::Renderer m_renderer;
+
     // TODO: Get rid of the ptr
-    std::shared_ptr<core::Device> m_pDevice;
-    std::shared_ptr<core::Swapchain> swapchain;
+    // std::shared_ptr<core::Device> m_renderer.GetDevice();
+    // std::shared_ptr<core::Swapchain> swapchain;
     int frameCount = 0;
 
     size_t currentFrame = 0;
@@ -137,6 +138,7 @@ class Engine
     // GUI toggles
     bool showTransformGUI = false;
 
+    // TODO: Move to renderer ? Wrap ?
     void initImGUI()
     {
         // Initialize Imgui context
@@ -148,24 +150,24 @@ class Engine
         ImGui_ImplGlfw_InitForVulkan(m_window.m_pGlfwWindow, true);
 
         ImGui_ImplVulkan_InitInfo init_info;
-        init_info.Instance = (VkInstance) core::Instance::Singleton().Get();
-        init_info.PhysicalDevice = m_pDevice->physical;
-        init_info.Device = m_pDevice->logical.get();
-        init_info.QueueFamily = m_pDevice->queueFamilyIndices.presentFamily.value();
-        init_info.Queue = m_pDevice->queues.present.queue;
+        init_info.Instance = (VkInstance) vkg::Instance::Singleton().Get();
+        init_info.PhysicalDevice = m_renderer.GetDevice()->GetVkPhysicalDevice();
+        init_info.Device = m_renderer.GetDevice()->GetVkDevice();
+        init_info.QueueFamily = m_renderer.GetDevice()->GetPresentQueue().GetFamilyIndex();
+        init_info.Queue = m_renderer.GetDevice()->GetPresentQueue().GetVkQueue();
         init_info.PipelineCache = nullptr;
-        init_info.DescriptorPool = swapchain->descriptorPool.get();
+        init_info.DescriptorPool = m_renderer.GetDevice()->GetDescriptorPool();
         init_info.Allocator = nullptr;
         init_info.MinImageCount = 2;
-        init_info.ImageCount = swapchain->images.size();
+        init_info.ImageCount = m_renderer.GetSwapchain().NumberOfImages();
         init_info.CheckVkResultFn = nullptr;
-        init_info.MSAASamples = (VkSampleCountFlagBits) m_pDevice->msaaSamples;
-        ImGui_ImplVulkan_Init(&init_info, swapchain->renderPass.get());
+        init_info.MSAASamples = (VkSampleCountFlagBits) m_renderer.GetDevice()->GetMSAASamples();
+        ImGui_ImplVulkan_Init(&init_info, m_renderer.GetRenderPass().GetVkRenderPass());
 
         // Upload Fonts
         // Use any command queue
 
-        m_pDevice->commandpools.graphics.execute([&](vk::CommandBuffer cb) {
+        m_renderer.GetDevice()->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb) {
             ImGui_ImplVulkan_CreateFontsTexture(cb);
         });
         ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -176,9 +178,7 @@ class Engine
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
         // TODO:
-        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
-        m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
-        m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout.get());
+        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_renderer.GetDevice(), MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
     }
@@ -197,8 +197,12 @@ class Engine
     void initVulkan()
     {
         auto size = m_window.GetSize();
-        m_pDevice = std::make_shared<core::Device>(m_window.GetSurface());
-        swapchain = std::make_shared<core::Swapchain>(m_pDevice, m_window.GetSurface(), size.width, size.height, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        // m_renderer.GetDevice() = std::make_shared<core::Device>(m_window.GetSurface());
+        // swapchain = std::make_shared<core::Swapchain>(m_renderer.GetDevice(), m_window.GetSurface(), size.width, size.height, MAX_MODELS); // TODO: Swapchain are part of a Context ?
+        m_renderer.Create(&m_window);
+        // TODO: Get rid of all the references to m_renderer.GetDevice()
+        // They should not be part of this class
+        m_renderer.GetDevice() = m_renderer.GetDevice();
 
         loadModels();
         setUpLights();
@@ -216,9 +220,7 @@ class Engine
         for (int i = 0; i < cubePositions.size(); i++)
         {
             // TODO: This logic is a duplicate of addObject.
-            auto m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
-            m->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->objectsDescriptorSetLayout.get());
-            m->createColorDescriptorSet(swapchain->descriptorPool.get(), swapchain->picker.descriptorSetLayout.get());
+            auto m = std::make_shared<SceneObject>(m_renderer.GetDevice(), MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         }
@@ -227,18 +229,17 @@ class Engine
 
     void setupSkyBox()
     {
-        skybox = std::make_shared<Skybox>(m_pDevice, "", MODEL_PATH);
-        skybox->createDescriptorSet(swapchain->descriptorPool.get(), swapchain->skyboxDescriptorSetLayout.get());
+        skybox = std::make_shared<Skybox>(m_renderer.GetDevice(), "", MODEL_PATH);
         updateSkyboxUBO();
     }
 
     void updateSkyboxUBO()
     {
-        core::UniformBufferObject ubo;
+        vkg::UniformBufferObject ubo;
         ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-        ubo.view = glm::mat4(1.0f);                                                                                                      // eye/camera position, center position, up axis
-        ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
+        ubo.view = glm::mat4(1.0f);                                                                                                                                        // eye/camera position, center position, up axis
+        ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_renderer.GetSwapchain().GetWidth() / (float) m_renderer.GetSwapchain().GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        ubo.projection[1][1] *= -1;                                                                                                                                        // GLM is designed for OpenGL which uses inverted y coordinates
         ubo.cameraPos = camera.transform.position;
         skybox->updateUniformBuffer(ubo);
     }
@@ -249,27 +250,27 @@ class Engine
     // - For now swapchain holds the layout of the descriptor
     // - The descriptor itself is allocated and registered here
     vk::UniqueDescriptorSet lightsDescriptorSet;
-    std::unique_ptr<core::Buffer> lightsBuffer;
+    std::unique_ptr<vkg::Buffer> lightsBuffer;
 
     void createLightsBuffer()
     {
         // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = std::make_unique<core::Buffer>(m_pDevice, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        lightsBuffer = std::make_unique<vkg::Buffer>(m_renderer.GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     void updateLightBufferCount(int count)
     {
-        lightsBuffer->map(0, sizeof(int)); // TODO: Respect spec alignment for int
-        lightsBuffer->copy(&count, sizeof(int));
-        lightsBuffer->unmap();
+        lightsBuffer->Map(0, sizeof(int)); // TODO: Respect spec alignment for int
+        lightsBuffer->Copy(&count, sizeof(int));
+        lightsBuffer->Unmap();
     }
 
     void updateLightsBuffer(Light light, int index)
     {
         auto ubo = light.getUniform();
-        lightsBuffer->map(sizeof(int) + index * sizeof(LightUniform), sizeof(LightUniform));
-        lightsBuffer->copy(&ubo, sizeof(LightUniform));
-        lightsBuffer->unmap();
+        lightsBuffer->Map(sizeof(int) + index * sizeof(LightUniform), sizeof(LightUniform));
+        lightsBuffer->Copy(&ubo, sizeof(LightUniform));
+        lightsBuffer->Unmap();
     }
 
     void setUpLights()
@@ -299,14 +300,19 @@ class Engine
         }
     }
 
+    // TODO: Move to light class
     void createLightsDescriptorSet()
     {
-        vk::DescriptorSetAllocateInfo allocInfo{swapchain->descriptorPool.get(), 1, &swapchain->lightsDescriptorSetLayout.get()};
-        lightsDescriptorSet = std::move(m_pDevice->logical->allocateDescriptorSetsUnique(allocInfo)[0]);
-        m_pDevice->setDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
+        vk::DescriptorSetAllocateInfo allocInfo;
+        allocInfo.descriptorPool = m_renderer.GetDevice()->GetDescriptorPool();
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &Light::GetDescriptorSetLayout(m_renderer.GetDevice()->GetVkDevice());
+
+        lightsDescriptorSet = std::move(m_renderer.GetDevice()->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
+        m_renderer.GetDevice()->SetDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
-        lightsBufferInfo.buffer = lightsBuffer->buffer.get(); // TODO: How do we update the lights array ?
+        lightsBufferInfo.buffer = lightsBuffer->GetVkBuffer(); // TODO: How do we update the lights array ?
         lightsBufferInfo.offset = 0;
         lightsBufferInfo.range = VK_WHOLE_SIZE;
 
@@ -318,31 +324,32 @@ class Engine
         writeDescriptor.descriptorCount = 1;
         writeDescriptor.pBufferInfo = &lightsBufferInfo;
 
-        m_pDevice->logical->updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        m_renderer.GetDevice()->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
 #pragma endregion
 
-    void recreateSwapchain()
-    {
-        // int width, height;
-        // glfwGetFramebufferSize(window, &width, &height);
-        auto size = m_window.GetSize();
-        // TODO: Move to window
-        // TODO: IsMinimized method ?
-        while (size.width == 0 || size.height == 0)
-        { // While the window is minimized,
-            // glfwGetFramebufferSize(window, &width, &height);
-            size = m_window.GetSize();
-            glfwWaitEvents(); // Pause the app.
-        }
+    // TODO: Put back swapchain recreation
+    // void recreateSwapchain()
+    // {
+    //     // int width, height;
+    //     // glfwGetFramebufferSize(window, &width, &height);
+    //     auto size = m_window.GetSize();
+    //     // TODO: Move to window
+    //     // TODO: IsMinimized method ?
+    //     while (size.width == 0 || size.height == 0)
+    //     { // While the window is minimized,
+    //         // glfwGetFramebufferSize(window, &width, &height);
+    //         size = m_window.GetSize();
+    //         glfwWaitEvents(); // Pause the app.
+    //     }
 
-        m_pDevice->logical->waitIdle();
+    //     m_renderer.GetDevice()->GetVkDevice().waitIdle();
 
-        // TODO: This could go inside a single function call
-        swapchain->cleanup();
-        swapchain->recreate(m_window.GetSurface(), size.width, size.height, MAX_MODELS);
-    }
+    //     // TODO: This could go inside a single function call
+    //     swapchain->cleanup();
+    //     swapchain->recreate(m_window.GetSurface(), size.width, size.height, MAX_MODELS);
+    // }
 
     void mainLoop()
     {
@@ -371,7 +378,14 @@ class Engine
             deltaTime = currentFrameTime - lastFrameTime;
             lastFrameTime = currentFrameTime;
 
-            auto imageIndex = beginDrawFrame();
+            // auto imageIndex = beginDrawFrame();
+            m_renderer.BeginFrame();
+
+            // TODO: Decide where we handle imGui
+            // ImGui
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
 
             processKeyboardInput(m_window.m_pGlfwWindow);
 
@@ -402,25 +416,31 @@ class Engine
             for (auto model : models)
             {
                 glm::mat4 modelMatrix = model->getModelMatrix();
-                core::UniformBufferObject ubo;
+                vkg::UniformBufferObject ubo;
                 ubo.model = modelMatrix;
-                ubo.view = camera.getViewMatrix();                                                                                               // eye/camera position, center position, up axis
-                ubo.projection = glm::perspective(glm::radians(45.0f), swapchain->extent.width / (float) swapchain->extent.height, 0.1f, 100.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-                ubo.projection[1][1] *= -1;                                                                                                      // GLM is designed for OpenGL which uses inverted y coordinates
+                // eye/camera position, center position, up axis
+                ubo.view = camera.getViewMatrix();
+                // 45deg vertical fov, aspect ratio, near view plane, far view plane
+                ubo.projection = glm::perspective(glm::radians(45.0f), m_renderer.GetSwapchain().GetWidth() / (float) m_renderer.GetSwapchain().GetHeight(), 0.1f, 100.f);
+                // GLM is designed for OpenGL which uses inverted y coordinates
+                ubo.projection[1][1] *= -1;
                 ubo.cameraPos = camera.transform.position;
                 model->getComponent<Mesh>()->updateUniformBuffers(ubo);
             }
 
-            if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())
-            {
-                auto rgb = swapchain->picker.pickColor(models, lastMousePos);
-                auto cID = ColorUID(rgb);
-                // TODO: Handle background
-                // TODO: Make sure ColorUID has a reserved id for the background
-                selectedObject = clickables[cID];
-            }
+            // TODO: Handle picker again
+            // if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())
+            // {
+            //     auto rgb = swapchain->picker.pickColor(models, lastMousePos);
+            //     auto cID = ColorUID(rgb);
+            //     // TODO: Handle background
+            //     // TODO: Make sure ColorUID has a reserved id for the background
+            //     selectedObject = clickables[cID];
+            // }
 
-            swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
+            // swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
+            m_renderer.Draw(skybox);
+            m_renderer.Draw(models, lightsDescriptorSet);
 
             // Draw ImGUI components
             if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
@@ -454,10 +474,14 @@ class Engine
             }
             ImGui::End();
             ImGui::ShowDemoWindow();
-            endDrawFrame(imageIndex);
+            // endDrawFrame(imageIndex);
+            ImGui::Render();
+            ImDrawData* draw_data = ImGui::GetDrawData();
+            ImGui_ImplVulkan_RenderDrawData(draw_data, m_renderer.GetActiveImageCommandBuffer());
+            m_renderer.EndFrame();
         }
 
-        m_pDevice->logical->waitIdle();
+        m_renderer.GetDevice()->GetVkDevice().waitIdle();
     }
 
     // TODO: Move to inputs
@@ -484,102 +508,65 @@ class Engine
         lastMousePos = {xpos, ypos};
     }
 
-    // TODO: Move to swapchain
-    uint8_t beginDrawFrame()
-    {
-        // Wait for the fence
-        m_pDevice->logical->waitForFences(swapchain->inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
-
-        // Acquire an image from the swap chain
-        uint32_t imageIndex;
-        vk::Result result = m_pDevice->logical->acquireNextImageKHR(swapchain->swapchain.get(), UINT64_MAX, swapchain->imageAvailableSemaphores[currentFrame].get(), nullptr, &imageIndex);
-        if (result == vk::Result::eErrorOutOfDateKHR)
-        {
-            recreateSwapchain();
-        }
-        else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
-        {
-            throw std::runtime_error("Failed to acquire swap chain image.");
-        }
-
-        // Check if a previous frame is using the image
-        if (swapchain->images[imageIndex].fence)
-        {
-            m_pDevice->logical->waitForFences(swapchain->images[imageIndex].fence, VK_TRUE, UINT64_MAX);
-        }
-
-        // Mark the image as now being in use by this frame
-        swapchain->images[imageIndex].fence = swapchain->inFlightFences[currentFrame].get();
-
-        swapchain->beginDrawFrame(imageIndex);
-
-        // ImGui
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        return imageIndex;
-    }
-
     // TODO: Move to "renderer"
-    void endDrawFrame(uint32_t imageIndex)
-    {
-        ImGui::Render();
-        ImDrawData* draw_data = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
+    // void endDrawFrame(uint32_t imageIndex)
+    // {
+    //     ImGui::Render();
+    //     ImDrawData* draw_data = ImGui::GetDrawData();
+    //     ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
 
-        swapchain->endDrawFrame(imageIndex);
-        vk::SubmitInfo submitInfo;
+    //     swapchain->endDrawFrame(imageIndex);
+    //     vk::SubmitInfo submitInfo;
 
-        // At which stage should we wait for each semaphores (in the same order)
-        vk::Semaphore waitSemaphores = {swapchain->imageAvailableSemaphores[currentFrame].get()};
-        vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+    //     // At which stage should we wait for each semaphores (in the same order)
+    //     vk::Semaphore waitSemaphores = {swapchain->imageAvailableSemaphores[currentFrame].get()};
+    //     vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
-        submitInfo.pWaitDstStageMask = waitStages;    // In which stage of the pipeline to wait
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &swapchain->images[imageIndex].commandbuffer.get();
+    //     submitInfo.waitSemaphoreCount = 1;
+    //     submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
+    //     submitInfo.pWaitDstStageMask = waitStages;    // In which stage of the pipeline to wait
+    //     submitInfo.commandBufferCount = 1;
+    //     submitInfo.pCommandBuffers = &swapchain->images[imageIndex].commandbuffer.get();
 
-        // Which semaphores to signal when job is done
-        vk::Semaphore signalSemaphores[] = {swapchain->renderFinishedSemaphores[currentFrame].get()};
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
+    //     // Which semaphores to signal when job is done
+    //     vk::Semaphore signalSemaphores[] = {swapchain->renderFinishedSemaphores[currentFrame].get()};
+    //     submitInfo.signalSemaphoreCount = 1;
+    //     submitInfo.pSignalSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
 
-        m_pDevice->logical->resetFences(swapchain->inFlightFences[currentFrame].get());
-        m_pDevice->queues.graphics.queue.submit(submitInfo, swapchain->inFlightFences[currentFrame].get());
+    //     m_renderer.GetDevice()->GetVkDevice().resetFences(swapchain->inFlightFences[currentFrame].get());
+    //     m_renderer.GetDevice()->queues.graphics.queue.submit(submitInfo, swapchain->inFlightFences[currentFrame].get());
 
-        vk::PresentInfoKHR presentInfo;
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = &swapchain->swapchain.get();
-        presentInfo.pImageIndices = &imageIndex;
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
-        presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
+    //     vk::PresentInfoKHR presentInfo;
+    //     presentInfo.swapchainCount = 1;
+    //     presentInfo.pSwapchains = &swapchain->swapchain.get();
+    //     presentInfo.pImageIndices = &imageIndex;
+    //     presentInfo.waitSemaphoreCount = 1;
+    //     presentInfo.pWaitSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
+    //     presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
 
-        bool recreationNeeded = false;
-        vk::Result result;
-        try
-        {
-            result = m_pDevice->queues.graphics.queue.presentKHR(presentInfo);
-        }
-        catch (vk::OutOfDateKHRError const& e)
-        {
-            result = vk::Result::eErrorOutOfDateKHR;
-        }
+    //     bool recreationNeeded = false;
+    //     vk::Result result;
+    //     try
+    //     {
+    //         result = m_renderer.GetDevice()->queues.graphics.queue.presentKHR(presentInfo);
+    //     }
+    //     catch (vk::OutOfDateKHRError const& e)
+    //     {
+    //         result = vk::Result::eErrorOutOfDateKHR;
+    //     }
 
-        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_window.m_framebufferResized)
-        {
-            recreateSwapchain();
-            m_window.m_framebufferResized = false;
-        }
-        else if (result != vk::Result::eSuccess)
-        {
-            throw std::runtime_error("Failed to present swap chain image.");
-        }
+    //     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_window.m_framebufferResized)
+    //     {
+    //         recreateSwapchain();
+    //         m_window.m_framebufferResized = false;
+    //     }
+    //     else if (result != vk::Result::eSuccess)
+    //     {
+    //         throw std::runtime_error("Failed to present swap chain image.");
+    //     }
 
-        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
+    //     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    // }
 };
 
 int main()
