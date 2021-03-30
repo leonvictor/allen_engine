@@ -101,16 +101,6 @@ Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, u
     InitView(format, aspectMask);
 }
 
-// Create an image without a view.
-Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-             vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageLayout layout)
-{
-    m_pDevice = pDevice;
-
-    InitImage(width, height, mipLevels, numSamples, format, tiling, usage, 1, {}, layout);
-    Allocate(memProperties);
-}
-
 void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 {
     if (m_layout == newLayout)

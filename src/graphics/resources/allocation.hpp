@@ -8,18 +8,34 @@
 namespace vkg
 {
 
-// A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
-// but only as a base class providing common functionality for the classes below.
-//
-// Provides easy to use mechanisms for mapping, unmapping and copying host data to the device memory
-struct Allocation
+/// @brief A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
+/// but only as a base class providing common functionality for the classes below.
+///
+/// Provides easy to use mechanisms for mapping, unmapping and copying host data to the device memory
+class Allocation
 {
+  protected:
     std::shared_ptr<Device> m_pDevice;
     vk::UniqueDeviceMemory m_memory;
     vk::DeviceSize m_size;
 
     void* m_mapped = nullptr;
 
+    virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
+    {
+        // vk::MemoryAllocateInfo allocInfo{
+        // .allocationSize = memRequirements.size,
+        // .memoryTypeIndex = m_pDevice->findMemoryType(memRequirements.memoryTypeBits, memProperties),
+        // };
+
+        vk::MemoryAllocateInfo allocInfo;
+        allocInfo.allocationSize = memRequirements.size,
+        allocInfo.memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties);
+
+        m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr);
+    }
+
+  public:
     vk::DeviceSize GetSize() const { return m_size; }
 
     // TODO: Default to own size attribute
@@ -87,20 +103,6 @@ struct Allocation
         mappedRange.offset = offset;
         mappedRange.size = size;
         return m_pDevice->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
-    }
-
-    virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
-    {
-        // vk::MemoryAllocateInfo allocInfo{
-        // .allocationSize = memRequirements.size,
-        // .memoryTypeIndex = m_pDevice->findMemoryType(memRequirements.memoryTypeBits, memProperties),
-        // };
-
-        vk::MemoryAllocateInfo allocInfo;
-        allocInfo.allocationSize = memRequirements.size,
-        allocInfo.memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties);
-
-        m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr);
     }
 };
 } // namespace vkg

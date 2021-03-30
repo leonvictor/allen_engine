@@ -35,14 +35,11 @@ Texture::Texture() {}
 
 Texture::Texture(std::shared_ptr<Device> pDevice, std::string path)
 {
-    this->m_pDevice = pDevice;
+    m_pDevice = pDevice;
 
     // Load image from file
     ImageFile img = ImageFile(path);
 
-    // Copy data to staging buffer
-    vk::DeviceSize imageSize = img.width * img.height * 4;
-    Buffer stagingBuffer(m_pDevice, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, img.pixels);
     // TODO: Move mipmaps generation out. Do we *need* it to happen before view creation ? We can also recreate the view
     // TODO: Can we change the "mipLevel" field of an image on the fly (to initialize it at 1 here)
     m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(img.width, img.height)))) + 1;
@@ -54,9 +51,11 @@ Texture::Texture(std::shared_ptr<Device> pDevice, std::string path)
 
     Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
+    // Copy data to staging buffer
+    Buffer stagingBuffer(m_pDevice, img.width * img.height * 4, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, img.pixels);
     m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb) {
         TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-        // TODO: CopyFrom would be better her for example
+        // TODO: CopyFrom would be better here for example
         stagingBuffer.CopyTo(cb, m_vkImage.get(), img.width, img.height);
     });
 
@@ -67,11 +66,5 @@ Texture::Texture(std::shared_ptr<Device> pDevice, std::string path)
 
     InitView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
     CreateSampler();
-}
-
-// TODO: This could come from a Descriptible interface (common w/ buffers)
-vk::DescriptorImageInfo Texture::GetDescriptor()
-{
-    return vk::DescriptorImageInfo{m_sampler.get(), m_vkView.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
 }
 } // namespace vkg
