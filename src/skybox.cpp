@@ -77,25 +77,14 @@ class Skybox
         mesh.updateUniformBuffers(ubo);
     }
 
-    /// @todo: accept device wrapper in order to set a debug name.
-    static vk::DescriptorSetLayout& GetDescriptorSetLayout(vk::Device& device)
+    /// @brief Returns the vulkan bindings representing a skybox.
+    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
-        static vk::UniqueDescriptorSetLayout descriptorLayout;
+        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+            {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+            {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
 
-        if (!descriptorLayout)
-        {
-            std::vector<vk::DescriptorSetLayoutBinding> setsLayoutBindings{
-                {0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
-                {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}};
-
-            vk::DescriptorSetLayoutCreateInfo createInfo{
-                .bindingCount = (uint32_t) setsLayoutBindings.size(),
-                .pBindings = setsLayoutBindings.data(),
-            };
-
-            descriptorLayout = device.createDescriptorSetLayoutUnique(createInfo);
-        }
-        return descriptorLayout.get();
+        return bindings;
     }
 
     vk::DescriptorSet& GetDescriptorSet() { return descriptorSet.get(); }

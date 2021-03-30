@@ -127,8 +127,8 @@ class Renderer
         pipelines.objects.SetExtent(m_targetSwapchain.GetExtent());
         pipelines.objects.RegisterShader("shaders/shader.vert", vk::ShaderStageFlagBits::eVertex);
         pipelines.objects.RegisterShader("shaders/shader.frag", vk::ShaderStageFlagBits::eFragment);
-        pipelines.objects.RegisterDescriptorLayout(Light::GetDescriptorSetLayout(m_pDevice->GetVkDevice()));
-        pipelines.objects.RegisterDescriptorLayout(SceneObject::GetDescriptorSetLayout(m_pDevice->GetVkDevice()));
+        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<Light>());
+        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<SceneObject>());
         pipelines.objects.Create("objects_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(pipelines.objects.GetVkPipeline(), "Objects Pipeline");
 
@@ -140,7 +140,7 @@ class Renderer
         pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
         pipelines.skybox.SetDepthTestWriteEnable(true, false);
         pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
-        pipelines.skybox.RegisterDescriptorLayout(Skybox::GetDescriptorSetLayout(m_pDevice->GetVkDevice()));
+        pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<Skybox>());
         pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
     }

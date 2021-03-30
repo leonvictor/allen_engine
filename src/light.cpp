@@ -41,24 +41,17 @@ class Light
         return u;
     }
 
-    static vk::DescriptorSetLayout& GetDescriptorSetLayout(vk::Device& device)
+    /// @brief Returns the vulkan bindings representing a light.
+    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
-        static vk::UniqueDescriptorSetLayout descriptorLayout;
+        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+            vk::DescriptorSetLayoutBinding{
+                .binding = 0,
+                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+            }};
 
-        if (!descriptorLayout)
-        {
-            vk::DescriptorSetLayoutBinding lightsLayoutBinding;
-            lightsLayoutBinding.binding = 0;
-            lightsLayoutBinding.descriptorCount = 1;
-            lightsLayoutBinding.descriptorType = vk::DescriptorType::eStorageBuffer;
-            lightsLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
-
-            vk::DescriptorSetLayoutCreateInfo lightsCreateInfo;
-            lightsCreateInfo.bindingCount = 1;
-            lightsCreateInfo.pBindings = &lightsLayoutBinding;
-
-            descriptorLayout = device.createDescriptorSetLayoutUnique(lightsCreateInfo);
-        }
-        return descriptorLayout.get();
+        return bindings;
     }
 };

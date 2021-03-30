@@ -134,15 +134,12 @@ class SceneObject : public Entity
         m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
-    /// @brief Returns the descriptor set layout representing a Mesh. The layout will be created the first time this function is called.
-    /// @todo This is shared behavior with all the "on screen" objects.
-    static vk::DescriptorSetLayout& GetDescriptorSetLayout(vk::Device& device)
+    /// @brief Returns the vulkan bindings representing a scene object.
+    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
-        static vk::UniqueDescriptorSetLayout descriptorLayout;
-
-        if (!descriptorLayout)
-        {
-            vk::DescriptorSetLayoutBinding uboLayoutBinding = {
+        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+            {
+                // UBO
                 .binding = 0, // The binding used in the shader
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                 .descriptorCount = 1, // Number of values in the array
@@ -150,33 +147,23 @@ class SceneObject : public Entity
                 // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)
                 .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
                 .pImmutableSamplers = nullptr, // Image sampling related stuff.
-            };
-
-            vk::DescriptorSetLayoutBinding samplerLayoutBinding = {
+            },
+            {
+                // Sampler
                 .binding = 1,
                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment, //It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
                 .pImmutableSamplers = nullptr,
-            };
-
-            vk::DescriptorSetLayoutBinding materialLayoutBinding = {
+            },
+            {
+                // Material
                 .binding = 2,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
-            };
-
-            std::array<vk::DescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, samplerLayoutBinding, materialLayoutBinding};
-
-            vk::DescriptorSetLayoutCreateInfo createInfo{
-                .bindingCount = (uint32_t) bindings.size(),
-                .pBindings = bindings.data(),
-            };
-
-            descriptorLayout = device.createDescriptorSetLayoutUnique(createInfo);
-        }
-        return descriptorLayout.get();
+            }};
+        return bindings;
     }
 
     vk::DescriptorSet& GetDescriptorSet() { return descriptorSet.get(); }

@@ -306,7 +306,7 @@ class Engine
         vk::DescriptorSetAllocateInfo allocInfo;
         allocInfo.descriptorPool = m_renderer.GetDevice()->GetDescriptorPool();
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &Light::GetDescriptorSetLayout(m_renderer.GetDevice()->GetVkDevice());
+        allocInfo.pSetLayouts = &m_renderer.GetDevice()->GetDescriptorSetLayout<Light>();
 
         lightsDescriptorSet = std::move(m_renderer.GetDevice()->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
         m_renderer.GetDevice()->SetDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");

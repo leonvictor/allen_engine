@@ -7,6 +7,9 @@
 #include <assert.h>
 #include <optional>
 #include <set>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
 namespace vkg
@@ -41,6 +44,7 @@ class Device
     std::vector<const char*> m_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     vk::SampleCountFlagBits m_msaaSamples = vk::SampleCountFlagBits::e1;
+    std::unordered_map<std::type_index, vk::UniqueDescriptorSetLayout> m_descriptorSetLayouts;
 
     struct
     {
@@ -114,8 +118,32 @@ class Device
         vk::DescriptorSetAllocateInfo allocInfo;
         allocInfo.descriptorPool = m_descriptorPool.get();
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &(T::GetDescriptorSetLayout(m_logical.get()));
+        allocInfo.pSetLayouts = &GetDescriptorSetLayout<T>();
+
         return std::move(m_logical->allocateDescriptorSetsUnique(allocInfo)[0]);
+    }
+
+    /// @brief Get the descriptor set layout associated with type T. If the layout doesn't exist it will be created.
+    /// Aditionnaly registers the layout to enable automatic destruction.
+    template <typename T>
+    vk::DescriptorSetLayout& GetDescriptorSetLayout()
+    {
+        std::type_index type_index = std::type_index(typeid(T));
+        auto iter = m_descriptorSetLayouts.find(type_index);
+
+        // Create the descriptor set layout if it doesn't exist yet.
+        if (iter == m_descriptorSetLayouts.end())
+        {
+            auto bindings = T::GetDescriptorSetLayoutBindings();
+            vk::DescriptorSetLayoutCreateInfo createInfo = {
+                .bindingCount = static_cast<uint32_t>(bindings.size()),
+                .pBindings = bindings.data(),
+            };
+
+            auto layout = m_logical->createDescriptorSetLayoutUnique(createInfo);
+            iter = m_descriptorSetLayouts.emplace(type_index, std::move(layout)).first;
+        }
+        return iter->second.get();
     }
 
   private:
