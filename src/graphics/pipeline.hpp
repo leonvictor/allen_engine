@@ -248,6 +248,7 @@ class Pipeline
 
     /// @brief Bind a descriptor set to this pipeline.
     /// @todo: automatically handle the descriptor index
+    /// We bind every frame, when are sets unbound ?
     void BindDescriptorSet(vk::CommandBuffer& cb, vk::DescriptorSet& descriptorSet, uint32_t index)
     {
         // TODO: firstSet and offsets.
@@ -326,7 +327,6 @@ class Pipeline
 
     /// @brief Try to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp
     /// @todo:
-    /// - move to pipeline namespace
     /// - remove verbose output OR make it debug only
     vk::UniquePipelineCache LoadCachedPipeline(std::string path)
     {

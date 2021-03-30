@@ -29,6 +29,8 @@ Device::Device(const vk::SurfaceKHR& surface)
     // TODO: Refactor
     int MAX_OBJECTS = 10000;
 
+    // Create descriptor pools.
+    /// TODO: Find a principled way of deciding the max number of elements
     std::array<vk::DescriptorPoolSize, 3> poolSizes;
     poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
     poolSizes[0].descriptorCount = (MAX_OBJECTS * 3) + 1; // +1 for skybox. TODO: This should be dynamic

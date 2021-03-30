@@ -156,4 +156,12 @@ class Mesh : public Component
             v.normal = -v.normal;
         }
     }
+
+    /// @brief Bind the vertex and index buffers of the mesh.
+    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset = 0)
+    {
+        // TODO: firstBinding ?
+        cb.bindVertexBuffers(0, vertexBuffer.GetVkBuffer(), offset);
+        cb.bindIndexBuffer(indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
+    }
 };

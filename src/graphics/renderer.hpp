@@ -69,8 +69,6 @@ class Renderer
         m_pDevice = std::make_shared<Device>(m_pWindow->GetSurface());
         m_targetSwapchain = vkg::Swapchain(m_pDevice, &m_pWindow->GetSurface(), m_pWindow->GetWidth(), m_pWindow->GetHeight());
 
-        // TODO: Grab queue from the device ?
-
         // Create color resources
         colorImage = vkg::Image(m_pDevice, m_targetSwapchain.GetWidth(), m_targetSwapchain.GetHeight(), 1, m_pDevice->GetMSAASamples(), m_targetSwapchain.GetImageFormat(),
                                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
@@ -206,6 +204,7 @@ class Renderer
         m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
         // TODO: It would be better to pass the semaphores and cbs directly to the queue class
         // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
+        // vulkan arraywrappers ?
         m_pDevice->GetGraphicsQueue()
             .Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
 
@@ -260,8 +259,7 @@ class Renderer
         {
             // TODO: Decouple this.
             auto mesh = model->getComponent<Mesh>();
-            cb.bindVertexBuffers(0, mesh->vertexBuffer.GetVkBuffer(), vk::DeviceSize{0});
-            cb.bindIndexBuffer(mesh->indexBuffer.GetVkBuffer(), 0, vk::IndexType::eUint32);
+            mesh->Bind(cb);
             // images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet.get(), nullptr);
             pipelines.objects.BindDescriptorSet(cb, model->GetDescriptorSet(), 1);
             cb.drawIndexed(mesh->indices.size(), 1, 0, 0, 0);
@@ -273,12 +271,9 @@ class Renderer
         auto cb = m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get();
 
         // Skybox
-        pipelines.skybox.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
-        // TODO: move to Buffer::Bind(vk::CommandBuffer& cb)
-        cb.bindVertexBuffers(0, skybox->mesh.vertexBuffer.GetVkBuffer(), vk::DeviceSize{0});
-        cb.bindIndexBuffer(skybox->mesh.indexBuffer.GetVkBuffer(), 0, vk::IndexType::eUint32);
-        // images[index].commandbuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.skybox->pipeline.get());
         pipelines.skybox.Bind(cb);
+        skybox->mesh.Bind(cb);
+        pipelines.skybox.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
         cb.drawIndexed(skybox->mesh.indices.size(), 1, 0, 0, 0);
     }
 
