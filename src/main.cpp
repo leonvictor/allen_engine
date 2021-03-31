@@ -29,7 +29,6 @@
 #include <vector>
 
 #include "camera.cpp" // TODO: Create .h
-#include "core/texture_cubemap.hpp"
 // #include "gltf_loader.hpp"
 #include "graphics/instance.hpp"
 #include "graphics/renderer.hpp"
@@ -96,8 +95,6 @@ class Engine
     vkg::Renderer m_renderer;
 
     // TODO: Get rid of the ptr
-    // std::shared_ptr<core::Device> m_renderer.GetDevice();
-    // std::shared_ptr<core::Swapchain> swapchain;
     int frameCount = 0;
 
     size_t currentFrame = 0;
@@ -196,13 +193,9 @@ class Engine
 
     void initVulkan()
     {
-        auto size = m_window.GetSize();
-        // m_renderer.GetDevice() = std::make_shared<core::Device>(m_window.GetSurface());
-        // swapchain = std::make_shared<core::Swapchain>(m_renderer.GetDevice(), m_window.GetSurface(), size.width, size.height, MAX_MODELS); // TODO: Swapchain are part of a Context ?
         m_renderer.Create(&m_window);
         // TODO: Get rid of all the references to m_renderer.GetDevice()
         // They should not be part of this class
-        m_renderer.GetDevice() = m_renderer.GetDevice();
 
         loadModels();
         setUpLights();
@@ -378,7 +371,6 @@ class Engine
             deltaTime = currentFrameTime - lastFrameTime;
             lastFrameTime = currentFrameTime;
 
-            // auto imageIndex = beginDrawFrame();
             m_renderer.BeginFrame();
 
             // TODO: Decide where we handle imGui
