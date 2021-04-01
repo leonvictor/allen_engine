@@ -45,11 +45,6 @@ class Renderer
     // Sync objects
     std::vector<FrameSync> m_frames;
 
-    // TODO: Decide where attachments should be.
-    // For now they're fine here since only one drawing operation is active at a time.
-    Image colorImage; // Used as an attachment for multisampling
-    Image depthImage; // Used as an attachment to resolve image depth.
-
     RenderPass m_renderpass;
 
     struct
@@ -69,36 +64,10 @@ class Renderer
         m_pDevice = std::make_shared<Device>(m_pWindow->GetSurface());
         m_targetSwapchain = vkg::Swapchain(m_pDevice, &m_pWindow->GetSurface(), m_pWindow->GetWidth(), m_pWindow->GetHeight());
 
-        // Create color resources
-        colorImage = vkg::Image(m_pDevice, m_targetSwapchain.GetWidth(), m_targetSwapchain.GetHeight(), 1, m_pDevice->GetMSAASamples(), m_targetSwapchain.GetImageFormat(),
-                                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                vk::ImageAspectFlagBits::eColor);
-        // TODO: Decide how to set the debug names. Either pass a debug name in the constructor or add a
-        // image.SetDebugName() method.
-        // m_pDevice->setDebugUtilsObjectName(colorImage.image.get(), "Swapchain color image");
-        // m_pDevice->setDebugUtilsObjectName(colorImage.view.get(), "Color Image View");
-
-        // Create depth ressources
-        depthImage = vkg::Image(m_pDevice, m_targetSwapchain.GetWidth(), m_targetSwapchain.GetHeight(), 1, m_pDevice->GetMSAASamples(),
-                                m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                vk::ImageAspectFlagBits::eDepth);
-        // m_pDevice->setDebugUtilsObjectName(dekpthImage->image.get(), "Swapchain depth image");
-
         // TODO: Decide where renderpasses should be kept.
         m_renderpass = RenderPass(m_pDevice);
+        // TODO: Create -> CreateInternal
         m_renderpass.Create(&m_targetSwapchain);
-
-        for (auto& targetImage : m_targetSwapchain.m_images)
-        {
-            // TODO: Where do colorImage and depthImage live ?
-            std::vector<vk::ImageView> attachments = {
-                colorImage.GetVkView(),
-                depthImage.GetVkView(),
-                targetImage.view.get(),
-            };
-
-            m_renderpass.AddFramebuffer(attachments);
-        }
 
         // Create sync objects
         // Create fences in the signaled state
@@ -156,18 +125,18 @@ class Renderer
         // This could be in swapchain as well
 
         // Check if a previous frame is using the image
-        if (m_targetSwapchain.m_images[m_activeImageIndex].fence)
+        if (m_targetSwapchain.ActiveImage().fence)
         {
-            m_pDevice->GetVkDevice().waitForFences(m_targetSwapchain.m_images[m_activeImageIndex].fence, VK_TRUE, UINT64_MAX);
+            m_pDevice->GetVkDevice().waitForFences(m_targetSwapchain.ActiveImage().fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
-        m_targetSwapchain.m_images[m_activeImageIndex].fence = m_frames[m_currentFrameIndex].inFlight.get();
+        m_targetSwapchain.ActiveImage().fence = m_frames[m_currentFrameIndex].inFlight.get();
 
-        m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer->begin(vk::CommandBufferBeginInfo{});
+        m_targetSwapchain.ActiveImage().commandbuffer->begin(vk::CommandBufferBeginInfo{});
 
         // Start a render pass
-        m_renderpass.Begin(m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get(), m_activeImageIndex);
+        m_renderpass.Begin(m_targetSwapchain.ActiveImage().commandbuffer.get(), m_activeImageIndex);
 
         // return m_activeImageIndex;
     }
@@ -180,8 +149,8 @@ class Renderer
         // ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
 
         // TODO: move out
-        m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer->endRenderPass();
-        m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer->end();
+        m_targetSwapchain.ActiveImage().commandbuffer->endRenderPass();
+        m_targetSwapchain.ActiveImage().commandbuffer->end();
 
         // At which stage should we wait for each semaphores (in the same order)
         // vk::PipelineStageFlagBits waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
@@ -196,7 +165,7 @@ class Renderer
             .pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get(),
             .pWaitDstStageMask = waitStages,
             .commandBufferCount = 1,
-            .pCommandBuffers = &m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get(),
+            .pCommandBuffers = &m_targetSwapchain.ActiveImage().commandbuffer.get(),
             .signalSemaphoreCount = 1,
             .pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get(),
         };
@@ -234,7 +203,13 @@ class Renderer
         if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_pWindow->m_framebufferResized)
         {
             // TODO:
-            // recreateSwapchain();
+            while (m_pWindow->IsMinimized())
+            {
+                m_pWindow->WaitEvents();
+            }
+
+            auto size = m_pWindow->GetSize();
+            m_targetSwapchain.Resize(size.width, size.height);
             m_pWindow->m_framebufferResized = false;
         }
         else if (result != vk::Result::eSuccess)
@@ -249,18 +224,16 @@ class Renderer
     // TODO: Get rid of the lights descriptor set ref.
     void Draw(std::vector<std::shared_ptr<SceneObject>> objects, vk::UniqueDescriptorSet& lightsDescriptorSet)
     {
-        auto cb = m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get();
+        auto cb = m_targetSwapchain.ActiveImage().commandbuffer.get();
         // Objects
-        // images[index].commandbuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines.objects->pipeline.get());
         pipelines.objects.Bind(cb);
-        // images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 0, lightsDescriptorSet.get(), nullptr);
         pipelines.objects.BindDescriptorSet(cb, lightsDescriptorSet.get(), 0);
         for (auto model : objects)
         {
             // TODO: Decouple this.
             auto mesh = model->getComponent<Mesh>();
+
             mesh->Bind(cb);
-            // images[index].commandbuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelines.objects->layout.get(), 1, model->descriptorSet.get(), nullptr);
             pipelines.objects.BindDescriptorSet(cb, model->GetDescriptorSet(), 1);
             cb.drawIndexed(mesh->indices.size(), 1, 0, 0, 0);
         }
@@ -268,7 +241,7 @@ class Renderer
 
     void Draw(std::shared_ptr<Skybox> skybox)
     {
-        auto cb = m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get();
+        auto cb = m_targetSwapchain.ActiveImage().commandbuffer.get();
 
         // Skybox
         pipelines.skybox.Bind(cb);
@@ -300,7 +273,7 @@ class Renderer
 
     vk::CommandBuffer& GetActiveImageCommandBuffer()
     {
-        return m_targetSwapchain.m_images[m_activeImageIndex].commandbuffer.get();
+        return m_targetSwapchain.ActiveImage().commandbuffer.get();
     }
 };
 } // namespace vkg

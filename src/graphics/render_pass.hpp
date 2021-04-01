@@ -1,11 +1,16 @@
-#include "../core/device.hpp"
+#pragma once
+
+#include "../utils/observer.hpp"
+#include "resources/image.hpp"
 #include "swapchain.hpp"
+
+#include <assert.h>
 #include <vulkan/vulkan.hpp>
 
 namespace vkg
 {
 /// @brief Wrapper around the vulkan render pass object. Also acts as a sort of factory.
-class RenderPass
+class RenderPass : public IObserver
 {
 
     enum State
@@ -26,16 +31,28 @@ class RenderPass
         m_clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
     }
 
-    /// @todo: get rid of the swapchain dependency by passing args directly
     void Create(vkg::Swapchain* pTargetSwapchain)
     {
         // TODO: Make more modular by allowing the user to gradually add attachments.
         assert(!m_created);
         assert(m_pDevice);
-        assert(pTargetSwapchain != nullptr);
 
         m_extent = pTargetSwapchain->GetExtent();
 
+        // Create color attachment resources
+        m_colorImage = vkg::Image(m_pDevice, pTargetSwapchain->GetWidth(), pTargetSwapchain->GetHeight(), 1, m_pDevice->GetMSAASamples(), pTargetSwapchain->GetImageFormat(),
+                                  vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                  vk::ImageAspectFlagBits::eColor);
+        // TODO: Decide how to set the debug names. Either pass a debug name in the constructor or add a
+        // image.SetDebugName() method.
+        // m_pDevice->setDebugUtilsObjectName(colorImage.image.get(), "Swapchain color image");
+        // m_pDevice->setDebugUtilsObjectName(colorImage.view.get(), "Color Image View");
+
+        // Create depth attachment ressources
+        m_depthImage = vkg::Image(m_pDevice, pTargetSwapchain->GetWidth(), pTargetSwapchain->GetHeight(), 1, m_pDevice->GetMSAASamples(),
+                                  m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                  vk::ImageAspectFlagBits::eDepth);
+        // m_pDevice->setDebugUtilsObjectName(dekpthImage->image.get(), "Swapchain depth image");
         vk::AttachmentDescription colorAttachment{
             .format = pTargetSwapchain->GetImageFormat(),
             .samples = m_pDevice->GetMSAASamples(),
@@ -119,6 +136,11 @@ class RenderPass
         };
 
         m_vkRenderPass = m_pDevice->GetVkDevice().createRenderPassUnique(renderPassInfo);
+        CreateFramebuffers(pTargetSwapchain);
+
+        // Attach itself to a swapchain to be notified when the target changes.
+        pTargetSwapchain->Attach(this);
+
         m_created = true;
     }
 
@@ -130,7 +152,6 @@ class RenderPass
 
         vk::RenderPassBeginInfo renderPassInfo{
             .renderPass = m_vkRenderPass.get(),
-            // TODO: Move framebuffers and accept an index
             .framebuffer = m_framebuffers[frameIndex].get(),
             .renderArea = {
                 .offset = {0, 0},
@@ -147,7 +168,53 @@ class RenderPass
         cb.endRenderPass();
     }
 
-    void AddFramebuffer(std::vector<vk::ImageView> attachments)
+    inline vk::RenderPass& GetVkRenderPass() { return m_vkRenderPass.get(); }
+
+    /// @brief Callback called when the target swapchain has changed. Recreates the framebuffers.
+    void Update(IObservable* pObserved) override
+    {
+        auto pSwapchain = dynamic_cast<vkg::Swapchain*>(pObserved);
+        // TODO: Make sure this is the same target
+        assert(pSwapchain != nullptr);
+        CreateFramebuffers(pSwapchain);
+    }
+
+  private:
+    // TODO: Status with more details (uninitialized, active or not)
+    // Whether the renderpass has been created yet.
+    bool m_created = false;
+    std::shared_ptr<Device> m_pDevice;
+    std::array<vk::ClearValue, 2> m_clearValues;
+    std::vector<vk::UniqueFramebuffer> m_framebuffers;
+
+    vk::Extent2D m_extent;
+
+    // TODO: Decide where attachments should be.
+    // For now they're fine here since only one drawing operation is active at a time.
+    Image m_colorImage; // Used as an attachment for multisampling
+    Image m_depthImage; // Used as an attachment to resolve image depth.
+
+    // Wrapped vulkan renderpass
+    vk::UniqueRenderPass m_vkRenderPass;
+
+    // TODO: How do we handle multiple renderpasses ?
+
+    void CreateFramebuffers(const vkg::Swapchain* pSwapchain)
+    {
+        for (auto& targetImage : pSwapchain->GetImages())
+        {
+            // TODO: Where do colorImage and depthImage live ?
+            std::vector<vk::ImageView> attachments = {
+                m_colorImage.GetVkView(),
+                m_depthImage.GetVkView(),
+                targetImage.view.get(),
+            };
+
+            AddFramebuffer(attachments);
+        }
+    }
+
+    void AddFramebuffer(const std::vector<vk::ImageView> attachments)
     {
         // TODO: Assert status is initialized
         vk::FramebufferCreateInfo framebufferInfo{
@@ -160,23 +227,6 @@ class RenderPass
         };
 
         m_framebuffers.emplace_back(m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo));
-    };
-
-    inline vk::RenderPass& GetVkRenderPass() { return m_vkRenderPass.get(); }
-
-  private:
-    // TODO: Status with more details (uninitialized, active or not)
-    // Whether the renderpass has been created yet.
-    bool m_created = false;
-    std::shared_ptr<Device> m_pDevice;
-    std::array<vk::ClearValue, 2> m_clearValues;
-    std::vector<vk::UniqueFramebuffer> m_framebuffers;
-
-    vk::Extent2D m_extent;
-
-    // Wrapped vulkan renderpass
-    vk::UniqueRenderPass m_vkRenderPass;
-
-    // TODO: How do I handle multiple renderpasses ?
+    }
 };
 } // namespace vkg

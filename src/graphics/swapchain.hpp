@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../utils/observer.hpp"
 #include "device.hpp"
 #include "resources/image.hpp"
 #include <vulkan/vulkan.hpp>
-
 namespace vkg
 {
 
@@ -17,7 +17,7 @@ struct SwapchainImage
 };
 
 /// @brief Wrapper around a vulkan swapchain. Swapchain represent an array of images we render to and that are presented to the screen.
-class Swapchain
+class Swapchain : public IObservable
 {
     friend class Renderer;
 
@@ -38,27 +38,44 @@ class Swapchain
 
     uint32_t AcquireNextImage(vk::Semaphore& semaphore)
     {
-        uint32_t imageIndex;
-        auto result = m_pDevice->GetVkDevice().acquireNextImageKHR(m_vkSwapchain.get(), UINT64_MAX, semaphore, nullptr, &imageIndex);
+        auto result = m_pDevice->GetVkDevice().acquireNextImageKHR(m_vkSwapchain.get(), UINT64_MAX, semaphore, nullptr, &m_activeImageIndex);
         if (result == vk::Result::eErrorOutOfDateKHR)
         {
-            // TODO: Recreate swapchain
-            // recreateSwapchain();
+            Resize(m_width, m_height);
         }
         else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
         {
             throw std::runtime_error("Failed to acquire swap chain image.");
         }
 
-        return imageIndex;
+        return m_activeImageIndex;
     }
 
+    const std::vector<SwapchainImage>& GetImages() const { return m_images; }
     uint32_t GetWidth() const { return m_extent.width; }
     uint32_t GetHeight() const { return m_extent.height; }
     vk::Extent2D GetExtent() const { return m_extent; }
     size_t NumberOfImages() const
     {
         return m_images.size();
+    }
+    SwapchainImage& ActiveImage() { return m_images[m_activeImageIndex]; }
+
+    void Resize(uint32_t width, uint32_t height)
+    {
+        m_pDevice->GetVkDevice().waitIdle();
+        if (width == 0 || height == 0)
+        {
+            throw std::runtime_error("Swapchain resize error");
+        }
+
+        m_width = width;
+        m_height = height;
+
+        CreateInternal();
+        // TODO: Notify the associated render passes that the swapchain changed
+        // And let them handle their framebuffer recreations
+        Notify();
     }
 
   private:
@@ -74,6 +91,7 @@ class Swapchain
 
     std::shared_ptr<Device> m_pDevice;
     uint32_t m_width, m_height;
+    uint32_t m_activeImageIndex;
 
     void CreateInternal()
     {
