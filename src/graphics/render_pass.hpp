@@ -201,6 +201,8 @@ class RenderPass : public IObserver
 
     void CreateFramebuffers(const vkg::Swapchain* pSwapchain)
     {
+        m_framebuffers.clear();
+
         for (auto& targetImage : pSwapchain->GetImages())
         {
             // TODO: Where do colorImage and depthImage live ?
@@ -214,7 +216,7 @@ class RenderPass : public IObserver
         }
     }
 
-    void AddFramebuffer(const std::vector<vk::ImageView> attachments)
+    void AddFramebuffer(const std::vector<vk::ImageView>& attachments)
     {
         // TODO: Assert status is initialized
         vk::FramebufferCreateInfo framebufferInfo{

@@ -99,12 +99,14 @@ class Swapchain : public IObservable
         // TODO: make sure oldSwapchain is destroyed with RAII
         vk::UniqueSwapchainKHR oldSwapchain = std::move(m_vkSwapchain);
 
-        auto createInfo = CreateInfo();
+        auto createInfo = CreateInfo(&oldSwapchain.get());
         m_vkSwapchain = m_pDevice->GetVkDevice().createSwapchainKHRUnique(createInfo);
 
         // Create the swapchain images
         auto images = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_vkSwapchain.get());
         auto commandBuffers = m_pDevice->GetGraphicsCommandPool().AllocateCommandBuffersUnique(images.size());
+
+        m_images.clear();
 
         for (size_t i = 0; i < images.size(); i++)
         {
@@ -133,7 +135,7 @@ class Swapchain : public IObservable
     }
 
     /// @brief Generate the vulkan CreateInfo struct for a swapchain object.
-    vk::SwapchainCreateInfoKHR CreateInfo()
+    vk::SwapchainCreateInfoKHR CreateInfo(vk::SwapchainKHR* pOldSwapchain = nullptr)
     {
         assert(m_pSurface != nullptr);
 
@@ -163,7 +165,7 @@ class Swapchain : public IObservable
             .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
             .presentMode = presentMode,
             .clipped = VK_TRUE, // We don't care about the color of obscured pixels (ex: if another window is on top)
-            .oldSwapchain = m_vkSwapchain.get(),
+            .oldSwapchain = *pOldSwapchain,
         };
 
         uint32_t queueFamilyIndices[] = {
