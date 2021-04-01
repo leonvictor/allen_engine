@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../utils/observer.hpp"
 #include "device.hpp"
 #include "resources/image.hpp"
 #include <vulkan/vulkan.hpp>
@@ -17,7 +16,7 @@ struct SwapchainImage
 };
 
 /// @brief Wrapper around a vulkan swapchain. Swapchain represent an array of images we render to and that are presented to the screen.
-class Swapchain : public IObservable
+class Swapchain
 {
     friend class Renderer;
 
@@ -73,9 +72,6 @@ class Swapchain : public IObservable
         m_height = height;
 
         CreateInternal();
-        // TODO: Notify the associated render passes that the swapchain changed
-        // And let them handle their framebuffer recreations
-        Notify();
     }
 
   private:

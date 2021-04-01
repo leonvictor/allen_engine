@@ -65,9 +65,7 @@ class Renderer
         m_targetSwapchain = vkg::Swapchain(m_pDevice, &m_pWindow->GetSurface(), m_pWindow->GetWidth(), m_pWindow->GetHeight());
 
         // TODO: Decide where renderpasses should be kept.
-        m_renderpass = RenderPass(m_pDevice);
-        // TODO: Create -> CreateInternal
-        m_renderpass.Create(&m_targetSwapchain);
+        m_renderpass = RenderPass(m_pDevice, &m_targetSwapchain);
 
         // Create sync objects
         // Create fences in the signaled state
@@ -202,7 +200,6 @@ class Renderer
         // TODO: Shoud this happen in swapchain directly ?
         if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_pWindow->m_framebufferResized)
         {
-            // TODO:
             while (m_pWindow->IsMinimized())
             {
                 m_pWindow->WaitEvents();
@@ -210,6 +207,9 @@ class Renderer
 
             auto size = m_pWindow->GetSize();
             m_targetSwapchain.Resize(size.width, size.height);
+            m_renderpass.Resize(&m_targetSwapchain);
+            CreatePipelines();
+
             m_pWindow->m_framebufferResized = false;
         }
         else if (result != vk::Result::eSuccess)
