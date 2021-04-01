@@ -322,28 +322,6 @@ class Engine
 
 #pragma endregion
 
-    // TODO: Put back swapchain recreation
-    // void recreateSwapchain()
-    // {
-    //     // int width, height;
-    //     // glfwGetFramebufferSize(window, &width, &height);
-    //     auto size = m_window.GetSize();
-    //     // TODO: Move to window
-    //     // TODO: IsMinimized method ?
-    //     while (size.width == 0 || size.height == 0)
-    //     { // While the window is minimized,
-    //         // glfwGetFramebufferSize(window, &width, &height);
-    //         size = m_window.GetSize();
-    //         glfwWaitEvents(); // Pause the app.
-    //     }
-
-    //     m_renderer.GetDevice()->GetVkDevice().waitIdle();
-
-    //     // TODO: This could go inside a single function call
-    //     swapchain->cleanup();
-    //     swapchain->recreate(m_window.GetSurface(), size.width, size.height, MAX_MODELS);
-    // }
-
     void mainLoop()
     {
         // TODO: Move to window
@@ -499,66 +477,6 @@ class Engine
         *dY = ypos - lastMousePos.y;
         lastMousePos = {xpos, ypos};
     }
-
-    // TODO: Move to "renderer"
-    // void endDrawFrame(uint32_t imageIndex)
-    // {
-    //     ImGui::Render();
-    //     ImDrawData* draw_data = ImGui::GetDrawData();
-    //     ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
-
-    //     swapchain->endDrawFrame(imageIndex);
-    //     vk::SubmitInfo submitInfo;
-
-    //     // At which stage should we wait for each semaphores (in the same order)
-    //     vk::Semaphore waitSemaphores = {swapchain->imageAvailableSemaphores[currentFrame].get()};
-    //     vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-
-    //     submitInfo.waitSemaphoreCount = 1;
-    //     submitInfo.pWaitSemaphores = &waitSemaphores; // Which semaphores to wait for
-    //     submitInfo.pWaitDstStageMask = waitStages;    // In which stage of the pipeline to wait
-    //     submitInfo.commandBufferCount = 1;
-    //     submitInfo.pCommandBuffers = &swapchain->images[imageIndex].commandbuffer.get();
-
-    //     // Which semaphores to signal when job is done
-    //     vk::Semaphore signalSemaphores[] = {swapchain->renderFinishedSemaphores[currentFrame].get()};
-    //     submitInfo.signalSemaphoreCount = 1;
-    //     submitInfo.pSignalSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
-
-    //     m_renderer.GetDevice()->GetVkDevice().resetFences(swapchain->inFlightFences[currentFrame].get());
-    //     m_renderer.GetDevice()->queues.graphics.queue.submit(submitInfo, swapchain->inFlightFences[currentFrame].get());
-
-    //     vk::PresentInfoKHR presentInfo;
-    //     presentInfo.swapchainCount = 1;
-    //     presentInfo.pSwapchains = &swapchain->swapchain.get();
-    //     presentInfo.pImageIndices = &imageIndex;
-    //     presentInfo.waitSemaphoreCount = 1;
-    //     presentInfo.pWaitSemaphores = &swapchain->renderFinishedSemaphores[currentFrame].get();
-    //     presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
-
-    //     bool recreationNeeded = false;
-    //     vk::Result result;
-    //     try
-    //     {
-    //         result = m_renderer.GetDevice()->queues.graphics.queue.presentKHR(presentInfo);
-    //     }
-    //     catch (vk::OutOfDateKHRError const& e)
-    //     {
-    //         result = vk::Result::eErrorOutOfDateKHR;
-    //     }
-
-    //     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_window.m_framebufferResized)
-    //     {
-    //         recreateSwapchain();
-    //         m_window.m_framebufferResized = false;
-    //     }
-    //     else if (result != vk::Result::eSuccess)
-    //     {
-    //         throw std::runtime_error("Failed to present swap chain image.");
-    //     }
-
-    //     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    // }
 };
 
 int main()

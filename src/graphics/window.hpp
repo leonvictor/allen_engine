@@ -13,7 +13,10 @@ struct Size2D
     int height;
 };
 
+// TODO: Where do default sizes go ?
+// Default width
 const int WIDTH = 800;
+// Default height
 const int HEIGHT = 600;
 
 /// @brief Represent an on-screen window. Holds the OS window and the related vulkan objects.
@@ -22,8 +25,6 @@ class Window
 {
 
   public:
-    // TODO: Where do default sizes go ?
-
     // TODO: Temporary. Make private when possible
     GLFWwindow* m_pGlfwWindow;
     // TODO: Temporary. Make private when possible
@@ -49,15 +50,24 @@ class Window
         return size;
     }
 
-    uint32_t GetWidth() const
+    uint32_t GetWidth() const { return (uint32_t) GetSize().width; }
+    uint32_t GetHeight() const { return (uint32_t) GetSize().height; }
+
+    float GetAspectRatio() const
     {
-        return (uint32_t) GetSize().width;
+        auto size = GetSize();
+        if (size.height == 0)
+            return 0.0;
+        return size.width / size.height;
     }
 
-    uint32_t GetHeight() const
+    bool IsMinimized()
     {
-        return (uint32_t) GetSize().height;
+        auto size = GetSize();
+        return (size.width == 0 || size.height == 0);
     }
+
+    void WaitEvents() { glfwWaitEvents(); }
 
     vk::SurfaceKHR& GetSurface()
     {
@@ -142,9 +152,9 @@ class Window
         // }
 
         m_pGlfwWindow = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
+        glfwSetWindowUserPointer(m_pGlfwWindow, this);
 
         // TODO: where do the callbacks live ?
-        // glfwSetWindowUserPointer(m_pGlfwWindow, this);
         // glfwSetMouseButtonCallback(m_pGlfwWindow, mouseButtonCallback);
         // glfwSetScrollCallback(m_pGlfwWindow, scrollCallback);
         glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
