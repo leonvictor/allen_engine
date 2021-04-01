@@ -147,24 +147,26 @@ class Pipeline
         vk::UniquePipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                           // TODO
         m_vkPipeline = m_pDevice->GetVkDevice().createGraphicsPipelineUnique(pipelineCache.get(), m_pipelineCreateInfo); // TODO
 
-        // TODO: Avoid saving if not needed
         // Store away the cache that we've populated.  This could conceivably happen
         // earlier, depends on when the pipeline cache stops being populated
         // internally.
-        std::vector<uint8_t> endCacheData = m_pDevice->GetVkDevice().getPipelineCacheData(pipelineCache.get());
+        if (!pipelineCache)
+        {
+            std::vector<uint8_t> endCacheData = m_pDevice->GetVkDevice().getPipelineCacheData(pipelineCache.get());
 
-        // Write the file to disk, overwriting whatever was there
-        std::ofstream writeCacheStream(cachePath, std::ios_base::out | std::ios_base::binary);
-        if (writeCacheStream.good())
-        {
-            writeCacheStream.write(reinterpret_cast<char const*>(endCacheData.data()), endCacheData.size());
-            writeCacheStream.close();
-            std::cout << "  cacheData written to " << cachePath << "\n";
-        }
-        else
-        {
-            // Something bad happened
-            std::cout << "  Unable to write cache data to disk!\n";
+            // Write the file to disk, overwriting whatever was there
+            std::ofstream writeCacheStream(cachePath, std::ios_base::out | std::ios_base::binary);
+            if (writeCacheStream.good())
+            {
+                writeCacheStream.write(reinterpret_cast<char const*>(endCacheData.data()), endCacheData.size());
+                writeCacheStream.close();
+                std::cout << "  cacheData written to " << cachePath << "\n";
+            }
+            else
+            {
+                // Something bad happened
+                std::cout << "  Unable to write cache data to disk!\n";
+            }
         }
 
         ClearShaders();
