@@ -25,8 +25,12 @@ class Window
 {
 
   public:
-    // TODO: Temporary. Make private when possible
-    GLFWwindow* m_pGlfwWindow;
+    ~Window()
+    {
+        glfwDestroyWindow(m_pGlfwWindow);
+        glfwTerminate();
+    }
+
     // TODO: Temporary. Make private when possible
     bool m_framebufferResized = false;
 
@@ -74,6 +78,11 @@ class Window
         return m_vkSurface.get();
     }
 
+    GLFWwindow* GetGLFWWindow()
+    {
+        return m_pGlfwWindow;
+    }
+
   private:
     enum State
     {
@@ -81,6 +90,9 @@ class Window
         WindowReady,
         Initialized
     };
+
+    // TODO: Temporary. Make private when possible
+    GLFWwindow* m_pGlfwWindow;
 
     State m_status = State::Uninitialized;
     vk::UniqueSurfaceKHR m_vkSurface;

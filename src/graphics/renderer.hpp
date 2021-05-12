@@ -5,6 +5,7 @@
 #include "../skybox.cpp"
 
 #include "device.hpp"
+#include "imgui.hpp"
 #include "pipeline.hpp"
 #include "render_pass.hpp"
 #include "swapchain.hpp"
@@ -24,7 +25,6 @@ struct FrameSync
 /// @brief Renderer instance used to draw the scenes and the UI.
 class Renderer
 {
-
     enum State
     {
         Uninitialized,
@@ -35,6 +35,7 @@ class Renderer
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
     State m_state = State::Uninitialized;
+
     std::shared_ptr<Device> m_pDevice;
     Window* m_pWindow;           // Associated window
     Swapchain m_targetSwapchain; // Target swapchain
@@ -52,6 +53,8 @@ class Renderer
         Pipeline objects;
         Pipeline skybox;
     } pipelines;
+
+    ImGUI m_imgui;
 
   public:
     // Renderer() {}
@@ -82,6 +85,7 @@ class Renderer
         }
 
         CreatePipelines();
+        m_imgui.Initialize(m_pWindow->GetGLFWWindow(), m_pDevice, m_renderpass, m_targetSwapchain.NumberOfImages());
     }
 
     void CreatePipelines()
@@ -136,15 +140,14 @@ class Renderer
         // Start a render pass
         m_renderpass.Begin(m_targetSwapchain.ActiveImage().commandbuffer.get(), m_activeImageIndex);
 
+        m_imgui.NewFrame();
+
         // return m_activeImageIndex;
     }
 
     void EndFrame()
     {
-        // TODO: Decide where to put ImGui stuff
-        // ImGui::Render();
-        // ImDrawData* draw_data = ImGui::GetDrawData();
-        // ImGui_ImplVulkan_RenderDrawData(draw_data, swapchain->images[imageIndex].commandbuffer.get());
+        m_imgui.Render(m_targetSwapchain.ActiveImage().commandbuffer.get());
 
         // TODO: move out
         m_targetSwapchain.ActiveImage().commandbuffer->endRenderPass();

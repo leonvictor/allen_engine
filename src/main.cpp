@@ -30,9 +30,11 @@
 
 #include "camera.cpp" // TODO: Create .h
 // #include "gltf_loader.hpp"
+#include "graphics/imgui.hpp"
 #include "graphics/instance.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/window.hpp"
+
 #include "ubo.hpp"
 
 #include "input_monitor.cpp"
@@ -56,9 +58,18 @@ class Engine
     Engine()
     {
         m_window.Initialize();
+        m_renderer.Create(&m_window);
+        // TODO: Get rid of all the references to m_renderer.GetDevice()
+        // They should not be part of this class
 
-        initVulkan();
-        initImGUI();
+        loadModels();
+        setUpLights();
+        setupSkyBox();
+
+        // TODO:
+        //  - Do not update if no object were modified
+        //  - Only update objects which have been modified
+        // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
     }
 
     void run()
@@ -68,11 +79,6 @@ class Engine
 
     ~Engine()
     {
-        // Cleanup ImGui
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-
         // Cleanup vulkan objects
         clickables.clear();
         models.clear();
@@ -80,21 +86,13 @@ class Engine
         lightsBuffer.reset();
         lightsDescriptorSet.reset();
         skybox.reset();
-        // swapchain.reset();
-        // m_renderer.GetDevice().reset();
         // TODO: surface
-
-        // Destroy the glfw context
-        // TODO: Move to window
-        glfwDestroyWindow(m_window.m_pGlfwWindow);
-        glfwTerminate();
     }
 
   private:
     vkg::Window m_window;
     vkg::Renderer m_renderer;
 
-    // TODO: Get rid of the ptr
     int frameCount = 0;
 
     size_t currentFrame = 0;
@@ -135,41 +133,6 @@ class Engine
     // GUI toggles
     bool showTransformGUI = false;
 
-    // TODO: Move to renderer ? Wrap ?
-    void initImGUI()
-    {
-        // Initialize Imgui context
-        ImGui::CreateContext();
-        const ImGuiIO& io = ImGui::GetIO();
-        (void) io;
-        ImGui::StyleColorsDark();
-
-        ImGui_ImplGlfw_InitForVulkan(m_window.m_pGlfwWindow, true);
-
-        ImGui_ImplVulkan_InitInfo init_info;
-        init_info.Instance = (VkInstance) vkg::Instance::Singleton().Get();
-        init_info.PhysicalDevice = m_renderer.GetDevice()->GetVkPhysicalDevice();
-        init_info.Device = m_renderer.GetDevice()->GetVkDevice();
-        init_info.QueueFamily = m_renderer.GetDevice()->GetPresentQueue().GetFamilyIndex();
-        init_info.Queue = m_renderer.GetDevice()->GetPresentQueue().GetVkQueue();
-        init_info.PipelineCache = nullptr;
-        init_info.DescriptorPool = m_renderer.GetDevice()->GetDescriptorPool();
-        init_info.Allocator = nullptr;
-        init_info.MinImageCount = 2;
-        init_info.ImageCount = m_renderer.GetSwapchain().NumberOfImages();
-        init_info.CheckVkResultFn = nullptr;
-        init_info.MSAASamples = (VkSampleCountFlagBits) m_renderer.GetDevice()->GetMSAASamples();
-        ImGui_ImplVulkan_Init(&init_info, m_renderer.GetRenderPass().GetVkRenderPass());
-
-        // Upload Fonts
-        // Use any command queue
-
-        m_renderer.GetDevice()->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb) {
-            ImGui_ImplVulkan_CreateFontsTexture(cb);
-        });
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
-    }
-
     void addObject()
     {
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
@@ -189,23 +152,6 @@ class Engine
             // models[index].reset();
             models.erase(models.begin() + index);
         }
-    }
-
-    void initVulkan()
-    {
-        m_renderer.Create(&m_window);
-        // TODO: Get rid of all the references to m_renderer.GetDevice()
-        // They should not be part of this class
-
-        loadModels();
-        setUpLights();
-        setupSkyBox();
-
-        // Swapchain components that rely on model parameters
-        // TODO:
-        //  - Do not update if no object were modified
-        //  - Only update objects which have been modified
-        // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
     }
 
     void loadModels()
@@ -325,7 +271,7 @@ class Engine
     void mainLoop()
     {
         // TODO: Move to window
-        while (!glfwWindowShouldClose(m_window.m_pGlfwWindow))
+        while (!glfwWindowShouldClose(m_window.GetGLFWWindow()))
         {
             // std::this_thread::sleep_for(std::chrono::seconds(1));
             frameCount++;
@@ -351,13 +297,7 @@ class Engine
 
             m_renderer.BeginFrame();
 
-            // TODO: Decide where we handle imGui
-            // ImGui
-            ImGui_ImplVulkan_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-
-            processKeyboardInput(m_window.m_pGlfwWindow);
+            processKeyboardInput(m_window.GetGLFWWindow());
 
             // This is rough. TODO: Make it better:
             //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
@@ -444,10 +384,7 @@ class Engine
             }
             ImGui::End();
             ImGui::ShowDemoWindow();
-            // endDrawFrame(imageIndex);
-            ImGui::Render();
-            ImDrawData* draw_data = ImGui::GetDrawData();
-            ImGui_ImplVulkan_RenderDrawData(draw_data, m_renderer.GetActiveImageCommandBuffer());
+
             m_renderer.EndFrame();
         }
 
@@ -472,7 +409,7 @@ class Engine
     void getMouseMotionDelta(double* dX, double* dY)
     {
         double xpos, ypos;
-        glfwGetCursorPos(m_window.m_pGlfwWindow, &xpos, &ypos);
+        glfwGetCursorPos(m_window.GetGLFWWindow(), &xpos, &ypos);
         *dX = xpos - lastMousePos.x;
         *dY = ypos - lastMousePos.y;
         lastMousePos = {xpos, ypos};
