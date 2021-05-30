@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../input/callback_context.hpp"
+#include "../input/input_context.hpp"
+#include "../input/input_system.hpp" // TODO: Not cool
 #include "instance.hpp"
 #include <GLFW/glfw3.h>
 #include <assert.h>
@@ -91,7 +94,6 @@ class Window
         Initialized
     };
 
-    // TODO: Temporary. Make private when possible
     GLFWwindow* m_pGlfwWindow;
 
     State m_status = State::Uninitialized;
@@ -116,21 +118,12 @@ class Window
         window->m_framebufferResized = true;
     }
 
-    // TODO: Use InputMonitor.
-    // FIXME: GLFW events for keyboard and mouse might share the same identifiers
+    /// @brief Maps GLFW key events to the input system.
+    /// TODO: override glfw and poll events directly from the os
     static void KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods)
     {
-        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
-
-        if (key == GLFW_KEY_Z && action == GLFW_RELEASE)
-        {
-            // window->objectsToCreate++;
-        }
-        else if (key == GLFW_KEY_X && action == GLFW_RELEASE)
-        {
-            // auto index = window->models.size() - 1;
-            // window->objectToDelete = index;
-        }
+        // FIXME: GLFW events for keyboard and mouse might share the same identifiers ?
+        Input::Keyboard.UpdateControlState(scancode, action);
     }
 
     static void ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoffset)
@@ -142,14 +135,7 @@ class Window
 
     static void MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action, int mods)
     {
-        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
-
-        //TODO: This doesn't need to happen for every frame
-        double xpos, ypos;
-        glfwGetCursorPos(pGlfwWindow, &xpos, &ypos);
-        // TODO: Where do inputs go ?
-        // window->lastMousePos = {xpos, ypos};
-        // window->input.callback(button, action, mods);
+        Input::Mouse.UpdateControlState(button, action);
     }
 
     /// @brief Initialize the OS window (here GLFW)
@@ -167,10 +153,10 @@ class Window
         glfwSetWindowUserPointer(m_pGlfwWindow, this);
 
         // TODO: where do the callbacks live ?
-        // glfwSetMouseButtonCallback(m_pGlfwWindow, mouseButtonCallback);
+        glfwSetMouseButtonCallback(m_pGlfwWindow, MouseButtonCallback);
         // glfwSetScrollCallback(m_pGlfwWindow, scrollCallback);
         glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
-        // glfwSetKeyCallback(m_pGlfwWindow, keyCallback);
+        glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
 
         Instance::Singleton().RequestExtensions(GetRequiredExtensions());
         m_status = State::WindowReady;

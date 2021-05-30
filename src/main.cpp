@@ -1,4 +1,3 @@
-// #define GLFW_INCLUDE_VULKAN
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
@@ -29,7 +28,7 @@
 #include <vector>
 
 #include "camera.cpp" // TODO: Create .h
-// #include "gltf_loader.hpp"
+#include "camera_controller.hpp"
 #include "graphics/imgui.hpp"
 #include "graphics/instance.hpp"
 #include "graphics/renderer.hpp"
@@ -37,7 +36,6 @@
 
 #include "ubo.hpp"
 
-#include "input_monitor.cpp"
 #include "light.cpp"
 #include "scene_object.cpp"
 #include "skybox.cpp"
@@ -86,7 +84,6 @@ class Engine
         lightsBuffer.reset();
         lightsDescriptorSet.reset();
         skybox.reset();
-        // TODO: surface
     }
 
   private:
@@ -98,7 +95,6 @@ class Engine
     size_t currentFrame = 0;
 
     glm::vec2 lastMousePos;
-    InputMonitor input;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -109,6 +105,8 @@ class Engine
     const glm::vec3 WORLD_DOWN = -WORLD_UP;
 
     Camera camera = Camera(WORLD_BACKWARD * 2.0f);
+    EditorCameraController cameraController = EditorCameraController(&camera);
+
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
 
     float deltaTime = 0.0f;
@@ -277,19 +275,12 @@ class Engine
             frameCount++;
             // std::cout << "Frame: " << frameCount << std::endl;
 
+            // Map GLFW events to the Input system
             glfwPollEvents();
-            if (input.isDown(GLFW_MOUSE_BUTTON_MIDDLE))
-            {
-                double xoffset, yoffset;
-                getMouseMotionDelta(&xoffset, &yoffset);
-                camera.move(-xoffset, -yoffset);
-            }
-            if (input.isDown(GLFW_MOUSE_BUTTON_RIGHT))
-            {
-                double xoffset, yoffset;
-                getMouseMotionDelta(&xoffset, &yoffset);
-                camera.rotate(xoffset, yoffset);
-            }
+
+            double xpos, ypos;
+            glfwGetCursorPos(m_window.GetGLFWWindow(), &xpos, &ypos);
+            Input::Mouse.Update({xpos, ypos});
 
             float currentFrameTime = glfwGetTime();
             deltaTime = currentFrameTime - lastFrameTime;
@@ -297,7 +288,8 @@ class Engine
 
             m_renderer.BeginFrame();
 
-            processKeyboardInput(m_window.GetGLFWWindow());
+            // Trigger input callbacks
+            Input::Dispatch();
 
             // This is rough. TODO: Make it better:
             //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
@@ -389,30 +381,6 @@ class Engine
         }
 
         m_renderer.GetDevice()->GetVkDevice().waitIdle();
-    }
-
-    // TODO: Move to inputs
-    void processKeyboardInput(GLFWwindow* window)
-    {
-        const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            camera.zoom(cameraSpeed);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            camera.zoom(-cameraSpeed);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            camera.move(-cameraSpeed, 0.0f);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            camera.move(cameraSpeed, 0.0f);
-    }
-
-    // TODO: Move to inputs
-    void getMouseMotionDelta(double* dX, double* dY)
-    {
-        double xpos, ypos;
-        glfwGetCursorPos(m_window.GetGLFWWindow(), &xpos, &ypos);
-        *dX = xpos - lastMousePos.x;
-        *dY = ypos - lastMousePos.y;
-        lastMousePos = {xpos, ypos};
     }
 };
 
