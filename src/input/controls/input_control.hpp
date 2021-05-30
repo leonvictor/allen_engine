@@ -5,6 +5,7 @@
 class IInputControl
 {
   protected:
+    /// TODO: Use GUID
     int m_id;
 
   public:
@@ -19,16 +20,13 @@ bool operator<(const IInputControl& left, const IInputControl& right)
 }
 
 template <typename T>
-class InputControl : protected IInputControl
+class InputControl : public IInputControl
 {
+    friend class IInputDevice;
+
   protected:
     T m_value;
     T m_defaultValue;
-
-    T GetValue() const
-    {
-        return m_value;
-    }
 
     void SetValue(T value)
     {
@@ -40,19 +38,9 @@ class InputControl : protected IInputControl
     {
         return m_value != m_defaultValue;
     }
-};
 
-class KeyControl : protected InputControl<uint8_t>
-{
-    friend class Keyboard;
-
-    int m_code;
-
-    KeyControl(int code)
+    T GetValue() const
     {
-        m_defaultValue = 0.;
-        m_value = 0.;
-        m_code = code;
-        m_id = code; // TODO: For now we use GLFW scancodes as ids
+        return m_value;
     }
 };

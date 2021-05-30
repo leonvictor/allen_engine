@@ -53,19 +53,17 @@ class Input
 
         // 1. Poll triggered controls from the devices
         auto events = Keyboard.PollControlChangedEvents();
-        // controls.merge(Keyboard.PollDirtyControls());
-        // controls.merge(Mouse.GetControls());
+        events.merge(Mouse.PollControlChangedEvents());
+        // controls.merge(Gamepad.PollDirtyControls());
 
         // Exit directly if no control changes were raised
         if (events.empty())
         {
             return;
         }
-        // 2. Loop over bindings to find active ones ?
-        //
+        // 2. TODO: Loop over bindings to find active ones ?
 
         // 3. Pass events to the interested contexts for consumption
-        // i.e. those are pure key events, we need to keep track of a held key for example
         Input& singleton = Input::Singleton();
         for (InputContext* c : singleton.m_contexts)
         {
@@ -89,11 +87,6 @@ class Input
         // TODO: Dispatch inputs to their respective devices
         Input& singleton = Input::Singleton();
         // singleton.m_inputs.emplace(keyCode);
-    }
-
-    static void NotifyKeyboardInput(int keyCode, int action)
-    {
-        Keyboard.UpdateKeyState(keyCode, action);
     }
 };
 

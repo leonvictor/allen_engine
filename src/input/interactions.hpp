@@ -1,7 +1,7 @@
 #pragma once
 
+#include "controls/input_control.hpp"
 #include "input_action_phase.hpp"
-#include "input_control.hpp"
 
 /// Forward declarations
 class InputAction;

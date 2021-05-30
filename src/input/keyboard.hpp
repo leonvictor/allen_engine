@@ -1,15 +1,14 @@
 #pragma once
 
 #include "control_state_event.hpp"
-#include "input_control.hpp"
+#include "controls/key_control.hpp"
 #include "input_device.hpp"
 
-#include <glfw/glfw3.h>
 #include <glm/vec2.hpp>
 #include <map>
 
 /// @brief Describe a physical keyboard.
-class Keyboard : InputDevice
+class Keyboard : public IInputDevice
 {
     friend class Engine;
     friend class Input; // TODO: Add an indirection level to let input handle this
@@ -21,9 +20,12 @@ class Keyboard : InputDevice
 
     std::multimap<int, ControlStateChangedEvent> m_statesChanged;
 
+  public:
     /// @brief Translate a GLFW Event to KeyControl
     // TODO: Move to virtual fn in InputDevice (possibly InputControl even ?)
-    void UpdateKeyState(int code, int action)
+    // TODO: Shouldn't be public
+
+    void UpdateControlState(int code, int action)
     {
         // Ignore GLFW key repeat events as they are unreliable. Eventually we should gather the events directly from the hardware.
         if (action == GLFW_REPEAT)
@@ -35,34 +37,13 @@ class Keyboard : InputDevice
         auto iter = m_keys.emplace(std::make_pair(code, KeyControl(code))).first;
         // Update the control value
         iter->second.SetValue(MapGLFWActionCode(action));
+        // SetControlValue(iter->second, MapGLFWActionCode(action));
 
         // Create and populate a control state changed event
         auto& event = m_statesChanged.emplace(std::make_pair(code, ControlStateChangedEvent()))->second;
         event.pControl = &iter->second;
     }
 
-    /// @brief: Map a GLFW action code to a keyboard control value.
-    /// TODO: Externalize this to an abstract mapping interface
-    float MapGLFWActionCode(int action)
-    {
-        if (action == GLFW_PRESS)
-        {
-            return 1.;
-        }
-        // else if (action == GLFW_REPEAT)
-        // {
-        //     return 1.;
-        // }
-        else if (action == GLFW_RELEASE)
-        {
-            return 0.;
-        }
-
-        // TODO: Specific error
-        throw;
-    }
-
-  public:
     KeyControl& GetKey(int code)
     {
         auto iter = m_keys.find(code);
@@ -75,7 +56,7 @@ class Keyboard : InputDevice
     }
 
     /// @brief Return a list of state changed events that occured since the last call to this function.
-    std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents()
+    std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() override
     {
         // TODO: How do I handle multiple changes per frame ?
         // Scenarios:
