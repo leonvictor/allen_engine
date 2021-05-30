@@ -10,6 +10,8 @@
 // TODO: Then the Camera component needs to access the Transform in order to move around
 class Camera : public Component
 {
+    friend class EditorCameraController;
+
   public:
     Transform transform;
     glm::vec3 forward;
@@ -20,39 +22,22 @@ class Camera : public Component
 
     // TODO
     // float fov;
-    // float mouseSensitivity;
-    // float scrollSensitivity;
 
     Camera(glm::vec3 position = glm::vec3(0.0f))
     {
         transform.position = position;
         transform.rotation.x = 90.0f;
-        updateCameraOrientation();
+        UpdateOrientation();
     }
 
-    void move(float lateral, float vertical)
-    {
-        // TODO: Should mouse sensitivity be handled inside the camera class ?
-        float sensitivity = 0.01f;
-        lateral *= sensitivity;
-        vertical *= sensitivity;
-        transform.position += (up * vertical) + (right * lateral);
-    }
-
-    void rotate(float y, float p)
-    {
-        float sensitivity = 0.1f;
-        y *= sensitivity;
-        p *= sensitivity;
-        transform.rotation.x += y;
-        transform.rotation.y += p;
-
-        updateCameraOrientation();
-    }
-
-    void zoom(float offset)
+    void zoomForward(float offset)
     {
         transform.position += forward * offset;
+    }
+
+    void zoomBackward(float offset)
+    {
+        zoomForward(-offset);
     }
 
     void orbit()
@@ -67,7 +52,7 @@ class Camera : public Component
     }
 
   private:
-    void updateCameraOrientation()
+    void UpdateOrientation()
     {
         forward.x = cos(glm::radians(transform.rotation.x)) * cos(glm::radians(transform.rotation.y));
         forward.y = sin(glm::radians(transform.rotation.y));
