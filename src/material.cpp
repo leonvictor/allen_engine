@@ -20,33 +20,27 @@ struct MaterialBufferObject
 class Material
 {
   private:
-    std::unique_ptr<core::Buffer> buffer;
+    std::unique_ptr<vkg::Buffer> buffer;
 
   public:
     Material() {}
 
-    explicit Material(std::shared_ptr<core::Device> device) : buffer(std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible)) {}
+    explicit Material(std::shared_ptr<vkg::Device> device) : buffer(std::make_unique<vkg::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible)) {}
 
-    Material(std::shared_ptr<core::Device> device, MaterialBufferObject material) : buffer(std::make_unique<core::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible))
+    Material(std::shared_ptr<vkg::Device> device, MaterialBufferObject material) : buffer(std::make_unique<vkg::Buffer>(device, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible))
     {
         update(material);
     }
 
     void update(MaterialBufferObject material)
     {
-        buffer->map(0, sizeof(material));
-        buffer->copy(&material, sizeof(material));
-        buffer->unmap();
-    }
-
-    // TODO: Not used. Remove ?
-    vk::Buffer getBuffer()
-    {
-        return buffer->buffer.get();
+        buffer->Map(0, sizeof(material));
+        buffer->Copy(&material, sizeof(material));
+        buffer->Unmap();
     }
 
     vk::DescriptorBufferInfo getBufferDescriptor()
     {
-        return buffer->getDescriptor();
+        return buffer->GetDescriptor();
     }
 };
