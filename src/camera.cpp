@@ -30,16 +30,6 @@ class Camera : public Component
         UpdateOrientation();
     }
 
-    void zoomForward(float offset)
-    {
-        transform.position += forward * offset;
-    }
-
-    void zoomBackward(float offset)
-    {
-        zoomForward(-offset);
-    }
-
     void orbit()
     {
         // TODO

@@ -28,6 +28,10 @@ class EditorCameraController
         rotateAction.SetInteraction(Interaction::Type::Hold);
         rotateAction.SetCallback(std::bind(&EditorCameraController::Rotate, *this, std::placeholders::_1));
 
+        auto& zoomAction = m_inputContext.AddAction(Input::Mouse.TEMPORARY_SCROLL_ID);
+        zoomAction.SetInteraction(Interaction::Type::Hold);
+        zoomAction.SetCallback(std::bind(&EditorCameraController::Zoom, *this, std::placeholders::_1));
+
         // TODO: Registration should happen in the Context constructor
         m_inputContext.Enable();
         Input::RegisterContext(&m_inputContext);
@@ -54,5 +58,11 @@ class EditorCameraController
         m_pCameraInstance->transform.rotation.y += delta.y;
 
         m_pCameraInstance->UpdateOrientation();
+    }
+
+    void Zoom(CallbackContext context)
+    {
+        auto delta = Input::Mouse.GetScroll();
+        m_pCameraInstance->transform.position += m_pCameraInstance->forward * delta.y;
     }
 };
