@@ -33,6 +33,7 @@
 #include "graphics/instance.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/window.hpp"
+#include "time_system.hpp"
 
 #include "ubo.hpp"
 
@@ -90,10 +91,6 @@ class Engine
     vkg::Window m_window;
     vkg::Renderer m_renderer;
 
-    int frameCount = 0;
-
-    size_t currentFrame = 0;
-
     glm::vec2 lastMousePos;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
@@ -108,9 +105,6 @@ class Engine
     EditorCameraController cameraController = EditorCameraController(&camera);
 
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
-
-    float deltaTime = 0.0f;
-    float lastFrameTime = 0.0f;
 
     // Maybe unique_ptr and pass around weak_ptrs ? We pass the list to the swapchain when recording commands.
     // We also need to notify the selected field if an object is deleted
@@ -272,8 +266,7 @@ class Engine
         while (!glfwWindowShouldClose(m_window.GetGLFWWindow()))
         {
             // std::this_thread::sleep_for(std::chrono::seconds(1));
-            frameCount++;
-            // std::cout << "Frame: " << frameCount << std::endl;
+            Time::Update();
 
             // Map GLFW events to the Input system
             glfwPollEvents();
@@ -282,14 +275,10 @@ class Engine
             glfwGetCursorPos(m_window.GetGLFWWindow(), &xpos, &ypos);
             Input::Mouse.Update({xpos, ypos});
 
-            float currentFrameTime = glfwGetTime();
-            deltaTime = currentFrameTime - lastFrameTime;
-            lastFrameTime = currentFrameTime;
-
-            m_renderer.BeginFrame();
-
             // Trigger input callbacks
             Input::Dispatch();
+
+            m_renderer.BeginFrame();
 
             // This is rough. TODO: Make it better:
             //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
