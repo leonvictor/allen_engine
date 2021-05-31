@@ -1,5 +1,6 @@
 #pragma once
 
+#include "controls/axis_control.hpp"
 #include "controls/button_control.hpp"
 #include "input_device.hpp"
 
@@ -24,17 +25,28 @@ class Mouse : IInputDevice
     // Difference in position of the scroller since last frame.
     glm::vec2 m_scrollDelta;
 
+    AxisControl m_scrollControl;
+
     /// @brief Update position and delta according to the new provided position.
-    void Update(glm::vec2 position)
+    void
+    Update(glm::vec2 position)
     {
         m_delta = position - m_position;
         m_position = position;
     }
 
   public:
-    /// @brief Default constructor creates "traditionnal" mouse buttons (right, left and scroll clicks)
+    const int TEMPORARY_SCROLL_ID = 11111;
+
+    /// @brief Default constructor creates standard mouse controls (right and left click, scrolling wheel).
     Mouse()
     {
+        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_1, ButtonControl(GLFW_MOUSE_BUTTON_1)));
+        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_2, ButtonControl(GLFW_MOUSE_BUTTON_2)));
+        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_3, ButtonControl(GLFW_MOUSE_BUTTON_3)));
+
+        // FIXME: ID should be unique
+        m_scrollControl = AxisControl(TEMPORARY_SCROLL_ID);
     }
 
     glm::vec2 GetPosition() { return m_position; }
@@ -66,7 +78,7 @@ class Mouse : IInputDevice
                 event.pControl = &iter->second;
             }
         }
-        // TODO: Not sure that works
+
         std::multimap<int, ControlStateChangedEvent> clone = m_statesChanged;
         m_statesChanged.clear();
         return clone;
@@ -76,7 +88,6 @@ class Mouse : IInputDevice
     // TODO: Move to virtual fn in InputDevice (possibly InputControl even ?)
     void UpdateControlState(int code, int action)
     {
-        // UpdateControlState<ButtonControl>(code, action);
         // Ignore GLFW key repeat events as they are unreliable. Eventually we should gather the events directly from the hardware.
         if (action == GLFW_REPEAT)
         {
@@ -87,10 +98,18 @@ class Mouse : IInputDevice
         auto iter = m_buttons.emplace(std::make_pair(code, ButtonControl(code))).first;
         // Update the control value
         iter->second.SetValue((float) MapGLFWActionCode(action));
-        // SetControlValue(iter->second, (float) MapGLFWActionCode(action));
 
         // Create and populate a control state changed event
         auto& event = m_statesChanged.emplace(std::make_pair(code, ControlStateChangedEvent()))->second;
         event.pControl = &iter->second;
+    }
+
+    void UpdateScrollControlState(float xdelta, float ydelta)
+    {
+        m_scrollControl.SetValue(ydelta);
+        auto& event = m_statesChanged.emplace(std::make_pair(TEMPORARY_SCROLL_ID, ControlStateChangedEvent()))->second;
+        event.pControl = &m_scrollControl;
+
+        m_scrollDelta = glm::vec2(xdelta, ydelta);
     }
 };

@@ -54,9 +54,9 @@ class Input
         // 1. Poll triggered controls from the devices
         auto events = Keyboard.PollControlChangedEvents();
         events.merge(Mouse.PollControlChangedEvents());
-        // controls.merge(Gamepad.PollDirtyControls());
+        // controls.merge(Gamepad.PollControlChangedEvents());
 
-        // Exit directly if no control changes were raised
+        // Exit right away if no control change events were raised
         if (events.empty())
         {
             return;
@@ -74,19 +74,6 @@ class Input
                 events = c->Map(events);
             }
         }
-    }
-
-    /// @brief Notify the system that an input as been pressed. This is necessary for now as we're using glfw events.
-    /// TODO: Override GLFW by handling the inputs directly from the OS.
-    /// TODO: Handle mouse clicks, scrolling, gamepads.
-    /// TODO: Shouldn't be accessible outside the main engine loop
-    static void NotifyInput(int keyCode, int action)
-    {
-        // TODO
-        throw;
-        // TODO: Dispatch inputs to their respective devices
-        Input& singleton = Input::Singleton();
-        // singleton.m_inputs.emplace(keyCode);
     }
 };
 

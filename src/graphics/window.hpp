@@ -128,9 +128,7 @@ class Window
 
     static void ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoffset)
     {
-        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
-        // // TODO: where do cameras go ?
-        // window->camera.zoom(yoffset);
+        Input::Mouse.UpdateScrollControlState(xoffset, yoffset);
     }
 
     static void MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action, int mods)
@@ -152,11 +150,10 @@ class Window
         m_pGlfwWindow = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
         glfwSetWindowUserPointer(m_pGlfwWindow, this);
 
-        // TODO: where do the callbacks live ?
         glfwSetMouseButtonCallback(m_pGlfwWindow, MouseButtonCallback);
-        // glfwSetScrollCallback(m_pGlfwWindow, scrollCallback);
-        glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
+        glfwSetScrollCallback(m_pGlfwWindow, ScrollCallback);
         glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
+        glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
 
         Instance::Singleton().RequestExtensions(GetRequiredExtensions());
         m_status = State::WindowReady;
