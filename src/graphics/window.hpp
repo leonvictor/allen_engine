@@ -16,12 +16,6 @@ struct Size2D
     int height;
 };
 
-// TODO: Where do default sizes go ?
-// Default width
-const int WIDTH = 800;
-// Default height
-const int HEIGHT = 600;
-
 /// @brief Represent an on-screen window. Holds the OS window and the related vulkan objects.
 /// Also wraps the window library (GLFW).
 class Window
@@ -147,7 +141,11 @@ class Window
         //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
         // }
 
-        m_pGlfwWindow = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
+        // Grab monitor dimensions
+        auto monitor = glfwGetPrimaryMonitor();
+        auto videoMode = glfwGetVideoMode(monitor);
+
+        m_pGlfwWindow = glfwCreateWindow(videoMode->width, videoMode->height, "PoopyEngine", nullptr, nullptr);
         glfwSetWindowUserPointer(m_pGlfwWindow, this);
 
         glfwSetMouseButtonCallback(m_pGlfwWindow, MouseButtonCallback);
