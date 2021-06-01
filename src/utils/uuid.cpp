@@ -1,33 +1,66 @@
-#include <iomanip>
+#pragma once
+
 #include <iostream>
-#include <vulkan/vulkan.hpp>
+#include <vector>
+
+#define UUID_SYSTEM_GENERATOR
+#include <stduuids.h>
 
 namespace core
 {
 class UUID
 {
-  public:
-    explicit UUID(uint8_t const data[VK_UUID_SIZE])
+  private:
+    uuids::uuid m_ID;
+    bool m_isValid;
+
+    UUID(bool isValid)
     {
-        memcpy(m_data, data, VK_UUID_SIZE * sizeof(uint8_t));
+        m_isValid = isValid;
     }
 
-    uint8_t m_data[VK_UUID_SIZE];
+  public:
+    static const UUID InvalidID;
+
+    UUID() : m_ID(uuids::uuid_system_generator{}())
+    {
+        m_isValid = true;
+    }
+
+    explicit UUID(std::array<uint8_t, 16> data)
+    {
+        m_ID = uuids::uuid(std::begin(data), std::end(data));
+        m_isValid = true;
+    }
+
+    explicit UUID(uint8_t data[16])
+    {
+        uint8_t cache[16];
+        memcpy(cache, data, 16 * sizeof(uint8_t));
+
+        m_ID = uuids::uuid(std::begin(cache), std::end(cache));
+        m_isValid = true;
+    }
+
+    bool IsValid() const { return m_isValid; }
+
+    bool operator==(const UUID& other) const { return m_ID == other.m_ID; }
+    bool operator!=(const UUID& other) const { return !operator==(other); }
+
+    friend std::ostream& operator<<(std::ostream& os, const UUID& uuid);
 };
 
-// TODO: shouldn't this be inside the class ?
-std::ostream& operator<<(std::ostream& os, UUID uuid)
+std::ostream& operator<<(std::ostream& os, const UUID& uuid)
 {
-    os << std::setfill('0') << std::hex;
-    for (int j = 0; j < VK_UUID_SIZE; ++j)
+    if (uuid.m_isValid)
     {
-        os << std::setw(2) << static_cast<uint32_t>(uuid.m_data[j]);
-        if (j == 3 || j == 5 || j == 7 || j == 9)
-        {
-            std::cout << '-';
-        }
+        os << "Invalid UUID";
     }
-    os << std::setfill(' ') << std::dec;
+    else
+    {
+        os << "Valid UUID (" << uuid.m_ID << ")";
+    }
     return os;
 }
+const UUID UUID::InvalidID = UUID(false);
 } // namespace core
