@@ -16,7 +16,7 @@ class UUID
 
     UUID(bool isValid)
     {
-        m_isValid = false;
+        m_isValid = isValid;
     }
 
   public:
