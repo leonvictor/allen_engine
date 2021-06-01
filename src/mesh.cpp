@@ -4,14 +4,16 @@
 #include <vector>
 
 #include "components.hpp"
-#include "core/buffer.hpp"
-#include "core/context.hpp"
-#include "core/device.hpp"
+#include "graphics/device.hpp"
+#include "graphics/resources/buffer.hpp"
+#include "ubo.hpp"
 #include "utils/files.cpp"
 #include "vertex.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+
+// TODO: Refactor code format.
 
 // TODO: Complete gltf format
 // In glTF, meshes are defined as arrays of primitives. Primitives correspond to the data required for GPU draw calls. Primitives specify one or more attributes, corresponding to the vertex attributes used in the draw calls.
@@ -30,15 +32,15 @@ class Mesh : public Component
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
-    core::Buffer vertexBuffer;
-    core::Buffer indexBuffer;
-    core::Buffer uniformBuffer;
+    vkg::Buffer vertexBuffer;
+    vkg::Buffer indexBuffer;
+    vkg::Buffer uniformBuffer;
 
     std::vector<Primitive> primitives;
 
     Mesh() {}
 
-    Mesh(std::shared_ptr<core::Device> device, std::string path, glm::vec3 verticesColor = {1.0f, 1.0f, 1.0f})
+    Mesh(std::shared_ptr<vkg::Device> pDevice, std::string path, glm::vec3 verticesColor = {1.0f, 1.0f, 1.0f})
     {
         // TODO: Store supported file types as enum
         std::string fileExtension = utils::getFileExtension(path);
@@ -55,8 +57,8 @@ class Mesh : public Component
             throw std::runtime_error("File extension " + fileExtension + " is not supported.");
         }
 
-        createDataBuffers(device);
-        createUniformBuffer(device);
+        createDataBuffers(pDevice);
+        createUniformBuffer(pDevice);
     }
 
     void loadFromObj(std::string path, glm::vec3 verticesColor = {1.0f, 1.0f, 1.0f})
@@ -119,32 +121,32 @@ class Mesh : public Component
         this->primitives.push_back({0, (uint32_t) this->indices.size(), 0});
     }
 
-    void createDataBuffers(std::shared_ptr<core::Device> device)
+    void createDataBuffers(std::shared_ptr<vkg::Device> pDevice)
     {
         // Create vertex buffer
-        core::Buffer vertexStagingBuffer(device, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertices);
-        vertexBuffer = core::Buffer(device, vertexStagingBuffer.size, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        vkg::Buffer vertexStagingBuffer(pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertices);
+        vertexBuffer = vkg::Buffer(pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         // Create index buffer
-        core::Buffer indexStagingBuffer(device, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, indices);
-        indexBuffer = core::Buffer(device, indexStagingBuffer.size, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        vkg::Buffer indexStagingBuffer(pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, indices);
+        indexBuffer = vkg::Buffer(pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-        device->commandpools.transfer.execute([&](vk::CommandBuffer cb) {
-            vertexStagingBuffer.copyTo(cb, vertexBuffer);
-            indexStagingBuffer.copyTo(cb, indexBuffer);
+        pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb) {
+            vertexStagingBuffer.CopyTo(cb, vertexBuffer);
+            indexStagingBuffer.CopyTo(cb, indexBuffer);
         });
     }
 
-    void createUniformBuffer(std::shared_ptr<core::Device> device)
+    void createUniformBuffer(std::shared_ptr<vkg::Device> pDevice)
     {
-        uniformBuffer = core::Buffer(device, sizeof(core::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        uniformBuffer = vkg::Buffer(pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
-    void updateUniformBuffers(core::UniformBufferObject ubo)
+    void updateUniformBuffers(vkg::UniformBufferObject ubo)
     {
-        uniformBuffer.map(0, sizeof(ubo));
-        uniformBuffer.copy(&ubo, sizeof(ubo));
-        uniformBuffer.unmap();
+        uniformBuffer.Map(0, sizeof(ubo));
+        uniformBuffer.Copy(&ubo, sizeof(ubo));
+        uniformBuffer.Unmap();
     }
 
     void revertNormals()
@@ -153,5 +155,13 @@ class Mesh : public Component
         {
             v.normal = -v.normal;
         }
+    }
+
+    /// @brief Bind the vertex and index buffers of the mesh.
+    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset = 0)
+    {
+        // TODO: firstBinding ?
+        cb.bindVertexBuffers(0, vertexBuffer.GetVkBuffer(), offset);
+        cb.bindIndexBuffer(indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
     }
 };

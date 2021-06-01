@@ -6,6 +6,7 @@
 
 # CMake generated stuff
 build
+Debug
 
 # ImgUI cache
 imgui.ini
@@ -13,3 +14,7 @@ debug.ppm
 
 # Binary files (ex: pipeline caches)
 *.bin
+*.pdb
+
+# VSCode config
+.vscode
