@@ -46,6 +46,6 @@ target_compile_features(main PUBLIC cxx_std_20)
 
 target_link_libraries(main glfw shaderc ${Vulkan_LIBRARIES})
 
-set(CMAKE_CXX_STANDARD 17) 
+set(CMAKE_CXX_STANDARD 20) 
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
