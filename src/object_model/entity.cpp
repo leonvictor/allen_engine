@@ -1,4 +1,5 @@
 #include "entity.hpp"
+#include "entity_system.cpp"
 #include <assert.h>
 #include <stdexcept>
 #include <vector>
@@ -8,12 +9,10 @@ Entity::Entity(){};
 /// @brief Triggers registration with the systems (local and global)
 void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
 {
-    // TODO: entities are activated once all components are loaded and initialized
     assert(IsLoaded());
 
-    // From youtube:
     // Initialize spatial hierachy
-    // Transforms are set at serial time so we have all the info available to update
+    // TODO: Transforms are set at serial time so we have all the info available to update
     if (IsSpatialEntity())
     {
         // Calculate the initial world transform but do not trigger the callback to the component
@@ -118,17 +117,27 @@ void Entity::GenerateSystemUpdateList()
 // Systems
 // -------------------------------------------------
 
-void Entity::CreateSystemImmediate(const TypeSystem::TypeInfo* pSystemTypeInfo)
+void Entity::CreateSystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInfo)
 {
-    // TODO: Assert the requested system type exists
-    // TODO: assert we only have one system of this type
+    assert(pSystemTypeInfo != nullptr);
+    // TODO: assert that pSystemTypeInfo describes a type that is derived from EntitySystem
+    // TODO: DEBUG: Disable this loop in release builds
 
-    // wtf
-    auto pSystem = (EntitySystem*) pSystemTypeInfo->m_pTypeHelper->CreateType();
+    // Make sure we only have one system of this type
+    for (auto pExistingSystem : m_systems)
+    {
+        auto const pExistingSystemTypeInfo = pExistingSystem->GetTypeInfo();
+        if (pSystemTypeInfo->IsDerivedFrom(pExistingSystemTypeInfo->m_ID) || pSystemTypeInfo == pExistingSystemTypeInfo)
+        {
+            throw std::runtime_error("Tried to add a second system of the same type to an entity.");
+        }
+    }
+
+    auto pSystem = std::static_pointer_cast<EntitySystem>(pSystemTypeInfo->m_pTypeHelper->CreateType());
     m_systems.emplace_back(pSystem);
 }
 
-void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeSystem::TypeInfo* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<EntitySystem>* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -141,9 +150,8 @@ void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingCont
     }
 }
 
-void Entity::DestroySystemImmediate(const TypeSystem::TypeInfo* pSystemTypeInfo)
+void Entity::DestroySystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInfo)
 {
-    // TODO: assert that TypeInfo is derived from entitySystem
     // TODO: find the index of system in m_systems
 
     auto systemIt = std::find(m_systems.begin(), m_systems.end(), []() {});
@@ -153,7 +161,7 @@ void Entity::DestroySystemImmediate(const TypeSystem::TypeInfo* pSystemTypeInfo)
     m_systems.erase(m_systems.begin() + systemIdx);
 }
 
-void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeSystem::TypeInfo* pSystemTypeInfo)
+void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<EntitySystem>* pSystemTypeInfo)
 {
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -167,10 +175,12 @@ void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingCon
 
 void Entity::UpdateSystems(ObjectModel::UpdateContext const& context)
 {
-    uint8_t const updateStageIdx = (uint8_t) context.GetUpdateStage(); //TODO
-    for (auto pSystem : m_systemUpdateLists[updateStageIdx])
+    const UpdateStage updateStage = context.GetUpdateStage();
+    // TODO: make sure stages convert nicely to uint8_t
+    for (auto pSystem : m_systemUpdateLists[(uint8_t) updateStage])
     {
         // TODO: assert system has this stage enabled
+        assert(pSystem->GetRequiredUpdatePriorities().IsUpdateStageEnabled(updateStage));
         pSystem->Update(context);
     }
 }
@@ -178,7 +188,7 @@ void Entity::UpdateSystems(ObjectModel::UpdateContext const& context)
 // -------------------------------------------------
 // Components
 // -------------------------------------------------
-void Entity::DestroyComponent(const UUID& componentID)
+void Entity::DestroyComponent(const core::UUID& componentID)
 {
     auto componentIt = std::find(m_components.begin(), m_components.end(), [componentID](Component* comp) { comp->GetID() == componentID; });
     assert(componentIt != m_components.end());
@@ -191,7 +201,7 @@ void Entity::DestroyComponent(const UUID& componentID)
         if (pComponent == m_pRootSpatialComponent)
         {
             // TODO: Assert that the spatial component has 1 child or less. Otherwise we need to detach the other children first.
-            return
+            return;
         }
 
         DestroyComponentImmediate(pComponent);
@@ -203,7 +213,7 @@ void Entity::DestroyComponent(const UUID& componentID)
         action.m_ptr = pComponent;
 
         // Notify the world system
-        EntityStateUpdateEvent.Execute(this);
+        EntityStateUpdatedEvent.Execute(this);
     }
 }
 
@@ -237,13 +247,12 @@ void Entity::DestroyComponentDeferred(const ObjectModel::LoadingContext& context
     }
 }
 
-void Entity::AddComponent(Component* pComponent, const UUID& parentSpatialComponentID)
+void Entity::AddComponent(Component* pComponent, const core::UUID& parentSpatialComponentID)
 {
     assert(pComponent != nullptr && pComponent->GetID().IsValid());
     assert(!pComponent->m_entityID.IsValid() && pComponent->IsUnloaded());
     // TODO: Assert that m_components does NOT contain a pComponent of this type
 
-    // TODO: KRG uses a custom cast ?
     SpatialComponent* pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
 
     // Parent ID can only be set when adding a spatial component
@@ -254,18 +263,19 @@ void Entity::AddComponent(Component* pComponent, const UUID& parentSpatialCompon
 
     if (IsUnloaded())
     {
-        SpatialComponent* pParentComponent = nullptr;
-        if (parentSpatialComponentID.IsValid())
-        {
-            assert(pSpatialComponent != nullptr);
+        // TODO: Replaced by a method, but we lost an assertion
+        // SpatialComponent* pParentComponent = nullptr;
+        // if (parentSpatialComponentID.IsValid())
+        // {
+        //     assert(pSpatialComponent != nullptr);
 
-            auto componentIt = std::find(m_components.begin(), m_components.end(), [parentSpatialComponentID](Component* comp) { comp->GetID() == parentSpatialComponentID; });
-            assert(componentIt != m_components.end());
+        //     auto componentIt = std::find(m_components.begin(), m_components.end(), [parentSpatialComponentID](Component* comp) { comp->GetID() == parentSpatialComponentID; });
+        //     assert(componentIt != m_components.end());
 
-            pParentComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
-            assert(pParentComponent != nullptr);
-        }
-
+        //     pParentComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
+        //     assert(pParentComponent != nullptr);
+        // }
+        auto pParentComponent = GetSpatialComponent(parentSpatialComponentID);
         AddComponentImmediate(pComponent, pParentComponent);
     }
     else // Defer to the next loading phase
@@ -318,9 +328,9 @@ void Entity::AddComponentImmediate(Component* pComponent, SpatialComponent* pPar
     m_components.emplace_back(pComponent);
 }
 
-void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, Component* pComponent, SpatialComponent* PParentComponent)
+void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, Component* pComponent, SpatialComponent* pParentComponent)
 {
-    AddComponentImmediate(pComponent, PParentComponent);
+    AddComponentImmediate(pComponent, pParentComponent);
 
     // If resources have already been loaded, notify the world system that this entity requires a reload
     if (IsLoaded())
@@ -335,7 +345,7 @@ void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, Co
 // Spatial stuff
 // -------------------------------------------------
 
-SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const UUID& socketID) const
+SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const core::UUID& socketID) const
 {
     assert(pComponentToSearch != nullptr);
     if (pComponentToSearch->HasSocket(socketID))
@@ -412,7 +422,7 @@ void Entity::DetachFromParent()
 
     // Remove component hierarchy values
     // m_pRootSpatialComponent->m_pSpatialParent = nullptr;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = UUID::InvalidID;
+    // m_pRootSpatialComponent->m_parentAttachmentSocketID = core::UUID::InvalidID;
 
     m_isAttachedToParent = false;
 }
