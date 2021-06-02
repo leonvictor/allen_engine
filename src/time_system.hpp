@@ -1,11 +1,13 @@
 #pragma once
 
+#include "utils/singleton.hpp"
 #include <chrono>
 
 /// @brief Interface to get time information. Use as a singleton (i.e. Time::GetTime())
 /// @todo Unity uses a "fake" timer to enforce a maximum delta time
-class Time
+class Time : private ISingleton<Time>
 {
+    friend class ISingleton<Time>;
     friend class Engine;
 
   private:
@@ -31,13 +33,6 @@ class Time
         singleton.m_frameTime = frameTime;
 
         singleton.m_frameCount++;
-    }
-
-    /// @brief Get the time system singleton.
-    static Time& Singleton()
-    {
-        static Time time;
-        return time;
     }
 
     Time()

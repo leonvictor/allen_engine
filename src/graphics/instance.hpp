@@ -4,13 +4,16 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
+#include "../utils/singleton.hpp"
+
 namespace vkg
 {
 
 /// @brief Instance stores application-wide parameters and info, as well as the debugging utilities.
 /// It is a singleton (use Instance::)
-class Instance
+class Instance : private ISingleton<Instance>
 {
+    friend class ISingleton<Instance>;
     friend class Device;
 
   private:
@@ -51,13 +54,6 @@ class Instance
     static bool IsInitialized()
     {
         return Singleton().m_status == State::Initialized;
-    }
-
-    /// @brief Get the singleton instance associated to this app.
-    static Instance& Singleton()
-    {
-        static Instance single;
-        return single;
     }
 
     /// @brief Get the wrapped vulkan instance.
