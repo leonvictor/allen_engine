@@ -27,11 +27,11 @@ include_directories("external/glm")
 include_directories("external/stb")
 include_directories("external/tinyobjloader")
 include_directories("external/imgui")
-include_directories("external/imgui/examples")
+include_directories("external/imgui/backends")
 include_directories("external")
 
 file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")
-set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/examples/imgui_impl_vulkan.cpp" "external/imgui/examples/imgui_impl_glfw.cpp")
+set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/backends/imgui_impl_vulkan.cpp" "external/imgui/backends/imgui_impl_glfw.cpp")
 
 set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
@@ -44,7 +44,7 @@ add_executable(main ${SOURCE})
 
 target_compile_features(main PUBLIC cxx_std_20)
 
-target_link_libraries(main glfw shaderc ${Vulkan_LIBRARIES})
+target_link_libraries(main glfw shaderc ${Vulkan_LIBRARIES} imm32)
 
 set(CMAKE_CXX_STANDARD 20) 
 set(CMAKE_CXX_STANDARD_REQUIRED True)

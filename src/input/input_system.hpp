@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../utils/singleton.hpp"
 #include "callback_context.hpp"
 #include "input_context.hpp"
 #include "keyboard.hpp"
@@ -13,7 +14,7 @@
 /// TODO: Rename to Input ?
 
 /// @brief Input is the overarching system recording and dispatching input operations.
-class Input
+class Input : private ISingleton<Input>
 {
   private:
     // TODO:
@@ -23,13 +24,6 @@ class Input
 
     // List of active InputContexts
     std::vector<InputContext*> m_contexts;
-
-    /// @brief Access the input system singleton.
-    static Input& Singleton()
-    {
-        static Input single;
-        return single;
-    }
 
   public:
     // TODO: Handle multiple device of each type.

@@ -16,12 +16,6 @@ struct Size2D
     int height;
 };
 
-// TODO: Where do default sizes go ?
-// Default width
-const int WIDTH = 800;
-// Default height
-const int HEIGHT = 600;
-
 /// @brief Represent an on-screen window. Holds the OS window and the related vulkan objects.
 /// Also wraps the window library (GLFW).
 class Window
@@ -41,7 +35,7 @@ class Window
     {
         InitializeWindow();
         // TODO: This is not that cool
-        Instance::Singleton().Create();
+        Instance::Create();
         CreateSurface();
         m_status = State::Initialized;
     }
@@ -140,22 +134,36 @@ class Window
     /// TODO: Find a better name, this is confusing
     void InitializeWindow()
     {
-        glfwInit();                                   // Init glfw
+        glfwInit(); // Init glfw
+
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-        // if (glfwRawMouseMotionSupported()) {
-        //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        // }
+        // Grab monitor dimensions
+        auto monitor = glfwGetPrimaryMonitor();
+        int width, height;
+        glfwGetMonitorWorkarea(monitor, nullptr, nullptr, &width, &height);
 
-        m_pGlfwWindow = glfwCreateWindow(WIDTH, HEIGHT, "PoopyEngine", nullptr, nullptr);
+        // Create the GLFW window
+        m_pGlfwWindow = glfwCreateWindow(width, height, "PoopyEngine", nullptr, nullptr);
+
+        // Adjust window dimensions and position to fit the screen, including title bars
+        // Only frameTop is used on w10
+        int frameLeft, frameRight, frameBottom, frameTop;
+        glfwGetWindowFrameSize(m_pGlfwWindow, &frameLeft, &frameTop, &frameRight, &frameBottom);
+        glfwSetWindowSize(m_pGlfwWindow, width, height - frameTop);
+        glfwSetWindowPos(m_pGlfwWindow, 0, frameTop);
+        glfwShowWindow(m_pGlfwWindow);
+
         glfwSetWindowUserPointer(m_pGlfwWindow, this);
 
+        // Callbacks
         glfwSetMouseButtonCallback(m_pGlfwWindow, MouseButtonCallback);
         glfwSetScrollCallback(m_pGlfwWindow, ScrollCallback);
         glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
         glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
 
-        Instance::Singleton().RequestExtensions(GetRequiredExtensions());
+        Instance::RequestExtensions(GetRequiredExtensions());
         m_status = State::WindowReady;
     }
 
@@ -163,16 +171,16 @@ class Window
     void CreateSurface()
     {
         assert(m_status == State::WindowReady);
-        assert(Instance::Singleton().IsInitialized()), "Tried to create the surface before the instance.";
+        assert(Instance::IsInitialized()), "Tried to create the surface before the instance.";
 
         VkSurfaceKHR pSurface;
-        auto res = glfwCreateWindowSurface((VkInstance) Instance::Singleton().Get(), m_pGlfwWindow, nullptr, &pSurface);
+        auto res = glfwCreateWindowSurface((VkInstance) Instance::Get(), m_pGlfwWindow, nullptr, &pSurface);
         if (res != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create window surface.");
         }
 
-        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, Instance::Singleton().Get());
+        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, Instance::Get());
     }
 };
 } // namespace vkg

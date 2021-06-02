@@ -46,6 +46,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
+#include "imgui_internal.h"
 
 const std::string MODEL_PATH = "assets/models/cube.obj";
 const std::string TEXTURE_PATH = "assets/textures/container2.png";
@@ -334,6 +335,30 @@ class Engine
             m_renderer.Draw(models, lightsDescriptorSet);
 
             // Draw ImGUI components
+            ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+            float height = ImGui::GetFrameHeight();
+
+            if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
+            {
+                if (ImGui::BeginMenuBar())
+                {
+                    ImGui::Text("Happy secondary menu bar");
+                    ImGui::EndMenuBar();
+                }
+                ImGui::End();
+            }
+
+            if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags))
+            {
+                if (ImGui::BeginMenuBar())
+                {
+                    ImGui::Text("Happy status bar");
+                    ImGui::EndMenuBar();
+                }
+                ImGui::End();
+            }
+
             if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
             {
                 auto transform = selectedObject->getComponent<Transform>();

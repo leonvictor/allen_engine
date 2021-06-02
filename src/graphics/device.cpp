@@ -153,9 +153,9 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
     deviceCreateInfo.pEnabledFeatures = &features;
 
     std::vector<const char*> validationLayers;
-    if (Instance::Singleton().ValidationLayersEnabled)
+    if (Instance::ValidationLayersEnabled())
     {
-        validationLayers = Instance::Singleton().GetValidationLayers();
+        validationLayers = Instance::GetValidationLayers();
         deviceCreateInfo.enabledLayerCount = static_cast<uint_fast32_t>(validationLayers.size());
         deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
     }
@@ -177,7 +177,7 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
 {
     // TODO: core::Instance could wrap this call and keep a list of devices cached... but it's not necessary right now
-    std::vector<vk::PhysicalDevice> devices = Instance::Singleton().Get().enumeratePhysicalDevices();
+    std::vector<vk::PhysicalDevice> devices = Instance::Get().enumeratePhysicalDevices();
 
     if (devices.empty())
     {

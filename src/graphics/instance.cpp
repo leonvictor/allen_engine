@@ -71,20 +71,21 @@ bool Instance::CheckExtensionSupport(std::vector<const char*> extensions)
 void Instance::Create()
 {
 
-    if (!CheckExtensionSupport(m_requestedExtensions))
+    auto& inst = Singleton();
+    if (!CheckExtensionSupport(inst.m_requestedExtensions))
     {
         throw std::runtime_error("Vulkan extension requested but not available.");
     }
 
-    if (ValidationLayersEnabled && !CheckValidationLayersSupport(m_validationLayers))
+    if (inst.m_validationLayersEnabled && !CheckValidationLayersSupport(inst.m_validationLayers))
     {
         throw std::runtime_error("Validation layers requested but not available.");
     }
 
-    if (ValidationLayersEnabled)
+    if (inst.m_validationLayersEnabled)
     {
         // TODO: Move to ValidationExtension
-        m_requestedExtensions.push_back("VK_EXT_debug_utils");
+        inst.m_requestedExtensions.push_back("VK_EXT_debug_utils");
     }
 
     // Populate the ApplicationInfo struct. Optionnal but may provide useful info to the driver
@@ -97,15 +98,15 @@ void Instance::Create()
 
     vk::InstanceCreateInfo iCreateInfo;
     iCreateInfo.pApplicationInfo = &appInfo,
-    iCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requestedExtensions.size());
-    iCreateInfo.ppEnabledExtensionNames = m_requestedExtensions.data();
+    iCreateInfo.enabledExtensionCount = static_cast<uint32_t>(inst.m_requestedExtensions.size());
+    iCreateInfo.ppEnabledExtensionNames = inst.m_requestedExtensions.data();
 
     // Enable validation layers if needed
     vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo;
-    if (ValidationLayersEnabled)
+    if (inst.m_validationLayersEnabled)
     {
-        iCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
-        iCreateInfo.ppEnabledLayerNames = m_validationLayers.data();
+        iCreateInfo.enabledLayerCount = static_cast<uint32_t>(inst.m_validationLayers.size());
+        iCreateInfo.ppEnabledLayerNames = inst.m_validationLayers.data();
 
         // Create the debugger
         dCreateInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
@@ -121,16 +122,16 @@ void Instance::Create()
         iCreateInfo.pNext = nullptr;
     }
 
-    m_vkInstance = vk::createInstanceUnique(iCreateInfo);
+    inst.m_vkInstance = vk::createInstanceUnique(iCreateInfo);
 
-    if (ValidationLayersEnabled)
+    if (inst.m_validationLayersEnabled)
     {
-        m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{m_vkInstance.get(), vkGetInstanceProcAddr};
-        m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(
+        inst.m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{inst.m_vkInstance.get(), vkGetInstanceProcAddr};
+        inst.m_debugMessenger = inst.m_vkInstance->createDebugUtilsMessengerEXTUnique(
             dCreateInfo,
-            nullptr, m_dispatchLoaderDynamic);
+            nullptr, inst.m_dispatchLoaderDynamic);
     }
 
-    m_status = State::Initialized;
+    inst.m_status = State::Initialized;
 }
 }; // namespace vkg

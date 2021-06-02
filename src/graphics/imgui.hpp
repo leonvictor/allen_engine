@@ -8,6 +8,7 @@
 #include "instance.hpp"
 #include "render_pass.hpp"
 #include "window.hpp"
+
 namespace vkg
 {
 
@@ -26,15 +27,17 @@ class ImGUI
     void Initialize(GLFWwindow* pGlfwWindow, std::shared_ptr<Device> pDevice, RenderPass& renderPass, int nSwapchainImages)
     {
         // Initialize Imgui context
+        IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         const ImGuiIO& io = ImGui::GetIO();
         (void) io;
-        ImGui::StyleColorsDark();
+
+        // ImGui::StyleColorsDark();
 
         ImGui_ImplGlfw_InitForVulkan(pGlfwWindow, true);
 
         ImGui_ImplVulkan_InitInfo init_info;
-        init_info.Instance = (VkInstance) vkg::Instance::Singleton().Get();
+        init_info.Instance = (VkInstance) vkg::Instance::Get();
         init_info.PhysicalDevice = pDevice->GetVkPhysicalDevice();
         init_info.Device = pDevice->GetVkDevice();
         init_info.QueueFamily = pDevice->GetPresentQueue().GetFamilyIndex();
@@ -46,15 +49,15 @@ class ImGUI
         init_info.ImageCount = nSwapchainImages;
         init_info.CheckVkResultFn = nullptr;
         init_info.MSAASamples = (VkSampleCountFlagBits) pDevice->GetMSAASamples();
+        init_info.Subpass = 0;
 
         ImGui_ImplVulkan_Init(&init_info, renderPass.GetVkRenderPass());
 
         // Upload Fonts
         // Use any command queue
 
-        pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb) {
-            ImGui_ImplVulkan_CreateFontsTexture(cb);
-        });
+        pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
+                                                  { ImGui_ImplVulkan_CreateFontsTexture(cb); });
 
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
