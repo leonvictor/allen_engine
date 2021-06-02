@@ -23,13 +23,6 @@ class IInputDevice
         throw;
     }
 
-    template <typename T>
-    void SetControlValue(IInputControl& control, T value)
-    {
-        // TODO: Assert this control is part of this device
-        dynamic_cast<InputControl<T>>(control).SetValue<T>(value);
-    }
-
   public:
     /// @brief Return a list of state changed events that occured since the last call to this method.
     virtual std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() = 0;
