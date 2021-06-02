@@ -8,7 +8,7 @@ namespace vkg
 {
 
 /// @brief Instance stores application-wide parameters and info, as well as the debugging utilities.
-/// It is a singleton (use Instance::Singleton())
+/// It is a singleton (use Instance::)
 class Instance
 {
     friend class Device;
@@ -21,9 +21,9 @@ class Instance
     };
 
 #ifdef NDEBUG
-    const bool ValidationLayersEnabled = false;
+    const bool m_validationLayersEnabled = false;
 #else
-    const bool ValidationLayersEnabled = true;
+    const bool m_validationLayersEnabled = true;
 #endif
 
     State m_status = State::Uninitialized;
@@ -46,11 +46,11 @@ class Instance
 
   public:
     /// @brief Create the application wide instance. Should be called once at program startup.
-    void Create();
+    static void Create();
 
-    bool IsInitialized() const
+    static bool IsInitialized()
     {
-        return m_status == State::Initialized;
+        return Singleton().m_status == State::Initialized;
     }
 
     /// @brief Get the singleton instance associated to this app.
@@ -61,21 +61,29 @@ class Instance
     }
 
     /// @brief Get the wrapped vulkan instance.
-    inline vk::Instance& Get() { return m_vkInstance.get(); }
+    static inline vk::Instance& Get() { return Singleton().m_vkInstance.get(); }
 
-    inline void RequestExtension(const char* extension)
+    static inline void RequestExtension(const char* extension)
     {
-        m_requestedExtensions.push_back(extension);
+        Singleton().m_requestedExtensions.push_back(extension);
     }
 
-    inline void RequestExtensions(std::vector<const char*> extensions)
+    static inline void RequestExtensions(std::vector<const char*> extensions)
     {
-        m_requestedExtensions.insert(m_requestedExtensions.end(), extensions.begin(), extensions.end());
+        auto& inst = Singleton();
+        inst.m_requestedExtensions.insert(inst.m_requestedExtensions.end(), extensions.begin(), extensions.end());
     }
 
-    inline const std::vector<const char*> GetValidationLayers() const
+    static inline const std::vector<const char*> GetValidationLayers()
     {
-        return m_validationLayers;
+        return Singleton().m_validationLayers;
     }
+
+    static inline const vk::DispatchLoaderDynamic& GetDispatchLoaderDynamic()
+    {
+        return Singleton().m_dispatchLoaderDynamic;
+    }
+
+    static bool ValidationLayersEnabled() { return Singleton().ValidationLayersEnabled; }
 };
 } // namespace vkg

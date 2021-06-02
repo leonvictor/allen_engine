@@ -86,11 +86,11 @@ class Device
     {
         vk::DebugUtilsObjectNameInfoEXT debugName{
             .objectType = object.objectType,
-            .objectHandle = (uint64_t)(typename T::CType) object,
+            .objectHandle = (uint64_t) (typename T::CType) object,
             .pObjectName = name.c_str(),
         };
 
-        m_logical->setDebugUtilsObjectNameEXT(debugName, Instance::Singleton().m_dispatchLoaderDynamic);
+        m_logical->setDebugUtilsObjectNameEXT(debugName, Instance::GetDispatchLoaderDynamic());
     }
 
     inline vk::SampleCountFlagBits GetMSAASamples() const { return m_msaaSamples; }

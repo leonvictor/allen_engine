@@ -35,7 +35,7 @@ class Window
     {
         InitializeWindow();
         // TODO: This is not that cool
-        Instance::Singleton().Create();
+        Instance::Create();
         CreateSurface();
         m_status = State::Initialized;
     }
@@ -163,7 +163,7 @@ class Window
         glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
         glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
 
-        Instance::Singleton().RequestExtensions(GetRequiredExtensions());
+        Instance::RequestExtensions(GetRequiredExtensions());
         m_status = State::WindowReady;
     }
 
@@ -171,16 +171,16 @@ class Window
     void CreateSurface()
     {
         assert(m_status == State::WindowReady);
-        assert(Instance::Singleton().IsInitialized()), "Tried to create the surface before the instance.";
+        assert(Instance::IsInitialized()), "Tried to create the surface before the instance.";
 
         VkSurfaceKHR pSurface;
-        auto res = glfwCreateWindowSurface((VkInstance) Instance::Singleton().Get(), m_pGlfwWindow, nullptr, &pSurface);
+        auto res = glfwCreateWindowSurface((VkInstance) Instance::Get(), m_pGlfwWindow, nullptr, &pSurface);
         if (res != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create window surface.");
         }
 
-        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, Instance::Singleton().Get());
+        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, Instance::Get());
     }
 };
 } // namespace vkg
