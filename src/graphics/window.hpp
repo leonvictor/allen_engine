@@ -134,20 +134,30 @@ class Window
     /// TODO: Find a better name, this is confusing
     void InitializeWindow()
     {
-        glfwInit();                                   // Init glfw
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
+        glfwInit(); // Init glfw
 
-        // if (glfwRawMouseMotionSupported()) {
-        //     glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        // }
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
         // Grab monitor dimensions
         auto monitor = glfwGetPrimaryMonitor();
-        auto videoMode = glfwGetVideoMode(monitor);
+        int width, height;
+        glfwGetMonitorWorkarea(monitor, nullptr, nullptr, &width, &height);
 
-        m_pGlfwWindow = glfwCreateWindow(videoMode->width, videoMode->height, "PoopyEngine", nullptr, nullptr);
+        // Create the GLFW window
+        m_pGlfwWindow = glfwCreateWindow(width, height, "PoopyEngine", nullptr, nullptr);
+
+        // Adjust window dimensions and position to fit the screen, including title bars
+        // Only frameTop is used on w10
+        int frameLeft, frameRight, frameBottom, frameTop;
+        glfwGetWindowFrameSize(m_pGlfwWindow, &frameLeft, &frameTop, &frameRight, &frameBottom);
+        glfwSetWindowSize(m_pGlfwWindow, width, height - frameTop);
+        glfwSetWindowPos(m_pGlfwWindow, 0, frameTop);
+        glfwShowWindow(m_pGlfwWindow);
+
         glfwSetWindowUserPointer(m_pGlfwWindow, this);
 
+        // Callbacks
         glfwSetMouseButtonCallback(m_pGlfwWindow, MouseButtonCallback);
         glfwSetScrollCallback(m_pGlfwWindow, ScrollCallback);
         glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
