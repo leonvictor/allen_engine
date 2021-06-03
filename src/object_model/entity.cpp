@@ -1,12 +1,12 @@
 #include "entity.hpp"
 #include "entity_system.cpp"
+
 #include <assert.h>
 #include <stdexcept>
 #include <vector>
 
 Entity::Entity(){};
 
-/// @brief Triggers registration with the systems (local and global)
 void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
 {
     assert(IsLoaded());
@@ -103,7 +103,8 @@ void Entity::GenerateSystemUpdateList()
 
         // Sort update list
         // TODO: what does "T* const& var" mean ?
-        auto comparator = [i](EntitySystem* const& pSystemA, EntitySystem* const& pSystemB) {
+        auto comparator = [i](IEntitySystem* const& pSystemA, IEntitySystem* const& pSystemB)
+        {
             uint16_t A = pSystemA->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
             uint16_t B = pSystemB->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
             return A > B;
@@ -117,10 +118,10 @@ void Entity::GenerateSystemUpdateList()
 // Systems
 // -------------------------------------------------
 
-void Entity::CreateSystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInfo)
+void Entity::CreateSystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     assert(pSystemTypeInfo != nullptr);
-    // TODO: assert that pSystemTypeInfo describes a type that is derived from EntitySystem
+    // TODO: assert that pSystemTypeInfo describes a type that is derived from IEntitySystem
     // TODO: DEBUG: Disable this loop in release builds
 
     // Make sure we only have one system of this type
@@ -133,11 +134,11 @@ void Entity::CreateSystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInfo
         }
     }
 
-    auto pSystem = std::static_pointer_cast<EntitySystem>(pSystemTypeInfo->m_pTypeHelper->CreateType());
+    auto pSystem = std::static_pointer_cast<IEntitySystem>(pSystemTypeInfo->m_pTypeHelper->CreateType());
     m_systems.emplace_back(pSystem);
 }
 
-void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<EntitySystem>* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -150,7 +151,8 @@ void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingCont
     }
 }
 
-void Entity::DestroySystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInfo)
+/// @brief
+void Entity::DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     // TODO: find the index of system in m_systems
 
@@ -161,7 +163,7 @@ void Entity::DestroySystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInf
     m_systems.erase(m_systems.begin() + systemIdx);
 }
 
-void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<EntitySystem>* pSystemTypeInfo)
+void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -190,7 +192,9 @@ void Entity::UpdateSystems(ObjectModel::UpdateContext const& context)
 // -------------------------------------------------
 void Entity::DestroyComponent(const core::UUID& componentID)
 {
-    auto componentIt = std::find(m_components.begin(), m_components.end(), [componentID](Component* comp) { comp->GetID() == componentID; });
+    assert(componentID.IsValid());
+    auto componentIt = std::find(m_components.begin(), m_components.end(), [componentID](Component* comp)
+                                 { comp->GetID() == componentID; });
     assert(componentIt != m_components.end());
 
     auto pComponent = m_components[componentIt - m_components.begin()];
@@ -219,7 +223,8 @@ void Entity::DestroyComponent(const core::UUID& componentID)
 
 void Entity::DestroyComponentImmediate(Component* pComponent)
 {
-    auto componentIt = std::find(m_components.begin(), m_components.end(), [pComponent](Component* comp) { comp->GetID() == pComponent->GetID(); });
+    auto componentIt = std::find(m_components.begin(), m_components.end(), [pComponent](Component* comp)
+                                 { comp->GetID() == pComponent->GetID(); });
     assert(componentIt != m_components.end());
     m_components.erase(componentIt);
 
@@ -258,7 +263,7 @@ void Entity::AddComponent(Component* pComponent, const core::UUID& parentSpatial
     // Parent ID can only be set when adding a spatial component
     if (pSpatialComponent == nullptr)
     {
-        assert(!parentSpatialComponentID.IsValid(), "Tried to set a parent to a non-spatial component.");
+        assert(!parentSpatialComponentID.IsValid()); // , "Tried to set a parent to a non-spatial component."
     }
 
     if (IsUnloaded())
@@ -364,7 +369,6 @@ SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pCompo
     return nullptr;
 }
 
-/// @brief Attach to the parent entity
 void Entity::AttachToParent()
 {
     assert(IsSpatialEntity());
@@ -406,7 +410,6 @@ void Entity::AttachToParent()
     m_isAttachedToParent = true;
 }
 
-/// @brief Detach from the parent entity
 void Entity::DetachFromParent()
 {
     assert(IsSpatialEntity());

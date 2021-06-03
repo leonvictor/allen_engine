@@ -20,8 +20,10 @@ class UUID
     }
 
   public:
+    /// @brief Invalid ID
     static const UUID InvalidID;
 
+    /// @brief Default constructor initializes a new valid UUID.
     UUID() : m_ID(uuids::uuid_system_generator{}())
     {
         m_isValid = true;
@@ -44,7 +46,20 @@ class UUID
 
     bool IsValid() const { return m_isValid; }
 
-    bool operator==(const UUID& other) const { return m_ID == other.m_ID; }
+    bool operator==(const UUID& other) const
+    {
+        if (!other.IsValid())
+        {
+            // An invalid UUID is only equal to another invalid one
+            return !IsValid();
+        }
+        else
+        {
+            // Both UUIDs are valid and there inner id are equal
+            return IsValid() && m_ID == other.m_ID;
+        }
+    }
+
     bool operator!=(const UUID& other) const { return !operator==(other); }
 
     friend std::ostream& operator<<(std::ostream& os, const UUID& uuid);

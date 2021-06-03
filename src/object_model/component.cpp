@@ -10,12 +10,13 @@ enum ComponentStatus
     Loading,       // Resource loading in progress
     Loaded,        // All resources loaded successfully
     LoadingFailed, // Some resources failed to load
-    Initialized    // TODO
+    Initialized    // Ready to use
 };
 
 // TODO: Wrap m_state changes method to automatically run assertions in order to avoid having to rely on user classes adding them systematically
 /// @brief Data storage attached to Entities.
-/// https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
+/// @todo Rename to IComponent
+/// @note https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
 class Component
 {
     // TODO: Serialization
@@ -48,6 +49,7 @@ class Component
         m_state = ComponentStatus::Loaded;
     };
 
+    /// @brief Load all ressources.
     virtual void Load()
     {
         assert(m_state == ComponentStatus::Unloaded);
@@ -58,6 +60,7 @@ class Component
         m_state = ComponentStatus::Loaded;
     };
 
+    /// @brief Unload all ressources.
     virtual void Unload()
     {
         assert(m_state == ComponentStatus::Loaded || m_state == ComponentStatus::LoadingFailed || m_state == ComponentStatus::Loading);

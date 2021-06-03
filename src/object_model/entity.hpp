@@ -18,7 +18,7 @@ enum Status
 };
 
 class Component;
-class EntitySystem;
+class IEntitySystem;
 
 class EntityInternalStateAction
 {
@@ -59,13 +59,13 @@ class Command
                 pEntity->AddComponentDeferred(context, (Component*) action.m_ptr, pParentComponent);
                 break;
             case EntityInternalStateAction::Type::CreateSystem:
-                pEntity->CreateSystemDeferred(context, (TypeInfo<EntitySystem>*) action.m_ptr);
+                pEntity->CreateSystemDeferred(context, (TypeInfo<IEntitySystem>*) action.m_ptr);
                 break;
             case EntityInternalStateAction::Type::DestroyComponent:
                 pEntity->DestroyComponentDeferred(context, (Component*) action.m_ptr);
                 break;
             case EntityInternalStateAction::Type::DestroySystem:
-                pEntity->DestroySystemDeferred(context, (TypeInfo<EntitySystem>*) action.m_ptr);
+                pEntity->DestroySystemDeferred(context, (TypeInfo<IEntitySystem>*) action.m_ptr);
                 break;
             default:
                 throw std::runtime_error("Unsupported operation");
@@ -75,6 +75,8 @@ class Command
     }
 };
 
+/// @brief An Entity represents a single element in a scene/world.
+/// Entities can be organized in hierarchies.
 class Entity
 {
     friend Command;
@@ -84,11 +86,11 @@ class Entity
     Status m_status = Status::Unloaded;
 
     std::vector<Component*> m_components;
-    std::vector<EntitySystem*> m_systems;
+    std::vector<IEntitySystem*> m_systems;
 
-    std::array<std::vector<EntitySystem*>, UpdateStage::NumStages> m_systemUpdateLists;
+    std::array<std::vector<IEntitySystem*>, UpdateStage::NumStages> m_systemUpdateLists;
 
-    // Spacial attributes
+    // Spatial attributes
     SpatialComponent* m_pRootSpatialComponent = nullptr;
     Entity* m_pParentSpatialEntity = nullptr; // A spatial entity may request to be attached to another spatial entity
     std::vector<Entity*> m_attachedEntities;  // Children
@@ -111,13 +113,30 @@ class Entity
 
         // assert(pSpatialComponent != nullptr);
 
-        auto componentIt = std::find(m_components.begin(), m_components.end(), [spatialComponentID](Component* comp) { comp->GetID() == spatialComponentID; });
+        auto componentIt = std::find(m_components.begin(), m_components.end(), [spatialComponentID](Component* comp)
+                                     { comp->GetID() == spatialComponentID; });
         assert(componentIt != m_components.end());
 
         auto pSpatialComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
         assert(pSpatialComponent != nullptr);
         return pSpatialComponent;
     }
+
+    /// @brief Create a new system and add it to this Entity.
+    /// An Entity can only have one system of a given type (subtypes included).
+    void CreateSystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+
+    /// @brief Same as CreateSystemImmediate, but the world system is notified that it should reload the Entity.
+    void CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+
+    void DestroyComponentImmediate(Component* pComponent);
+    void DestroyComponentDeferred(const ObjectModel::LoadingContext& loadingContext, Component* pComponent);
+    void AddComponentImmediate(Component* pComponent, SpatialComponent* pParentComponent);
+    void AddComponentDeferred(const ObjectModel::LoadingContext& loadingContext, Component* pComponent, SpatialComponent* pParentComponent);
+
+    void RefreshEntityAttachments();
 
   public:
     inline bool Entity::IsLoaded() const { return m_status == Status::Loaded; }
@@ -141,10 +160,12 @@ class Entity
     // -------------------------------------------------
     // Systems
     // -------------------------------------------------
+
+    /// @brief Create a System of type T and add it to this Entity.
     template <typename T>
     inline void CreateSystem()
     {
-        static_assert(std::is_base_of_v<EntitySystem, T>, "Invalid system type");
+        static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
 
         if (IsUnloaded())
@@ -161,10 +182,12 @@ class Entity
         }
     }
 
+    /// @brief Destroy the system of type T of this Entity. The destruction is effective
+    /// immediately if the entity is unloaded, otherwise it will be effective in the next frame.
     template <typename T>
     inline void DestroySystem()
     {
-        static_assert(std::is_base_of_v<EntitySystem, T>);
+        static_assert(std::is_base_of_v<IEntitySystem, T>);
         assert(std::find(m_systems, T::GetTypeInfo()->m_ID) != m_systems.end());
 
         if (IsUnloaded())
@@ -181,20 +204,17 @@ class Entity
         }
     }
 
-    void CreateSystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInfo);
-    void CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<EntitySystem>* pSystemTypeInfo);
-    void DestroySystemImmediate(const TypeInfo<EntitySystem>* pSystemTypeInfo);
-    void DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<EntitySystem>* pSystemTypeInfo);
-
+    /// @brief Update all systems attached to this entity.
     void UpdateSystems(const ObjectModel::UpdateContext& context);
 
+    /// @brief Destroy a component from this entity.
+    /// @param componentID: UUID of the component to destroy.
     void DestroyComponent(const core::UUID& componentID);
-    void DestroyComponentImmediate(Component* pComponent);
-    void DestroyComponentDeferred(const ObjectModel::LoadingContext& loadingContext, Component* pComponent);
 
+    /// @brief Add a component to this entity.
+    /// @param pComponent: Component to add.
+    /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
     void AddComponent(Component* pComponent, const core::UUID& parentSpatialComponentID = core::UUID::InvalidID);
-    void AddComponentImmediate(Component* pComponent, SpatialComponent* pParentComponent);
-    void AddComponentDeferred(const ObjectModel::LoadingContext& loadingContext, Component* pComponent, SpatialComponent* pParentComponent);
 
     SpatialComponent* FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const core::UUID& socketID) const;
 
@@ -205,7 +225,9 @@ class Entity
         return FindSocketAttachmentComponent(m_pRootSpatialComponent, socketID);
     };
 
+    /// @brief Attach to the parent entity.
     void AttachToParent();
+
+    /// @brief Detach from the parent entity.
     void DetachFromParent();
-    void RefreshEntityAttachments();
 };

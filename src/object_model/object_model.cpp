@@ -1,4 +1,4 @@
-#include "entity_system.cpp" // For update stages (move if necessary)
+#include "../update_stages.hpp"
 
 class Entity;
 class Component;

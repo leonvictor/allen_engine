@@ -2,22 +2,12 @@
 
 #include <assert.h>
 
+#include "../update_stages.hpp"
 #include "../utils/type_info.hpp"
 #include "object_model.cpp"
+
 #include <unordered_map>
 #include <vector>
-
-// TODO: This is engine-wide. Should be used by the main game loop
-// TODO: having numstages this way could be a bit wonky
-enum UpdateStage
-{
-    FrameStart,
-    PrePhysics,
-    Physics,
-    PostPhysics,
-    FrameEnd,
-    NumStages
-};
 
 struct UpdatePriorities
 {
@@ -41,24 +31,26 @@ struct UpdatePriorities
 
 class Component;
 
-// Systems are singletons (only one of each type in an entity)
-class EntitySystem
+/// @brief Abstract base class for systems operating on entities. Systems are singletons (only one of each type associated to an entity).
+class IEntitySystem
 {
   private:
     UpdatePriorities m_requiredUpdatePriorities;
+    /// Components registered with this system
     std::vector<Component*> m_components;
-    std::shared_ptr<TypeInfo<EntitySystem>> m_pTypeInfo;
+    std::shared_ptr<TypeInfo<IEntitySystem>> m_pTypeInfo;
 
     // TODO: Explicit Components dependencies (like in "i need a mesh component" to function)
     // -> this should happen in the inherited system classes
     // TODO: prevent the use of the base class + enforce redefinining of Register/Unregister methods
   public:
-    static std::shared_ptr<TypeInfo<EntitySystem>> StaticTypeInfo;
+    static std::shared_ptr<TypeInfo<IEntitySystem>> StaticTypeInfo;
 
-    EntitySystem() {}
+    IEntitySystem() {}
 
-    void Update(ObjectModel::UpdateContext const& context) {}
+    virtual void Update(ObjectModel::UpdateContext const& context) = 0;
 
+    /// @brief Register a component with this system.
     void RegisterComponent(Component* pComponent)
     {
         assert(pComponent != nullptr);
@@ -70,6 +62,7 @@ class EntitySystem
         m_components.push_back(pComponent);
     }
 
+    /// @brief Unregister a component with this system.
     void UnregisterComponent(Component* pComponent)
     {
         // todo: accept entity id and get the record from the map
@@ -78,13 +71,14 @@ class EntitySystem
         // remove from map
     }
 
-    /// @brief Returns the update priorities for this component.
+    /// @brief Returns the update priorities for this system.
     UpdatePriorities GetRequiredUpdatePriorities() const { return m_requiredUpdatePriorities; }
 
-    static TypeInfo<EntitySystem>* GetTypeInfo()
+    /// @brief Return the reflection type of this system.
+    static TypeInfo<IEntitySystem>* GetTypeInfo()
     {
         // TODO: This won't work because EntitySytem are not designed to be used as is
         // TODO: Force derived class to implement this function.
-        return TypeInfo<EntitySystem>::GetTypeInfo<EntitySystem>().get();
+        return TypeInfo<IEntitySystem>::GetTypeInfo<IEntitySystem>().get();
     }
 };
