@@ -334,79 +334,135 @@ class Engine
             m_renderer.Draw(skybox);
             m_renderer.Draw(models, lightsDescriptorSet);
 
-            // Draw ImGUI components
-            ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
-            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
-            float height = ImGui::GetFrameHeight();
-
-            if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
-            {
-                if (ImGui::BeginMenuBar())
-                {
-                    // ImGui::Text("Happy secondary menu bar");
-                    ImGui::EndMenuBar();
-                }
-                ImGui::End();
-            }
-
-            if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags))
-            {
-                if (ImGui::BeginMenuBar())
-                {
-                    // ImGui::Text("Happy status bar");
-
-                    // Compute current FPS
-                    // Use std::format (C++20). Not available in most compilers as of 04/06/2021
-                    std::string fps = std::to_string(1.0 / Time::GetDeltaTime());
-                    fps = fps.substr(0, fps.find("."));
-                    fps += " FPS";
-                    ImGui::Text(fps.c_str());
-
-                    ImGui::EndMenuBar();
-                }
-
-                ImGui::End();
-            }
-
-            if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
-            {
-                auto transform = selectedObject->getComponent<Transform>();
-                ImGui::PushItemWidth(60);
-                // TODO: vec3 might deserve a helper function to create ui for the 3 components...
-                // Position
-                ImGui::Text("Position");
-                ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
-
-                // Rotation
-                ImGui::Text("Rotation");
-                ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
-
-                // Scale
-                ImGui::Text("Scale");
-                ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
-
-                ImGui::End();
-            }
-
-            ImGui::End();
-            // ImGui::ShowDemoWindow();
+            DrawUI();
 
             m_renderer.EndFrame();
         }
 
         m_renderer.GetDevice()->GetVkDevice().waitIdle();
+    }
+
+    void DrawUI()
+    {
+        // Draw ImGUI components
+        ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+        float height = ImGui::GetFrameHeight();
+
+        // ImGui::DockSpaceOverViewport(viewport);
+
+        if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
+        {
+            if (ImGui::BeginMenuBar())
+            {
+                if (ImGui::BeginMenu("File"))
+                {
+                    ImGui::MenuItem("Item");
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("View"))
+                {
+                    ImGui::MenuItem("Item");
+                    ImGui::EndMenu();
+                }
+                // ImGui::Text("Happy secondary menu bar");
+                ImGui::EndMenuBar();
+            }
+
+            ImGui::End();
+        }
+
+        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags))
+        {
+            if (ImGui::BeginMenuBar())
+            {
+                // ImGui::Text("Happy status bar");
+
+                // Compute current FPS
+                // Use std::format (C++20). Not available in most compilers as of 04/06/2021
+                std::string fps = std::to_string(1.0 / Time::GetDeltaTime());
+                fps = fps.substr(0, fps.find("."));
+                fps += " FPS";
+                ImGui::Text(fps.c_str());
+
+                ImGui::EndMenuBar();
+            }
+
+            ImGui::End();
+        }
+
+        // if (ImGui::Begin("SceneViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
+        // {
+        //     // TODO: Only display the viewport in the right tab.
+        //     // And only if it's active
+        //     auto dim = ImGui::GetWindowSize();
+        //     auto pos = ImGui::GetWindowPos();
+
+        //     if (ImGui::BeginTabBar("MainTabBar"))
+        //     {
+        //         if (ImGui::BeginTabItem("Scene"))
+        //         {
+        //             ImGui::Text("Here, the scene !");
+        //             ImGui::EndTabItem();
+        //         }
+        //         ImGui::EndTabBar();
+        //     }
+        //     ImGui::End();
+        // }
+
+        // if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
+        // {
+        //     // TODO: Only display the viewport in the right tab.
+        //     // And only if it's active
+        //     auto dim = ImGui::GetWindowSize();
+        //     auto pos = ImGui::GetWindowPos();
+
+        //     if (ImGui::BeginTabBar("LogsTabBar"))
+        //     {
+        //         if (ImGui::BeginTabItem("Logs"))
+        //         {
+        //             ImGui::Text("Sample Logs");
+        //             ImGui::EndTabItem();
+        //         }
+        //         ImGui::EndTabBar();
+        //     }
+        //     ImGui::End();
+        // }
+
+        if (ImGui::Begin("Transform", nullptr) && selectedObject != nullptr)
+        {
+            auto transform = selectedObject->getComponent<Transform>();
+            ImGui::PushItemWidth(60);
+            // TODO: vec3 might deserve a helper function to create ui for the 3 components...
+            // Position
+            ImGui::Text("Position");
+            ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
+
+            // Rotation
+            ImGui::Text("Rotation");
+            ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
+
+            // Scale
+            ImGui::Text("Scale");
+            ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+
+            ImGui::End();
+        }
+
+        ImGui::End();
+        ImGui::ShowDemoWindow();
     }
 };
 

@@ -29,7 +29,8 @@ class ImGUI
         // Initialize Imgui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        const ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         (void) io;
 
         ImVec4* colors = ImGui::GetStyle().Colors;
@@ -60,7 +61,7 @@ class ImGUI
         colors[ImGuiCol_Header] = ImVec4(0.05f, 0.07f, 0.08f, 0.55f);
         colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
         colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-        colors[ImGuiCol_Separator] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
+        colors[ImGuiCol_Separator] = ImVec4(0.05f, 0.07f, 0.08f, 1.00f);
         colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
         colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
         colors[ImGuiCol_ResizeGrip] = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
@@ -68,7 +69,7 @@ class ImGUI
         colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
         colors[ImGuiCol_Tab] = ImVec4(0.04f, 0.05f, 0.05f, 1.00f);
         colors[ImGuiCol_TabHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-        colors[ImGuiCol_TabActive] = ImVec4(0.20f, 0.25f, 0.29f, 1.00f);
+        colors[ImGuiCol_TabActive] = ImVec4(0.05f, 0.07f, 0.08f, 1.00f);
         colors[ImGuiCol_TabUnfocused] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
         colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.11f, 0.15f, 0.17f, 1.00f);
         colors[ImGuiCol_DockingPreview] = ImVec4(0.26f, 0.59f, 0.98f, 0.70f);
