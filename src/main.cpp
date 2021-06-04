@@ -343,7 +343,7 @@ class Engine
             {
                 if (ImGui::BeginMenuBar())
                 {
-                    ImGui::Text("Happy secondary menu bar");
+                    // ImGui::Text("Happy secondary menu bar");
                     ImGui::EndMenuBar();
                 }
                 ImGui::End();
@@ -353,9 +353,18 @@ class Engine
             {
                 if (ImGui::BeginMenuBar())
                 {
-                    ImGui::Text("Happy status bar");
+                    // ImGui::Text("Happy status bar");
+
+                    // Compute current FPS
+                    // Use std::format (C++20). Not available in most compilers as of 04/06/2021
+                    std::string fps = std::to_string(1.0 / Time::GetDeltaTime());
+                    fps = fps.substr(0, fps.find("."));
+                    fps += " FPS";
+                    ImGui::Text(fps.c_str());
+
                     ImGui::EndMenuBar();
                 }
+
                 ImGui::End();
             }
 
@@ -387,9 +396,12 @@ class Engine
                 ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
                 ImGui::SameLine();
                 ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+
+                ImGui::End();
             }
+
             ImGui::End();
-            ImGui::ShowDemoWindow();
+            // ImGui::ShowDemoWindow();
 
             m_renderer.EndFrame();
         }
