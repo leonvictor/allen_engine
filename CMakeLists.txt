@@ -33,6 +33,8 @@ include_directories("external")
 file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")
 set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/backends/imgui_impl_vulkan.cpp" "external/imgui/backends/imgui_impl_glfw.cpp")
 
+set(SOURCE ${SOURCE} "external/imgui_plugins/ImGuizmo.cpp")
+
 set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
