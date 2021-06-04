@@ -22,16 +22,26 @@ struct FrameSync
     vk::UniqueFence inFlight;
 };
 
+// TODO: Rework this cuz its wonky
+struct TargetImage
+{
+    vk::Image image; // Image is managed by the vk swapchain
+    vk::UniqueImageView view;
+    vk::UniqueCommandBuffer commandbuffer;
+    vk::Fence fence;
+    int index;
+};
+
 /// TODO: Modify the API to allow offline rendering. The idea would be to render to a texture which we can display onto an imgui window.
 /// We need to be careful here, as it'd be good to keep the possibility to directly render to the swapchain images
 /// For when we'll create game builds for example.
 /// We also need to keep frame buffering in the process.
 ///
 /// How would that look like ? Pull out swapchain, and provide the image to render to as arguments ?
-/// Or various subclasses with similar APIs (OfflineRenderer, SwapchainRenderr)
+/// Or various subclasses with similar APIs (OfflineRenderer, SwapchainRenderer) ?
 
 /// @brief Renderer instance used to draw the scenes and the UI.
-class Renderer
+class OfflineRenderer
 {
     enum State
     {
@@ -45,14 +55,17 @@ class Renderer
     State m_state = State::Uninitialized;
 
     std::shared_ptr<Device> m_pDevice;
-    Window* m_pWindow;           // Associated window
-    Swapchain m_targetSwapchain; // Target swapchain
+    // Window* m_pWindow;           // Associated window
+    // Swapchain m_targetSwapchain; // Target swapchain
 
-    uint32_t m_currentFrameIndex = 0; // Frame index
-    uint32_t m_activeImageIndex;      // Active swapchain image
+    // uint32_t m_currentFrameIndex = 0; // Frame index
+    // uint32_t m_activeImageIndex;      // Active swapchain image
 
     // Sync objects
     std::vector<FrameSync> m_frames;
+
+    // Target images
+    std::vector<Image> m_targetImages;
 
     RenderPass m_renderpass;
 
@@ -62,20 +75,18 @@ class Renderer
         Pipeline skybox;
     } pipelines;
 
-    ImGUI m_imgui;
-
   public:
-    // Renderer() {}
-
-    void Create(vkg::Window* pWindow)
+    void Create(std::shared_ptr<Device> pDevice)
     {
-        assert(pWindow->IsInitialized());
+        // Necessary parameters
+        // TODO: Grab them from somewhere
+        int width, height, mipLevels; // TODO
+        vk::Extent2D m_extent;        // TODO
 
-        m_pWindow = pWindow;
-        m_pDevice = std::make_shared<Device>(m_pWindow->GetSurface());
-        m_targetSwapchain = vkg::Swapchain(m_pDevice, &m_pWindow->GetSurface(), m_pWindow->GetWidth(), m_pWindow->GetHeight());
+        m_pDevice = pDevice;
 
         // TODO: Decide where renderpasses should be kept.
+        // TODO: RenderPass doesn't need to know about swapchain
         m_renderpass = RenderPass(m_pDevice, &m_targetSwapchain);
 
         // Create sync objects
@@ -93,7 +104,6 @@ class Renderer
         }
 
         CreatePipelines();
-        m_imgui.Initialize(m_pWindow->GetGLFWWindow(), m_pDevice, m_renderpass, m_targetSwapchain.NumberOfImages());
     }
 
     void CreatePipelines()
@@ -101,7 +111,7 @@ class Renderer
         // Create the object rendering pipeline
         pipelines.objects = Pipeline(m_pDevice);
         pipelines.objects.SetRenderPass(m_renderpass.GetVkRenderPass());
-        pipelines.objects.SetExtent(m_targetSwapchain.GetExtent());
+        pipelines.objects.SetExtent(m_extent);
         pipelines.objects.RegisterShader("shaders/shader.vert", vk::ShaderStageFlagBits::eVertex);
         pipelines.objects.RegisterShader("shaders/shader.frag", vk::ShaderStageFlagBits::eFragment);
         pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<Light>());
@@ -112,7 +122,7 @@ class Renderer
         // Skybox pipeline
         pipelines.skybox = Pipeline(m_pDevice);
         pipelines.skybox.SetRenderPass(m_renderpass.GetVkRenderPass());
-        pipelines.skybox.SetExtent(m_targetSwapchain.GetExtent());
+        pipelines.skybox.SetExtent(m_extent.GetExtent());
         pipelines.skybox.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
         pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
         pipelines.skybox.SetDepthTestWriteEnable(true, false);
@@ -122,6 +132,11 @@ class Renderer
         m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
     }
 
+    TargetImage& GetNextTargetImage()
+    {
+        // TODO
+    }
+
     void BeginFrame()
     {
         // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
@@ -129,24 +144,24 @@ class Renderer
 
         // TODO: Handle recreation
         // Acquire an image from the swap chain
-        m_activeImageIndex = m_targetSwapchain.AcquireNextImage(m_frames[m_currentFrameIndex].imageAvailable.get());
-
+        // m_activeImageIndex = m_targetSwapchain.AcquireNextImage(m_frames[m_currentFrameIndex].imageAvailable.get());
+        auto& image = GetNextTargetImage();
         // TODO: If fences and commandbuffers actually deserve to be in swapchain,
         // This could be in swapchain as well
 
         // Check if a previous frame is using the image
-        if (m_targetSwapchain.ActiveImage().fence)
+        if (image.fence)
         {
-            m_pDevice->GetVkDevice().waitForFences(m_targetSwapchain.ActiveImage().fence, VK_TRUE, UINT64_MAX);
+            m_pDevice->GetVkDevice().waitForFences(image.fence, VK_TRUE, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
-        m_targetSwapchain.ActiveImage().fence = m_frames[m_currentFrameIndex].inFlight.get();
+        image.fence = m_frames[m_currentFrameIndex].inFlight.get();
 
-        m_targetSwapchain.ActiveImage().commandbuffer->begin(vk::CommandBufferBeginInfo{});
+        image.commandbuffer->begin(vk::CommandBufferBeginInfo{});
 
         // Start a render pass
-        m_renderpass.Begin(m_targetSwapchain.ActiveImage().commandbuffer.get(), m_activeImageIndex);
+        m_renderpass.Begin(image.commandbuffer.get(), image.index);
 
         m_imgui.NewFrame();
 
