@@ -8,9 +8,9 @@
 #include "../imgui.hpp"
 #include "../pipeline.hpp"
 #include "../render_pass2.hpp"
-#include "../render_target.hpp"
 #include "../swapchain.hpp"
 #include "../window.hpp"
+#include "render_target.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -32,7 +32,7 @@ struct FrameSync
 /// Or various subclasses with similar APIs (OfflineRenderer, SwapchainRenderer) ?
 
 /// @brief Renderer instance used to draw the scenes and the UI.
-class IOfflineRenderer
+class IRenderer
 {
     enum State
     {
@@ -41,6 +41,11 @@ class IOfflineRenderer
     };
 
   private:
+    /// @brief Override in child classes to specify how to retrieve the target images.
+    virtual void CreateTargetImages() = 0;
+    virtual RenderTarget& GetNextTarget() = 0;
+
+  protected:
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
     State m_state = State::Uninitialized;
@@ -48,20 +53,22 @@ class IOfflineRenderer
     std::shared_ptr<Device> m_pDevice;
 
     uint32_t m_currentFrameIndex = 0; // Frame index
-    uint32_t m_activeImageIndex;      // Active image index
+    uint32_t m_activeImageIndex = 0;  // Active image index
+
+    vk::Format m_colorImageFormat;
 
     // Sync objects
     std::vector<FrameSync> m_frames;
 
     // Target images
-    std::vector<Image> m_targetImages;
+    std::vector<std::shared_ptr<Image>> m_targetImages;
     std::vector<RenderTarget> m_renderTargets;
 
-    Image m_colorImage; // Used as an attachment for multisampling
-    Image m_depthImage; // Used as an attachment to resolve image depth.
+    Image m_colorImage; // Color image attachment for multisampling.
+    Image m_depthImage; // Depth image attachment.
 
     RenderPass m_renderpass;
-    int m_width, m_height;
+    uint32_t m_width, m_height;
 
     struct
     {
@@ -69,19 +76,19 @@ class IOfflineRenderer
         Pipeline skybox;
     } pipelines;
 
-  public:
-    void Create(std::shared_ptr<Device> pDevice, int nTargetImages)
+    IRenderer() {}
+
+    void CreateInternal(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
     {
         // Necessary parameters
         // TODO: Grab them from somewhere
-        int width, height, mipLevels; // TODO
-        vk::Extent2D m_extent;        // TODO
-        vk::Format m_format;
-
         m_pDevice = pDevice;
+        m_width = width;
+        m_height = height;
+        m_colorImageFormat = colorImageFormat;
 
         // Create color attachment resources for multisampling
-        m_colorImage = vkg::Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(), m_format,
+        m_colorImage = vkg::Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(), m_colorImageFormat,
                                   vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                   vk::ImageAspectFlagBits::eColor);
 
@@ -90,24 +97,12 @@ class IOfflineRenderer
                                   m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                   vk::ImageAspectFlagBits::eDepth);
 
-        // TODO: Create the target images
-        // TODO: Take swapchain case into account
-        // -> Add a constructor with a vk::Image argument to Image
-        for (int i = 0; i < nTargetImages; ++i)
-        {
-            auto image = vkg::Image(m_pDevice, width, height, 1, vk::SampleCountFlagBits::e1, m_format,
-                                    vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                    vk::ImageAspectFlagBits::eColor);
-            m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
-                                                        { image.TransitionLayout(cb, vk::ImageLayout::eColorAttachmentOptimal); });
+        CreateTargetImages();
 
-            m_targetImages.push_back(image);
-        }
-
-        m_renderpass = RenderPass(m_pDevice, width, height, m_format);
-        m_renderpass.AddColorAttachment(m_format);
+        m_renderpass = RenderPass(m_pDevice, width, height);
+        m_renderpass.AddColorAttachment(m_colorImageFormat);
         m_renderpass.AddDepthAttachment();
-        m_renderpass.AddColorResolveAttachment(m_format);
+        m_renderpass.AddColorResolveAttachment(m_colorImageFormat);
 
         auto& subpass = m_renderpass.AddSubpass();
         subpass.ReferenceColorAttachment(0);
@@ -127,18 +122,14 @@ class IOfflineRenderer
         m_renderpass.AddSubpassDependency(dep);
         m_renderpass.Create();
 
-        m_renderTargets.resize(m_targetImages.size());
         auto commandBuffers = m_pDevice->GetGraphicsCommandPool().AllocateCommandBuffersUnique(m_targetImages.size());
-        int index = 0;
 
-        for (auto& image : m_targetImages)
+        for (size_t i = 0; i < m_targetImages.size(); i++)
         {
-            RenderTarget rt;
-
             std::vector<vk::ImageView> attachments = {
                 m_colorImage.GetVkView(),
                 m_depthImage.GetVkView(),
-                image.GetVkView(),
+                m_targetImages[i]->GetVkView(),
             };
 
             vk::FramebufferCreateInfo framebufferInfo;
@@ -149,12 +140,14 @@ class IOfflineRenderer
             framebufferInfo.height = height;
             framebufferInfo.layers = 1; // Nb of layers in image array.
 
-            rt.framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo);
-            rt.commandBuffer = std::move(commandBuffers[index]);
-            rt.index = index;
-            rt.fence = vk::Fence();
+            RenderTarget rt = {
+                .index = i,
+                .framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo),
+                .commandBuffer = std::move(commandBuffers[i]),
+                .fence = vk::Fence(),
+            };
 
-            m_renderTargets[index] = std::move(rt);
+            m_renderTargets.push_back(std::move(rt));
         }
 
         // Create sync objects
@@ -200,16 +193,7 @@ class IOfflineRenderer
         m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
     }
 
-    // TODO: Rename "framebuffer" to something more descriptive of what it actually is
-    // RenderTarget ?
-    RenderTarget& GetNextTarget()
-    {
-        m_activeImageIndex++;
-        return m_renderTargets[m_activeImageIndex];
-        // TODO: use AcquireNextImageKHR if we're using swapchain images
-        // Otherwise handle the frames manually
-    }
-
+  public:
     void BeginFrame()
     {
         // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
@@ -306,6 +290,22 @@ class IOfflineRenderer
         // TODO: Get rid of all the references.
         std::cout << "Warning: accessing renderpass outside of renderer context." << std::endl;
         return m_renderpass;
+    }
+
+    uint32_t GetNumberOfImages()
+    {
+        return m_targetImages.size();
+    }
+
+    // TODO Combine Image in RenderTarget
+    RenderTarget& GetActiveRenderTarget()
+    {
+        return m_renderTargets[m_activeImageIndex];
+    }
+
+    std::shared_ptr<vkg::Image> GetActiveImage()
+    {
+        return m_targetImages[m_activeImageIndex];
     }
 };
 } // namespace vkg

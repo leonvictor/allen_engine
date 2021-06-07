@@ -6,7 +6,7 @@
 
 #include "device.hpp"
 #include "instance.hpp"
-#include "render_pass.hpp"
+#include "render_pass2.hpp"
 #include "window.hpp"
 
 namespace vkg

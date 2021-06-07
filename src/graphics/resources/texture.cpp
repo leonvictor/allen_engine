@@ -53,18 +53,35 @@ Texture::Texture(std::shared_ptr<Device> pDevice, std::string path)
 
     // Copy data to staging buffer
     Buffer stagingBuffer(m_pDevice, img.width * img.height * 4, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, img.pixels);
-    m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb) {
-        TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-        // TODO: CopyFrom would be better here for example
-        stagingBuffer.CopyTo(cb, m_vkImage.get(), img.width, img.height);
-    });
+    m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
+                                                {
+                                                    TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+                                                    // TODO: CopyFrom would be better here for example
+                                                    stagingBuffer.CopyTo(cb, m_vkImage.get(), img.width, img.height);
+                                                });
 
-    m_pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb) {
-        // TODO: this-> format ?
-        GenerateMipMaps(cb, vk::Format::eR8G8B8A8Srgb, img.width, img.height, m_mipLevels);
-    });
+    m_pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
+                                                {
+                                                    // TODO: this-> format ?
+                                                    GenerateMipMaps(cb, vk::Format::eR8G8B8A8Srgb, img.width, img.height, m_mipLevels);
+                                                });
 
     InitView(vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
     CreateSampler();
 }
+
+Texture::Texture(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask)
+    : Image(pDevice, image, format, mipLevels, aspectMask)
+{
+    CreateSampler();
+}
+
+Texture::Texture(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+                 vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
+    : Image(pDevice, width, height, mipLevels, numSamples, format, tiling,
+            usage, memProperties, aspectMask, layout)
+{
+    CreateSampler();
+}
+
 } // namespace vkg

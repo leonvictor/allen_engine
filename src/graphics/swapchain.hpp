@@ -6,15 +6,6 @@
 namespace vkg
 {
 
-// TODO: Rework this cuz its wonky
-struct SwapchainImage
-{
-    vk::Image image; // Image is managed by the vk swapchain
-    vk::UniqueImageView view;
-    vk::UniqueCommandBuffer commandbuffer;
-    vk::Fence fence;
-};
-
 /// @brief Wrapper around a vulkan swapchain. Swapchain represent an array of images we render to and that are presented to the screen.
 class Swapchain
 {
@@ -50,15 +41,13 @@ class Swapchain
         return m_activeImageIndex;
     }
 
-    const std::vector<SwapchainImage>& GetImages() const { return m_images; }
+    /// @brief Get the wrapped swapchain object.
+    vk::SwapchainKHR& GetVkSwapchain() { return m_vkSwapchain.get(); }
+
     uint32_t GetWidth() const { return m_extent.width; }
     uint32_t GetHeight() const { return m_extent.height; }
     vk::Extent2D GetExtent() const { return m_extent; }
-    size_t NumberOfImages() const
-    {
-        return m_images.size();
-    }
-    SwapchainImage& ActiveImage() { return m_images[m_activeImageIndex]; }
+    std::shared_ptr<Device> GetDevice() const { return m_pDevice; }
 
     void Resize(uint32_t width, uint32_t height)
     {
@@ -74,6 +63,55 @@ class Swapchain
         CreateInternal();
     }
 
+    void Present(vk::Semaphore& waitSemaphore)
+    {
+        // TODO: Pull out
+        vk::PresentInfoKHR presentInfo;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = &waitSemaphore;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &m_vkSwapchain.get();
+        presentInfo.pImageIndices = &m_activeImageIndex;
+        presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
+
+        // TODO: Register swapchain renderers,
+        // and add a callback to resize them
+        // TODO: Rework cuz it's ugly (see https://github.com/liblava/liblava/blob/3bce924a014529a9d18cec9a406d3eab6850e159/liblava/frame/renderer.cpp)
+        vk::Result result;
+        try
+        {
+            result = m_pDevice->GetGraphicsQueue().GetVkQueue().presentKHR(presentInfo);
+        }
+        catch (vk::OutOfDateKHRError const& e)
+        {
+            result = vk::Result::eErrorOutOfDateKHR;
+        }
+
+        // TODO: Shoud this happen in swapchain directly ?
+        // TODO: Put back resize !
+        // if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_pWindow->m_framebufferResized)
+        // {
+        //     // TODO: SHouldn't be here
+        //     while (m_pWindow->IsMinimized())
+        //     {
+        //         m_pWindow->WaitEvents();
+        //     }
+
+        //     auto size = m_pWindow->GetSize();
+        //     Resize(size.width, size.height);
+
+        //     // TODO: Plug callbacks for associated renderpass and pipelines (in renderer)
+        //     // m_renderpass.Resize(&m_targetSwapchain);
+        //     // CreatePipelines();
+
+        //     m_pWindow->m_framebufferResized = false;
+        // }
+        // else if (result != vk::Result::eSuccess)
+        // {
+        //     throw std::runtime_error("Failed to present swap chain image.");
+        // }
+    }
+
   private:
     // Wrapped vulkan swapchain.
     vk::UniqueSwapchainKHR m_vkSwapchain;
@@ -81,9 +119,6 @@ class Swapchain
     vk::SurfaceKHR* m_pSurface = nullptr;
     vk::SurfaceFormatKHR m_surfaceFormat;
     vk::Extent2D m_extent;
-
-    // Presentable images associated with a swapchain.
-    std::vector<SwapchainImage> m_images;
 
     std::shared_ptr<Device> m_pDevice;
     uint32_t m_width, m_height;
@@ -97,37 +132,6 @@ class Swapchain
 
         auto createInfo = CreateInfo(&oldSwapchain.get());
         m_vkSwapchain = m_pDevice->GetVkDevice().createSwapchainKHRUnique(createInfo);
-
-        // Create the swapchain images
-        auto images = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_vkSwapchain.get());
-        auto commandBuffers = m_pDevice->GetGraphicsCommandPool().AllocateCommandBuffersUnique(images.size());
-
-        m_images.clear();
-
-        for (size_t i = 0; i < images.size(); i++)
-        {
-            vk::ImageViewCreateInfo createInfo;
-            createInfo.format = m_surfaceFormat.format;
-            createInfo.image = images[i];
-            createInfo.viewType = vk::ImageViewType::e2D;
-            createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-            createInfo.subresourceRange.layerCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseMipLevel = 0;
-
-            auto view = m_pDevice->GetVkDevice().createImageViewUnique(createInfo);
-
-            SwapchainImage swapImage = {
-                .image = images[i],
-                .view = std::move(view),
-                .commandbuffer = std::move(commandBuffers[i]),
-                .fence = vk::Fence(),
-            };
-
-            // TODO: Some parts of SwapImages do not need to be recreated (fence, framebuffer, commandbuffer)
-            m_images.push_back(std::move(swapImage));
-        };
     }
 
     /// @brief Generate the vulkan CreateInfo struct for a swapchain object.

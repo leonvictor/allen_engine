@@ -51,6 +51,8 @@ class Image : public Allocation
     Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
           vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
 
+    Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask);
+
     void TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout);
 
     void Blit(vk::CommandBuffer cb, vkg::Image& dstImage);
@@ -78,5 +80,6 @@ class Image : public Allocation
 
     uint32_t GetWidth() const { return m_width; }
     uint32_t GetHeight() const { return m_height; }
+    vk::ImageLayout GetLayout() const { return m_layout; }
 };
 } // namespace vkg

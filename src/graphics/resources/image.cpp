@@ -101,6 +101,18 @@ Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, u
     InitView(format, aspectMask);
 }
 
+Image::Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask)
+{
+    m_pDevice = pDevice;
+    m_vkImage = vk::UniqueImage(image);
+
+    m_mipLevels = mipLevels;
+    m_format = format;
+    m_arrayLayers = 1;
+
+    InitView(format, aspectMask);
+}
+
 void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 {
     if (m_layout == newLayout)

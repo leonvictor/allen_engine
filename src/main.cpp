@@ -29,9 +29,13 @@
 
 #include "camera.cpp" // TODO: Create .h
 #include "camera_controller.hpp"
+#include "graphics/device.hpp"
 #include "graphics/imgui.hpp"
 #include "graphics/instance.hpp"
-#include "graphics/renderer.hpp"
+// #include "graphics/renderer.hpp"
+#include "graphics/imgui.hpp"
+#include "graphics/rendering/offline_renderer.hpp"
+#include "graphics/rendering/swapchain_renderer.hpp"
 #include "graphics/window.hpp"
 #include "time_system.hpp"
 
@@ -55,11 +59,25 @@ const int MAX_MODELS = 50;
 class Engine
 {
   public:
+    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Swapchain m_swapchain;
+
     Engine()
     {
         m_window.Initialize();
-        m_renderer.Create(&m_window);
-        // TODO: Get rid of all the references to m_renderer.GetDevice()
+        m_pDevice = std::make_shared<vkg::Device>(m_window.GetSurface());
+        m_swapchain = vkg::Swapchain(m_pDevice, &m_window.GetSurface(), m_window.GetWidth(), m_window.GetHeight());
+
+        m_renderer.Create(&m_swapchain);
+
+        m_sceneRenderer.Create(
+            m_pDevice,
+            m_window.GetWidth(), m_window.GetHeight(),
+            2,
+            m_swapchain.GetImageFormat());
+
+        m_imgui.Initialize(m_window.GetGLFWWindow(), m_pDevice, m_renderer.GetRenderPass(), m_renderer.GetNumberOfImages());
+        // TODO: Get rid of all the references to m_pDevice
         // They should not be part of this class
 
         loadModels();
@@ -90,9 +108,10 @@ class Engine
 
   private:
     vkg::Window m_window;
-    vkg::Renderer m_renderer;
 
-    glm::vec2 lastMousePos;
+    vkg::SwapchainRenderer m_renderer;
+    vkg::OfflineRenderer m_sceneRenderer;
+    vkg::ImGUI m_imgui;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -131,7 +150,7 @@ class Engine
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
         // TODO:
-        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_renderer.GetDevice(), MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
+        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
     }
@@ -152,7 +171,7 @@ class Engine
         for (int i = 0; i < cubePositions.size(); i++)
         {
             // TODO: This logic is a duplicate of addObject.
-            auto m = std::make_shared<SceneObject>(m_renderer.GetDevice(), MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
+            auto m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         }
@@ -161,7 +180,7 @@ class Engine
 
     void setupSkyBox()
     {
-        skybox = std::make_shared<Skybox>(m_renderer.GetDevice(), "", MODEL_PATH);
+        skybox = std::make_shared<Skybox>(m_pDevice, "", MODEL_PATH);
         updateSkyboxUBO();
     }
 
@@ -169,9 +188,9 @@ class Engine
     {
         vkg::UniformBufferObject ubo;
         ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-        ubo.view = glm::mat4(1.0f);                                                                                                                                        // eye/camera position, center position, up axis
-        ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_renderer.GetSwapchain().GetWidth() / (float) m_renderer.GetSwapchain().GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        ubo.projection[1][1] *= -1;                                                                                                                                        // GLM is designed for OpenGL which uses inverted y coordinates
+        ubo.view = glm::mat4(1.0f);                                                                                                            // eye/camera position, center position, up axis
+        ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        ubo.projection[1][1] *= -1;                                                                                                            // GLM is designed for OpenGL which uses inverted y coordinates
         ubo.cameraPos = camera.transform.position;
         skybox->updateUniformBuffer(ubo);
     }
@@ -187,7 +206,7 @@ class Engine
     void createLightsBuffer()
     {
         // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = std::make_unique<vkg::Buffer>(m_renderer.GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        lightsBuffer = std::make_unique<vkg::Buffer>(m_pDevice, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     void updateLightBufferCount(int count)
@@ -236,12 +255,12 @@ class Engine
     void createLightsDescriptorSet()
     {
         vk::DescriptorSetAllocateInfo allocInfo;
-        allocInfo.descriptorPool = m_renderer.GetDevice()->GetDescriptorPool();
+        allocInfo.descriptorPool = m_pDevice->GetDescriptorPool();
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_renderer.GetDevice()->GetDescriptorSetLayout<Light>();
+        allocInfo.pSetLayouts = &m_pDevice->GetDescriptorSetLayout<Light>();
 
-        lightsDescriptorSet = std::move(m_renderer.GetDevice()->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
-        m_renderer.GetDevice()->SetDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
+        lightsDescriptorSet = std::move(m_pDevice->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
+        m_pDevice->SetDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer->GetVkBuffer(); // TODO: How do we update the lights array ?
@@ -256,7 +275,7 @@ class Engine
         writeDescriptor.descriptorCount = 1;
         writeDescriptor.pBufferInfo = &lightsBufferInfo;
 
-        m_renderer.GetDevice()->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        m_pDevice->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
 #pragma endregion
@@ -280,6 +299,8 @@ class Engine
             Input::Dispatch();
 
             m_renderer.BeginFrame();
+            m_imgui.NewFrame();
+            m_sceneRenderer.BeginFrame();
 
             // This is rough. TODO: Make it better:
             //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
@@ -313,7 +334,7 @@ class Engine
                 // eye/camera position, center position, up axis
                 ubo.view = camera.getViewMatrix();
                 // 45deg vertical fov, aspect ratio, near view plane, far view plane
-                ubo.projection = glm::perspective(glm::radians(45.0f), m_renderer.GetSwapchain().GetWidth() / (float) m_renderer.GetSwapchain().GetHeight(), 0.1f, 100.f);
+                ubo.projection = glm::perspective(glm::radians(45.0f), m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 100.f);
                 // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.projection[1][1] *= -1;
                 ubo.cameraPos = camera.transform.position;
@@ -331,15 +352,18 @@ class Engine
             // }
 
             // swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
-            m_renderer.Draw(skybox);
-            m_renderer.Draw(models, lightsDescriptorSet);
+            m_sceneRenderer.Draw(skybox);
+            m_sceneRenderer.Draw(models, lightsDescriptorSet);
+
+            m_sceneRenderer.EndFrame();
 
             DrawUI();
 
+            m_imgui.Render(m_renderer.GetActiveRenderTarget().commandBuffer.get());
             m_renderer.EndFrame();
         }
 
-        m_renderer.GetDevice()->GetVkDevice().waitIdle();
+        m_pDevice->GetVkDevice().waitIdle();
     }
 
     void DrawUI()
@@ -391,6 +415,12 @@ class Engine
             ImGui::End();
         }
 
+        if (ImGui::Begin("Text image"))
+        {
+            auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
+            ImGui::Image((ImTextureID) ImGui_ImplVulkan_AddTexture(tex->GetVkSampler(), tex->GetVkView(), (VkImageLayout) tex->GetLayout()), {1600, 800});
+            ImGui::End();
+        }
         // if (ImGui::Begin("SceneViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
         // {
         //     // TODO: Only display the viewport in the right tab.

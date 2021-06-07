@@ -27,7 +27,7 @@ class Subpass
         m_colorAttachments.push_back(ref);
     }
 
-    void ReferenceDepthAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eDepthAttachmentOptimal)
+    void ReferenceDepthAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eDepthStencilAttachmentOptimal)
     {
         vk::AttachmentReference ref;
         ref.attachment = attachmentIndex;

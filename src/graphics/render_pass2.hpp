@@ -13,41 +13,38 @@ class RenderPass
 {
     enum State
     {
-        Uninitialized, // Vulkan renderpass not created
-        Initialized,   // Vulkan renderpass created, but no framebuffers associated
-        Ready,         // Ready to render
+        Uninitialized,
+        Initialized,
     };
 
+  public:
     RenderPass() {}
 
-  public:
     // Possible feature: Put back a callback logic if and when we make the creation process modular
     // (i.e. renderpass watches the target swapchain and automatically updates when it changes.)
     // This was working ok until we merged the creation process in the constructor, making passing "this" a problem.
-    RenderPass(std::shared_ptr<Device> pDevice, int width, int height, vk::Format format)
+    RenderPass(std::shared_ptr<Device> pDevice, int width, int height)
     {
         assert(pDevice);
 
         m_pDevice = pDevice;
+        m_width = width;
+        m_height = height;
+
         // Default clear values.
         // TODO: Make it possible to customize clear values
         m_clearValues[0].color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
         m_clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
-
-        // CreateInternal(width, height, format, images);
     }
 
     /// @brief A renderpass is considered initialized as long as it's underlying vulkan renderpass is created.
-    bool IsInitialized() const { return m_status != State::Uninitialized; }
-
-    /// @brief A renderpass is ready if it is initialized and was added at least one framebuffer.
-    bool IsReady() const { return m_status == State::Ready; }
+    bool IsInitialized() const { return m_status == State::Initialized; }
 
     /// @brief Create the renderpass.
     void Create()
     {
         assert(!IsInitialized());
-        CreateInternal();
+        CreateInternal(m_width, m_height);
     }
 
     /// @brief Add a color attachment to this render pass, and return its index.
@@ -72,7 +69,7 @@ class RenderPass
         return m_attachmentDescriptions.size();
     }
 
-    int AddColorResolveAttachment(vk::Format format)
+    int AddColorResolveAttachment(vk::Format format, vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined, vk::ImageLayout finalLayout = vk::ImageLayout::ePresentSrcKHR)
     {
         vk::AttachmentDescription colorAttachmentResolve{
             .format = format,
@@ -81,8 +78,8 @@ class RenderPass
             .storeOp = vk::AttachmentStoreOp::eStore,
             .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
             .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-            .initialLayout = vk::ImageLayout::eUndefined,
-            .finalLayout = vk::ImageLayout::ePresentSrcKHR,
+            .initialLayout = initialLayout,
+            .finalLayout = finalLayout,
         };
 
         m_attachmentDescriptions.push_back(colorAttachmentResolve);
@@ -122,13 +119,14 @@ class RenderPass
     /// @brief Begin a render pass.
     void Begin(vk::CommandBuffer& commandBuffer, vk::Framebuffer& framebuffer)
     {
-        assert(m_status == State::Ready);
+        assert(IsInitialized());
+
         vk::RenderPassBeginInfo renderPassInfo{
             .renderPass = m_vkRenderPass.get(),
             .framebuffer = framebuffer,
             .renderArea = {
                 .offset = {0, 0},
-                .extent = m_extent,
+                .extent = {m_width, m_height},
             },
             .clearValueCount = static_cast<uint32_t>(m_clearValues.size()),
             .pClearValues = m_clearValues.data(),
@@ -144,15 +142,14 @@ class RenderPass
     inline vk::RenderPass& GetVkRenderPass() { return m_vkRenderPass.get(); }
 
     // TODO: This is a lazy solution
-    void Resize(int width, int height, vk::Format format)
+    void Resize(int width, int height)
     {
-        CreateInternal(width, height, format);
+        CreateInternal(width, height);
     }
 
   private:
     std::shared_ptr<Device> m_pDevice;
     std::array<vk::ClearValue, 2> m_clearValues;
-    vk::Extent2D m_extent;
 
     State m_status = State::Uninitialized;
 
@@ -160,15 +157,18 @@ class RenderPass
     std::vector<vk::SubpassDependency> m_subpassDependencies;
     std::vector<vk::AttachmentDescription> m_attachmentDescriptions;
 
+    uint32_t m_width, m_height;
+
     // Wrapped vulkan renderpass
     vk::UniqueRenderPass m_vkRenderPass;
 
     /// @brief (Re-)Create the render pass and its inner state objects (i.e.intermediary render targets)
     /// Called whenever the rendering target change sizes.
-    void CreateInternal(int width, int height, vk::Format format)
+    void CreateInternal(uint32_t width, uint32_t height)
     {
         assert(m_pDevice);
-        m_extent = {width, height};
+        m_width = width;
+        m_height = height;
 
         // Aggregate subpasses descriptions
         std::vector<vk::SubpassDescription> vkSubpasses;
