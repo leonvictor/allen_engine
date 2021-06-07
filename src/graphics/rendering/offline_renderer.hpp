@@ -18,20 +18,25 @@ class OfflineRenderer : public IRenderer
     {
         m_targetImages.clear();
 
+        auto cbs = m_pDevice->GetGraphicsCommandPool().BeginSingleTimeCommands();
+
         for (int i = 0; i < m_nTargetImages; ++i)
         {
+            auto target = std::make_shared<Texture>(
+                m_pDevice, m_width, m_height, 1,
+                vk::SampleCountFlagBits::e1,
+                m_colorImageFormat,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
+                vk::MemoryPropertyFlagBits::eDeviceLocal,
+                vk::ImageAspectFlagBits::eColor);
 
-            m_targetImages.push_back(
-                std::make_shared<Texture>(
-                    m_pDevice, m_width, m_height, 1,
-                    vk::SampleCountFlagBits::e1,
-                    m_colorImageFormat,
-                    vk::ImageTiling::eOptimal,
-                    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
-                    vk::MemoryPropertyFlagBits::eDeviceLocal,
-                    vk::ImageAspectFlagBits::eColor,
-                    vk::ImageLayout::eGeneral));
+            m_pDevice->SetDebugUtilsObjectName(target->GetVkImage(), "Offline Render Target Image (" + std::to_string(i) + ")");
+            m_targetImages.push_back(target);
+            target->TransitionLayout(cbs[0], vk::ImageLayout::eGeneral);
         }
+
+        m_pDevice->GetGraphicsCommandPool().EndSingleTimeCommands(cbs);
     }
 
     RenderTarget& GetNextTarget() override
@@ -43,6 +48,32 @@ class OfflineRenderer : public IRenderer
         }
 
         return m_renderTargets[m_activeImageIndex];
+    }
+
+    void CreateRenderpass() override
+    {
+        m_renderpass = RenderPass(m_pDevice, m_width, m_height);
+        m_renderpass.AddColorAttachment(m_colorImageFormat);
+        m_renderpass.AddDepthAttachment();
+        m_renderpass.AddColorResolveAttachment(m_colorImageFormat, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+
+        auto& subpass = m_renderpass.AddSubpass();
+        subpass.ReferenceColorAttachment(0);
+        subpass.ReferenceDepthAttachment(1);
+        subpass.ReferenceResolveAttachment(2);
+
+        // Add a subpass dependency to ensure the render pass will wait for the right stage
+        // We need to wait for the image to be acquired before transitionning to it
+        vk::SubpassDependency dep;
+        dep.srcSubpass = VK_SUBPASS_EXTERNAL;                                 // The implicit subpass before or after the render pass
+        dep.dstSubpass = 0;                                                   // Target subpass index (we have only one)
+        dep.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Stage to wait on
+        dep.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+        dep.srcAccessMask = vk::AccessFlagBits(0);
+        dep.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+
+        m_renderpass.AddSubpassDependency(dep);
+        m_renderpass.Create();
     }
 
   public:

@@ -8,7 +8,7 @@ namespace vkg
 /// @brief Holds render target info and objects.
 struct RenderTarget
 {
-    int index;
+    uint32_t index;
     vk::UniqueFramebuffer framebuffer;
     vk::UniqueCommandBuffer commandBuffer;
     vk::Fence fence;

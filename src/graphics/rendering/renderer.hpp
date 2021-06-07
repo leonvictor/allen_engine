@@ -97,34 +97,13 @@ class IRenderer
                                   m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
                                   vk::ImageAspectFlagBits::eDepth);
 
+        CreateRenderpass();
+
+        // Create the render targets
         CreateTargetImages();
-
-        m_renderpass = RenderPass(m_pDevice, width, height);
-        m_renderpass.AddColorAttachment(m_colorImageFormat);
-        m_renderpass.AddDepthAttachment();
-        m_renderpass.AddColorResolveAttachment(m_colorImageFormat);
-
-        auto& subpass = m_renderpass.AddSubpass();
-        subpass.ReferenceColorAttachment(0);
-        subpass.ReferenceDepthAttachment(1);
-        subpass.ReferenceResolveAttachment(2);
-
-        // Add a subpass dependency to ensure the render pass will wait for the right stage
-        // We need to wait for the image to be acquired before transitionning to it
-        vk::SubpassDependency dep;
-        dep.srcSubpass = VK_SUBPASS_EXTERNAL;                                 // The implicit subpass before or after the render pass
-        dep.dstSubpass = 0;                                                   // Target subpass index (we have only one)
-        dep.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Stage to wait on
-        dep.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-        dep.srcAccessMask = vk::AccessFlagBits(0);
-        dep.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-
-        m_renderpass.AddSubpassDependency(dep);
-        m_renderpass.Create();
-
         auto commandBuffers = m_pDevice->GetGraphicsCommandPool().AllocateCommandBuffersUnique(m_targetImages.size());
 
-        for (size_t i = 0; i < m_targetImages.size(); i++)
+        for (uint32_t i = 0; i < m_targetImages.size(); i++)
         {
             std::vector<vk::ImageView> attachments = {
                 m_colorImage.GetVkView(),
@@ -191,6 +170,34 @@ class IRenderer
         pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<Skybox>());
         pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
+    }
+
+    /// @brief Configure and create the render pass. Override this function in derived renderer if necessary.
+    virtual void CreateRenderpass()
+    {
+        // This is the default render pass
+        m_renderpass = RenderPass(m_pDevice, m_width, m_height);
+        m_renderpass.AddColorAttachment(m_colorImageFormat);
+        m_renderpass.AddDepthAttachment();
+        m_renderpass.AddColorResolveAttachment(m_colorImageFormat);
+
+        auto& subpass = m_renderpass.AddSubpass();
+        subpass.ReferenceColorAttachment(0);
+        subpass.ReferenceDepthAttachment(1);
+        subpass.ReferenceResolveAttachment(2);
+
+        // Add a subpass dependency to ensure the render pass will wait for the right stage
+        // We need to wait for the image to be acquired before transitionning to it
+        vk::SubpassDependency dep;
+        dep.srcSubpass = VK_SUBPASS_EXTERNAL;                                 // The implicit subpass before or after the render pass
+        dep.dstSubpass = 0;                                                   // Target subpass index (we have only one)
+        dep.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Stage to wait on
+        dep.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+        dep.srcAccessMask = vk::AccessFlagBits(0);
+        dep.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+
+        m_renderpass.AddSubpassDependency(dep);
+        m_renderpass.Create();
     }
 
   public:

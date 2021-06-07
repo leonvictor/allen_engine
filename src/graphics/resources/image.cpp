@@ -38,6 +38,9 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
                       vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
 {
 
+    // Enforce vk specs
+    assert(layout == vk::ImageLayout::eUndefined || layout == vk::ImageLayout::ePreinitialized);
+
     vk::ImageCreateInfo imageInfo;
     imageInfo.flags = flags;
     imageInfo.imageType = vk::ImageType::e2D;
@@ -450,5 +453,6 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t t
         barrier);
 
     m_mipLevels = mipLevels;
+    m_layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 }
 } // namespace vkg

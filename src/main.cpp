@@ -1,6 +1,5 @@
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -373,7 +372,7 @@ class Engine
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
         float height = ImGui::GetFrameHeight();
 
-        // ImGui::DockSpaceOverViewport(viewport);
+        ImGui::DockSpaceOverViewport(viewport);
 
         if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
         {
@@ -389,7 +388,6 @@ class Engine
                     ImGui::MenuItem("Item");
                     ImGui::EndMenu();
                 }
-                // ImGui::Text("Happy secondary menu bar");
                 ImGui::EndMenuBar();
             }
 
@@ -400,8 +398,6 @@ class Engine
         {
             if (ImGui::BeginMenuBar())
             {
-                // ImGui::Text("Happy status bar");
-
                 // Compute current FPS
                 // Use std::format (C++20). Not available in most compilers as of 04/06/2021
                 std::string fps = std::to_string(1.0 / Time::GetDeltaTime());
@@ -415,12 +411,12 @@ class Engine
             ImGui::End();
         }
 
-        if (ImGui::Begin("Text image"))
+        if (ImGui::Begin("Scene", nullptr))
         {
             auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
-            ImGui::Image((ImTextureID) ImGui_ImplVulkan_AddTexture(tex->GetVkSampler(), tex->GetVkView(), (VkImageLayout) tex->GetLayout()), {1600, 800});
-            ImGui::End();
+            ImGui::Image((ImTextureID) tex->GetDescriptorSet(), {1600, 800});
         }
+        ImGui::End();
         // if (ImGui::Begin("SceneViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
         // {
         //     // TODO: Only display the viewport in the right tab.

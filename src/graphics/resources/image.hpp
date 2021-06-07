@@ -43,6 +43,8 @@ class Image : public Allocation
     // TODO: Use vec2 ?
     uint32_t m_width, m_height;
 
+    vk::UniqueDescriptorSet m_descriptorSet;
+
   public:
     // Empty ctor to avoid errors. We should be able to get rid of it later on
     Image(){};

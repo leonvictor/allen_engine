@@ -33,11 +33,40 @@ class Texture : public Image, public Component
     Texture(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask);
 
     // TODO: This could come from a Descriptible interface (common w/ buffers)
-    inline vk::DescriptorImageInfo GetDescriptor() const
+    inline const vk::DescriptorImageInfo GetDescriptor() const
     {
-        return vk::DescriptorImageInfo{m_sampler.get(), m_vkView.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
+        return vk::DescriptorImageInfo{m_sampler.get(), m_vkView.get(), m_layout};
     }
 
     vk::Sampler& GetVkSampler() { return m_sampler.get(); }
+
+    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
+    {
+        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+            {0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
+        };
+
+        return bindings;
+    }
+
+    vk::DescriptorSet& GetDescriptorSet()
+    {
+        // Lazy allocation of the descriptor set
+        if (!m_descriptorSet)
+        {
+            m_descriptorSet = m_pDevice->AllocateDescriptorSet<Texture>();
+
+            // Update the Descriptor Set:
+            vk::WriteDescriptorSet writeDesc[1] = {};
+            writeDesc[0].dstSet = m_descriptorSet.get();
+            writeDesc[0].descriptorCount = 1;
+            writeDesc[0].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+            auto desc = GetDescriptor();
+            writeDesc[0].pImageInfo = &desc;
+
+            m_pDevice->GetVkDevice().updateDescriptorSets(1, writeDesc, 0, nullptr);
+        }
+        return m_descriptorSet.get();
+    }
 };
 } // namespace vkg
