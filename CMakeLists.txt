@@ -10,8 +10,10 @@ set(SOURCE "src/main.cpp"
            "src/graphics/resources/buffer.cpp"
            "src/graphics/resources/image.cpp"
            "src/graphics/resources/texture_cubemap.cpp"
-           "src/graphics/resources/texture.cpp")
+           "src/graphics/resources/texture.cpp"
+           "src/graphics/render_pass.cpp")
 
+add_definitions(-DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 find_package(Vulkan REQUIRED)
 
 # Translate env path to CMake style 

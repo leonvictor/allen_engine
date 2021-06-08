@@ -35,7 +35,7 @@ void ImageFile::load(std::string path)
 }
 
 void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-                      vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
+    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
 {
 
     // Enforce vk specs
@@ -44,7 +44,7 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     vk::ImageCreateInfo imageInfo;
     imageInfo.flags = flags;
     imageInfo.imageType = vk::ImageType::e2D;
-    imageInfo.extent = {
+    imageInfo.extent = vk::Extent3D{
         .width = static_cast<uint32_t>(width),
         .height = static_cast<uint32_t>(height),
         .depth = 1,
@@ -94,7 +94,7 @@ void Image::InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::Ima
 
 // TODO: Default arguments
 Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-             vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
+    vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
 {
 
     m_pDevice = pDevice;

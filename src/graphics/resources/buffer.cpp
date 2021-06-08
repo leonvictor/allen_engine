@@ -4,9 +4,6 @@
 #include "image.hpp"
 #include <memory>
 
-#ifndef VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#endif
 #include <vulkan/vulkan.hpp>
 
 namespace vkg
@@ -39,7 +36,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, const uint32_t wi
     copy.imageSubresource.layerCount = 1;
     copy.imageSubresource.mipLevel = 0;
     copy.imageOffset = vk::Offset3D{0, 0, 0};
-    copy.imageExtent = {
+    copy.imageExtent = vk::Extent3D{
         .width = width,
         .height = height,
         .depth = 1,

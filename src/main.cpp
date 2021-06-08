@@ -1,5 +1,4 @@
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include <GLFW/glfw3.h>
 
