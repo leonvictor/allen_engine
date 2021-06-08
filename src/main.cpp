@@ -58,9 +58,6 @@ const int MAX_MODELS = 50;
 class Engine
 {
   public:
-    std::shared_ptr<vkg::Device> m_pDevice;
-    vkg::Swapchain m_swapchain;
-
     Engine()
     {
         m_window.Initialize();
@@ -107,7 +104,8 @@ class Engine
 
   private:
     vkg::Window m_window;
-
+    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Swapchain m_swapchain;
     vkg::SwapchainRenderer m_renderer;
     vkg::OfflineRenderer m_sceneRenderer;
     vkg::ImGUI m_imgui;

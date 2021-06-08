@@ -7,7 +7,7 @@
 #include "../device.hpp"
 #include "../imgui.hpp"
 #include "../pipeline.hpp"
-#include "../render_pass2.hpp"
+#include "../render_pass.hpp"
 #include "../swapchain.hpp"
 #include "../window.hpp"
 #include "render_target.hpp"
@@ -89,13 +89,13 @@ class IRenderer
 
         // Create color attachment resources for multisampling
         m_colorImage = vkg::Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(), m_colorImageFormat,
-                                  vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                  vk::ImageAspectFlagBits::eColor);
+            vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+            vk::ImageAspectFlagBits::eColor);
 
         // Create depth attachment ressources
         m_depthImage = vkg::Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(),
-                                  m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-                                  vk::ImageAspectFlagBits::eDepth);
+            m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
+            vk::ImageAspectFlagBits::eDepth);
 
         CreateRenderpass();
 

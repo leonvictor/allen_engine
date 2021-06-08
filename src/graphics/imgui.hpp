@@ -6,7 +6,7 @@
 
 #include "device.hpp"
 #include "instance.hpp"
-#include "render_pass2.hpp"
+#include "render_pass.hpp"
 #include "window.hpp"
 
 namespace vkg
@@ -113,7 +113,7 @@ class ImGUI
         // Use any command queue
 
         pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
-                                                  { ImGui_ImplVulkan_CreateFontsTexture(cb); });
+            { ImGui_ImplVulkan_CreateFontsTexture(cb); });
 
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }

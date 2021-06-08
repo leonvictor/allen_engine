@@ -50,7 +50,6 @@ class RenderPass
     /// @brief Add a color attachment to this render pass, and return its index.
     int AddColorAttachment(vk::Format format)
     {
-        // TODO
         vk::AttachmentDescription colorAttachment{
             .format = format,
             .samples = m_pDevice->GetMSAASamples(),
