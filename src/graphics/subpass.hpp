@@ -18,39 +18,13 @@ class Subpass
     vk::PipelineBindPoint m_bindPoint = vk::PipelineBindPoint::eGraphics;
 
   public:
-    void ReferenceColorAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eColorAttachmentOptimal)
-    {
-        vk::AttachmentReference ref;
-        ref.attachment = attachmentIndex;
-        ref.layout = layout;
+    void ReferenceColorAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eColorAttachmentOptimal);
+    void ReferenceDepthAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eDepthStencilAttachmentOptimal);
+    void ReferenceResolveAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eColorAttachmentOptimal);
 
-        m_colorAttachments.push_back(ref);
-    }
+    inline void SetPipelineBIndPoint(vk::PipelineBindPoint bindPoint) { m_bindPoint = bindPoint; }
 
-    void ReferenceDepthAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eDepthStencilAttachmentOptimal)
-    {
-        vk::AttachmentReference ref;
-        ref.attachment = attachmentIndex;
-        ref.layout = layout;
-
-        m_depthAttachments.push_back(ref);
-    }
-
-    void ReferenceResolveAttachment(int attachmentIndex, vk::ImageLayout layout = vk::ImageLayout::eColorAttachmentOptimal)
-    {
-        vk::AttachmentReference ref;
-        ref.attachment = attachmentIndex;
-        ref.layout = layout;
-
-        m_resolveAttachments.push_back(ref);
-    }
-
-    void SetPipelineBIndPoint(vk::PipelineBindPoint bindPoint)
-    {
-        m_bindPoint = bindPoint;
-    }
-
-    vk::SubpassDescription GetDescription()
+    inline vk::SubpassDescription GetDescription()
     {
         vk::SubpassDescription desc;
         desc.pipelineBindPoint = m_bindPoint;

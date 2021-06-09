@@ -11,9 +11,13 @@ set(SOURCE "src/main.cpp"
            "src/graphics/resources/image.cpp"
            "src/graphics/resources/texture_cubemap.cpp"
            "src/graphics/resources/texture.cpp"
-           "src/graphics/render_pass.cpp")
+           "src/graphics/render_pass.cpp"
+           "src/graphics/subpass.cpp"
+           "src/graphics/swapchain.cpp"
+           "src/graphics/pipeline.cpp"
+           "src/utils/uuid.hpp")
 
-add_definitions(-DVULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 find_package(Vulkan REQUIRED)
 
 # Translate env path to CMake style 
