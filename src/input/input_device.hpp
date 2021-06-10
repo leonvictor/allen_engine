@@ -1,5 +1,9 @@
 #pragma once
 
+#include <map>
+
+class ControlStateChangedEvent;
+
 class IInputDevice
 {
   protected:
@@ -7,21 +11,7 @@ class IInputDevice
 
     /// @brief: Map a GLFW action code to a keyboard control value.
     /// TODO: Externalize this to an abstract mapping interface
-    uint8_t MapGLFWActionCode(int action)
-    {
-        if (action == GLFW_PRESS)
-        {
-            return 1;
-        }
-
-        else if (action == GLFW_RELEASE)
-        {
-            return 0;
-        }
-
-        // TODO: Specific error
-        throw;
-    }
+    uint8_t MapGLFWActionCode(int action);
 
   public:
     /// @brief Return a list of state changed events that occured since the last call to this method.

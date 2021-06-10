@@ -15,7 +15,12 @@ set(SOURCE "src/main.cpp"
            "src/graphics/subpass.cpp"
            "src/graphics/swapchain.cpp"
            "src/graphics/pipeline.cpp"
-           "src/utils/uuid.hpp")
+           "src/graphics/window.cpp"
+           "src/utils/uuid.cpp"
+           "src/input/input_system.cpp"
+           "src/input/input_device.cpp"
+           "src/input/input_action.cpp"
+           "src/input/controls/input_control.cpp")
 
 add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 find_package(Vulkan REQUIRED)

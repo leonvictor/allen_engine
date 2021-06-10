@@ -9,15 +9,12 @@ class IInputControl
     int m_id;
 
   public:
-    int GetId() const { return m_id; }
+    inline int GetId() const { return m_id; }
     virtual bool IsActuated() const = 0;
     friend bool operator<(const IInputControl& left, const IInputControl& right);
 };
 
-bool operator<(const IInputControl& left, const IInputControl& right)
-{
-    return left.m_id < right.m_id;
-}
+bool operator<(const IInputControl& left, const IInputControl& right);
 
 template <typename T>
 class InputControl : public IInputControl
