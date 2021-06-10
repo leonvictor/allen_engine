@@ -60,8 +60,8 @@ class Engine
     Engine()
     {
         m_window.Initialize();
-        m_pDevice = std::make_shared<vkg::Device>(m_window.GetSurface());
-        m_swapchain = vkg::Swapchain(m_pDevice, &m_window.GetSurface(), m_window.GetWidth(), m_window.GetHeight());
+        m_pDevice = std::make_shared<vkg::Device>(m_window.GetVkSurface());
+        m_swapchain = vkg::Swapchain(m_pDevice, &m_window);
 
         m_renderer.Create(&m_swapchain);
 

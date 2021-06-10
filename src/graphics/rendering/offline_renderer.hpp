@@ -31,9 +31,10 @@ class OfflineRenderer : public IRenderer
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
                 vk::ImageAspectFlagBits::eColor);
 
-            m_pDevice->SetDebugUtilsObjectName(target->GetVkImage(), "Offline Render Target Image (" + std::to_string(i) + ")");
-            m_targetImages.push_back(target);
             target->TransitionLayout(cbs[0], vk::ImageLayout::eGeneral);
+            m_pDevice->SetDebugUtilsObjectName(target->GetVkImage(), "Offline Render Target Image (" + std::to_string(i) + ")");
+
+            m_targetImages.push_back(target);
         }
 
         m_pDevice->GetGraphicsCommandPool().EndSingleTimeCommands(cbs);
@@ -83,6 +84,7 @@ class OfflineRenderer : public IRenderer
     {
         m_nTargetImages = nTargetImages;
         CreateInternal(pDevice, width, height, colorImageFormat);
+        CreatePipelines();
     }
 
     // TODO: Split Creation so we can customize the renderpasses here

@@ -80,8 +80,6 @@ class IRenderer
 
     void CreateInternal(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
     {
-        // Necessary parameters
-        // TODO: Grab them from somewhere
         m_pDevice = pDevice;
         m_width = width;
         m_height = height;
@@ -103,6 +101,7 @@ class IRenderer
         CreateTargetImages();
         auto commandBuffers = m_pDevice->GetGraphicsCommandPool().AllocateCommandBuffersUnique(m_targetImages.size());
 
+        m_renderTargets.clear();
         for (uint32_t i = 0; i < m_targetImages.size(); i++)
         {
             std::vector<vk::ImageView> attachments = {
@@ -111,13 +110,14 @@ class IRenderer
                 m_targetImages[i]->GetVkView(),
             };
 
-            vk::FramebufferCreateInfo framebufferInfo;
-            framebufferInfo.renderPass = m_renderpass.GetVkRenderPass();
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = width;
-            framebufferInfo.height = height;
-            framebufferInfo.layers = 1; // Nb of layers in image array.
+            vk::FramebufferCreateInfo framebufferInfo = {
+                .renderPass = m_renderpass.GetVkRenderPass(),
+                .attachmentCount = static_cast<uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .width = width,
+                .height = height,
+                .layers = 1, // Nb of layers in image array.
+            };
 
             RenderTarget rt = {
                 .index = i,
@@ -143,7 +143,7 @@ class IRenderer
             });
         }
 
-        CreatePipelines();
+        // CreatePipelines();
     }
 
     void CreatePipelines()

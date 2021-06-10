@@ -23,14 +23,11 @@ class Allocation
 
     virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
     {
-        // vk::MemoryAllocateInfo allocInfo{
-        // .allocationSize = memRequirements.size,
-        // .memoryTypeIndex = m_pDevice->findMemoryType(memRequirements.memoryTypeBits, memProperties),
-        // };
-
-        vk::MemoryAllocateInfo allocInfo;
-        allocInfo.allocationSize = memRequirements.size,
-        allocInfo.memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties);
+        vk::MemoryAllocateInfo allocInfo =
+            {
+                .allocationSize = memRequirements.size,
+                .memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
+            };
 
         m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr);
     }

@@ -45,6 +45,11 @@ bool Window::IsMinimized()
     return (size.width == 0 || size.height == 0);
 }
 
+void Window::AddResizeCallback(std::function<void(int, int)> callback)
+{
+    m_resizeCallbacks.push_back(callback);
+}
+
 std::vector<const char*> Window::GetRequiredExtensions()
 {
     uint32_t glfwExtensionCount;
@@ -58,7 +63,10 @@ std::vector<const char*> Window::GetRequiredExtensions()
 void Window::FramebufferResizeCallback(GLFWwindow* pGlfwWindow, int width, int height)
 {
     auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
-    window->m_framebufferResized = true;
+    for (auto& callback : window->m_resizeCallbacks)
+    {
+        callback(width, height);
+    }
 }
 
 void Window::KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods)

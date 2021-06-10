@@ -5,6 +5,7 @@
 #include "render_target.hpp"
 #include "renderer.hpp"
 
+#include <functional>
 #include <vulkan/vulkan.hpp>
 
 namespace vkg
@@ -17,14 +18,22 @@ class SwapchainRenderer : public IRenderer
 
     void CreateTargetImages() override
     {
+        // TODO:
+        // Swapchain images cannot be handled in unique handles, so we need to store them some other way
+        // TODO: Find a better way to do this
+        for (auto& img : m_targetImages)
+        {
+            img->Reset();
+        }
+
+        m_targetImages.clear();
         // Create the swapchain images
         auto images = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_pSwapchain->GetVkSwapchain());
 
-        m_targetImages.clear();
-
         for (size_t i = 0; i < images.size(); i++)
         {
-            m_targetImages.push_back(std::make_shared<vkg::Image>(m_pDevice, images[i], m_colorImageFormat, 1, vk::ImageAspectFlagBits::eColor));
+            auto target = std::make_shared<vkg::Image>(m_pDevice, images[i], m_colorImageFormat, 1, vk::ImageAspectFlagBits::eColor);
+            m_targetImages.push_back(target);
         };
     }
 
@@ -40,10 +49,23 @@ class SwapchainRenderer : public IRenderer
     void Create(Swapchain* pSwapchain)
     {
         m_pSwapchain = pSwapchain;
+
+        // Hook a callback that will trigger when the associated swapchain is resized
+        m_pSwapchain->AddResizeCallback(std::bind(&SwapchainRenderer::Resize, this, std::placeholders::_1, std::placeholders::_2));
         CreateInternal(pSwapchain->GetDevice(),
-                       pSwapchain->GetWidth(),
-                       pSwapchain->GetHeight(),
-                       pSwapchain->GetImageFormat());
+            pSwapchain->GetWidth(),
+            pSwapchain->GetHeight(),
+            pSwapchain->GetImageFormat());
+        CreatePipelines();
+    }
+
+    void Resize(uint32_t width, uint32_t height)
+    {
+        CreateInternal(
+            m_pSwapchain->GetDevice(),
+            width,
+            height,
+            m_pSwapchain->GetImageFormat());
     }
 
     // TODO: De-duplicate

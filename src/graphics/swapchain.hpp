@@ -2,11 +2,12 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "device.hpp"
-#include "resources/image.hpp"
-
 namespace vkg
 {
+
+class Device;
+class Image;
+class Window;
 
 /// @brief Wrapper around a vulkan swapchain. Swapchain represent an array of images we render to and that are presented to the screen.
 class Swapchain
@@ -16,7 +17,7 @@ class Swapchain
   public:
     Swapchain() {}
 
-    Swapchain(std::shared_ptr<Device> pDevice, vk::SurfaceKHR* surface, uint32_t width, uint32_t height);
+    Swapchain(std::shared_ptr<Device> pDevice, vkg::Window* pWindow);
 
     uint32_t AcquireNextImage(vk::Semaphore& semaphore);
 
@@ -29,24 +30,32 @@ class Swapchain
     inline vk::Extent2D GetExtent() const { return m_extent; }
     inline std::shared_ptr<Device> GetDevice() const { return m_pDevice; }
 
-    /// @brief Recreate the swapchain with the desired size.
+    /// @brief Recreate the swapchain with the desired size. Will also trigger registered callbacks.
     void Resize(uint32_t width, uint32_t height);
 
     void Present(vk::Semaphore& waitSemaphore);
+
+    /// @brief Add a callback that triggers when this swapchain is resized.
+    void AddResizeCallback(std::function<void(uint32_t, uint32_t)> callback);
 
   private:
     // Wrapped vulkan swapchain.
     vk::UniqueSwapchainKHR m_vkSwapchain;
 
-    vk::SurfaceKHR* m_pSurface = nullptr;
+    vkg::Window* m_pWindow = nullptr;
     vk::SurfaceFormatKHR m_surfaceFormat;
     vk::Extent2D m_extent;
 
     std::shared_ptr<Device> m_pDevice;
     uint32_t m_width, m_height;
     uint32_t m_activeImageIndex;
+    bool m_resizeRequired = false;
+
+    std::vector<std::function<void(uint32_t, uint32_t)>> m_resizeCallbacks;
 
     void CreateInternal();
+
+    void TargetWindowResizedCallback(int width, int height);
 
     /// @brief Generate the vulkan CreateInfo struct for a swapchain object.
     vk::SwapchainCreateInfoKHR CreateInfo(vk::SwapchainKHR* pOldSwapchain = nullptr);

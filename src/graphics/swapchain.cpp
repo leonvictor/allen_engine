@@ -1,16 +1,30 @@
 #include "swapchain.hpp"
 
+#include "device.hpp"
+#include "resources/image.hpp"
+#include "window.hpp"
+
+#include <functional>
+
 namespace vkg
 {
 
-Swapchain::Swapchain(std::shared_ptr<Device> pDevice, vk::SurfaceKHR* surface, uint32_t width, uint32_t height)
+Swapchain::Swapchain(std::shared_ptr<Device> pDevice, vkg::Window* pWindow)
 {
     m_pDevice = pDevice;
-    m_pSurface = surface;
-    m_width = width;
-    m_height = height;
+    m_pWindow = pWindow;
+    m_width = pWindow->GetWidth();
+    m_height = pWindow->GetHeight();
+
+    // Hook a callback to the window's resize event
+    pWindow->AddResizeCallback(std::bind(&Swapchain::TargetWindowResizedCallback, this, std::placeholders::_1, std::placeholders::_2));
 
     CreateInternal();
+}
+
+void Swapchain::TargetWindowResizedCallback(int width, int height)
+{
+    m_resizeRequired = true;
 }
 
 uint32_t Swapchain::AcquireNextImage(vk::Semaphore& semaphore)
@@ -40,6 +54,14 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
     m_height = height;
 
     CreateInternal();
+
+    // Trigger callbacks
+    for (auto callback : m_resizeCallbacks)
+    {
+        callback(m_width, m_height);
+    }
+
+    m_resizeRequired = false;
 }
 
 void Swapchain::Present(vk::Semaphore& waitSemaphore)
@@ -67,28 +89,21 @@ void Swapchain::Present(vk::Semaphore& waitSemaphore)
     }
 
     // TODO: Shoud this happen in swapchain directly ?
-    // TODO: Put back resize !
-    // if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_pWindow->m_framebufferResized)
-    // {
-    //     // TODO: SHouldn't be here
-    //     while (m_pWindow->IsMinimized())
-    //     {
-    //         m_pWindow->WaitEvents();
-    //     }
+    if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_resizeRequired)
+    {
+        // TODO: Shouldn't be here
+        while (m_pWindow->IsMinimized())
+        {
+            m_pWindow->WaitEvents();
+        }
 
-    //     auto size = m_pWindow->GetSize();
-    //     Resize(size.width, size.height);
-
-    //     // TODO: Plug callbacks for associated renderpass and pipelines (in renderer)
-    //     // m_renderpass.Resize(&m_targetSwapchain);
-    //     // CreatePipelines();
-
-    //     m_pWindow->m_framebufferResized = false;
-    // }
-    // else if (result != vk::Result::eSuccess)
-    // {
-    //     throw std::runtime_error("Failed to present swap chain image.");
-    // }
+        auto size = m_pWindow->GetSize();
+        Resize(size.width, size.height);
+    }
+    else if (result != vk::Result::eSuccess)
+    {
+        throw std::runtime_error("Failed to present swap chain image.");
+    }
 }
 
 void Swapchain::CreateInternal()
@@ -103,9 +118,7 @@ void Swapchain::CreateInternal()
 
 vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain)
 {
-    assert(m_pSurface != nullptr);
-
-    auto swapchainSupport = m_pDevice->GetSwapchainSupport(*m_pSurface);
+    auto swapchainSupport = m_pDevice->GetSwapchainSupport(m_pWindow->GetVkSurface());
     auto presentMode = ChoosePresentMode(swapchainSupport.presentModes);
     m_surfaceFormat = ChooseSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
 
@@ -120,7 +133,7 @@ vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain
     }
 
     vk::SwapchainCreateInfoKHR createInfo{
-        .surface = *m_pSurface,
+        .surface = m_pWindow->GetVkSurface(),
         .minImageCount = imageCount,
         .imageFormat = m_surfaceFormat.format,
         .imageColorSpace = m_surfaceFormat.colorSpace,
@@ -202,4 +215,10 @@ vk::PresentModeKHR Swapchain::ChoosePresentMode(const std::vector<vk::PresentMod
     }
     return vk::PresentModeKHR::eFifo;
 }
+
+void Swapchain::AddResizeCallback(std::function<void(uint32_t, uint32_t)> callback)
+{
+    m_resizeCallbacks.push_back(callback);
+}
+
 } // namespace vkg

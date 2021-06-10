@@ -4,6 +4,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <functional>
 #include <vector>
 
 namespace vkg
@@ -23,9 +24,6 @@ class Window
   public:
     ~Window();
 
-    // TODO: Temporary. Make private when possible
-    bool m_framebufferResized = false;
-
     void Initialize();
 
     inline bool IsInitialized() const { return m_status == State::Initialized; }
@@ -42,8 +40,10 @@ class Window
 
     void WaitEvents() { glfwWaitEvents(); }
 
-    inline vk::SurfaceKHR& GetSurface() { return m_vkSurface.get(); }
+    inline vk::SurfaceKHR& GetVkSurface() { return m_vkSurface.get(); }
     inline GLFWwindow* GetGLFWWindow() { return m_pGlfwWindow; }
+
+    void AddResizeCallback(std::function<void(int, int)> callback);
 
   private:
     enum State
@@ -57,6 +57,7 @@ class Window
 
     State m_status = State::Uninitialized;
     vk::UniqueSurfaceKHR m_vkSurface;
+    std::vector<std::function<void(uint32_t, uint32_t)>> m_resizeCallbacks;
 
     // TODO: find a good way to handle extensions. Maybe populating a list in the singleton instance ?
     // Right now things are weird because we have to split the initialization in two

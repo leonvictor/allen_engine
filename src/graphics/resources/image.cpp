@@ -107,6 +107,8 @@ Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, u
 Image::Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask)
 {
     m_pDevice = pDevice;
+    m_externallyOwned = true;
+
     m_vkImage = vk::UniqueImage(image);
 
     m_mipLevels = mipLevels;
