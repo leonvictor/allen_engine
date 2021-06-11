@@ -411,17 +411,17 @@ class Engine
 
         if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
         {
-            auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
             // TODO: What behavior do we expect when the scene tab is resized ?
-            ImGui::Image((ImTextureID) tex->GetDescriptorSet(), {1600, 800});
+            // Current: resize the displayed scene render image. This can cause wrong scaling, and we do not want that
+            auto dim = ImGui::GetContentRegionAvail();
+            auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
+            ImGui::Image((ImTextureID) tex->GetDescriptorSet(), dim);
         }
 
         ImGui::End();
 
         if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
         {
-
-
             if (ImGui::BeginTabBar("LogsTabBar"))
             {
                 if (ImGui::BeginTabItem("Logs"))
