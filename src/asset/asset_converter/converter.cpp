@@ -4,8 +4,8 @@
 #include <stb_image.h>
 
 // TODO: Split in 2 different libs
-#include "../asset_system/asset_system.hpp"
-#include "../asset_system/texture_asset.hpp"
+#include <asset_system.hpp>
+#include <texture_asset.hpp>
 
 #include <iostream>
 
