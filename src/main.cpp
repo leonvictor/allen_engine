@@ -369,8 +369,9 @@ class Engine
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
         float height = ImGui::GetFrameHeight();
 
-        ImGui::DockSpaceOverViewport(viewport);
-
+        auto dockID = ImGui::DockSpaceOverViewport(viewport);
+        
+        // TODO: Programatically set the initial layout
         if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
         {
             if (ImGui::BeginMenuBar())
@@ -408,49 +409,30 @@ class Engine
             ImGui::End();
         }
 
-        if (ImGui::Begin("Scene", nullptr))
+        if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
         {
             auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
+            // TODO: What behavior do we expect when the scene tab is resized ?
             ImGui::Image((ImTextureID) tex->GetDescriptorSet(), {1600, 800});
         }
+
         ImGui::End();
-        // if (ImGui::Begin("SceneViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
-        // {
-        //     // TODO: Only display the viewport in the right tab.
-        //     // And only if it's active
-        //     auto dim = ImGui::GetWindowSize();
-        //     auto pos = ImGui::GetWindowPos();
 
-        //     if (ImGui::BeginTabBar("MainTabBar"))
-        //     {
-        //         if (ImGui::BeginTabItem("Scene"))
-        //         {
-        //             ImGui::Text("Here, the scene !");
-        //             ImGui::EndTabItem();
-        //         }
-        //         ImGui::EndTabBar();
-        //     }
-        //     ImGui::End();
-        // }
+        if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
+        {
 
-        // if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
-        // {
-        //     // TODO: Only display the viewport in the right tab.
-        //     // And only if it's active
-        //     auto dim = ImGui::GetWindowSize();
-        //     auto pos = ImGui::GetWindowPos();
 
-        //     if (ImGui::BeginTabBar("LogsTabBar"))
-        //     {
-        //         if (ImGui::BeginTabItem("Logs"))
-        //         {
-        //             ImGui::Text("Sample Logs");
-        //             ImGui::EndTabItem();
-        //         }
-        //         ImGui::EndTabBar();
-        //     }
-        //     ImGui::End();
-        // }
+            if (ImGui::BeginTabBar("LogsTabBar"))
+            {
+                if (ImGui::BeginTabItem("Logs"))
+                {
+                    ImGui::Text("Sample Logs");
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+            ImGui::End();
+        }
 
         if (ImGui::Begin("Transform", nullptr) && selectedObject != nullptr)
         {
