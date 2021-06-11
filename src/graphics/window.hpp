@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../input/callback_context.hpp"
-#include "../input/input_context.hpp"
-#include "../input/input_system.hpp" // TODO: Not cool
-#include "instance.hpp"
+#include <vulkan/vulkan.hpp>
+
 #include <GLFW/glfw3.h>
-#include <assert.h>
+
+#include <functional>
+#include <vector>
 
 namespace vkg
 {
@@ -22,63 +22,28 @@ class Window
 {
 
   public:
-    ~Window()
-    {
-        glfwDestroyWindow(m_pGlfwWindow);
-        glfwTerminate();
-    }
+    ~Window();
 
-    // TODO: Temporary. Make private when possible
-    bool m_framebufferResized = false;
-
-    void Initialize()
-    {
-        InitializeWindow();
-        // TODO: This is not that cool
-        Instance::Create();
-        CreateSurface();
-        m_status = State::Initialized;
-    }
+    void Initialize();
 
     inline bool IsInitialized() const { return m_status == State::Initialized; }
 
     /// @brief Return the current size of the display window.
-    Size2D GetSize() const
-    {
-        Size2D size;
-        // TODO: Cache size, GetWidth(), GetHeight()
-        glfwGetFramebufferSize(m_pGlfwWindow, &size.width, &size.height);
-        return size;
-    }
+    Size2D GetSize() const;
 
-    uint32_t GetWidth() const { return (uint32_t) GetSize().width; }
-    uint32_t GetHeight() const { return (uint32_t) GetSize().height; }
+    inline uint32_t GetWidth() const { return (uint32_t) GetSize().width; }
+    inline uint32_t GetHeight() const { return (uint32_t) GetSize().height; }
 
-    float GetAspectRatio() const
-    {
-        auto size = GetSize();
-        if (size.height == 0)
-            return 0.0;
-        return size.width / size.height;
-    }
+    float GetAspectRatio() const;
 
-    bool IsMinimized()
-    {
-        auto size = GetSize();
-        return (size.width == 0 || size.height == 0);
-    }
+    bool IsMinimized();
 
     void WaitEvents() { glfwWaitEvents(); }
 
-    vk::SurfaceKHR& GetSurface()
-    {
-        return m_vkSurface.get();
-    }
+    inline vk::SurfaceKHR& GetVkSurface() { return m_vkSurface.get(); }
+    inline GLFWwindow* GetGLFWWindow() { return m_pGlfwWindow; }
 
-    GLFWwindow* GetGLFWWindow()
-    {
-        return m_pGlfwWindow;
-    }
+    void AddResizeCallback(std::function<void(int, int)> callback);
 
   private:
     enum State
@@ -92,95 +57,28 @@ class Window
 
     State m_status = State::Uninitialized;
     vk::UniqueSurfaceKHR m_vkSurface;
+    std::vector<std::function<void(uint32_t, uint32_t)>> m_resizeCallbacks;
 
     // TODO: find a good way to handle extensions. Maybe populating a list in the singleton instance ?
     // Right now things are weird because we have to split the initialization in two
     // Glfw must be initialized to get the required extension, then instance needs to be created to build the surface
-    std::vector<const char*> GetRequiredExtensions()
-    {
-        uint32_t glfwExtensionCount;
-        const char** glfwExtensions;
+    std::vector<const char*> GetRequiredExtensions();
 
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount); // GLFW function that return the extensions it needs
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-        return extensions;
-    }
-
-    static void FramebufferResizeCallback(GLFWwindow* pGlfwWindow, int width, int height)
-    {
-        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
-        window->m_framebufferResized = true;
-    }
+    static void FramebufferResizeCallback(GLFWwindow* pGlfwWindow, int width, int height);
 
     /// @brief Maps GLFW key events to the input system.
     /// TODO: override glfw and poll events directly from the os
-    static void KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods)
-    {
-        // FIXME: GLFW events for keyboard and mouse might share the same identifiers ?
-        Input::Keyboard.UpdateControlState(scancode, action);
-    }
+    static void KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods);
 
-    static void ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoffset)
-    {
-        Input::Mouse.UpdateScrollControlState(xoffset, yoffset);
-    }
+    static void ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoffset);
 
-    static void MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action, int mods)
-    {
-        Input::Mouse.UpdateControlState(button, action);
-    }
+    static void MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action, int mods);
 
     /// @brief Initialize the OS window (here GLFW)
     /// TODO: Find a better name, this is confusing
-    void InitializeWindow()
-    {
-        glfwInit(); // Init glfw
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't use OpenGL context
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-
-        // Grab monitor dimensions
-        auto monitor = glfwGetPrimaryMonitor();
-        int width, height;
-        glfwGetMonitorWorkarea(monitor, nullptr, nullptr, &width, &height);
-
-        // Create the GLFW window
-        m_pGlfwWindow = glfwCreateWindow(width, height, "PoopyEngine", nullptr, nullptr);
-
-        // Adjust window dimensions and position to fit the screen, including title bars
-        // Only frameTop is used on w10
-        int frameLeft, frameRight, frameBottom, frameTop;
-        glfwGetWindowFrameSize(m_pGlfwWindow, &frameLeft, &frameTop, &frameRight, &frameBottom);
-        glfwSetWindowSize(m_pGlfwWindow, width, height - frameTop);
-        glfwSetWindowPos(m_pGlfwWindow, 0, frameTop);
-        glfwShowWindow(m_pGlfwWindow);
-
-        glfwSetWindowUserPointer(m_pGlfwWindow, this);
-
-        // Callbacks
-        glfwSetMouseButtonCallback(m_pGlfwWindow, MouseButtonCallback);
-        glfwSetScrollCallback(m_pGlfwWindow, ScrollCallback);
-        glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
-        glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
-
-        Instance::RequestExtensions(GetRequiredExtensions());
-        m_status = State::WindowReady;
-    }
+    void InitializeWindow();
 
     /// @brief Create the vulkan surface
-    void CreateSurface()
-    {
-        assert(m_status == State::WindowReady);
-        assert(Instance::IsInitialized()), "Tried to create the surface before the instance.";
-
-        VkSurfaceKHR pSurface;
-        auto res = glfwCreateWindowSurface((VkInstance) Instance::Get(), m_pGlfwWindow, nullptr, &pSurface);
-        if (res != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create window surface.");
-        }
-
-        m_vkSurface = vk::UniqueSurfaceKHR(pSurface, Instance::Get());
-    }
+    void CreateSurface();
 };
 } // namespace vkg

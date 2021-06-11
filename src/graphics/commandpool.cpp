@@ -12,7 +12,11 @@ CommandPool::CommandPool(vk::Device* device, Queue* queue, vk::CommandPoolCreate
     m_pVkDevice = device;
     m_pQueue = queue;
 
-    vk::CommandPoolCreateInfo createInfo(flags, m_pQueue->GetFamilyIndex());
+    vk::CommandPoolCreateInfo createInfo{
+        .flags = flags,
+        .queueFamilyIndex = m_pQueue->GetFamilyIndex(),
+    };
+
     m_vkCommandPool = m_pVkDevice->createCommandPoolUnique(createInfo);
 }
 

@@ -7,6 +7,7 @@
 #include <glm/glm/vec3.hpp>
 // #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <stdexcept>
 
 namespace vkg
 {
@@ -29,7 +30,7 @@ class Image : public Allocation
 {
   protected:
     void InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-                   vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
+        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
 
     void Allocate(const vk::MemoryPropertyFlags& memProperties);
     void InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
@@ -43,13 +44,18 @@ class Image : public Allocation
     // TODO: Use vec2 ?
     uint32_t m_width, m_height;
 
+    vk::UniqueDescriptorSet m_descriptorSet;
+    bool m_externallyOwned = false;
+
   public:
     // Empty ctor to avoid errors. We should be able to get rid of it later on
     Image(){};
 
     // TODO: Default arguments
     Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-          vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
+        vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
+
+    Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask);
 
     void TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout);
 
@@ -78,5 +84,19 @@ class Image : public Allocation
 
     uint32_t GetWidth() const { return m_width; }
     uint32_t GetHeight() const { return m_height; }
+    vk::ImageLayout GetLayout() const { return m_layout; }
+
+    // TODO: Find a better way to handle externally owned images (i.e. the ones from the swapchain)
+    void Reset()
+    {
+        if (!m_externallyOwned)
+        {
+            throw std::runtime_error("You can only manually reset an externally owned image.");
+        }
+
+        m_descriptorSet.reset();
+        m_vkView.reset();
+        m_vkImage.release();
+    }
 };
 } // namespace vkg
