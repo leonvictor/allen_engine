@@ -8,9 +8,7 @@ set(SOURCE "src/main.cpp"
            "src/graphics/shaders.cpp"
            "src/graphics/commandpool.cpp"
            "src/graphics/resources/buffer.cpp"
-           "src/graphics/resources/image.cpp"
-           "src/graphics/resources/texture_cubemap.cpp"
-           "src/graphics/resources/texture.cpp"
+           "src/graphics/resources/image2.cpp"
            "src/graphics/render_pass.cpp"
            "src/graphics/subpass.cpp"
            "src/graphics/swapchain.cpp"
@@ -59,7 +57,7 @@ add_executable(main ${SOURCE})
 
 target_compile_features(main PUBLIC cxx_std_20)
 
-target_link_libraries(main glfw shaderc ${Vulkan_LIBRARIES} imm32)
+target_link_libraries(main glfw shaderc ${Vulkan_LIBRARIES} imm32 asset_system)
 
 set(CMAKE_CXX_STANDARD 20) 
 set(CMAKE_CXX_STANDARD_REQUIRED True)

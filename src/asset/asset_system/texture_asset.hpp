@@ -30,8 +30,10 @@ TextureInfo ReadTextureInfo(AssetFile* file);
 /// @param info: Texture info
 /// @param sourceBuffer Binary blob of pixel data
 void UnpackTexture(TextureInfo* info, const char* sourceBuffer, size_t sourceSize, char* destination);
+void UnpackTexture(TextureInfo* info, std::vector<char>& sourceBuffer, char* destination);
 
 /// @brief Compress and store a texture into binary format.
 AssetFile PackTexture(TextureInfo* info, void* pixelData);
 
+TextureFormat ParseFormat(std::string formatString);
 } // namespace assets

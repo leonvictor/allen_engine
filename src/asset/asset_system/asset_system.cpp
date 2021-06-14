@@ -5,7 +5,7 @@
 
 using namespace assets;
 
-CompressionMode ParseCompressionMode(std::string compressionMode)
+CompressionMode assets::ParseCompressionMode(std::string compressionMode)
 {
 
     if (compressionMode == "none")
@@ -14,7 +14,7 @@ CompressionMode ParseCompressionMode(std::string compressionMode)
     }
 }
 
-bool SaveBinaryFile(std::string path, const AssetFile& file)
+bool assets::SaveBinaryFile(std::string path, const AssetFile& file)
 {
     std::ofstream outfile;
     outfile.open(path, std::ios::binary | std::ios::out);
@@ -42,7 +42,7 @@ bool SaveBinaryFile(std::string path, const AssetFile& file)
     return true;
 }
 
-bool LoadBinaryFile(std::string path, AssetFile& outputFile)
+bool assets::LoadBinaryFile(std::string path, AssetFile& outputFile)
 {
     std::ifstream infile;
     infile.open(path, std::ios::binary);

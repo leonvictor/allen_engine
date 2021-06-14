@@ -5,7 +5,7 @@
 using namespace assets;
 using json = nlohmann::json;
 
-TextureFormat ParseFormat(std::string formatString)
+TextureFormat assets::ParseFormat(std::string formatString)
 {
     if (formatString == "RGBA8")
     {
@@ -17,7 +17,7 @@ TextureFormat ParseFormat(std::string formatString)
     }
 };
 
-TextureInfo ReadTextureInfo(AssetFile* file)
+TextureInfo assets::ReadTextureInfo(AssetFile* file)
 {
     TextureInfo info;
 
@@ -34,7 +34,7 @@ TextureInfo ReadTextureInfo(AssetFile* file)
     return info;
 }
 
-void UnpackTexture(TextureInfo* info, const char* sourceBuffer, size_t sourceSize, char* destination)
+void assets::UnpackTexture(TextureInfo* info, const char* sourceBuffer, size_t sourceSize, char* destination)
 {
     if (info->compressionMode == CompressionMode::None)
     {
@@ -43,7 +43,12 @@ void UnpackTexture(TextureInfo* info, const char* sourceBuffer, size_t sourceSiz
     // TODO: Decompress here
 }
 
-AssetFile PackTexture(TextureInfo* info, void* pixelData)
+// void UnpackTexture(TextureInfo* info, std::vector<char>& sourceBuffer, char* destination)
+// {
+//     return UnpackTexture(info, sourceBuffer.data(), sourceBuffer.size(), destination);
+// }
+
+AssetFile assets::PackTexture(TextureInfo* info, void* pixelData)
 {
     json metadata;
     metadata["format"] = "RGBA8";
@@ -61,7 +66,8 @@ AssetFile PackTexture(TextureInfo* info, void* pixelData)
 
     // TODO: Compress here
     file.binaryBlob.resize(info->size);
-    file.binaryBlob.assign((const char) pixelData, info->size);
+    memcpy(file.binaryBlob.data(), pixelData, info->size);
+
     metadata["compression"] = "none";
 
     auto stringified = metadata.dump();
