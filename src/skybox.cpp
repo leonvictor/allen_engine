@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graphics/device.hpp"
-#include "graphics/resources/texture_cubemap.hpp"
+#include "graphics/resources/image2.hpp"
 #include "mesh.cpp"
 
 #include "transform.hpp"
@@ -19,7 +19,7 @@ class Skybox
 {
   public:
     Mesh mesh;
-    vkg::TextureCubeMap texture;
+    vkg::Image texture;
     vk::UniqueDescriptorSet descriptorSet;
     Transform transform;
     std::shared_ptr<vkg::Device> m_pDevice;
@@ -30,7 +30,10 @@ class Skybox
     {
         m_pDevice = pDevice;
 
-        texture.LoadFromDirectory(m_pDevice, texturePath);
+        texture = vkg::Image::CubemapFromDirectory(m_pDevice, texturePath);
+        texture.AddView(vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
+        texture.AddSampler(vk::SamplerAddressMode::eClampToEdge);
+
         mesh = Mesh(m_pDevice, modelPath);
         transform.scale = glm::vec3(25.0f);
         createDescriptorSet();

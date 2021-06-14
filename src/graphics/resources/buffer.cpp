@@ -1,7 +1,7 @@
 #include "buffer.hpp"
 #include "../queue.hpp"
 #include "allocation.hpp"
-#include "image.hpp"
+#include "image2.hpp"
 #include <memory>
 
 #include <vulkan/vulkan.hpp>

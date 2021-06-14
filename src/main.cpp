@@ -34,6 +34,7 @@
 #include "graphics/imgui.hpp"
 #include "graphics/rendering/offline_renderer.hpp"
 #include "graphics/rendering/swapchain_renderer.hpp"
+#include "graphics/resources/image2.hpp"
 #include "graphics/window.hpp"
 #include "time_system.hpp"
 
@@ -370,7 +371,7 @@ class Engine
         float height = ImGui::GetFrameHeight();
 
         auto dockID = ImGui::DockSpaceOverViewport(viewport);
-        
+
         // TODO: Programatically set the initial layout
         if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
         {
@@ -414,7 +415,7 @@ class Engine
             // TODO: What behavior do we expect when the scene tab is resized ?
             // Current: resize the displayed scene render image. This can cause wrong scaling, and we do not want that
             auto dim = ImGui::GetContentRegionAvail();
-            auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
+            auto tex = m_sceneRenderer.GetActiveImage();
             ImGui::Image((ImTextureID) tex->GetDescriptorSet(), dim);
         }
 

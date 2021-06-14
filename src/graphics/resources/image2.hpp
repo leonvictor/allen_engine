@@ -8,11 +8,14 @@
 #include <glm/glm/vec3.hpp>
 #include <vulkan/vulkan.hpp>
 
+// TODO: Get rid of components inheritence when we no longer use them
+#include "../../components.hpp"
+
 namespace vkg
 {
 class Buffer;
 
-class Image : public Allocation
+class Image : public Allocation, public Component
 {
   protected:
     // Wrapped vulkan objects
@@ -36,6 +39,8 @@ class Image : public Allocation
 
   public:
     // Creation API
+    Image() {}
+
     /// @brief Create a new empty vulkan image.
     /// @todo Maybe move this to a Create() fn ?
     Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,

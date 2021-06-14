@@ -28,11 +28,7 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     vk::ImageCreateInfo imageInfo;
     imageInfo.flags = flags;
     imageInfo.imageType = vk::ImageType::e2D;
-    imageInfo.extent = {
-        .width = width,
-        .height = height,
-        .depth = 1,
-    };
+    imageInfo.extent = vk::Extent3D(width, height, 1);
     imageInfo.mipLevels = mipLevels;
     imageInfo.arrayLayers = arrayLayers;
     imageInfo.format = format;
@@ -52,12 +48,12 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     m_height = height;
 }
 
-void Image::InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
+void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
     assert(!m_vkView && "Image view is already initialized.");
 
     vk::ImageViewCreateInfo createInfo;
-    createInfo.format = format;
+    createInfo.format = m_format;
     createInfo.image = m_vkImage.get();
     createInfo.viewType = viewtype;
     createInfo.subresourceRange.aspectMask = aspectMask;
@@ -629,5 +625,5 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
     }
 
     Image image = FromBuffer(pDevice, stagingBuffer, width, height, 1, 6);
-    return std::move(Image);
+    return std::move(image);
 }

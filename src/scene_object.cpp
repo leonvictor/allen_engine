@@ -3,7 +3,7 @@
 #include "components.hpp"
 
 #include "graphics/device.hpp"
-#include "graphics/resources/texture.hpp"
+#include "graphics/resources/image2.hpp"
 #include "material.cpp"
 #include "mesh.cpp"
 #include "transform.hpp"
@@ -26,9 +26,9 @@ class SceneObject : public Entity
 
     // TODO: Refactor to use composition
     SceneObject(std::shared_ptr<vkg::Device> pDevice, std::string modelPath,
-                glm::vec3 position = glm::vec3(0.0f),
-                MaterialBufferObject material = MaterialBufferObject(),
-                std::string texturePath = "")
+        glm::vec3 position = glm::vec3(0.0f),
+        MaterialBufferObject material = MaterialBufferObject(),
+        std::string texturePath = "")
     {
         m_pDevice = pDevice;
 
@@ -46,7 +46,8 @@ class SceneObject : public Entity
 
         if (!texturePath.empty())
         {
-            addComponent<vkg::Texture>(std::make_shared<vkg::Texture>(m_pDevice, texturePath));
+            auto tex = std::make_shared<vkg::Image>(vkg::Image::FromFile(pDevice, texturePath));
+            addComponent(tex);
         }
         createDescriptorSet();
     }
@@ -95,7 +96,7 @@ class SceneObject : public Entity
         writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
         writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
         writeDescriptors[1].descriptorCount = 1;
-        auto textureDescriptor = getComponent<vkg::Texture>()->GetDescriptor();
+        auto textureDescriptor = getComponent<vkg::Image>()->GetDescriptor();
         writeDescriptors[1].pImageInfo = &textureDescriptor;
 
         // TODO: Materials presumably don't change so they don't need a binding
