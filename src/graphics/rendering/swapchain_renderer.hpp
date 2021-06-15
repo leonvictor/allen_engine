@@ -18,23 +18,15 @@ class SwapchainRenderer : public IRenderer
 
     void CreateTargetImages() override
     {
-        // TODO:
-        // Swapchain images cannot be handled in unique handles, so we need to store them some other way
-        // TODO: Find a better way to do this
-        // TODO: Put back
-        // for (auto& img : m_targetImages)
-        // {
-        //     img->Reset();
-        // }
-
         m_targetImages.clear();
         // Create the swapchain images
         auto images = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_pSwapchain->GetVkSwapchain());
 
         for (size_t i = 0; i < images.size(); i++)
         {
-            // auto target = std::make_shared<vkg::Image>(m_pDevice, images[i], m_colorImageFormat, 1, vk::ImageAspectFlagBits::eColor);
-            // m_targetImages.push_back(target);
+            auto target = std::make_shared<vkg::Image>(m_pDevice, images[i], m_colorImageFormat);
+            target->AddView(vk::ImageAspectFlagBits::eColor);
+            m_targetImages.push_back(target);
         };
     }
 

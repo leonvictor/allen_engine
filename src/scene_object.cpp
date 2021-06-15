@@ -47,6 +47,8 @@ class SceneObject : public Entity
         if (!texturePath.empty())
         {
             auto tex = std::make_shared<vkg::Image>(vkg::Image::FromFile(pDevice, texturePath));
+            tex->AddView(vk::ImageAspectFlagBits::eColor);
+            tex->AddSampler();
             addComponent(tex);
         }
         createDescriptorSet();
