@@ -22,32 +22,96 @@ class Image : public Allocation, public Component
     vk::UniqueImage m_vkImage;
     vk::UniqueImageView m_vkView;
     vk::UniqueSampler m_vkSampler;
+    vk::UniqueDescriptorSet m_descriptorSet;
 
     vk::ImageLayout m_layout;
-    vk::Format m_format;
-    uint32_t m_mipLevels;
-    uint32_t m_arrayLayers;
+    vk::Format m_format = vk::Format::eUndefined;
+    uint32_t m_mipLevels = 1;
+    uint32_t m_arrayLayers = 1;
     uint32_t m_width, m_height;
 
-    vk::UniqueDescriptorSet m_descriptorSet;
+    // Set to true when the image resource is owned by an external agent (i.e. swapchain images)
+    bool m_externallyOwnedImage = false;
 
     // Inner creation routines
     void InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
+        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
 
     void InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
 
   public:
+    ~Image()
+    {
+        m_descriptorSet.reset();
+        m_vkSampler.reset();
+        m_vkView.reset();
+        if (m_externallyOwnedImage)
+        {
+            m_vkImage.release();
+        }
+        else
+        {
+            m_vkImage.reset();
+        }
+    }
+
+    // No copy allowed
+    Image(const Image&) = delete;
+    Image& operator=(const Image&) = delete;
+
+    // Move assignement
+    Image& operator=(Image&& other)
+    {
+        if (this != &other)
+        {
+            Allocation::operator=(std::move(other));
+
+            m_vkSampler = std::move(other.m_vkSampler);
+            m_vkView = std::move(other.m_vkView);
+            m_vkImage = std::move(other.m_vkImage);
+            m_descriptorSet = std::move(other.m_descriptorSet);
+
+            m_layout = other.m_layout;
+            m_format = other.m_format;
+            m_mipLevels = other.m_mipLevels;
+            m_arrayLayers = other.m_arrayLayers;
+            m_width = other.m_width;
+            m_height = other.m_height;
+            m_externallyOwnedImage = other.m_externallyOwnedImage;
+        }
+        return *this;
+    }
+
+    // Move constructor
+    Image(Image&& other) : Allocation(std::move(other))
+    {
+        m_vkSampler = std::move(other.m_vkSampler);
+        m_vkView = std::move(other.m_vkView);
+        m_vkImage = std::move(other.m_vkImage);
+        m_descriptorSet = std::move(other.m_descriptorSet);
+
+        m_layout = other.m_layout;
+        m_format = other.m_format;
+        m_mipLevels = other.m_mipLevels;
+        m_arrayLayers = other.m_arrayLayers;
+        m_width = other.m_width;
+        m_height = other.m_height;
+        m_externallyOwnedImage = other.m_externallyOwnedImage;
+    }
+
     // Creation API
     Image() {}
 
     /// @brief Create a new empty vulkan image.
     /// @todo Maybe move this to a Create() fn ?
     Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
+        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
+
+    /// @brief Wrap an existing VkImage. The original image won't be automatically destroyed.
+    Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format);
 
     /// @brief Create an image an upload the content of a buffer to it.
-    static Image FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, uint32_t arrayLayers = 1);
+    static Image FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
 
     /// @brief Load a texture asset from disk.
     static Image FromAsset(std::shared_ptr<Device>, std::string path);

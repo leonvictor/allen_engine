@@ -33,6 +33,36 @@ class Allocation
     }
 
   public:
+    Allocation() = default;
+
+    // No copy allowed
+    Allocation(const Allocation&) = delete;
+    Allocation& operator=(const Allocation&) = delete;
+
+    // Move assignement
+    Allocation& operator=(Allocation&& other)
+    {
+        if (this != &other)
+        {
+            m_pDevice = std::move(other.m_pDevice);
+            m_memory = std::move(other.m_memory);
+
+            m_size = other.m_size;
+            m_mapped = other.m_mapped;
+        }
+        return *this;
+    }
+
+    // Move constructor
+    Allocation(Allocation&& other)
+    {
+        m_pDevice = std::move(other.m_pDevice);
+        m_memory = std::move(other.m_memory);
+
+        m_size = other.m_size;
+        m_mapped = other.m_mapped;
+    }
+
     vk::DeviceSize GetSize() const { return m_size; }
 
     // TODO: Default to own size attribute

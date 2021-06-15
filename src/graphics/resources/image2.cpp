@@ -13,14 +13,22 @@
 using namespace vkg;
 
 Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
+    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
     m_pDevice = pDevice;
-    InitImage(width, height, mipLevels, numSamples, format, tiling, usage, arrayLayers, flags, layout);
+    InitImage(width, height, mipLevels, numSamples, format, tiling, usage, arrayLayers, flags, layout, type);
+}
+
+Image::Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format)
+{
+    m_pDevice = pDevice;
+    m_externallyOwnedImage = true;
+    m_vkImage = vk::UniqueImage(image);
+    m_format = format;
 }
 
 void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
+    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
     // Enforce vk specs
     assert(layout == vk::ImageLayout::eUndefined || layout == vk::ImageLayout::ePreinitialized);
@@ -523,12 +531,12 @@ Image Image::FromFile(std::shared_ptr<Device> pDevice, std::string path)
     return std::move(image);
 }
 
-Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers)
+Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, vk::ImageType type)
 {
-    Image image = Image(pDevice, width, height, 1,
+    Image image = Image(pDevice, width, height, mipLevels,
         vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
-        arrayLayers);
+        arrayLayers, {}, vk::ImageLayout::eUndefined, type);
 
     image.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
@@ -570,11 +578,11 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
     auto facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[0] + ".png";
 
     int width, height, channels;
-    stbi_uc* pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
     if (!pixels)
     {
-        std::cout << "Failed to load texture file " << path << std::endl;
+        std::cout << "Failed to load texture file " << facePath << std::endl;
         throw;
     }
 
@@ -604,7 +612,7 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
     {
         facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[i] + ".png";
 
-        pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
         if (!pixels)
         {
@@ -624,6 +632,18 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
         bufferCopyRegions.push_back(bufferImageCopy);
     }
 
-    Image image = FromBuffer(pDevice, stagingBuffer, width, height, 1, 6);
+    Image image = Image(pDevice, width, height, 1,
+        vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
+        6, vk::ImageCreateFlagBits::eCubeCompatible, vk::ImageLayout::eUndefined, vk::ImageType::e3D);
+
+    image.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
+        {
+            image.TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+            stagingBuffer.CopyTo(cb, image);
+            image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+        });
     return std::move(image);
 }
