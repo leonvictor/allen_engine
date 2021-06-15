@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graphics/device.hpp"
-#include "graphics/resources/image2.hpp"
+#include "graphics/resources/image.hpp"
 #include "mesh.cpp"
 
 #include "transform.hpp"

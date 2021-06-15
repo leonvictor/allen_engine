@@ -34,7 +34,7 @@
 #include "graphics/imgui.hpp"
 #include "graphics/rendering/offline_renderer.hpp"
 #include "graphics/rendering/swapchain_renderer.hpp"
-#include "graphics/resources/image2.hpp"
+#include "graphics/resources/image.hpp"
 #include "graphics/window.hpp"
 #include "time_system.hpp"
 

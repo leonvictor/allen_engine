@@ -1,102 +1,177 @@
 #pragma once
 
 #include "allocation.hpp"
+
 #include <memory>
-#include <vulkan/vulkan.hpp>
+#include <stdexcept>
 
 #include <glm/glm/vec3.hpp>
-// #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-#include <stdexcept>
+#include <vulkan/vulkan.hpp>
+
+// TODO: Get rid of components inheritence when we no longer use them
+#include "../../components.hpp"
 
 namespace vkg
 {
+class Buffer;
 
-// Minimal Cpp wrapper for STB loader
-// TODO by order of preference :
-// 1) Get rid of it
-// 2) Find it a better name
-// 3) Move it somewhere else
-struct ImageFile
-{
-    stbi_uc* pixels;
-    int width, height, channels;
-
-    explicit ImageFile(std::string path);
-    void load(std::string path);
-};
-
-class Image : public Allocation
+class Image : public Allocation, public Component
 {
   protected:
-    void InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
-
-    void Allocate(const vk::MemoryPropertyFlags& memProperties);
-    void InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
-
+    // Wrapped vulkan objects
     vk::UniqueImage m_vkImage;
     vk::UniqueImageView m_vkView;
+    vk::UniqueSampler m_vkSampler;
+    vk::UniqueDescriptorSet m_descriptorSet;
+
     vk::ImageLayout m_layout;
-    vk::Format m_format;
-    uint32_t m_mipLevels;
-    uint32_t m_arrayLayers;
-    // TODO: Use vec2 ?
+    vk::Format m_format = vk::Format::eUndefined;
+    uint32_t m_mipLevels = 1;
+    uint32_t m_arrayLayers = 1;
     uint32_t m_width, m_height;
 
-    vk::UniqueDescriptorSet m_descriptorSet;
-    bool m_externallyOwned = false;
+    // Set to true when the image resource is owned by an external agent (i.e. swapchain images)
+    bool m_externallyOwnedImage = false;
+
+    // Inner creation routines
+    void InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
+
+    void InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
 
   public:
-    // Empty ctor to avoid errors. We should be able to get rid of it later on
-    Image(){};
+    ~Image()
+    {
+        m_descriptorSet.reset();
+        m_vkSampler.reset();
+        m_vkView.reset();
+        if (m_externallyOwnedImage)
+        {
+            m_vkImage.release();
+        }
+        else
+        {
+            m_vkImage.reset();
+        }
+    }
 
-    // TODO: Default arguments
+    // No copy allowed
+    Image(const Image&) = delete;
+    Image& operator=(const Image&) = delete;
+
+    // Move assignement
+    Image& operator=(Image&& other)
+    {
+        if (this != &other)
+        {
+            Allocation::operator=(std::move(other));
+
+            m_vkSampler = std::move(other.m_vkSampler);
+            m_vkView = std::move(other.m_vkView);
+            m_vkImage = std::move(other.m_vkImage);
+            m_descriptorSet = std::move(other.m_descriptorSet);
+
+            m_layout = other.m_layout;
+            m_format = other.m_format;
+            m_mipLevels = other.m_mipLevels;
+            m_arrayLayers = other.m_arrayLayers;
+            m_width = other.m_width;
+            m_height = other.m_height;
+            m_externallyOwnedImage = other.m_externallyOwnedImage;
+        }
+        return *this;
+    }
+
+    // Move constructor
+    Image(Image&& other) : Allocation(std::move(other))
+    {
+        m_vkSampler = std::move(other.m_vkSampler);
+        m_vkView = std::move(other.m_vkView);
+        m_vkImage = std::move(other.m_vkImage);
+        m_descriptorSet = std::move(other.m_descriptorSet);
+
+        m_layout = other.m_layout;
+        m_format = other.m_format;
+        m_mipLevels = other.m_mipLevels;
+        m_arrayLayers = other.m_arrayLayers;
+        m_width = other.m_width;
+        m_height = other.m_height;
+        m_externallyOwnedImage = other.m_externallyOwnedImage;
+    }
+
+    // Creation API
+    Image() {}
+
+    /// @brief Create a new empty vulkan image.
+    /// @todo Maybe move this to a Create() fn ?
     Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-        vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
+        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
 
-    Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask);
+    /// @brief Wrap an existing VkImage. The original image won't be automatically destroyed.
+    Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format);
+
+    /// @brief Create an image an upload the content of a buffer to it.
+    static Image FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
+
+    /// @brief Load a texture asset from disk.
+    static Image FromAsset(std::shared_ptr<Device>, std::string path);
+
+    /// @brief Load a texture from an image. Prefer using assets if possible!
+    static Image FromFile(std::shared_ptr<Device>, std::string path);
+
+    /// @brief Load a cubemap from a directory.
+    static Image CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string path);
+
+    /// @brief Add a vulkan view to this image.
+    void AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
+
+    /// @brief Add a vulkan sampler to this image.
+    void AddSampler(vk::SamplerAddressMode adressMode = vk::SamplerAddressMode::eRepeat);
+
+    void Allocate(const vk::MemoryPropertyFlags& memProperties);
 
     void TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout);
 
-    void Blit(vk::CommandBuffer cb, vkg::Image& dstImage);
-    void Blit(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height);
+    void Blit(vk::CommandBuffer cb, Image& dstImage);
+    void Blit(vk::CommandBuffer cb, Image& dstImage, int width, int height);
 
     // TODO: Would copyFrom methods be better ?
     // It's cool to keep data ownership
-    void CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage);
-    void CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height);
+    void CopyTo(vk::CommandBuffer cb, Image& dstImage);
+    void CopyTo(vk::CommandBuffer cb, Image& dstImage, int width, int height);
 
-    void GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels);
+    /// @brief Generate mipmaps and transfer the last level to shader_readonly layout.
+    void GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels);
 
     /// @brief Save image on disk as a ppm file.
     /// FIXME: This only works in 8-bits per channel formats
     void Save(std::string filename, bool colorSwizzle = false);
 
-    /// @brief Retreive the pixel value at index
+    /// @brief Retrieve the pixel value at index
     /// FIXME: This won't work if the image is in GPU-specific format
     /// FIXME: This only works in 8-bits per channel formats
     glm::vec3 PixelAt(int x, int y, bool colorSwizzle = false);
 
+    // Accessors
     // TODO: Put const back when we've move to copyFrom functions
     vk::Image& GetVkImage() { return m_vkImage.get(); }
     const vk::ImageView& GetVkView() const { return m_vkView.get(); }
-
+    const vk::Sampler& GetVkSampler() const { return m_vkSampler.get(); }
     uint32_t GetWidth() const { return m_width; }
     uint32_t GetHeight() const { return m_height; }
     vk::ImageLayout GetLayout() const { return m_layout; }
 
-    // TODO: Find a better way to handle externally owned images (i.e. the ones from the swapchain)
-    void Reset()
-    {
-        if (!m_externallyOwned)
-        {
-            throw std::runtime_error("You can only manually reset an externally owned image.");
-        }
+    inline bool HasView() { return (bool) m_vkView; }
+    inline bool HasSampler() { return (bool) m_vkSampler; }
 
-        m_descriptorSet.reset();
-        m_vkView.reset();
-        m_vkImage.release();
+    inline const vk::DescriptorImageInfo GetDescriptor() const
+    {
+        assert(m_vkView && m_vkSampler);
+        return vk::DescriptorImageInfo{m_vkSampler.get(), m_vkView.get(), m_layout};
     }
+
+    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
+
+    vk::DescriptorSet& GetDescriptorSet();
 };
 } // namespace vkg

@@ -1,7 +1,7 @@
 #include "swapchain.hpp"
 
 #include "device.hpp"
-#include "resources/image2.hpp"
+#include "resources/image.hpp"
 #include "window.hpp"
 
 #include <functional>

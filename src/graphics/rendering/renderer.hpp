@@ -12,7 +12,7 @@
 #include "../window.hpp"
 #include "render_target.hpp"
 
-#include "../resources/image2.hpp"
+#include "../resources/image.hpp"
 
 #include <vulkan/vulkan.hpp>
 

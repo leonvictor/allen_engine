@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "../resources/image2.hpp"
+#include "../resources/image.hpp"
 #include "render_target.hpp"
 #include "renderer.hpp"
 

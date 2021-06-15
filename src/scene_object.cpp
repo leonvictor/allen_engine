@@ -3,7 +3,7 @@
 #include "components.hpp"
 
 #include "graphics/device.hpp"
-#include "graphics/resources/image2.hpp"
+#include "graphics/resources/image.hpp"
 #include "material.cpp"
 #include "mesh.cpp"
 #include "transform.hpp"
