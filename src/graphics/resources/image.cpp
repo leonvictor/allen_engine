@@ -35,13 +35,16 @@ void ImageFile::load(std::string path)
 }
 
 void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-                      vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
+    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
 {
+
+    // Enforce vk specs
+    assert(layout == vk::ImageLayout::eUndefined || layout == vk::ImageLayout::ePreinitialized);
 
     vk::ImageCreateInfo imageInfo;
     imageInfo.flags = flags;
     imageInfo.imageType = vk::ImageType::e2D;
-    imageInfo.extent = {
+    imageInfo.extent = vk::Extent3D{
         .width = static_cast<uint32_t>(width),
         .height = static_cast<uint32_t>(height),
         .depth = 1,
@@ -91,13 +94,27 @@ void Image::InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::Ima
 
 // TODO: Default arguments
 Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-             vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
+    vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
 {
 
     m_pDevice = pDevice;
 
     InitImage(width, height, mipLevels, numSamples, format, tiling, usage, 1, {}, layout);
     Allocate(memProperties);
+    InitView(format, aspectMask);
+}
+
+Image::Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask)
+{
+    m_pDevice = pDevice;
+    m_externallyOwned = true;
+
+    m_vkImage = vk::UniqueImage(image);
+
+    m_mipLevels = mipLevels;
+    m_format = format;
+    m_arrayLayers = 1;
+
     InitView(format, aspectMask);
 }
 
@@ -438,5 +455,6 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t t
         barrier);
 
     m_mipLevels = mipLevels;
+    m_layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 }
 } // namespace vkg

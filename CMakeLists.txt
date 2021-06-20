@@ -10,8 +10,19 @@ set(SOURCE "src/main.cpp"
            "src/graphics/resources/buffer.cpp"
            "src/graphics/resources/image.cpp"
            "src/graphics/resources/texture_cubemap.cpp"
-           "src/graphics/resources/texture.cpp")
+           "src/graphics/resources/texture.cpp"
+           "src/graphics/render_pass.cpp"
+           "src/graphics/subpass.cpp"
+           "src/graphics/swapchain.cpp"
+           "src/graphics/pipeline.cpp"
+           "src/graphics/window.cpp"
+           "src/utils/uuid.cpp"
+           "src/input/input_system.cpp"
+           "src/input/input_device.cpp"
+           "src/input/input_action.cpp"
+           "src/input/controls/input_control.cpp")
 
+add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 find_package(Vulkan REQUIRED)
 
 # Translate env path to CMake style 
@@ -32,6 +43,8 @@ include_directories("external")
 
 file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")
 set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/backends/imgui_impl_vulkan.cpp" "external/imgui/backends/imgui_impl_glfw.cpp")
+
+set(SOURCE ${SOURCE} "external/imgui_plugins/ImGuizmo.cpp")
 
 set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")

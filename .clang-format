@@ -7,3 +7,5 @@ ColumnLimit: 0
 # AlignConsecutiveAssignments: true
 SpaceAfterCStyleCast: true
 PointerAlignment: Left
+AllowShortLambdasOnASingleLine: true
+AlignAfterOpenBracket: DontAlign

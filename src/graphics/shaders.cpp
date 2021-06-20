@@ -2,9 +2,7 @@
 #include "../utils/files.cpp"
 #include "device.hpp"
 #include <iostream>
-#ifndef VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#endif
+
 #include <vulkan/vulkan.hpp>
 
 namespace vkg::shaders
@@ -17,13 +15,21 @@ vk::ShaderModule CreateShaderModule(std::shared_ptr<Device> device, const std::s
     if (ext == "spv")
     {
         std::vector<char> code = utils::readFile(filename);
-        return device->GetVkDevice().createShaderModule({{}, code.size() * sizeof(char), reinterpret_cast<uint32_t*>(code.data())});
+        vk::ShaderModuleCreateInfo info{
+            .codeSize = code.size() * sizeof(char),
+            .pCode = reinterpret_cast<uint32_t*>(code.data()),
+        };
+        return device->GetVkDevice().createShaderModule(info);
     }
     else if (ext == "vert" || ext == "frag")
     {
         // TODO: Maybe infer entrypoint ?
         std::vector<uint32_t> code = CompileGlslToSpvBinary(filename, shaderc_glsl_infer_from_source, false);
-        return device->GetVkDevice().createShaderModule({{}, code.size() * sizeof(uint32_t), code.data()});
+        vk::ShaderModuleCreateInfo info{
+            .codeSize = code.size() * sizeof(uint32_t),
+            .pCode = reinterpret_cast<uint32_t*>(code.data()),
+        };
+        return device->GetVkDevice().createShaderModule(info);
     }
     else
     {
@@ -52,8 +58,8 @@ vk::PipelineShaderStageCreateInfo LoadShader(std::shared_ptr<Device> device, con
 /// @param optimize whether to optimize the shader
 /// @return the binary as a vector of 32-bit words.
 std::vector<uint32_t> CompileGlslToSpvBinary(const std::string& source_name,
-                                             shaderc_shader_kind kind,
-                                             bool optimize)
+    shaderc_shader_kind kind,
+    bool optimize)
 {
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;

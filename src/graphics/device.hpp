@@ -125,6 +125,7 @@ class Device
 
     /// @brief Get the descriptor set layout associated with type T. If the layout doesn't exist it will be created.
     /// Aditionnaly registers the layout to enable automatic destruction.
+    /// @todo Require T to be a derived type of Descriptible
     template <typename T>
     vk::DescriptorSetLayout& GetDescriptorSetLayout()
     {
@@ -134,13 +135,14 @@ class Device
         // Create the descriptor set layout if it doesn't exist yet.
         if (iter == m_descriptorSetLayouts.end())
         {
+            // Requires that T implements the function
             auto bindings = T::GetDescriptorSetLayoutBindings();
-            vk::DescriptorSetLayoutCreateInfo createInfo = {
-                .bindingCount = static_cast<uint32_t>(bindings.size()),
-                .pBindings = bindings.data(),
-            };
 
-            auto layout = m_logical->createDescriptorSetLayoutUnique(createInfo);
+            vk::DescriptorSetLayoutCreateInfo info;
+            info.bindingCount = static_cast<uint32_t>(bindings.size());
+            info.pBindings = bindings.data();
+
+            auto layout = m_logical->createDescriptorSetLayoutUnique(info);
             iter = m_descriptorSetLayouts.emplace(type_index, std::move(layout)).first;
         }
         return iter->second.get();

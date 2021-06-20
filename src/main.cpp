@@ -1,5 +1,3 @@
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 
 #include <GLFW/glfw3.h>
@@ -29,9 +27,13 @@
 
 #include "camera.cpp" // TODO: Create .h
 #include "camera_controller.hpp"
+#include "graphics/device.hpp"
 #include "graphics/imgui.hpp"
 #include "graphics/instance.hpp"
-#include "graphics/renderer.hpp"
+// #include "graphics/renderer.hpp"
+#include "graphics/imgui.hpp"
+#include "graphics/rendering/offline_renderer.hpp"
+#include "graphics/rendering/swapchain_renderer.hpp"
 #include "graphics/window.hpp"
 #include "time_system.hpp"
 
@@ -58,8 +60,19 @@ class Engine
     Engine()
     {
         m_window.Initialize();
-        m_renderer.Create(&m_window);
-        // TODO: Get rid of all the references to m_renderer.GetDevice()
+        m_pDevice = std::make_shared<vkg::Device>(m_window.GetVkSurface());
+        m_swapchain = vkg::Swapchain(m_pDevice, &m_window);
+
+        m_renderer.Create(&m_swapchain);
+
+        m_sceneRenderer.Create(
+            m_pDevice,
+            m_window.GetWidth(), m_window.GetHeight(),
+            2,
+            m_swapchain.GetImageFormat());
+
+        m_imgui.Initialize(m_window.GetGLFWWindow(), m_pDevice, m_renderer.GetRenderPass(), m_renderer.GetNumberOfImages());
+        // TODO: Get rid of all the references to m_pDevice
         // They should not be part of this class
 
         loadModels();
@@ -90,9 +103,11 @@ class Engine
 
   private:
     vkg::Window m_window;
-    vkg::Renderer m_renderer;
-
-    glm::vec2 lastMousePos;
+    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Swapchain m_swapchain;
+    vkg::SwapchainRenderer m_renderer;
+    vkg::OfflineRenderer m_sceneRenderer;
+    vkg::ImGUI m_imgui;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -131,7 +146,7 @@ class Engine
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
 
         // TODO:
-        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_renderer.GetDevice(), MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
+        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
         models.push_back(m);
         clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
     }
@@ -152,7 +167,7 @@ class Engine
         for (int i = 0; i < cubePositions.size(); i++)
         {
             // TODO: This logic is a duplicate of addObject.
-            auto m = std::make_shared<SceneObject>(m_renderer.GetDevice(), MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
+            auto m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             models.push_back(m);
             clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
         }
@@ -161,7 +176,7 @@ class Engine
 
     void setupSkyBox()
     {
-        skybox = std::make_shared<Skybox>(m_renderer.GetDevice(), "", MODEL_PATH);
+        skybox = std::make_shared<Skybox>(m_pDevice, "", MODEL_PATH);
         updateSkyboxUBO();
     }
 
@@ -169,9 +184,9 @@ class Engine
     {
         vkg::UniformBufferObject ubo;
         ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-        ubo.view = glm::mat4(1.0f);                                                                                                                                        // eye/camera position, center position, up axis
-        ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_renderer.GetSwapchain().GetWidth() / (float) m_renderer.GetSwapchain().GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        ubo.projection[1][1] *= -1;                                                                                                                                        // GLM is designed for OpenGL which uses inverted y coordinates
+        ubo.view = glm::mat4(1.0f);                                                                                                            // eye/camera position, center position, up axis
+        ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        ubo.projection[1][1] *= -1;                                                                                                            // GLM is designed for OpenGL which uses inverted y coordinates
         ubo.cameraPos = camera.transform.position;
         skybox->updateUniformBuffer(ubo);
     }
@@ -187,7 +202,7 @@ class Engine
     void createLightsBuffer()
     {
         // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = std::make_unique<vkg::Buffer>(m_renderer.GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        lightsBuffer = std::make_unique<vkg::Buffer>(m_pDevice, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     void updateLightBufferCount(int count)
@@ -236,12 +251,12 @@ class Engine
     void createLightsDescriptorSet()
     {
         vk::DescriptorSetAllocateInfo allocInfo;
-        allocInfo.descriptorPool = m_renderer.GetDevice()->GetDescriptorPool();
+        allocInfo.descriptorPool = m_pDevice->GetDescriptorPool();
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_renderer.GetDevice()->GetDescriptorSetLayout<Light>();
+        allocInfo.pSetLayouts = &m_pDevice->GetDescriptorSetLayout<Light>();
 
-        lightsDescriptorSet = std::move(m_renderer.GetDevice()->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
-        m_renderer.GetDevice()->SetDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
+        lightsDescriptorSet = std::move(m_pDevice->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
+        m_pDevice->SetDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
         lightsBufferInfo.buffer = lightsBuffer->GetVkBuffer(); // TODO: How do we update the lights array ?
@@ -256,7 +271,7 @@ class Engine
         writeDescriptor.descriptorCount = 1;
         writeDescriptor.pBufferInfo = &lightsBufferInfo;
 
-        m_renderer.GetDevice()->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        m_pDevice->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
     }
 
 #pragma endregion
@@ -280,6 +295,8 @@ class Engine
             Input::Dispatch();
 
             m_renderer.BeginFrame();
+            m_imgui.NewFrame();
+            m_sceneRenderer.BeginFrame();
 
             // This is rough. TODO: Make it better:
             //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
@@ -313,7 +330,7 @@ class Engine
                 // eye/camera position, center position, up axis
                 ubo.view = camera.getViewMatrix();
                 // 45deg vertical fov, aspect ratio, near view plane, far view plane
-                ubo.projection = glm::perspective(glm::radians(45.0f), m_renderer.GetSwapchain().GetWidth() / (float) m_renderer.GetSwapchain().GetHeight(), 0.1f, 100.f);
+                ubo.projection = glm::perspective(glm::radians(45.0f), m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 100.f);
                 // GLM is designed for OpenGL which uses inverted y coordinates
                 ubo.projection[1][1] *= -1;
                 ubo.cameraPos = camera.transform.position;
@@ -331,70 +348,126 @@ class Engine
             // }
 
             // swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
-            m_renderer.Draw(skybox);
-            m_renderer.Draw(models, lightsDescriptorSet);
+            m_sceneRenderer.Draw(skybox);
+            m_sceneRenderer.Draw(models, lightsDescriptorSet);
 
-            // Draw ImGUI components
-            ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
-            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
-            float height = ImGui::GetFrameHeight();
+            m_sceneRenderer.EndFrame();
 
-            if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
-            {
-                if (ImGui::BeginMenuBar())
-                {
-                    ImGui::Text("Happy secondary menu bar");
-                    ImGui::EndMenuBar();
-                }
-                ImGui::End();
-            }
+            DrawUI();
 
-            if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags))
-            {
-                if (ImGui::BeginMenuBar())
-                {
-                    ImGui::Text("Happy status bar");
-                    ImGui::EndMenuBar();
-                }
-                ImGui::End();
-            }
-
-            if (ImGui::Begin("Transform", nullptr, ImGuiWindowFlags_MenuBar) && selectedObject != nullptr)
-            {
-                auto transform = selectedObject->getComponent<Transform>();
-                ImGui::PushItemWidth(60);
-                // TODO: vec3 might deserve a helper function to create ui for the 3 components...
-                // Position
-                ImGui::Text("Position");
-                ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
-
-                // Rotation
-                ImGui::Text("Rotation");
-                ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
-
-                // Scale
-                ImGui::Text("Scale");
-                ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
-            }
-            ImGui::End();
-            ImGui::ShowDemoWindow();
-
+            m_imgui.Render(m_renderer.GetActiveRenderTarget().commandBuffer.get());
             m_renderer.EndFrame();
         }
 
-        m_renderer.GetDevice()->GetVkDevice().waitIdle();
+        m_pDevice->GetVkDevice().waitIdle();
+    }
+
+    void DrawUI()
+    {
+        // Draw ImGUI components
+        ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+        float height = ImGui::GetFrameHeight();
+
+        auto dockID = ImGui::DockSpaceOverViewport(viewport);
+        
+        // TODO: Programatically set the initial layout
+        if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
+        {
+            if (ImGui::BeginMenuBar())
+            {
+                if (ImGui::BeginMenu("File"))
+                {
+                    ImGui::MenuItem("Item");
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("View"))
+                {
+                    ImGui::MenuItem("Item");
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenuBar();
+            }
+
+            ImGui::End();
+        }
+
+        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags))
+        {
+            if (ImGui::BeginMenuBar())
+            {
+                // Compute current FPS
+                // Use std::format (C++20). Not available in most compilers as of 04/06/2021
+                std::string fps = std::to_string(1.0 / Time::GetDeltaTime());
+                fps = fps.substr(0, fps.find("."));
+                fps += " FPS";
+                ImGui::Text(fps.c_str());
+
+                ImGui::EndMenuBar();
+            }
+
+            ImGui::End();
+        }
+
+        if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
+        {
+            // TODO: What behavior do we expect when the scene tab is resized ?
+            // Current: resize the displayed scene render image. This can cause wrong scaling, and we do not want that
+            auto dim = ImGui::GetContentRegionAvail();
+            auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
+            ImGui::Image((ImTextureID) tex->GetDescriptorSet(), dim);
+        }
+
+        ImGui::End();
+
+        if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
+        {
+            if (ImGui::BeginTabBar("LogsTabBar"))
+            {
+                if (ImGui::BeginTabItem("Logs"))
+                {
+                    ImGui::Text("Sample Logs");
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+            ImGui::End();
+        }
+
+        if (ImGui::Begin("Transform", nullptr) && selectedObject != nullptr)
+        {
+            auto transform = selectedObject->getComponent<Transform>();
+            ImGui::PushItemWidth(60);
+            // TODO: vec3 might deserve a helper function to create ui for the 3 components...
+            // Position
+            ImGui::Text("Position");
+            ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
+
+            // Rotation
+            ImGui::Text("Rotation");
+            ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
+
+            // Scale
+            ImGui::Text("Scale");
+            ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
+            ImGui::SameLine();
+            ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+
+            ImGui::End();
+        }
+
+        ImGui::End();
+        ImGui::ShowDemoWindow();
     }
 };
 

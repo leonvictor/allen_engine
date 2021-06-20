@@ -4,10 +4,6 @@
 #include <assert.h>
 #include <set>
 
-#ifndef VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#endif
-
 #include <vulkan/vulkan.hpp>
 
 namespace vkg
@@ -135,7 +131,12 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 
     for (auto queueFamily : uniqueQueueFamilies)
     {
-        vk::DeviceQueueCreateInfo queueCreateInfo({}, queueFamily, 1, &queuePriority);
+        vk::DeviceQueueCreateInfo queueCreateInfo{
+            .queueFamilyIndex = queueFamily,
+            .queueCount = 1,
+            .pQueuePriorities = &queuePriority,
+        };
+
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
