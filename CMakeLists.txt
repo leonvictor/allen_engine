@@ -20,7 +20,18 @@ set(SOURCE "src/main.cpp"
            "src/input/input_system.cpp"
            "src/input/input_device.cpp"
            "src/input/input_action.cpp"
-           "src/input/controls/input_control.cpp")
+           "src/input/controls/input_control.cpp"
+           
+           "src/object_model/entity.cpp"
+           "src/object_model/component.cpp"
+           "src/object_model/entity_system.cpp"
+           "src/object_model/entity_collection.cpp"
+           "src/object_model/entity_map.cpp"
+           "src/object_model/spatial_component.cpp"
+           "src/object_model/world_system.cpp"
+
+           "src/object_model/command.cpp"
+           )
 
 add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 find_package(Vulkan REQUIRED)

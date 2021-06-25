@@ -1,28 +1,24 @@
 #pragma once
 
-#include "object_model.cpp"
-#include "spatial_component.cpp"
+#include "command.hpp"
+#include "object_model.hpp"
 
 #include <assert.h>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "../utils/type_info.hpp" // TODO: berk
-#include "../utils/uuid.cpp"      // TODO: berk
+#include "../utils/uuid.hpp"      // TODO: berk
 
-enum Status
-{
-    Unloaded, // All m_components are unloaded
-    Loaded,   // All m_components are loaded (some might still be loading (dynamic add))
-    Activated // Has been turned on in the world, registered with all m_systems
-};
-
-class Component;
+class IComponent;
+class SpatialComponent;
 class IEntitySystem;
 
 class EntityInternalStateAction
 {
   public:
+    /// @brief Type of Actions
     enum Type
     {
         DestroyComponent,
@@ -32,68 +28,42 @@ class EntityInternalStateAction
     };
 
     Type m_type;     // Type of action add/destroy components or systems
-    void* m_ptr;     // Pointer to the designed Component or system TypeInfo
+    void* m_ptr;     // Pointer to the designed IComponent or system TypeInfo
     core::UUID m_ID; // Optional: ID of the spatial parent component
 };
 
-// TODO: Move somewhere where this makes sense
-class Command
-{
-  public:
-    void Execute(Entity* pEntity)
-    {
-        // Read the deferredActions, probably store them somewhere
-        // Asynchronously execute them
-
-        // When should the updates occur ? Probably sometime inbetween frames
-        // TODO: Where does the context come from ?
-
-        // Example for one:
-        ObjectModel::LoadingContext context; // TODO
-        for (auto action : pEntity->m_deferredActions)
-        {
-            switch (action.m_type)
-            {
-            case EntityInternalStateAction::Type::AddComponent:
-                auto pParentComponent = pEntity->GetSpatialComponent(action.m_ID);
-                pEntity->AddComponentDeferred(context, (Component*) action.m_ptr, pParentComponent);
-                break;
-            case EntityInternalStateAction::Type::CreateSystem:
-                pEntity->CreateSystemDeferred(context, (TypeInfo<IEntitySystem>*) action.m_ptr);
-                break;
-            case EntityInternalStateAction::Type::DestroyComponent:
-                pEntity->DestroyComponentDeferred(context, (Component*) action.m_ptr);
-                break;
-            case EntityInternalStateAction::Type::DestroySystem:
-                pEntity->DestroySystemDeferred(context, (TypeInfo<IEntitySystem>*) action.m_ptr);
-                break;
-            default:
-                throw std::runtime_error("Unsupported operation");
-            }
-            // Remove the action from the list if it has been executed successfully
-        }
-    }
-};
-
-/// @brief An Entity represents a single element in a scene/world.
+/// @brief An Entity represents a single element in a scene/world. They're actual objects,
+/// and cannot be derived from. They can hold various components and systems.
 /// Entities can be organized in hierarchies.
 class Entity
 {
     friend Command;
+    friend class EntityMap;
+    friend class EntityCollection;
+    friend class std::set<Entity>;
+
+    enum class Status
+    {
+        Unloaded, // All components are unloaded
+        Loaded,   // All components are loaded (some might still be loading (dynamic add))
+        Activated // Has been turned on in the world, registered with all systems
+    };
 
   private:
     core::UUID m_ID;
+    std::string m_name;
     Status m_status = Status::Unloaded;
 
-    std::vector<Component*> m_components;
-    std::vector<IEntitySystem*> m_systems;
+    std::vector<IComponent*> m_components;
+    std::vector<std::shared_ptr<IEntitySystem>> m_systems;
 
-    std::array<std::vector<IEntitySystem*>, UpdateStage::NumStages> m_systemUpdateLists;
+    // TODO: Replace by dedicated struct
+    std::array<std::vector<std::shared_ptr<IEntitySystem>>, UpdateStage::NumStages> m_systemUpdateLists;
 
     // Spatial attributes
     SpatialComponent* m_pRootSpatialComponent = nullptr;
     Entity* m_pParentSpatialEntity = nullptr; // A spatial entity may request to be attached to another spatial entity
-    std::vector<Entity*> m_attachedEntities;  // Children
+    std::vector<Entity*> m_attachedEntities;  // Children spatial entities
     core::UUID m_parentAttachmentSocketID;    // TODO: ?
     bool m_isAttachedToParent = false;
 
@@ -104,23 +74,7 @@ class Entity
     // Constructor is private to prevent extending this class
     Entity(){};
 
-    SpatialComponent* GetSpatialComponent(const core::UUID& spatialComponentID)
-    {
-        if (!spatialComponentID.IsValid())
-        {
-            return nullptr;
-        }
-
-        // assert(pSpatialComponent != nullptr);
-
-        auto componentIt = std::find(m_components.begin(), m_components.end(), [spatialComponentID](Component* comp)
-                                     { comp->GetID() == spatialComponentID; });
-        assert(componentIt != m_components.end());
-
-        auto pSpatialComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
-        assert(pSpatialComponent != nullptr);
-        return pSpatialComponent;
-    }
+    SpatialComponent* GetSpatialComponent(const core::UUID& spatialComponentID);
 
     /// @brief Create a new system and add it to this Entity.
     /// An Entity can only have one system of a given type (subtypes included).
@@ -131,30 +85,37 @@ class Entity
     void DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo);
     void DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo);
 
-    void DestroyComponentImmediate(Component* pComponent);
-    void DestroyComponentDeferred(const ObjectModel::LoadingContext& loadingContext, Component* pComponent);
-    void AddComponentImmediate(Component* pComponent, SpatialComponent* pParentComponent);
-    void AddComponentDeferred(const ObjectModel::LoadingContext& loadingContext, Component* pComponent, SpatialComponent* pParentComponent);
+    void DestroyComponentImmediate(IComponent* pComponent);
+    void DestroyComponentDeferred(const ObjectModel::LoadingContext& loadingContext, IComponent* pComponent);
+    void AddComponentImmediate(IComponent* pComponent, SpatialComponent* pParentComponent);
+    void AddComponentDeferred(const ObjectModel::LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent);
 
     void RefreshEntityAttachments();
 
   public:
-    inline bool Entity::IsLoaded() const { return m_status == Status::Loaded; }
-    inline bool Entity::IsUnloaded() const { return m_status == Status::Unloaded; }
-    inline bool Entity::IsActivated() const { return m_status == Status::Activated; }
-    inline bool Entity::IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
-    inline core::UUID GetID() const { return m_ID; };
+    inline bool IsLoaded() const { return m_status == Status::Loaded; }
+    inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
+    inline bool IsActivated() const { return m_status == Status::Activated; }
+    inline bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
+    inline const core::UUID& GetID() const { return m_ID; };
 
     void LoadComponents(const ObjectModel::LoadingContext& loadingContext);
     void UnloadComponents(const ObjectModel::LoadingContext& loadingContext);
 
+    /// @brief TODO
+    /// @return Whether the loading is finished.
     bool UpdateLoadingAndEntityState(const ObjectModel::LoadingContext& loadingContext);
 
     /// @brief Triggers registration with the systems (local and global)
     void Activate(const ObjectModel::LoadingContext& loadingContext);
+
+    /// @brief Unregister from local and global systems. Will also detach from the parent entity if applicable.
+    /// After deactivation an entity will be in the Loaded state.
     void Deactivate(const ObjectModel::LoadingContext& loadingContext);
 
+    /// @brief Generate the system update list by gathering each system's requirements.
     void GenerateSystemUpdateList();
+
     inline bool RequiresUpdate(UpdateStage stage) const { return !m_systemUpdateLists[(uint8_t) stage].empty(); }
 
     // -------------------------------------------------
@@ -174,7 +135,8 @@ class Entity
         }
         else
         {
-            auto& action = m_defferedAction.emplace_back(EntityInternalStateAction());
+            // Delegate the action to whoever is in charge
+            auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
             action.m_type = EntityInternalStateAction::Type::CreateSystem;
             action.m_ptr = T::StaticTypeInfo;
 
@@ -200,7 +162,7 @@ class Entity
             action.m_type = EntityInternalStateAction::Type::DestroySystem;
             action.m_ptr = T::GetTypeInfo();
 
-            EntityStateUpdateEvent.Execute(this);
+            EntityStateUpdatedEvent.Execute(this);
         }
     }
 
@@ -214,7 +176,22 @@ class Entity
     /// @brief Add a component to this entity.
     /// @param pComponent: Component to add.
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
-    void AddComponent(Component* pComponent, const core::UUID& parentSpatialComponentID = core::UUID::InvalidID);
+    void AddComponent(IComponent* pComponent, const core::UUID& parentSpatialComponentID = core::UUID::InvalidID);
+
+    /// @brief Create a component of type T and add it to this entity.
+    /// @param args: Arguments forwarded to the component constructor.
+    /// @return A pointer to the constructed component
+    /// @todo Experiment with other memory handling methods
+    /// @todo Support parent spatial component in an elegant way
+    template <typename T, class... Args>
+    T* AddComponent(Args... args)
+    {
+        static_assert(std::is_base_of_v<IComponent, T>, "Invalid component type");
+
+        T* pComponent = new T(args...);
+        AddComponent(pComponent);
+        return pComponent
+    }
 
     SpatialComponent* FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const core::UUID& socketID) const;
 
@@ -230,4 +207,12 @@ class Entity
 
     /// @brief Detach from the parent entity.
     void DetachFromParent();
+
+    /// Factory methods
+    // TODO: Is that how we want to generate entities ?
+    static Entity* Create(std::string name);
+
+    inline bool operator==(const Entity& other) const { return other.GetID() == GetID(); }
+    inline bool operator!=(const Entity& other) const { return !operator==(other); }
+    friend bool operator<(const Entity& l, const Entity& r) { return l.m_ID < r.m_ID; }
 };

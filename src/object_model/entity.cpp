@@ -1,11 +1,82 @@
 #include "entity.hpp"
-#include "entity_system.cpp"
 
-#include <assert.h>
-#include <stdexcept>
-#include <vector>
+#include "entity_collection.hpp"
+#include "entity_system.hpp"
 
-Entity::Entity(){};
+#include "component.hpp"
+#include "spatial_component.hpp"
+
+#include <future>
+
+Command Entity::EntityStateUpdatedEvent;
+
+// -------------------------------------------------
+// State management
+// -------------------------------------------------
+
+/// @brief Check the loading status of all components and updates the entity status if necessary.
+/// @return Whether the loading is finished
+/// @todo This is synchrone for now
+bool Entity::UpdateLoadingAndEntityState(const ObjectModel::LoadingContext& loadingContext)
+{
+    assert(m_status == Status::Unloaded);
+    bool allLoaded = true;
+
+    for (auto pComponent : m_components)
+    {
+        if (pComponent->IsUnloaded())
+        {
+            if (pComponent->LoadComponentAsync())
+            {
+                pComponent->InitializeComponent();
+            }
+            else
+            {
+                allLoaded = false;
+            }
+        }
+    }
+
+    if (allLoaded)
+    {
+        m_status = Status::Loaded;
+    }
+
+    return allLoaded;
+}
+
+void Entity::LoadComponents(const ObjectModel::LoadingContext& loadingContext)
+{
+    assert(m_status == Status::Unloaded);
+
+    for (auto pComponent : m_components)
+    {
+        if (pComponent->IsUnloaded())
+        {
+            // TODO: What do we do with loadingContext ?
+            pComponent->Load();
+        }
+    }
+
+    m_status = Status::Loaded;
+}
+
+void Entity::UnloadComponents(const ObjectModel::LoadingContext& loadingContext)
+{
+    assert(m_status == Status::Loaded);
+
+    for (auto pComponent : m_components)
+    {
+        // TODO: Component *should* be loaded in all cases
+        if (pComponent->IsLoaded())
+        {
+            // TODO: What do we do with loadingContext ?
+            pComponent->Unload();
+        }
+    }
+
+    m_status = Status::Loaded;
+}
 
 void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
 {
@@ -103,7 +174,7 @@ void Entity::GenerateSystemUpdateList()
 
         // Sort update list
         // TODO: what does "T* const& var" mean ?
-        auto comparator = [i](IEntitySystem* const& pSystemA, IEntitySystem* const& pSystemB)
+        auto comparator = [i](std::shared_ptr<IEntitySystem> const& pSystemA, std::shared_ptr<IEntitySystem> const& pSystemB)
         {
             uint16_t A = pSystemA->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
             uint16_t B = pSystemB->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
@@ -135,7 +206,7 @@ void Entity::CreateSystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInf
     }
 
     auto pSystem = std::static_pointer_cast<IEntitySystem>(pSystemTypeInfo->m_pTypeHelper->CreateType());
-    m_systems.emplace_back(pSystem);
+    m_systems.push_back(pSystem);
 }
 
 void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
@@ -151,16 +222,16 @@ void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingCont
     }
 }
 
-/// @brief
 void Entity::DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     // TODO: find the index of system in m_systems
 
-    auto systemIt = std::find(m_systems.begin(), m_systems.end(), []() {});
-    int systemIdx = 0;
+    auto systemIt = std::find_if(m_systems.begin(), m_systems.end(), [&](std::shared_ptr<IEntitySystem> pSystem)
+        { return pSystem->GetTypeInfo()->m_ID == pSystemTypeInfo->m_ID; });
+    // int systemIdx = 0;
 
     // TODO: assert that systemIdx is valid
-    m_systems.erase(m_systems.begin() + systemIdx);
+    m_systems.erase(systemIt);
 }
 
 void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
@@ -193,8 +264,8 @@ void Entity::UpdateSystems(ObjectModel::UpdateContext const& context)
 void Entity::DestroyComponent(const core::UUID& componentID)
 {
     assert(componentID.IsValid());
-    auto componentIt = std::find(m_components.begin(), m_components.end(), [componentID](Component* comp)
-                                 { comp->GetID() == componentID; });
+    auto componentIt = std::find_if(m_components.begin(), m_components.end(), [componentID](IComponent* comp)
+        { return comp->GetID() == componentID; });
     assert(componentIt != m_components.end());
 
     auto pComponent = m_components[componentIt - m_components.begin()];
@@ -221,11 +292,12 @@ void Entity::DestroyComponent(const core::UUID& componentID)
     }
 }
 
-void Entity::DestroyComponentImmediate(Component* pComponent)
+void Entity::DestroyComponentImmediate(IComponent* pComponent)
 {
-    auto componentIt = std::find(m_components.begin(), m_components.end(), [pComponent](Component* comp)
-                                 { comp->GetID() == pComponent->GetID(); });
+    assert(pComponent->m_entityID == m_ID);
+    auto componentIt = std::find(m_components.begin(), m_components.end(), pComponent);
     assert(componentIt != m_components.end());
+
     m_components.erase(componentIt);
 
     SpatialComponent* pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
@@ -240,9 +312,18 @@ void Entity::DestroyComponentImmediate(Component* pComponent)
             pSpatialComponent->Detach();
         }
     }
+
+    pComponent->m_entityID = core::UUID::InvalidID;
+    // TODO: Shutdown / Unload here ?
+    pComponent->Shutdown();
+    pComponent->Unload();
+
+    // TODO: Experiment with different component storage modes
+    // Using a pool might be a good idea, to pack them in contiguous memory regions
+    delete pComponent;
 }
 
-void Entity::DestroyComponentDeferred(const ObjectModel::LoadingContext& context, Component* pComponent)
+void Entity::DestroyComponentDeferred(const ObjectModel::LoadingContext& context, IComponent* pComponent)
 {
     DestroyComponentImmediate(pComponent);
     if (IsLoaded())
@@ -252,11 +333,11 @@ void Entity::DestroyComponentDeferred(const ObjectModel::LoadingContext& context
     }
 }
 
-void Entity::AddComponent(Component* pComponent, const core::UUID& parentSpatialComponentID)
+void Entity::AddComponent(IComponent* pComponent, const core::UUID& parentSpatialComponentID)
 {
     assert(pComponent != nullptr && pComponent->GetID().IsValid());
     assert(!pComponent->m_entityID.IsValid() && pComponent->IsUnloaded());
-    // TODO: Assert that m_components does NOT contain a pComponent of this type
+    // TODO: Assert that m_components does NOT contain a component of this type
 
     SpatialComponent* pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
 
@@ -274,7 +355,7 @@ void Entity::AddComponent(Component* pComponent, const core::UUID& parentSpatial
         // {
         //     assert(pSpatialComponent != nullptr);
 
-        //     auto componentIt = std::find(m_components.begin(), m_components.end(), [parentSpatialComponentID](Component* comp) { comp->GetID() == parentSpatialComponentID; });
+        //     auto componentIt = std::find(m_components.begin(), m_components.end(), [parentSpatialComponentID](IComponent* comp) { comp->GetID() == parentSpatialComponentID; });
         //     assert(componentIt != m_components.end());
 
         //     pParentComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
@@ -295,7 +376,7 @@ void Entity::AddComponent(Component* pComponent, const core::UUID& parentSpatial
     }
 }
 
-void Entity::AddComponentImmediate(Component* pComponent, SpatialComponent* pParentComponent)
+void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     SpatialComponent* pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
     if (pSpatialComponent != nullptr)
@@ -329,11 +410,12 @@ void Entity::AddComponentImmediate(Component* pComponent, SpatialComponent* pPar
         }
     }
 
+    pComponent->m_entityID = m_ID;
     // TODO: make sure modification made to pSpatialComponent are taken into account here...
     m_components.emplace_back(pComponent);
 }
 
-void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, Component* pComponent, SpatialComponent* pParentComponent)
+void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     AddComponentImmediate(pComponent, pParentComponent);
 
@@ -367,6 +449,24 @@ SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pCompo
     }
 
     return nullptr;
+}
+
+SpatialComponent* Entity::GetSpatialComponent(const core::UUID& spatialComponentID)
+{
+    if (!spatialComponentID.IsValid())
+    {
+        return nullptr;
+    }
+
+    // assert(pSpatialComponent != nullptr);
+
+    auto componentIt = std::find_if(m_components.begin(), m_components.end(), [spatialComponentID](IComponent* comp)
+        { return comp->GetID() == spatialComponentID; });
+    assert(componentIt != m_components.end());
+
+    auto pSpatialComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
+    assert(pSpatialComponent != nullptr);
+    return pSpatialComponent;
 }
 
 void Entity::AttachToParent()
@@ -442,4 +542,12 @@ void Entity::RefreshEntityAttachments()
             pAttachedEntity->AttachToParent();
         }
     }
+}
+
+Entity* Entity::Create(std::string name)
+{
+    Entity* pEntity = EntityCollection::Create();
+    pEntity->m_name = name;
+    // TODO: Make sure Id is generated and valid
+    return pEntity;
 }
