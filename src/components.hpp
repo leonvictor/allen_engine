@@ -7,7 +7,7 @@
 class Component
 {
 };
-class Entity
+class OldEntity
 {
   public:
     // TODO: Map from component class type name (str) to actual component.

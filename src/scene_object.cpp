@@ -12,7 +12,7 @@
 
 // TODO: Refactor code style
 
-class SceneObject : public Entity
+class SceneObject : public OldEntity
 {
   public:
     Material material;
@@ -26,9 +26,9 @@ class SceneObject : public Entity
 
     // TODO: Refactor to use composition
     SceneObject(std::shared_ptr<vkg::Device> pDevice, std::string modelPath,
-                glm::vec3 position = glm::vec3(0.0f),
-                MaterialBufferObject material = MaterialBufferObject(),
-                std::string texturePath = "")
+        glm::vec3 position = glm::vec3(0.0f),
+        MaterialBufferObject material = MaterialBufferObject(),
+        std::string texturePath = "")
     {
         m_pDevice = pDevice;
 

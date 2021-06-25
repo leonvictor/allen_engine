@@ -10,8 +10,10 @@
 #include "utils/files.cpp"
 #include "vertex.hpp"
 
+#ifndef TINY_OBJ_LOADER_H_
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#endif
 
 // TODO: Refactor code format.
 
@@ -131,10 +133,11 @@ class Mesh : public Component
         vkg::Buffer indexStagingBuffer(pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, indices);
         indexBuffer = vkg::Buffer(pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-        pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb) {
-            vertexStagingBuffer.CopyTo(cb, vertexBuffer);
-            indexStagingBuffer.CopyTo(cb, indexBuffer);
-        });
+        pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
+            {
+                vertexStagingBuffer.CopyTo(cb, vertexBuffer);
+                indexStagingBuffer.CopyTo(cb, indexBuffer);
+            });
     }
 
     void createUniformBuffer(std::shared_ptr<vkg::Device> pDevice)

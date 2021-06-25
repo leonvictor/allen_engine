@@ -37,6 +37,12 @@
 #include "graphics/window.hpp"
 #include "time_system.hpp"
 
+// Object model
+// TODO: Make a library ?
+#include "mesh2.cpp"
+#include "object_model/entity.hpp"
+#include "object_model/world_entity.hpp"
+#include "object_model/world_update.hpp"
 #include "ubo.hpp"
 
 #include "light.cpp"
@@ -83,6 +89,8 @@ class Engine
         //  - Do not update if no object were modified
         //  - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
+
+        CreateWorld();
     }
 
     void run()
@@ -141,6 +149,23 @@ class Engine
     // GUI toggles
     bool showTransformGUI = false;
 
+    // Object model
+
+    WorldEntity m_worldEntity;
+
+    void CreateWorld()
+    {
+        // TODO
+        // Create some entities
+        // TODO: How do we add entities since the constructor is private ?
+        // Factory method ?
+        Entity* entity = Entity::Create("cube");
+        entity->AddComponent<MeshComponent>(m_pDevice, MODEL_PATH);
+        // MeshComponent* mesh = new MeshComponent(m_pDevice, MODEL_PATH);
+        // entity->AddComponent(mesh);
+        // Attach a mesh component to them
+    }
+
     void addObject()
     {
         auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
@@ -166,6 +191,8 @@ class Engine
     {
         for (int i = 0; i < cubePositions.size(); i++)
         {
+            // TODO: use new entity system
+
             // TODO: This logic is a duplicate of addObject.
             auto m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
             models.push_back(m);
@@ -282,8 +309,10 @@ class Engine
         while (!glfwWindowShouldClose(m_window.GetGLFWWindow()))
         {
             // std::this_thread::sleep_for(std::chrono::seconds(1));
+            // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             Time::Update();
 
+            // TODO: Group glfw accesses in a window.NewFrame() method
             // Map GLFW events to the Input system
             glfwPollEvents();
 
@@ -293,6 +322,14 @@ class Engine
 
             // Trigger input callbacks
             Input::Dispatch();
+
+            // Object model: Update systems at various points in the frame.
+            // TODO: Handle sync points here ?
+            ObjectModel::UpdateContext context = ObjectModel::UpdateContext(UpdateStage::FrameStart);
+            m_worldEntity.Update(context);
+
+            context = ObjectModel::UpdateContext(UpdateStage::FrameEnd);
+            m_worldEntity.Update(context);
 
             m_renderer.BeginFrame();
             m_imgui.NewFrame();
@@ -370,7 +407,7 @@ class Engine
         float height = ImGui::GetFrameHeight();
 
         auto dockID = ImGui::DockSpaceOverViewport(viewport);
-        
+
         // TODO: Programatically set the initial layout
         if (ImGui::BeginViewportSideBar("##SecondaryMenuBar", viewport, ImGuiDir_Up, height, window_flags))
         {

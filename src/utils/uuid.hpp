@@ -12,7 +12,6 @@ class UUID
 {
   private:
     uuids::uuid m_ID;
-    bool m_isValid;
 
     UUID(bool isValid);
 
@@ -24,7 +23,6 @@ class UUID
     explicit UUID(std::array<uint8_t, 16> data)
     {
         m_ID = uuids::uuid(std::begin(data), std::end(data));
-        m_isValid = true;
     }
 
     explicit UUID(uint8_t data[16])
@@ -33,23 +31,24 @@ class UUID
         memcpy(cache, data, 16 * sizeof(uint8_t));
 
         m_ID = uuids::uuid(std::begin(cache), std::end(cache));
-        m_isValid = true;
     }
 
-    inline bool IsValid() const { return m_isValid; }
+    inline bool IsValid() const { return !m_ID.is_nil(); }
 
     inline bool operator==(const UUID& other) const { return m_ID == other.m_ID; }
     inline bool operator!=(const UUID& other) const { return !operator==(other); }
 
+    friend bool operator<(const UUID& l, const UUID& r) { return l.m_ID < r.m_ID; }
+
     friend std::ostream& operator<<(std::ostream& os, const UUID& uuid)
     {
-        if (uuid.m_isValid)
+        if (!uuid.IsValid())
         {
             os << "Invalid UUID";
         }
         else
         {
-            os << "Valid UUID (" << uuid.m_ID << ")";
+            os << "UUID (" << uuid.m_ID << ")";
         }
         return os;
     }
