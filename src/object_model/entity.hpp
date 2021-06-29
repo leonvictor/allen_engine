@@ -1,6 +1,7 @@
 #pragma once
 
 #include "command.hpp"
+#include "loading_context.hpp"
 #include "object_model.hpp"
 
 #include <assert.h>
@@ -98,6 +99,7 @@ class Entity
     inline bool IsActivated() const { return m_status == Status::Activated; }
     inline bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
     inline const core::UUID& GetID() const { return m_ID; };
+    std::string GetName() const { return m_name; }
 
     void LoadComponents(const ObjectModel::LoadingContext& loadingContext);
     void UnloadComponents(const ObjectModel::LoadingContext& loadingContext);
@@ -190,7 +192,7 @@ class Entity
 
         T* pComponent = new T(args...);
         AddComponent(pComponent);
-        return pComponent
+        return pComponent;
     }
 
     SpatialComponent* FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const core::UUID& socketID) const;

@@ -17,7 +17,7 @@ class SpatialComponent : public IComponent
     std::vector<SpatialComponent*> m_spatialChildren;
 
     /// @brief Parent component.
-    SpatialComponent* m_pSpatialParent;
+    SpatialComponent* m_pSpatialParent = nullptr;
     std::vector<core::UUID> m_sockets;
 
     // TODO: Handle socket
@@ -25,6 +25,7 @@ class SpatialComponent : public IComponent
 
     Transform m_localTransform;
     Transform m_worldTransform;
+
     // TODO: Local/world bounds (oriented bounding boxes)
 
   public:
@@ -50,15 +51,16 @@ class SpatialComponent : public IComponent
     /// @brief Detach this component from its parent.
     void Detach();
 
-    // // TODO: ReadOnly AND modifiable getters for transform, so we can pick which one to
-    // const Transform& GetLocalTransformReadOnly() const
-    // {
-    //     return m_localTransform;
-    // }
+    /// @brief Get the local transform of this component.
+    const Transform& GetLocalTransform() const { return m_localTransform; }
 
-    // Transform& GetLocalTransform()
-    // {
-    //     return m_localTransform;
-    //     // Doesn't work, we can't update here cause the client wont have finish modifications
-    // }
+    /// @brief Get the world transform of this component.
+    const Transform& GetWorldTransform() const { return m_worldTransform; }
+
+    /// @brief Set the local transform of this component. Will also update the world positions of all children.
+    virtual void SetLocalTransform(Transform transform)
+    {
+        m_localTransform = transform;
+        CalculateWorldTransform(true);
+    }
 };

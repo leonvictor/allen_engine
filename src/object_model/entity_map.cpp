@@ -2,8 +2,10 @@
 
 #include "entity.hpp"
 
+#include "loading_context.hpp"
 #include "object_model.hpp"
 
+#include <functional>
 #include <stdexcept>
 
 void EntityMap::RemoveEntity(Entity* pEntity)
@@ -11,18 +13,25 @@ void EntityMap::RemoveEntity(Entity* pEntity)
     m_entitiesToRemove.push_back(pEntity);
 }
 
-bool EntityMap::Update(const ObjectModel::LoadingContext& loadingContext)
+bool EntityMap::Load(const ObjectModel::LoadingContext& loadingContext)
 {
     // Gather up newly created entities, add them to the loading list and move them to the static collection
     for (auto it = EntityCollection::m_newlyCreated.begin(); it != EntityCollection::m_newlyCreated.end();)
     {
         // TODO: this is wonky
         auto [nit, value] = EntityCollection::m_collection.insert(std::move(*it));
-        m_loadingEntities.push_back(const_cast<Entity*>(&(*nit)));
+        m_loadingEntities.push_back(&(nit->second));
         it = EntityCollection::m_newlyCreated.erase(it);
         // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
         // (cause all threads could ask for an entity removal, or even loading)
     }
+    EntityCollection::m_newlyCreated.clear();
+
+    if (m_loadingEntities.size() > 0 && m_status == Status::Deactivated)
+    {
+        m_status = Status::EntitiesLoading;
+    }
+
     // Deactivate, unload and remove entities from the collection
     for (auto pEntityToRemove : m_entitiesToRemove)
     {
@@ -87,4 +96,16 @@ bool EntityMap::Update(const ObjectModel::LoadingContext& loadingContext)
     }
 
     return true;
+}
+
+void EntityMap::Activate(const ObjectModel::LoadingContext& loadingContext)
+{
+    for (auto it = EntityCollection::m_collection.begin(); it != EntityCollection::m_collection.end(); ++it)
+    {
+        auto& entity = it->second;
+        if (entity.IsLoaded())
+        {
+            entity.Activate(loadingContext);
+        }
+    }
 }

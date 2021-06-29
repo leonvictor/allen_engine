@@ -28,7 +28,6 @@ set(SOURCE "src/main.cpp"
            "src/object_model/entity_collection.cpp"
            "src/object_model/entity_map.cpp"
            "src/object_model/spatial_component.cpp"
-           "src/object_model/world_system.cpp"
 
            "src/object_model/command.cpp"
            )

@@ -1,21 +1,15 @@
 #pragma once
 
+#include <cstdint>
+
 #include "../update_stages.hpp"
 
 class Entity;
 class IComponent;
 
+// TODO: Get rid of this namespace.
 namespace ObjectModel
 {
-class LoadingContext
-{
-  public:
-    // TODO !!!!
-    void m_unregisterWithGlobalSystems(Entity* pEntity, IComponent* pComponent) const {}
-    void m_registerWithGlobalSystems(Entity* pEntity, IComponent* pComponent) const {}
-    void m_unregisterEntityUpdate(Entity* pEntity) const {}
-    void m_registerEntityUpdate(Entity* pEntity) const {}
-};
 
 /// @brief Data structure containing info on the current context.
 /// Will be propagated through the object model, entities and systems will act depending on it.
@@ -27,6 +21,9 @@ class UpdateContext
     UpdateStage m_updateStage;
 
   public:
+    uint32_t displayWidth;
+    uint32_t displayHeight;
+
     UpdateContext(UpdateStage stage) : m_updateStage(stage) {}
 
     UpdateStage GetUpdateStage() const

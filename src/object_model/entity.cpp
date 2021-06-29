@@ -24,11 +24,12 @@ bool Entity::UpdateLoadingAndEntityState(const ObjectModel::LoadingContext& load
 
     for (auto pComponent : m_components)
     {
-        if (pComponent->IsUnloaded())
+        if (pComponent->IsUnloaded() || pComponent->IsLoading())
         {
             if (pComponent->LoadComponentAsync())
             {
                 pComponent->InitializeComponent();
+                assert(pComponent->IsInitialized());
             }
             else
             {
@@ -102,7 +103,7 @@ void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
             }
 
             // ... and all global systems
-            loadingContext.m_registerWithGlobalSystems(this, pComponent);
+            loadingContext.m_registerWithWorldSystems(this, pComponent);
         }
     }
 
@@ -152,7 +153,7 @@ void Entity::Deactivate(const ObjectModel::LoadingContext& loadingContext)
             pSystem->UnregisterComponent(pComponent);
         }
 
-        loadingContext.m_unregisterWithGlobalSystems(this, pComponent);
+        loadingContext.m_unregisterWithWorldSystems(this, pComponent);
     }
 
     m_status = Status::Loaded;
@@ -214,7 +215,7 @@ void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingCont
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
 
-    // If already activated, notify the world system that this entity requires a reload
+    // If already activated, notify the world systems that this entity requires a reload
     if (IsActivated())
     {
         loadingContext.m_unregisterEntityUpdate(this);
@@ -295,6 +296,7 @@ void Entity::DestroyComponent(const core::UUID& componentID)
 void Entity::DestroyComponentImmediate(IComponent* pComponent)
 {
     assert(pComponent->m_entityID == m_ID);
+
     auto componentIt = std::find(m_components.begin(), m_components.end(), pComponent);
     assert(componentIt != m_components.end());
 

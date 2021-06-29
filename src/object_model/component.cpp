@@ -40,7 +40,7 @@ void IComponent::InitializeComponent()
 {
     assert(m_status == Status::Loaded);
     Initialize();
-    m_status == Status::Initialized;
+    m_status = Status::Initialized;
 }
 
 void IComponent::UnloadComponent()

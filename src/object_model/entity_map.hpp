@@ -1,6 +1,7 @@
 #pragma once
 
 #include "entity_collection.hpp"
+#include "loading_context.hpp"
 #include "object_model.hpp"
 
 #include <map>
@@ -13,11 +14,12 @@ class EntityMap : private EntityCollection
 {
     friend class WorldEntity;
 
-    enum Status
+    enum class Status
     {
-        EntitiesLoading,
-        Loaded,
-        Activated
+        Deactivated,     // Not activated
+        EntitiesLoading, // Entities loading
+        Loaded,          // All entities loaded
+        Activated        // All entities activated. Some might still be loading in case of dynamic adds
     };
 
     // std::vector<Entity*> m_entitiesToAdd;
@@ -28,7 +30,7 @@ class EntityMap : private EntityCollection
     // std::vector<Entity*> m_entitiesToDeactivate;
 
     // ...
-    Status m_status;
+    Status m_status = Status::Deactivated;
     bool m_isTransientMap;
 
     bool IsActivated()
@@ -41,5 +43,6 @@ class EntityMap : private EntityCollection
 
     /// @brief Update the state of each entity
     /// @note This function should be called exactly once per frame.
-    bool Update(const ObjectModel::LoadingContext& loadingContext);
+    bool Load(const ObjectModel::LoadingContext& loadingContext);
+    void Activate(const ObjectModel::LoadingContext& loadingContext);
 };

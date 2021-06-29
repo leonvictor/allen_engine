@@ -1,5 +1,7 @@
 #include "command.hpp"
+#include "component.hpp"
 #include "entity.hpp"
+#include "loading_context.hpp"
 
 void Command::Execute(Entity* pEntity)
 {

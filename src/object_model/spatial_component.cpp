@@ -12,8 +12,11 @@ void SpatialComponent::CalculateWorldTransform(bool callback)
     }
     else
     {
-        // TODO: Calculate world transform from the parent's one
-        throw std::runtime_error("Not implemented");
+        // Calculate world transform from the parent's one
+        Transform parent = m_pSpatialParent->GetWorldTransform();
+        m_worldTransform.position = m_localTransform.position + parent.position;
+        m_worldTransform.rotation = m_localTransform.rotation * parent.rotation; // TODO: is that the correct order ?
+        m_worldTransform.scale = m_localTransform.scale * parent.scale;
     }
     if (callback)
     {

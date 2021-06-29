@@ -1,3 +1,5 @@
+#pragma once
+
 // https://www.youtube.com/watch?v=jjEsB611kxs @1:49:00
 
 namespace ObjectModel

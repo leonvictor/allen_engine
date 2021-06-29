@@ -25,8 +25,9 @@ class IComponent
 
     core::UUID m_ID;
     Status m_status = Status::Unloaded;
-    bool m_isSingleton;                            // Whether you can have multiple components of this type per entity
+    bool m_isSingleton = false;                    // Whether you can have multiple components of this type per entity
     core::UUID m_entityID = core::UUID::InvalidID; // Entity this component is attached to.
+
     std::future<bool> m_loadingTask;
 
     // Private state management methods. Use verbose naming to differentiate with the inner virtual ones.
@@ -53,11 +54,10 @@ class IComponent
     virtual void Unload() = 0;
 
   public:
-    IComponent() : m_status(Status::Unloaded), m_isSingleton(false) {}
-
     inline bool IsInitialized() const { return m_status == Status::Initialized; }
-    inline bool IsLoaded() const { return m_status == Status::Loaded; }
     inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
+    inline bool IsLoading() const { return m_status == Status::Loading; }
+    inline bool IsLoaded() const { return m_status == Status::Loaded; }
 
     // TODO: Should be a copy to prevent modifying. Requires copy constructor in core::UUID
     const core::UUID& GetID() const { return m_ID; }
