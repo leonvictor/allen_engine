@@ -3,20 +3,26 @@
 #include <functional>
 #include <iostream>
 
-#include "camera.cpp"
+#include "object_model/components/camera.hpp"
+#include "object_model/entity_system.hpp"
 
 #include "input/callback_context.hpp"
 #include "input/input_action.hpp"
 #include "input/input_context.hpp"
 #include "input/input_system.hpp"
 
-class EditorCameraController
+class EditorCameraController : IEntitySystem
 {
   public:
-    EditorCameraController(Camera* camera)
+    void RegisterComponent(IComponent* pComponent)
     {
         // Associate the controlled camera
-        m_pCameraInstance = camera;
+        auto pCameraComponent = dynamic_cast<Camera*>(pComponent);
+
+        if (pCameraComponent == nullptr)
+            return;
+
+        m_pCameraInstance = pCameraComponent;
 
         // Register control callbacks
         // TODO: Add another level of indirection so that multiple input can trigger the same action
@@ -37,6 +43,16 @@ class EditorCameraController
         Input::RegisterContext(&m_inputContext);
     }
 
+    void UnregisterComponent(IComponent* pComponent)
+    {
+        if (pComponent == m_pCameraInstance)
+        {
+            m_pCameraInstance == nullptr;
+            m_inputContext.Disable();
+            // TODO: Unregister input context
+        }
+    }
+
   private:
     InputContext m_inputContext;
 
@@ -48,21 +64,31 @@ class EditorCameraController
     void Move(CallbackContext context)
     {
         auto delta = Input::Mouse.GetDelta() * m_translationSensitivity;
-        m_pCameraInstance->transform.position += (m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x);
+
+        auto t = m_pCameraInstance->GetLocalTransform();
+        t.position += (m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x);
+
+        m_pCameraInstance->SetLocalTransform(t);
     }
 
     void Rotate(CallbackContext context)
     {
         auto delta = Input::Mouse.GetDelta() * m_rotationSensitivity;
-        m_pCameraInstance->transform.rotation.x += delta.x;
-        m_pCameraInstance->transform.rotation.y += delta.y;
 
-        m_pCameraInstance->UpdateOrientation();
+        auto t = m_pCameraInstance->GetLocalTransform();
+        t.rotation.x += delta.x;
+        t.rotation.y += delta.y;
+
+        m_pCameraInstance->SetLocalTransform(t);
     }
 
     void Zoom(CallbackContext context)
     {
         auto delta = Input::Mouse.GetScroll();
-        m_pCameraInstance->transform.position += m_pCameraInstance->forward * delta.y;
+        auto t = m_pCameraInstance->GetLocalTransform();
+
+        t.position += m_pCameraInstance->forward * delta.y;
+
+        m_pCameraInstance->SetLocalTransform(t);
     }
 };
