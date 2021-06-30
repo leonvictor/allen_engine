@@ -190,7 +190,7 @@ void Entity::GenerateSystemUpdateList()
 // Systems
 // -------------------------------------------------
 
-void Entity::CreateSystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     assert(pSystemTypeInfo != nullptr);
     // TODO: assert that pSystemTypeInfo describes a type that is derived from IEntitySystem
@@ -207,10 +207,14 @@ void Entity::CreateSystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInf
     }
 
     auto pSystem = std::static_pointer_cast<IEntitySystem>(pSystemTypeInfo->m_pTypeHelper->CreateType());
+    // TODO: Initialize the typeInfo member in the creation routine.
+    // TODO: Put back the const modifier to the pSystemTypeInfo arg.
+    pSystem->m_pTypeInfo = pSystemTypeInfo;
     m_systems.push_back(pSystem);
 }
 
-void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
+// TODO: Put back const modifier when we've fixed the pSystemTypeInfo setter
+void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();

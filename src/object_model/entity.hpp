@@ -12,9 +12,10 @@
 #include "../utils/type_info.hpp" // TODO: berk
 #include "../utils/uuid.hpp"      // TODO: berk
 
+#include "entity_system.hpp"
+
 class IComponent;
 class SpatialComponent;
-class IEntitySystem;
 
 class EntityInternalStateAction
 {
@@ -79,10 +80,10 @@ class Entity
 
     /// @brief Create a new system and add it to this Entity.
     /// An Entity can only have one system of a given type (subtypes included).
-    void CreateSystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo);
 
     /// @brief Same as CreateSystemImmediate, but the world system is notified that it should reload the Entity.
-    void CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo);
     void DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo);
     void DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo);
 
@@ -133,14 +134,14 @@ class Entity
 
         if (IsUnloaded())
         {
-            CreateSystemImmediate(T::GetStaticTypeInfo().get());
+            CreateSystemImmediate(IEntitySystem::GetStaticTypeInfo<T>());
         }
         else
         {
             // Delegate the action to whoever is in charge
             auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
             action.m_type = EntityInternalStateAction::Type::CreateSystem;
-            action.m_ptr = T::StaticTypeInfo;
+            action.m_ptr = IEntitySystem::GetStaticTypeInfo<T>();
 
             EntityStateUpdatedEvent.Execute(this);
         }
