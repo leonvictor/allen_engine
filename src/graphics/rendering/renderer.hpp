@@ -1,9 +1,5 @@
 #pragma once
 
-#include "../../light.cpp"
-#include "../../scene_object.cpp"
-#include "../../skybox.cpp"
-
 #include "../device.hpp"
 #include "../imgui.hpp"
 #include "../pipeline.hpp"
@@ -11,6 +7,10 @@
 #include "../swapchain.hpp"
 #include "../window.hpp"
 #include "render_target.hpp"
+
+// TODO: berk
+#include "../../object_model/components/light.hpp"
+#include "../../object_model/components/mesh_renderer.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -155,21 +155,22 @@ class IRenderer
         pipelines.objects.RegisterShader("shaders/shader.vert", vk::ShaderStageFlagBits::eVertex);
         pipelines.objects.RegisterShader("shaders/shader.frag", vk::ShaderStageFlagBits::eFragment);
         pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<Light>());
-        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<SceneObject>());
+        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<MeshRenderer>());
         pipelines.objects.Create("objects_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(pipelines.objects.GetVkPipeline(), "Objects Pipeline");
 
         // Skybox pipeline
-        pipelines.skybox = Pipeline(m_pDevice);
-        pipelines.skybox.SetRenderPass(m_renderpass.GetVkRenderPass());
-        pipelines.skybox.SetExtent({m_width, m_height});
-        pipelines.skybox.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
-        pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
-        pipelines.skybox.SetDepthTestWriteEnable(true, false);
-        pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
-        pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<Skybox>());
-        pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
-        m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
+        // TODO: !! Put back skybox
+        // pipelines.skybox = Pipeline(m_pDevice);
+        // pipelines.skybox.SetRenderPass(m_renderpass.GetVkRenderPass());
+        // pipelines.skybox.SetExtent({m_width, m_height});
+        // pipelines.skybox.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
+        // pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
+        // pipelines.skybox.SetDepthTestWriteEnable(true, false);
+        // pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
+        // // pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<MeshRenderer>());
+        // pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
+        // m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
     }
 
     /// @brief Configure and create the render pass. Override this function in derived renderer if necessary.
@@ -201,7 +202,7 @@ class IRenderer
     }
 
   public:
-    void BeginFrame()
+    virtual void BeginFrame()
     {
         // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
         m_pDevice->GetVkDevice().waitForFences(m_frames[m_currentFrameIndex].inFlight.get(), VK_TRUE, UINT64_MAX);
@@ -228,7 +229,7 @@ class IRenderer
         // return m_activeImageIndex;
     }
 
-    void EndFrame()
+    virtual void EndFrame()
     {
         auto& cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
         cb.endRenderPass();
@@ -255,35 +256,15 @@ class IRenderer
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    // TODO: Link all drawable items with an interface ?
-    // TODO: Get rid of the lights descriptor set ref.
-    void Draw(std::vector<std::shared_ptr<SceneObject>> objects, vk::UniqueDescriptorSet& lightsDescriptorSet)
-    {
-        auto cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
-        // Objects
-        pipelines.objects.Bind(cb);
-        pipelines.objects.BindDescriptorSet(cb, lightsDescriptorSet.get(), 0);
-        for (auto model : objects)
-        {
-            // TODO: Decouple this.
-            auto mesh = model->getComponent<Mesh>();
-
-            mesh->Bind(cb);
-            pipelines.objects.BindDescriptorSet(cb, model->GetDescriptorSet(), 1);
-            cb.drawIndexed(mesh->indices.size(), 1, 0, 0, 0);
-        }
-    }
-
-    void Draw(std::shared_ptr<Skybox> skybox)
-    {
-        auto cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
-
-        // Skybox
-        pipelines.skybox.Bind(cb);
-        skybox->mesh.Bind(cb);
-        pipelines.skybox.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
-        cb.drawIndexed(skybox->mesh.indices.size(), 1, 0, 0, 0);
-    }
+    // void Draw(std::shared_ptr<Skybox> skybox)
+    // {
+    //     auto cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
+    //     // Skybox
+    //     pipelines.skybox.Bind(cb);
+    //     skybox->mesh.Bind(cb);
+    //     pipelines.skybox.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
+    //     cb.drawIndexed(skybox->mesh.indices.size(), 1, 0, 0, 0);
+    // }
 
     std::shared_ptr<Device> GetDevice()
     {
@@ -313,6 +294,13 @@ class IRenderer
     std::shared_ptr<vkg::Image> GetActiveImage()
     {
         return m_targetImages[m_activeImageIndex];
+    }
+
+    // TODO: Make the pipeline system more modular.
+    // i.e we should be able to register new pipelines according to the users shaders etc
+    Pipeline& GetObjectsPipeline()
+    {
+        return pipelines.objects;
     }
 };
 } // namespace vkg
