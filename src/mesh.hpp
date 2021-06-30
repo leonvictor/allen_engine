@@ -3,6 +3,11 @@
 #include <string>
 #include <vector>
 
+#ifndef TINY_OBJ_LOADER_H_
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+#endif
+
 #include "vertex.hpp"
 
 // TODO: Complete gltf format

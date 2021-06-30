@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../components.hpp "
 #include "../device.hpp"
 #include "buffer.hpp"
 #include "image.hpp"
@@ -10,8 +9,7 @@
 namespace vkg
 {
 // TODO: 2D and 3D
-// TODO: Get rid of component
-class Texture : public Image, public Component
+class Texture : public Image
 {
   protected:
     void CreateSampler(vk::SamplerAddressMode adressMode = vk::SamplerAddressMode::eRepeat);
@@ -28,7 +26,7 @@ class Texture : public Image, public Component
     Texture(void* buffer, vk::DeviceSize bufferSize, uint32_t texWidth, uint32_t texHeight);
 
     Texture(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-            vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
+        vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout = vk::ImageLayout::eUndefined);
 
     Texture(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask);
 
