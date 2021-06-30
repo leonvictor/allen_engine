@@ -3,17 +3,17 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include <vulkan.hpp>
+#include <vulkan/vulkan.hpp>
 
-#include "graphics/device.hpp"
-#include "graphics/resources/buffer.hpp"
-#include "graphics/resources/texture.hpp"
+#include "../../graphics/device.hpp"
+#include "../../graphics/resources/buffer.hpp"
+#include "../../graphics/resources/texture.hpp"
 
-#include "object_model/spatial_component.hpp"
+#include "../spatial_component.hpp"
 
-#include "ubo.hpp"
-#include "utils/files.cpp"
-#include "vertex.hpp"
+#include "../../ubo.hpp"
+#include "../../utils/files.cpp"
+#include "../../vertex.hpp"
 
 #include "../../material.hpp"
 #include "../../mesh.hpp"
@@ -22,16 +22,10 @@
 // representing them on the GPU.
 class MeshRenderer : public SpatialComponent
 {
+    //tmp
+    friend class Engine;
+
   private:
-    Mesh m_mesh;
-    Material m_material;
-
-    vkg::Buffer m_vertexBuffer;
-    vkg::Buffer m_indexBuffer;
-    vkg::Buffer m_uniformBuffer;
-    vkg::Buffer m_materialBuffer;
-    vkg::Texture m_materialTexture;
-
     std::shared_ptr<vkg::Device> m_pDevice;
     vk::UniqueDescriptorSet m_vkDescriptorSet;
 
@@ -56,26 +50,18 @@ class MeshRenderer : public SpatialComponent
     {
         // TODO: Split image loading and vulkan texture creation
         m_materialTexture = vkg::Texture(m_pDevice, m_material.m_texturePath);
+        m_materialBuffer = vkg::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+
+        // TMP while materials are poopy
+        auto material = MaterialBufferObject();
+        m_materialBuffer.Map(0, sizeof(material));
+        m_materialBuffer.Copy(&material, sizeof(material));
+        m_materialBuffer.Unmap();
     }
 
     void CreateUniformBuffer()
     {
         m_uniformBuffer = vkg::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    }
-
-    void UpdateUniformBuffers(vkg::UniformBufferObject ubo)
-    {
-        m_uniformBuffer.Map(0, sizeof(ubo));
-        m_uniformBuffer.Copy(&ubo, sizeof(ubo));
-        m_uniformBuffer.Unmap();
-    }
-
-    /// @brief Bind the vertex and index buffers of the mesh.
-    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset = 0)
-    {
-        // TODO: firstBinding ?
-        cb.bindVertexBuffers(0, m_vertexBuffer.GetVkBuffer(), offset);
-        cb.bindIndexBuffer(m_indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
     }
 
     // TODO: Descriptor allocation and update is managed by the swapchain.
@@ -117,6 +103,26 @@ class MeshRenderer : public SpatialComponent
         m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
     }
 
+  public:
+    Mesh m_mesh;
+    Material m_material;
+
+    vkg::Buffer m_vertexBuffer;
+    vkg::Buffer m_indexBuffer;
+    vkg::Buffer m_uniformBuffer;
+    vkg::Buffer m_materialBuffer;
+    vkg::Texture m_materialTexture;
+
+    /// @brief Construct a MeshRenderer component.
+    /// @param pDevice: pointer to the rendering device.
+    /// @param path: path to the model file.
+    MeshRenderer(std::shared_ptr<vkg::Device> pDevice, std::string modelPath, std::string texturePath)
+    {
+        m_pDevice = pDevice;
+        m_mesh.m_sourceFile = modelPath;
+        m_material.m_texturePath = texturePath;
+    }
+
     /// @brief Returns the vulkan bindings representing a scene object.
     static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
@@ -149,18 +155,18 @@ class MeshRenderer : public SpatialComponent
         return bindings;
     }
 
-    // Components methods
-
-  public:
-    /// @brief Construct a MeshRenderer component.
-    /// @param pDevice: pointer to the rendering device.
-    /// @param path: path to the model file.
-    MeshRenderer(std::shared_ptr<vkg::Device> pDevice, std::string modelPath, std::string texturePath)
+    void UpdateUniformBuffers(vkg::UniformBufferObject& ubo)
     {
-        m_pDevice = pDevice;
-        m_mesh.m_sourceFile = modelPath;
-        m_material.m_texturePath = texturePath;
+        m_uniformBuffer.Map(0, sizeof(ubo));
+        m_uniformBuffer.Copy(&ubo, sizeof(ubo));
+        m_uniformBuffer.Unmap();
     }
+
+    vk::DescriptorSet& GetDescriptorSet() { return m_vkDescriptorSet.get(); }
+
+    // -------------------------------------------------
+    // Components Methods
+    // -------------------------------------------------
 
     void Initialize() override
     {
@@ -176,6 +182,7 @@ class MeshRenderer : public SpatialComponent
 
         // TODO: Make sure reassignement is good enough.
         m_materialTexture = vkg::Texture();
+        m_materialBuffer = vkg::Buffer();
 
         m_uniformBuffer = vkg::Buffer();
         m_vertexBuffer = vkg::Buffer();
@@ -185,12 +192,48 @@ class MeshRenderer : public SpatialComponent
     bool Load() override
     {
         // Short circuit
-        return m_mesh.Load() && m_material.Load();
+        if (!m_mesh.Load())
+        {
+            std::cout << "Failed to load mesh ressource" << std::endl;
+            return false;
+        }
+
+        if (!m_material.Load())
+        {
+            std::cout << "Failed to load material ressource" << std::endl;
+            return false;
+        }
+
+        return true;
+        // return m_mesh.Load() && m_material.Load();
     }
 
     void Unload() override
     {
         m_mesh.Unload();
         m_material.Unload();
+    }
+
+    //tmp
+    glm::mat4 getModelMatrix()
+    {
+        // TODO: This is a system
+        auto transform = GetWorldTransform();
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, transform.position);
+        model = glm::rotate(model, glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
+        model = glm::rotate(model, glm::radians(transform.rotation.y), glm::vec3(0, 1, 0));
+        model = glm::rotate(model, glm::radians(transform.rotation.z), glm::vec3(0, 0, 1));
+        model = glm::scale(model, transform.scale);
+        return model;
+    }
+
+    //tmp
+    /// @brief Bind the vertex and index buffers of the mesh.
+    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset = 0)
+    {
+        // TODO: firstBinding ?
+        cb.bindVertexBuffers(0, m_vertexBuffer.GetVkBuffer(), offset);
+        cb.bindIndexBuffer(m_indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
     }
 };
