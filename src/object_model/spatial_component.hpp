@@ -95,10 +95,12 @@ class SpatialComponent : public IComponent
     /// @brief Detach this component from its parent.
     void Detach();
 
-    /// @brief Get a modifiable pointer to this component's transform. Using this accessor comes at a slight performance cost,
-    /// prefer using GetLocalTransformReadOnly when possible.
+    /// @brief Get a modifiable pointer to this component's local transform. Using this accessor comes at a slight performance cost,
+    /// prefer using the readonly version GetLocalTransform when possible.
     /// @todo Profile. The wrapper makes short-lived copies of the transform every time it is accessed, and compares it to the new one when
     /// it is destroyed.
+    /// @todo The full hierarchy's world transforms are computed every time a local transform is modified. This is alright for now but might be problematic later on.
+    /// It might be a good idea to flag the modified transform, and only compute the world ones when we need them.
     inline const ModifiableTransform ModifyTransform()
     {
         return ModifiableTransform(m_localTransform, std::bind(&SpatialComponent::TransformUpdateCallback, this));
@@ -117,18 +119,6 @@ class SpatialComponent : public IComponent
     virtual void SetLocalTransform(Transform& transform)
     {
         m_localTransform = transform;
-        CalculateWorldTransform(true);
-        AfterTransformUpdate();
-    }
-
-    // ------------------
-    //  Transform setters
-    //  TODO: This in not optimal, as we would trigger the after transform operation multiple times even when not necessary
-    // ------------------
-
-    void SetPosition(const glm::vec3& position)
-    {
-        m_localTransform.position = position;
         CalculateWorldTransform(true);
         AfterTransformUpdate();
     }
