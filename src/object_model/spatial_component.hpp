@@ -1,10 +1,47 @@
 #pragma once
 
-#include "../transform2.hpp"
+#include "../transform.hpp"
 #include "../utils/uuid.hpp"
 #include "component.hpp"
 
 #include <vector>
+
+/// @brief Wrapper around an object calling a suffix method when it's destroyed.
+/// @note Adapted from https://stroustrup.com/wrapper.pdf
+template <class T, class Suf>
+class Call_proxy
+{
+    T* p;
+    Suf suffix;
+
+    mutable bool accessed;
+    mutable T copy;
+
+    Call_proxy& operator=(const Call_proxy&); // prevent assignment
+    Call_proxy(const Call_proxy&);            // prevent copy constructor
+
+  public:
+    template <class U, class P, class S>
+    friend class Wrap;
+
+    Call_proxy(T* pp, Suf su) : p(pp), suffix(su), accessed(false) {}
+    Call_proxy(T& x, Suf su) : p(&x), suffix(su), accessed(false) {}
+
+    ~Call_proxy()
+    {
+        if (accessed && copy != *p)
+            suffix();
+    }
+
+    T* operator->() const
+    {
+        accessed = true;
+        copy = *p;
+        return p;
+    }
+};
+
+typedef Call_proxy<Transform, std::function<void()>> ModifiableTransform;
 
 /// @brief Entities with a spatial component have a position and orientation in the world.
 /// They can be attached to other spatial entities to form hierarchies.
@@ -28,17 +65,24 @@ class SpatialComponent : public IComponent
 
     // TODO: Local/world bounds (oriented bounding boxes)
 
+    /// @param callback: whether to trigger the callback to calculate the component's children's world transform.
+    /// @brief Calculate the world transform according to the parent's component world transform and our own local one.
+    void CalculateWorldTransform(bool callback = true);
+
+    /// @brief Internal method called when the local transform is modified.
+    void TransformUpdateCallback()
+    {
+        AfterTransformUpdate();        // Overloadable segment
+        CalculateWorldTransform(true); // Fixed one
+    }
+
+  protected:
+    /// @brief Overloadable function to specify operations that should happen every time the component's transform is updated.
+    virtual void AfterTransformUpdate() {}
+
   public:
     // Cached + write access denied to derived classes
-
     // TODO: world transform/bounds are calculated on the parent component
-    // TODO: when a component's transforms change, all children's world transform are updated
-    // -> this way world transforms are always up to date
-
-    /// @param callback: whether to trigger the callback to the component (TODO: ?)
-    /// @brief Calculate the world transform according to the parent's component world transform and our own local one.
-    /// @note Careful here. I think this version (with an option on "no callback") should be restricted to entity or something
-    void CalculateWorldTransform(bool callback = true);
 
     bool HasSocket(const core::UUID& socketID);
 
@@ -51,16 +95,41 @@ class SpatialComponent : public IComponent
     /// @brief Detach this component from its parent.
     void Detach();
 
+    /// @brief Get a modifiable pointer to this component's transform. Using this accessor comes at a slight performance cost,
+    /// prefer using GetLocalTransformReadOnly when possible.
+    /// @todo Profile. The wrapper makes short-lived copies of the transform every time it is accessed, and compares it to the new one when
+    /// it is destroyed.
+    inline const ModifiableTransform ModifyTransform()
+    {
+        return ModifiableTransform(m_localTransform, std::bind(&SpatialComponent::TransformUpdateCallback, this));
+    }
+
     /// @brief Get the local transform of this component.
-    const Transform& GetLocalTransform() const { return m_localTransform; }
+    const Transform& GetLocalTransform()
+    {
+        return m_localTransform;
+    }
 
     /// @brief Get the world transform of this component.
     const Transform& GetWorldTransform() const { return m_worldTransform; }
 
     /// @brief Set the local transform of this component. Will also update the world positions of all children.
-    virtual void SetLocalTransform(Transform transform)
+    virtual void SetLocalTransform(Transform& transform)
     {
         m_localTransform = transform;
         CalculateWorldTransform(true);
+        AfterTransformUpdate();
+    }
+
+    // ------------------
+    //  Transform setters
+    //  TODO: This in not optimal, as we would trigger the after transform operation multiple times even when not necessary
+    // ------------------
+
+    void SetPosition(const glm::vec3& position)
+    {
+        m_localTransform.position = position;
+        CalculateWorldTransform(true);
+        AfterTransformUpdate();
     }
 };

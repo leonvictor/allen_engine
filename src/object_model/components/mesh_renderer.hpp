@@ -22,9 +22,6 @@
 // representing them on the GPU.
 class MeshRenderer : public SpatialComponent
 {
-    //tmp
-    friend class Engine;
-
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
     vk::UniqueDescriptorSet m_vkDescriptorSet;
@@ -212,28 +209,5 @@ class MeshRenderer : public SpatialComponent
     {
         m_mesh.Unload();
         m_material.Unload();
-    }
-
-    //tmp
-    glm::mat4 getModelMatrix()
-    {
-        // TODO: This is a system
-        auto transform = GetWorldTransform();
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, transform.position);
-        model = glm::rotate(model, glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
-        model = glm::rotate(model, glm::radians(transform.rotation.y), glm::vec3(0, 1, 0));
-        model = glm::rotate(model, glm::radians(transform.rotation.z), glm::vec3(0, 0, 1));
-        model = glm::scale(model, transform.scale);
-        return model;
-    }
-
-    //tmp
-    /// @brief Bind the vertex and index buffers of the mesh.
-    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset = 0)
-    {
-        // TODO: firstBinding ?
-        cb.bindVertexBuffers(0, m_vertexBuffer.GetVkBuffer(), offset);
-        cb.bindIndexBuffer(m_indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
     }
 };

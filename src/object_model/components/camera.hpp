@@ -38,19 +38,13 @@ class Camera : public SpatialComponent
         return glm::lookAt(t.position, t.position + forward, up);
     }
 
-    void SetLocalTransform(Transform transform) override
-    {
-        SpatialComponent::SetLocalTransform(transform);
-        UpdateOrientation();
-    }
-
     void Initialize() override {}
     void Shutdown() override {}
     bool Load() override { return true; }
     void Unload() override {}
 
   private:
-    void UpdateOrientation()
+    void AfterTransformUpdate() override
     {
         Transform t = GetLocalTransform();
         forward.x = cos(glm::radians(t.rotation.x)) * cos(glm::radians(t.rotation.y));

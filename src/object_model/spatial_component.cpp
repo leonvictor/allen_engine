@@ -74,15 +74,3 @@ void SpatialComponent::Detach()
     m_pSpatialParent = nullptr;
     m_parentAttachmentSocketID = core::UUID::InvalidID;
 }
-
-// // TODO: ReadOnly AND modifiable getters for transform, so we can pick which one to
-// const Transform& GetLocalTransformReadOnly() const
-// {
-//     return m_localTransform;
-// }
-
-// Transform& GetLocalTransform()
-// {
-//     return m_localTransform;
-//     // Doesn't work, we can't update here cause the client wont have finish modifications
-// }

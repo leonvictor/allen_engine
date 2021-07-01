@@ -142,10 +142,9 @@ class Engine
         {
             Entity* pCameraEntity = Entity::Create("MainCamera");
             auto pCameraComponent = pCameraEntity->AddComponent<Camera>();
-            auto t = pCameraComponent->GetLocalTransform();
-            t.position = WORLD_BACKWARD * 2.0f;
-            t.rotation.x = 90.0f;
-            pCameraComponent->SetLocalTransform(t);
+
+            pCameraComponent->ModifyTransform()->position = WORLD_BACKWARD * 2.0f;
+            pCameraComponent->ModifyTransform()->rotation.x = 90.0f;
 
             pCameraEntity->CreateSystem<EditorCameraController>();
         }
@@ -156,18 +155,14 @@ class Engine
             pLightComponent->color = glm::vec3(1.0f);
             pLightComponent->direction = WORLD_RIGHT;
             pLightComponent->type = Light::Type::Directionnal;
-            auto t = pLightComponent->GetLocalTransform();
-            t.position = LIGHT_POSITION;
-            pLightComponent->SetLocalTransform(t);
+            auto t = pLightComponent->ModifyTransform()->position = LIGHT_POSITION;
 
             Entity* pPointLightEntity = Entity::Create("PointLight");
             Light* pPLightComponent = pPointLightEntity->AddComponent<Light>();
             pPLightComponent->color = glm::vec3(1.0f);
             pPLightComponent->direction = WORLD_RIGHT;
             pPLightComponent->type = Light::Type::Directionnal;
-            t = pPLightComponent->GetLocalTransform();
-            t.position = LIGHT_POSITION;
-            pPLightComponent->SetLocalTransform(t);
+            t = pPLightComponent->ModifyTransform()->position = LIGHT_POSITION;
         }
 
         for (auto pos : cubePositions)
@@ -175,10 +170,7 @@ class Engine
             // TODO: This api is too verbose
             Entity* pCube = Entity::Create("cube");
             auto pMesh = pCube->AddComponent<MeshRenderer>(m_pDevice, MODEL_PATH, TEXTURE_PATH);
-            auto t = pMesh->GetLocalTransform();
-            t.position = pos;
-            t.scale = glm::vec3(1.0f);
-            pMesh->SetLocalTransform(t);
+            pMesh->ModifyTransform()->position = pos;
         }
     }
 

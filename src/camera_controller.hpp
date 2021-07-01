@@ -64,31 +64,21 @@ class EditorCameraController : IEntitySystem
     void Move(CallbackContext context)
     {
         auto delta = Input::Mouse.GetDelta() * m_translationSensitivity;
-
-        auto t = m_pCameraInstance->GetLocalTransform();
-        t.position += (m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x);
-
-        m_pCameraInstance->SetLocalTransform(t);
+        m_pCameraInstance->ModifyTransform()->position += (m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x);
     }
 
     void Rotate(CallbackContext context)
     {
         auto delta = Input::Mouse.GetDelta() * m_rotationSensitivity;
 
-        auto t = m_pCameraInstance->GetLocalTransform();
-        t.rotation.x += delta.x;
-        t.rotation.y += delta.y;
-
-        m_pCameraInstance->SetLocalTransform(t);
+        auto t = m_pCameraInstance->ModifyTransform();
+        t->rotation.x += delta.x;
+        t->rotation.y += delta.y;
     }
 
     void Zoom(CallbackContext context)
     {
         auto delta = Input::Mouse.GetScroll();
-        auto t = m_pCameraInstance->GetLocalTransform();
-
-        t.position += m_pCameraInstance->forward * delta.y;
-
-        m_pCameraInstance->SetLocalTransform(t);
+        auto t = m_pCameraInstance->ModifyTransform()->position += m_pCameraInstance->forward * delta.y;
     }
 };
