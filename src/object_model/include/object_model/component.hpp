@@ -23,8 +23,8 @@ class IComponent
 
     const core::UUID m_ID;
     Status m_status = Status::Unloaded;
-    bool m_isSingleton = false;                    // Whether you can have multiple components of this type per entity
-    core::UUID m_entityID = core::UUID::InvalidID; // Entity this component is attached to.
+    bool m_isSingleton = false;                      // Whether you can have multiple components of this type per entity
+    core::UUID m_entityID = core::UUID::InvalidID(); // Entity this component is attached to.
 
     std::future<bool> m_loadingTask;
 

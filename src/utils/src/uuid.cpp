@@ -3,7 +3,6 @@
 
 namespace core
 {
-const UUID UUID::InvalidID = UUID(false);
 
 UUID::UUID(bool isValid)
 {

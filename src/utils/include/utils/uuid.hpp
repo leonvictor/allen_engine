@@ -16,7 +16,11 @@ class UUID
     UUID(bool isValid);
 
   public:
-    static const UUID InvalidID;
+    static const UUID& InvalidID()
+    {
+        static UUID invalid = UUID(false);
+        return invalid;
+    }
 
     UUID();
 
@@ -53,4 +57,5 @@ class UUID
         return os;
     }
 };
+
 } // namespace core

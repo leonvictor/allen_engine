@@ -16,13 +16,17 @@ configure_file(
     "${CONFIG_INCLUDE_DIRS}/config/path.h.in"
     "${CONFIG_INCLUDE_DIRS}/config/path.h"
 )
+
 # Include the config files from anywhere
 include_directories(CONFIG_INCLUDE_DIRS)
-
 
 # Put the .exe and .dll in the build directory's root so we can find them.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${custom-engine_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${custom-engine_BINARY_DIR})
+set(ARCHIVE_OUTPUT_DIRECTORY ${custom-engine_BINARY_DIR})
+
+# TODO: ?
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Add Imgui to sources
 file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")

@@ -178,7 +178,7 @@ class Entity
     /// @brief Add a component to this entity.
     /// @param pComponent: Component to add.
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
-    void AddComponent(IComponent* pComponent, const core::UUID& parentSpatialComponentID = core::UUID::InvalidID);
+    void AddComponent(IComponent* pComponent, const core::UUID& parentSpatialComponentID = core::UUID::InvalidID());
 
     /// @brief Create a component of type T and add it to this entity.
     /// @param args: Arguments forwarded to the component constructor.

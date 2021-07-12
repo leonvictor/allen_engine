@@ -72,5 +72,5 @@ void SpatialComponent::Detach()
 
     // Remove component hierarchy values
     m_pSpatialParent = nullptr;
-    m_parentAttachmentSocketID = core::UUID::InvalidID;
+    m_parentAttachmentSocketID = core::UUID::InvalidID();
 }

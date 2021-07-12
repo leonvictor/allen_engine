@@ -319,7 +319,7 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
         }
     }
 
-    pComponent->m_entityID = core::UUID::InvalidID;
+    pComponent->m_entityID = core::UUID::InvalidID();
     // TODO: Shutdown / Unload here ?
     pComponent->Shutdown();
     pComponent->Unload();
@@ -531,7 +531,7 @@ void Entity::DetachFromParent()
 
     // Remove component hierarchy values
     // m_pRootSpatialComponent->m_pSpatialParent = nullptr;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = core::UUID::InvalidID;
+    // m_pRootSpatialComponent->m_parentAttachmentSocketID = core::UUID::InvalidID();
 
     m_isAttachedToParent = false;
 }

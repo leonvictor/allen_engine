@@ -91,7 +91,7 @@ class SpatialComponent : public IComponent
     /// @param pParentComponent: The component to attach to.
     /// @param socketId: TODO
     /// @todo Document Attached/Detached state
-    void AttachTo(SpatialComponent* pParentComponent, const core::UUID& socketID = core::UUID::InvalidID);
+    void AttachTo(SpatialComponent* pParentComponent, const core::UUID& socketID = core::UUID::InvalidID());
 
     /// @brief Detach this component from its parent.
     void Detach();
