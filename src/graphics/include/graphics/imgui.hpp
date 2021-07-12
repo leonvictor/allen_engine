@@ -93,7 +93,7 @@ class ImGUI
         ImGui_ImplGlfw_InitForVulkan(pGlfwWindow, true);
 
         ImGui_ImplVulkan_InitInfo init_info;
-        init_info.Instance = (VkInstance) vkg::Instance::Get();
+        init_info.Instance = (VkInstance) pDevice->GetInstance()->GetVkInstance();
         init_info.PhysicalDevice = pDevice->GetVkPhysicalDevice();
         init_info.Device = pDevice->GetVkDevice();
         init_info.QueueFamily = pDevice->GetPresentQueue().GetFamilyIndex();

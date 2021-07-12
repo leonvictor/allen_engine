@@ -11,11 +11,9 @@ namespace vkg
 {
 
 /// @brief Instance stores application-wide parameters and info, as well as the debugging utilities.
-/// It is a singleton (use Instance::)
-class Instance : private ISingleton<Instance>
-// class Instance
+
+class Instance
 {
-    friend class ISingleton<Instance>;
     friend class Device;
 
   private:
@@ -44,48 +42,44 @@ class Instance : private ISingleton<Instance>
     };
 
     /// @brief Check if the instance supports the validation layers.
-    static bool CheckValidationLayersSupport(const std::vector<const char*> validationLayers);
+    bool CheckValidationLayersSupport(const std::vector<const char*> validationLayers);
 
     /// @brief Check if the instance supports all the requested extensions.
-    static bool CheckExtensionSupport(std::vector<const char*> extensions);
+    bool CheckExtensionSupport(std::vector<const char*> extensions);
 
   public:
     /// @brief Create the application wide instance. Should be called once at program startup.
-    static void Create();
+    void Create();
 
-    static bool IsInitialized()
+    bool IsInitialized() const
     {
-        return Singleton().m_status == State::Initialized;
+        return m_status == State::Initialized;
     }
 
     /// @brief Get the wrapped vulkan instance.
-    static vk::Instance& Get() { return Singleton().m_vkInstance.get(); }
+    const vk::Instance& GetVkInstance() const { return m_vkInstance.get(); }
 
-    static void RequestExtension(const char* extension)
+    void RequestExtension(const char* extension)
     {
-        Singleton().m_requestedExtensions.push_back(extension);
+        m_requestedExtensions.push_back(extension);
     }
 
-    static void RequestExtensions(std::vector<const char*> extensions)
+    void RequestExtensions(std::vector<const char*> extensions)
     {
-        auto& inst = Singleton();
-        inst.m_requestedExtensions.insert(inst.m_requestedExtensions.end(), extensions.begin(), extensions.end());
+        m_requestedExtensions.insert(m_requestedExtensions.end(), extensions.begin(), extensions.end());
     }
 
-    static const std::vector<const char*> GetValidationLayers()
+    const std::vector<const char*> GetValidationLayers() const
     {
-        return Singleton().m_validationLayers;
+        return m_validationLayers;
     }
 
-    static const vk::DispatchLoaderDynamic& GetDispatchLoaderDynamic()
+    const vk::DispatchLoaderDynamic& GetDispatchLoaderDynamic()
     {
-        auto& single = Singleton();
-        assert(single.IsInitialized());
-        return single.m_dispatchLoaderDynamic;
+        assert(IsInitialized());
+        return m_dispatchLoaderDynamic;
     }
 
-    static bool ValidationLayersEnabled() { return Singleton().ValidationLayersEnabled; }
+    bool ValidationLayersEnabled() const { return m_validationLayersEnabled; }
 };
 } // namespace vkg
-
-extern template class ISingleton<vkg::Instance>;

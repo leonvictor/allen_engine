@@ -12,8 +12,9 @@ namespace vkg
 Device::Device() {}
 
 /// @brief Create a vulkan device.
-Device::Device(const vk::SurfaceKHR& surface)
+Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
 {
+    m_pInstance = pInstance;
     m_physical = PickPhysicalDevice(surface);
 
     CreateLogicalDevice(surface);
@@ -154,9 +155,9 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
     deviceCreateInfo.pEnabledFeatures = &features;
 
     std::vector<const char*> validationLayers;
-    if (Instance::ValidationLayersEnabled())
+    if (m_pInstance->ValidationLayersEnabled())
     {
-        validationLayers = Instance::GetValidationLayers();
+        validationLayers = m_pInstance->GetValidationLayers();
         deviceCreateInfo.enabledLayerCount = static_cast<uint_fast32_t>(validationLayers.size());
         deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
     }
@@ -178,7 +179,7 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
 {
     // TODO: core::Instance could wrap this call and keep a list of devices cached... but it's not necessary right now
-    std::vector<vk::PhysicalDevice> devices = Instance::Get().enumeratePhysicalDevices();
+    std::vector<vk::PhysicalDevice> devices = m_pInstance->GetVkInstance().enumeratePhysicalDevices();
 
     if (devices.empty())
     {

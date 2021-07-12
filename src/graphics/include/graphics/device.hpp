@@ -33,6 +33,8 @@ struct SwapchainSupportDetails
 class Device
 {
   public:
+    vkg::Instance* m_pInstance;
+
     // Physical device we're associated to.
     vk::PhysicalDevice m_physical;
 
@@ -64,7 +66,7 @@ class Device
     vk::UniqueDescriptorPool m_descriptorPool;
 
     Device();
-    Device(const vk::SurfaceKHR& surface);
+    Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface);
 
     SwapchainSupportDetails GetSwapchainSupport(const vk::SurfaceKHR& surface);
 
@@ -90,7 +92,7 @@ class Device
             .pObjectName = name.c_str(),
         };
 
-        m_logical->setDebugUtilsObjectNameEXT(debugName, Instance::GetDispatchLoaderDynamic());
+        m_logical->setDebugUtilsObjectNameEXT(debugName, m_pInstance->GetDispatchLoaderDynamic());
     }
 
     inline vk::SampleCountFlagBits GetMSAASamples() const { return m_msaaSamples; }
@@ -108,7 +110,8 @@ class Device
     inline CommandPool& GetGraphicsCommandPool() { return m_commandpools.graphics; };
 
     inline const vk::PhysicalDeviceProperties GetPhysicalDeviceProperties() const { return m_physical.getProperties(); }
-    inline vk::DescriptorPool GetDescriptorPool() { return m_descriptorPool.get(); };
+    inline vk::DescriptorPool GetDescriptorPool() { return m_descriptorPool.get(); }
+    inline const vkg::Instance* GetInstance() { return m_pInstance; }
 
     /// @brief Allocates a single descriptor set from this device's default pool.
     /// @todo Handle multi-threading.

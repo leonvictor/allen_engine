@@ -57,8 +57,12 @@ class Engine
   public:
     Engine()
     {
-        m_window.Initialize();
-        m_pDevice = std::make_shared<vkg::Device>(m_window.GetVkSurface());
+        m_window.InitializeWindow();
+        m_instance.RequestExtensions(m_window.GetRequiredExtensions());
+        m_instance.Create();
+        m_window.CreateSurface(&m_instance);
+
+        m_pDevice = std::make_shared<vkg::Device>(&m_instance, m_window.GetVkSurface());
         m_swapchain = vkg::Swapchain(m_pDevice, &m_window);
 
         m_renderer.Create(&m_swapchain);
@@ -95,6 +99,7 @@ class Engine
     }
 
   private:
+    vkg::Instance m_instance;
     vkg::Window m_window;
     std::shared_ptr<vkg::Device> m_pDevice;
     vkg::Swapchain m_swapchain;
@@ -192,11 +197,7 @@ class Engine
 
             // TODO: Group glfw accesses in a window.NewFrame() method
             // Map GLFW events to the Input system
-            glfwPollEvents();
-
-            double xpos, ypos;
-            glfwGetCursorPos(m_window.GetGLFWWindow(), &xpos, &ypos);
-            Input::Mouse.Update({xpos, ypos});
+            m_window.NewFrame();
 
             // Trigger input callbacks
             Input::Dispatch();
@@ -263,9 +264,8 @@ class Engine
                 }
                 ImGui::EndMenuBar();
             }
-
-            ImGui::End();
         }
+        ImGui::End();
 
         if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags))
         {
@@ -280,9 +280,8 @@ class Engine
 
                 ImGui::EndMenuBar();
             }
-
-            ImGui::End();
         }
+        ImGui::End();
 
         if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
         {
@@ -292,7 +291,6 @@ class Engine
             auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
             ImGui::Image((ImTextureID) tex->GetDescriptorSet(), dim);
         }
-
         ImGui::End();
 
         if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
@@ -306,9 +304,8 @@ class Engine
                 }
                 ImGui::EndTabBar();
             }
-            ImGui::End();
         }
-
+        ImGui::End();
         // if (ImGui::Begin("Transform", nullptr) && selectedObject != nullptr)
         if (ImGui::Begin("Transform", nullptr))
         {
@@ -338,9 +335,8 @@ class Engine
             // ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
             // ImGui::SameLine();
             // ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
-
-            ImGui::End();
         }
+        ImGui::End();
 
         // ImGui::End();
         ImGui::ShowDemoWindow();

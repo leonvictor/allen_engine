@@ -10,6 +10,8 @@
 namespace vkg
 {
 
+class Instance;
+
 struct Size2D
 {
     int width;
@@ -20,11 +22,10 @@ struct Size2D
 /// Also wraps the window library (GLFW).
 class Window
 {
+    friend class Engine;
 
   public:
     ~Window();
-
-    void Initialize();
 
     inline bool IsInitialized() const { return m_status == State::Initialized; }
 
@@ -45,8 +46,10 @@ class Window
 
     void AddResizeCallback(std::function<void(int, int)> callback);
 
+    void NewFrame();
+
   private:
-    enum State
+    enum class State
     {
         Uninitialized,
         WindowReady,
@@ -79,6 +82,6 @@ class Window
     void InitializeWindow();
 
     /// @brief Create the vulkan surface
-    void CreateSurface();
+    void CreateSurface(const vkg::Instance* pInstance);
 };
 } // namespace vkg
