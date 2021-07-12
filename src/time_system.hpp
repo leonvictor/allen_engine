@@ -1,7 +1,7 @@
 #pragma once
 
-#include "utils/singleton.hpp"
 #include <chrono>
+#include <utils/singleton.hpp>
 
 /// @brief Interface to get time information. Use as a singleton (i.e. Time::GetTime())
 /// @todo Unity uses a "fake" timer to enforce a maximum delta time
@@ -24,44 +24,22 @@ class Time : private ISingleton<Time>
     uint64_t m_frameCount;
 
     /// @brief Notify the time system that we changed frames. Get the current time and update internal fields accordingly.
-    static void Update()
-    {
-        auto& singleton = Singleton();
+    static void Update();
 
-        auto frameTime = Clock::now();
-        singleton.m_deltaTime = frameTime - singleton.m_frameTime;
-        singleton.m_frameTime = frameTime;
-
-        singleton.m_frameCount++;
-    }
-
-    Time()
-    {
-        m_startTime = Clock::now();
-        m_frameTime = m_startTime;
-        m_frameCount = 0;
-    }
+    Time();
 
   public:
     /// @brief Interval since last frame (in seconds).
-    static float GetDeltaTime() { return Singleton().m_deltaTime.count(); }
+    static float GetDeltaTime();
 
     /// @brief Time at the beginning of this frame (in seconds).
-    static float GetTime()
-    {
-        auto& singleton = Singleton();
-        auto diff = singleton.m_frameTime - singleton.m_startTime;
-        return diff.count();
-    }
+    static float GetTime();
 
     /// @brief Number of frames since the start of the application.
-    static uint64_t GetFrameCount() { return Singleton().m_frameCount; }
+    static uint64_t GetFrameCount();
 
     /// @brief Real time since the start of the application (in seconds).
-    static float GetTimeSinceStartup()
-    {
-        auto& singleton = Singleton();
-        auto diff = Clock::now() - singleton.m_startTime;
-        return diff.count();
-    }
+    static float GetTimeSinceStartup();
 };
+
+extern template class ISingleton<Time>;

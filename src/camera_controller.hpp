@@ -3,13 +3,13 @@
 #include <functional>
 #include <iostream>
 
-#include "object_model/components/camera.hpp"
-#include "object_model/entity_system.hpp"
+#include <core/camera.hpp>
+#include <object_model/entity_system.hpp>
 
-#include "input/callback_context.hpp"
-#include "input/input_action.hpp"
-#include "input/input_context.hpp"
-#include "input/input_system.hpp"
+#include <input/callback_context.hpp>
+#include <input/input_action.hpp>
+#include <input/input_context.hpp>
+#include <input/input_system.hpp>
 
 class EditorCameraController : IEntitySystem
 {

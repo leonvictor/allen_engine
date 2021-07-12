@@ -1,14 +1,8 @@
-#include <vulkan/vulkan.hpp>
-
 #include <GLFW/glfw3.h>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/vec3.hpp>
+
 #include <chrono> // std::chrono::seconds
-#include <glm/gtx/hash.hpp>
 #include <thread> // std::this_thread::sleep_for
 
 #include <array>
@@ -27,39 +21,35 @@
 
 #include "camera_controller.hpp"
 
-#include "graphics/device.hpp"
-#include "graphics/imgui.hpp"
-#include "graphics/instance.hpp"
-#include "graphics/rendering/offline_renderer.hpp"
-#include "graphics/rendering/swapchain_renderer.hpp"
-#include "graphics/window.hpp"
+#include <graphics/device.hpp>
+#include <graphics/imgui.hpp>
+#include <graphics/instance.hpp>
+#include <graphics/rendering/offline_renderer.hpp>
+#include <graphics/rendering/swapchain_renderer.hpp>
+#include <graphics/ubo.hpp>
+#include <graphics/window.hpp>
 
-#include "input/input_system.hpp"
 #include "time_system.hpp"
+#include <input/input_system.hpp>
 
-// Object model
-// TODO: Make a library ?
-#include "object_model/entity.hpp"
-#include "object_model/world_entity.hpp"
-#include "object_model/world_update.hpp"
-#include "ubo.hpp"
+#include <object_model/entity.hpp>
+#include <object_model/world_entity.hpp>
+#include <object_model/world_update.hpp>
 
-#include "object_model/components/camera.hpp"
-#include "object_model/components/light.hpp"
-#include "object_model/components/mesh_renderer.hpp"
-
-#include "object_model/world_systems/render_system.hpp"
-
-#include "utils/color_uid.cpp"
-#include "vertex.hpp"
+#include <core/camera.hpp>
+#include <core/light.hpp>
+#include <core/mesh_renderer.hpp>
+#include <core/render_system.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include "imgui_internal.h"
 
-const std::string MODEL_PATH = "assets/models/cube.obj";
-const std::string TEXTURE_PATH = "assets/textures/container2.png";
+#include <config/path.h>
+
+const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.obj";
+const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.png";
 const int MAX_MODELS = 50;
 
 class Engine
