@@ -1,5 +1,3 @@
-#include <GLFW/glfw3.h>
-
 #include <glm/vec3.hpp>
 
 #include <chrono> // std::chrono::seconds
@@ -74,6 +72,13 @@ class Engine
             m_swapchain.GetImageFormat());
 
         m_imgui.Initialize(m_window.GetGLFWWindow(), m_pDevice, m_renderer.GetRenderPass(), m_renderer.GetNumberOfImages());
+
+        // Register callbacks to transfer events from the window to the input system
+        // TODO: Ideally this would be managed entirelly by the input system, without a dependency on the window
+        m_window.AddKeyCallback(std::bind(Input::UpdateKeyboardControlState, std::placeholders::_1, std::placeholders::_2));
+        m_window.AddMouseButtonCallback(std::bind(Input::UpdateMouseControlState, std::placeholders::_1, std::placeholders::_2));
+        m_window.AddScrollCallback(std::bind(Input::UpdateScrollControlState, std::placeholders::_1, std::placeholders::_2));
+
         // TODO: Get rid of all the references to m_pDevice
         // They should not be part of this class
 
@@ -189,7 +194,7 @@ class Engine
     void mainLoop()
     {
         // TODO: Move to window
-        while (!glfwWindowShouldClose(m_window.GetGLFWWindow()))
+        while (!m_window.ShouldClose())
         {
             // std::this_thread::sleep_for(std::chrono::seconds(1));
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
@@ -199,6 +204,7 @@ class Engine
             // Map GLFW events to the Input system
             m_window.NewFrame();
 
+            Input::UpdateMousePosition(m_window.GetCursorPosition());
             // Trigger input callbacks
             Input::Dispatch();
 

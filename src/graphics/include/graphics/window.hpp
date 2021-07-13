@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 #include <functional>
+#include <glm/vec2.hpp>
 #include <vector>
 
 namespace vkg
@@ -45,8 +46,14 @@ class Window
     inline GLFWwindow* GetGLFWWindow() { return m_pGlfwWindow; }
 
     void AddResizeCallback(std::function<void(int, int)> callback);
+    void AddScrollCallback(std::function<void(int, int)> callback);
+    void AddKeyCallback(std::function<void(int, int)> callback);
+    void AddMouseButtonCallback(std::function<void(int, int)> callback);
 
     void NewFrame();
+
+    bool ShouldClose() const { return glfwWindowShouldClose(m_pGlfwWindow); }
+    glm::vec2 GetCursorPosition() const;
 
   private:
     enum class State
@@ -60,7 +67,11 @@ class Window
 
     State m_status = State::Uninitialized;
     vk::UniqueSurfaceKHR m_vkSurface;
+
     std::vector<std::function<void(uint32_t, uint32_t)>> m_resizeCallbacks;
+    std::vector<std::function<void(uint32_t, uint32_t)>> m_scrollCallbacks;
+    std::vector<std::function<void(uint32_t, uint32_t)>> m_keyCallbacks;
+    std::vector<std::function<void(uint32_t, uint32_t)>> m_mouseButtonCallbacks;
 
     // TODO: find a good way to handle extensions. Maybe populating a list in the singleton instance ?
     // Right now things are weird because we have to split the initialization in two

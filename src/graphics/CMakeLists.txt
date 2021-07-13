@@ -26,7 +26,7 @@ set(LIB_INCLUDE_DIRS
 )
 
 set(LIB_DEPENDENCIES
-    ${Vulkan_LIBRARIES} utils input shaderc glfw ${GLFW_LIBRARIES}
+    ${Vulkan_LIBRARIES} utils shaderc glfw ${GLFW_LIBRARIES}
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC ${LIB_DEPENDENCIES})

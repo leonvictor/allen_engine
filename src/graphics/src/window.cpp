@@ -1,8 +1,6 @@
 #include "window.hpp"
 #include "instance.hpp"
 
-#include <input/input_system.hpp>
-
 #include <assert.h>
 
 namespace vkg
@@ -12,15 +10,6 @@ Window::~Window()
 {
     glfwDestroyWindow(m_pGlfwWindow);
     glfwTerminate();
-}
-
-void Window::Initialize()
-{
-    InitializeWindow();
-    // TODO: This is not that cool
-    Instance::Create();
-    CreateSurface();
-    m_status = State::Initialized;
 }
 
 Size2D Window::GetSize() const
@@ -50,6 +39,21 @@ void Window::AddResizeCallback(std::function<void(int, int)> callback)
     m_resizeCallbacks.push_back(callback);
 }
 
+void Window::AddScrollCallback(std::function<void(int, int)> callback)
+{
+    m_scrollCallbacks.push_back(callback);
+}
+
+void Window::AddKeyCallback(std::function<void(int, int)> callback)
+{
+    m_keyCallbacks.push_back(callback);
+}
+
+void Window::AddMouseButtonCallback(std::function<void(int, int)> callback)
+{
+    m_mouseButtonCallbacks.push_back(callback);
+}
+
 std::vector<const char*> Window::GetRequiredExtensions()
 {
     uint32_t glfwExtensionCount;
@@ -71,18 +75,33 @@ void Window::FramebufferResizeCallback(GLFWwindow* pGlfwWindow, int width, int h
 
 void Window::KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods)
 {
+    auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
+    for (auto& callback : window->m_keyCallbacks)
+    {
+        callback(scancode, action);
+    }
     // FIXME: GLFW events for keyboard and mouse might share the same identifiers ?
-    Input::Keyboard.UpdateControlState(scancode, action);
+    // Input::UpdateKeyboardControlState(scancode, action);
 }
 
 void Window::ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoffset)
 {
-    Input::Mouse.UpdateScrollControlState(xoffset, yoffset);
+    auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
+    for (auto& callback : window->m_scrollCallbacks)
+    {
+        callback(xoffset, yoffset);
+    }
+    // Input::UpdateScrollControlState(xoffset, yoffset);
 }
 
 void Window::MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action, int mods)
 {
-    Input::Mouse.UpdateControlState(button, action);
+    auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
+    for (auto& callback : window->m_mouseButtonCallbacks)
+    {
+        callback(button, action);
+    }
+    // Input::UpdateMouseControlState(button, action);
 }
 
 void Window::InitializeWindow()
@@ -116,22 +135,37 @@ void Window::InitializeWindow()
     glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
     glfwSetFramebufferSizeCallback(m_pGlfwWindow, FramebufferResizeCallback);
 
-    Instance::RequestExtensions(GetRequiredExtensions());
+    // Instance::RequestExtensions(GetRequiredExtensions());
     m_status = State::WindowReady;
 }
 
-void Window::CreateSurface()
+void Window::CreateSurface(const vkg::Instance* pInstance)
 {
     assert(m_status == State::WindowReady);
-    assert(Instance::IsInitialized()), "Tried to create the surface before the instance.";
+    assert(pInstance->IsInitialized());
 
     VkSurfaceKHR pSurface;
-    auto res = glfwCreateWindowSurface((VkInstance) Instance::Get(), m_pGlfwWindow, nullptr, &pSurface);
+    auto res = glfwCreateWindowSurface((VkInstance) pInstance->GetVkInstance(), m_pGlfwWindow, nullptr, &pSurface);
     if (res != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create window surface.");
     }
 
-    m_vkSurface = vk::UniqueSurfaceKHR(pSurface, Instance::Get());
+    m_vkSurface = vk::UniqueSurfaceKHR(pSurface, pInstance->GetVkInstance());
+    m_status = State::Initialized;
 }
+
+void Window::NewFrame()
+{
+
+    glfwPollEvents();
+}
+
+glm::vec2 Window::GetCursorPosition() const
+{
+    double xpos, ypos;
+    glfwGetCursorPos(m_pGlfwWindow, &xpos, &ypos);
+    return {xpos, ypos};
+}
+
 } // namespace vkg
