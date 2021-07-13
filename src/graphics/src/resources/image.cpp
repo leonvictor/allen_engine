@@ -49,6 +49,10 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
 
     m_vkImage = m_pDevice->GetVkDevice().createImageUnique(imageInfo);
 
+#ifndef NDEBUG
+    m_pDevice->SetDebugUtilsObjectName(m_vkImage.get(), m_debugName + " Image");
+#endif
+
     m_layout = layout;
     m_mipLevels = mipLevels;
     m_format = format;
@@ -72,6 +76,10 @@ void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
     createInfo.subresourceRange.baseMipLevel = 0;
 
     m_vkView = m_pDevice->GetVkDevice().createImageViewUnique(createInfo);
+
+#ifndef NDEBUG
+    m_pDevice->SetDebugUtilsObjectName(m_vkView.get(), m_debugName + " Image View");
+#endif
 }
 
 void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
@@ -102,6 +110,10 @@ void Image::AddSampler(vk::SamplerAddressMode adressMode)
     samplerInfo.minLod = 0;
 
     m_vkSampler = m_pDevice->GetVkDevice().createSamplerUnique(samplerInfo);
+
+#ifndef NDEBUG
+    m_pDevice->SetDebugUtilsObjectName(m_vkSampler.get(), m_debugName + " Sampler");
+#endif
 }
 
 void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
@@ -447,21 +459,25 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 vk::DescriptorSet& Image::GetDescriptorSet()
 {
     // Lazy allocation of the descriptor set
-    if (!m_descriptorSet)
+    if (!m_vkDescriptorSet)
     {
-        m_descriptorSet = m_pDevice->AllocateDescriptorSet<Image>();
+        m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<Image>();
 
         // Update the Descriptor Set:
         vk::WriteDescriptorSet writeDesc[1] = {};
-        writeDesc[0].dstSet = m_descriptorSet.get();
+        writeDesc[0].dstSet = m_vkDescriptorSet.get();
         writeDesc[0].descriptorCount = 1;
         writeDesc[0].descriptorType = vk::DescriptorType::eCombinedImageSampler;
         auto desc = GetDescriptor();
         writeDesc[0].pImageInfo = &desc;
 
         m_pDevice->GetVkDevice().updateDescriptorSets(1, writeDesc, 0, nullptr);
+
+#ifndef NDEBUG
+        m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), m_debugName + " Descriptor Set");
+#endif
     }
-    return m_descriptorSet.get();
+    return m_vkDescriptorSet.get();
 }
 
 std::vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()

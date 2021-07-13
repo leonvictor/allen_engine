@@ -20,13 +20,17 @@ class Image : public Allocation
     vk::UniqueImage m_vkImage;
     vk::UniqueImageView m_vkView;
     vk::UniqueSampler m_vkSampler;
-    vk::UniqueDescriptorSet m_descriptorSet;
+    vk::UniqueDescriptorSet m_vkDescriptorSet;
 
     vk::ImageLayout m_layout;
     vk::Format m_format = vk::Format::eUndefined;
     uint32_t m_mipLevels = 1;
     uint32_t m_arrayLayers = 1;
     uint32_t m_width, m_height;
+
+#ifndef NDEBUG
+    std::string m_debugName;
+#endif
 
     // Set to true when the image resource is owned by an external agent (i.e. swapchain images)
     bool m_externallyOwnedImage = false;
@@ -40,9 +44,10 @@ class Image : public Allocation
   public:
     ~Image()
     {
-        m_descriptorSet.reset();
+        m_vkDescriptorSet.reset();
         m_vkSampler.reset();
         m_vkView.reset();
+
         if (m_externallyOwnedImage)
         {
             m_vkImage.release();
@@ -67,7 +72,7 @@ class Image : public Allocation
             m_vkSampler = std::move(other.m_vkSampler);
             m_vkView = std::move(other.m_vkView);
             m_vkImage = std::move(other.m_vkImage);
-            m_descriptorSet = std::move(other.m_descriptorSet);
+            m_vkDescriptorSet = std::move(other.m_vkDescriptorSet);
 
             m_layout = other.m_layout;
             m_format = other.m_format;
@@ -86,7 +91,7 @@ class Image : public Allocation
         m_vkSampler = std::move(other.m_vkSampler);
         m_vkView = std::move(other.m_vkView);
         m_vkImage = std::move(other.m_vkImage);
-        m_descriptorSet = std::move(other.m_descriptorSet);
+        m_vkDescriptorSet = std::move(other.m_vkDescriptorSet);
 
         m_layout = other.m_layout;
         m_format = other.m_format;
@@ -125,6 +130,31 @@ class Image : public Allocation
 
     /// @brief Add a vulkan sampler to this image.
     void AddSampler(vk::SamplerAddressMode adressMode = vk::SamplerAddressMode::eRepeat);
+
+    /// @brief [DEBUG ONLY] Set a debug name to this image and all its underlying vulkan objects.
+    /// @todo Make sure this is a noop in release.
+    void SetDebugName(std::string name)
+    {
+#ifndef NDEBUG
+        m_debugName = name;
+        if (m_vkImage)
+        {
+            m_pDevice->SetDebugUtilsObjectName(m_vkImage.get(), name + " Image");
+        }
+        if (m_vkView)
+        {
+            m_pDevice->SetDebugUtilsObjectName(m_vkView.get(), name + " Image View");
+        }
+        if (m_vkSampler)
+        {
+            m_pDevice->SetDebugUtilsObjectName(m_vkSampler.get(), name + " Sampler");
+        }
+        if (m_vkDescriptorSet)
+        {
+            m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), name + " Descriptor Set");
+        }
+#endif
+    }
 
     void Allocate(const vk::MemoryPropertyFlags& memProperties);
 
