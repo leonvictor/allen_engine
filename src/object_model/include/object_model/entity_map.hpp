@@ -33,6 +33,10 @@ class EntityMap : private EntityCollection
     Status m_status = Status::Deactivated;
     bool m_isTransientMap = false;
 
+    /// @brief Clear this map. If it is the main one, deactivate and unload
+    /// all entities in the underlying collection.
+    void Clear(const ObjectModel::LoadingContext& loadingContext);
+
     bool IsActivated()
     {
         return m_status == Status::Activated;

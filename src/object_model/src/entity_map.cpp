@@ -8,6 +8,28 @@
 #include <functional>
 #include <stdexcept>
 
+void EntityMap::Clear(const ObjectModel::LoadingContext& loadingContext)
+{
+    m_entitiesToRemove.clear();
+    m_loadingEntities.clear();
+    m_entitiesToReload.clear();
+
+    // If this is the main map, deactivate and unload all entities,
+    // then clear the collection.
+    if (!m_isTransientMap)
+    {
+        for (auto& [id, entity] : EntityCollection::Collection())
+        {
+            if (entity.IsActivated())
+            {
+                entity.Deactivate(loadingContext);
+            }
+            entity.UnloadComponents(loadingContext);
+        }
+        EntityCollection::Clear();
+    }
+}
+
 void EntityMap::RemoveEntity(Entity* pEntity)
 {
     m_entitiesToRemove.push_back(pEntity);
@@ -15,17 +37,18 @@ void EntityMap::RemoveEntity(Entity* pEntity)
 
 bool EntityMap::Load(const ObjectModel::LoadingContext& loadingContext)
 {
+    auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
     // Gather up newly created entities, add them to the loading list and move them to the static collection
-    for (auto it = EntityCollection::m_newlyCreated.begin(); it != EntityCollection::m_newlyCreated.end();)
+    for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
     {
         // TODO: this is wonky
-        auto [nit, value] = EntityCollection::m_collection.insert(std::move(*it));
+        auto [nit, value] = EntityCollection::Collection().insert(std::move(*it));
         m_loadingEntities.push_back(&(nit->second));
-        it = EntityCollection::m_newlyCreated.erase(it);
+        it = newlyCreated.erase(it);
         // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
         // (cause all threads could ask for an entity removal, or even loading)
     }
-    EntityCollection::m_newlyCreated.clear();
+    newlyCreated.clear();
 
     if (m_loadingEntities.size() > 0 && m_status == Status::Deactivated)
     {
@@ -100,7 +123,8 @@ bool EntityMap::Load(const ObjectModel::LoadingContext& loadingContext)
 
 void EntityMap::Activate(const ObjectModel::LoadingContext& loadingContext)
 {
-    for (auto it = EntityCollection::m_collection.begin(); it != EntityCollection::m_collection.end(); ++it)
+    auto& collection = Collection();
+    for (auto it = collection.begin(); it != collection.end(); ++it)
     {
         auto& entity = it->second;
         if (entity.IsLoaded())

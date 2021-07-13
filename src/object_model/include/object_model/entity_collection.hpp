@@ -18,11 +18,12 @@ class EntityCollection
     friend class Entity;
 
   protected:
-    static std::map<core::UUID, Entity> m_collection;
+    static std::map<core::UUID, Entity>& Collection();
+
     /// @note I think it'd be good if newlyCreated existed separately in each thread.
     /// Then we could concatenate at some point. Maybe all execution thread acquires a separate EntityMap object,
     /// and the "main" (not transient) one syncs up once per frame ?
-    static std::map<core::UUID, Entity> m_newlyCreated;
+    static std::map<core::UUID, Entity>& NewlyCreatedEntities();
 
     /// @brief Create a new entity, insert it in the collection and return it.
     /// @todo Ensure this works even if called from different threads
@@ -34,4 +35,7 @@ class EntityCollection
 
     /// @brief Definitely remove an entity from the collection.
     static void RemoveEntity(const core::UUID& id);
+
+    /// @brief Definitely remove all entities from this collection.
+    static void Clear();
 };

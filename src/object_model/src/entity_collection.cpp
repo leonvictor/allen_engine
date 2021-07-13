@@ -1,14 +1,25 @@
 #include "entity_collection.hpp"
 #include "entity.hpp"
 
-std::map<core::UUID, Entity> EntityCollection::m_collection;
-std::map<core::UUID, Entity> EntityCollection::m_newlyCreated;
+std::map<core::UUID, Entity>& EntityCollection::Collection()
+{
+    static std::map<core::UUID, Entity> collection;
+    return collection;
+}
+
+std::map<core::UUID, Entity>& EntityCollection::NewlyCreatedEntities()
+{
+    static std::map<core::UUID, Entity> collection;
+    return collection;
+}
 
 Entity* EntityCollection::Create()
 {
     // TODO: This uses the move constructor so we construct the object twice
     Entity entity;
-    auto [it, value] = m_newlyCreated.insert(std::make_pair(entity.GetID(), entity));
+
+    auto& newlyCreated = NewlyCreatedEntities();
+    auto [it, value] = newlyCreated.insert(std::make_pair(entity.GetID(), entity));
     // auto [it, value] = EntityCollection::m_newlyCreated.emplace(Entity());
 
     // TODO: Test this in depth, it's kinda black magic
@@ -20,9 +31,16 @@ Entity* EntityCollection::Create()
 
 void EntityCollection::RemoveEntity(const core::UUID& id)
 {
-    auto it = m_collection.find(id);
+    auto& collection = Collection();
+    auto it = collection.find(id);
 
-    assert(it != m_collection.end());
+    assert(it != collection.end());
 
-    m_collection.erase(it);
+    collection.erase(it);
+}
+
+void EntityCollection::Clear()
+{
+    Collection().clear();
+    NewlyCreatedEntities().clear();
 }
