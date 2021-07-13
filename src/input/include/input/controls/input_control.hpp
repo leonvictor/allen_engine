@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+namespace aln::input
+{
 class IInputControl
 {
   protected:
@@ -49,3 +51,4 @@ class InputControl : public IInputControl
         return m_value;
     }
 };
+} // namespace aln::input

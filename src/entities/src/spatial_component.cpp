@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <stdexcept>
 
+namespace aln::entities
+{
+using aln::utils::UUID;
+
 void SpatialComponent::CalculateWorldTransform(bool callback)
 {
     if (m_pSpatialParent == nullptr)
@@ -28,11 +32,11 @@ void SpatialComponent::CalculateWorldTransform(bool callback)
     }
 }
 
-bool SpatialComponent::HasSocket(const core::UUID& socketID)
+bool SpatialComponent::HasSocket(const UUID& socketID)
 {
     // TODO: Does this work ?
     // return std::any_of(m_sockets.begin(), m_sockets.end(), socketID);
-    return std::any_of(m_sockets.begin(), m_sockets.end(), [socketID](core::UUID id)
+    return std::any_of(m_sockets.begin(), m_sockets.end(), [socketID](UUID id)
         { return id == socketID; });
     // for (StringID id : m_sockets)
     // {
@@ -44,7 +48,7 @@ bool SpatialComponent::HasSocket(const core::UUID& socketID)
     // return false;
 }
 
-void SpatialComponent::AttachTo(SpatialComponent* pParentComponent, const core::UUID& socketID)
+void SpatialComponent::AttachTo(SpatialComponent* pParentComponent, const UUID& socketID)
 {
     // TODO: Handle sockets
     // We can't attach if we're already attached
@@ -72,5 +76,6 @@ void SpatialComponent::Detach()
 
     // Remove component hierarchy values
     m_pSpatialParent = nullptr;
-    m_parentAttachmentSocketID = core::UUID::InvalidID();
+    m_parentAttachmentSocketID = UUID::InvalidID();
 }
+} // namespace aln::entities

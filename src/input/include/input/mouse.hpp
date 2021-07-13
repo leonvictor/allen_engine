@@ -8,16 +8,16 @@
 #include <glm/vec2.hpp>
 #include <vector>
 
+namespace aln
+{
 class Engine;
-class Input;
-
-namespace input::devices
+namespace input
 {
 /// @brief Describe a physical mouse and its on-screen cursor relative.
 class Mouse : IInputDevice
 {
-    friend class Engine;
     friend class Input;
+    friend Engine;
 
   private:
     // Position in screen space.
@@ -118,4 +118,5 @@ class Mouse : IInputDevice
     const glm::vec2& GetDelta() const { return m_delta; }
     const glm::vec2& GetScroll() const { return m_scrollDelta; }
 };
-} // namespace input::devices
+} // namespace input
+} // namespace aln

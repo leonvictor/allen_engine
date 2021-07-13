@@ -5,7 +5,7 @@
 #include <vulkan/vulkan.hpp>
 
 // TODO: Make a class w/ private fields
-namespace vkg
+namespace aln::vkg::resources
 {
 
 /// @brief A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
@@ -132,4 +132,4 @@ class Allocation
         return m_pDevice->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
     }
 };
-} // namespace vkg
+} // namespace aln::vkg::resources

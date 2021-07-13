@@ -8,7 +8,9 @@
 #include <functional>
 #include <stdexcept>
 
-void EntityMap::Clear(const ObjectModel::LoadingContext& loadingContext)
+namespace aln::entities
+{
+void EntityMap::Clear(const LoadingContext& loadingContext)
 {
     m_entitiesToRemove.clear();
     m_loadingEntities.clear();
@@ -35,7 +37,7 @@ void EntityMap::RemoveEntity(Entity* pEntity)
     m_entitiesToRemove.push_back(pEntity);
 }
 
-bool EntityMap::Load(const ObjectModel::LoadingContext& loadingContext)
+bool EntityMap::Load(const LoadingContext& loadingContext)
 {
     auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
     // Gather up newly created entities, add them to the loading list and move them to the static collection
@@ -121,7 +123,7 @@ bool EntityMap::Load(const ObjectModel::LoadingContext& loadingContext)
     return true;
 }
 
-void EntityMap::Activate(const ObjectModel::LoadingContext& loadingContext)
+void EntityMap::Activate(const LoadingContext& loadingContext)
 {
     auto& collection = Collection();
     for (auto it = collection.begin(); it != collection.end(); ++it)
@@ -132,4 +134,5 @@ void EntityMap::Activate(const ObjectModel::LoadingContext& loadingContext)
             entity.Activate(loadingContext);
         }
     }
+}
 }

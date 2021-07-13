@@ -1,5 +1,7 @@
 #pragma once
 
+namespace aln::input
+{
 /// Forward declarations
 class IInputControl;
 
@@ -13,3 +15,4 @@ struct ControlStateChangedEvent
 
     // TODO: Time emitted
 };
+} // namespace aln::input

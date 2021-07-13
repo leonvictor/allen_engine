@@ -6,7 +6,7 @@
 
 #include <functional>
 
-namespace vkg
+namespace aln::vkg
 {
 
 Swapchain::Swapchain(std::shared_ptr<Device> pDevice, vkg::Window* pWindow)
@@ -221,4 +221,4 @@ void Swapchain::AddResizeCallback(std::function<void(uint32_t, uint32_t)> callba
     m_resizeCallbacks.push_back(callback);
 }
 
-} // namespace vkg
+} // namespace aln::vkg

@@ -12,6 +12,11 @@
 
 #include <utils/files.hpp>
 
+namespace aln
+{
+
+using Vertex = aln::vkg::Vertex;
+
 // TODO: Complete gltf format
 // In glTF, meshes are defined as arrays of primitives. Primitives correspond to the data required for GPU draw calls. Primitives specify one or more attributes, corresponding to the vertex attributes used in the draw calls.
 struct PrimitiveComponent
@@ -26,7 +31,7 @@ struct Mesh
 {
     std::string m_sourceFile;
 
-    std::vector<Vertex> m_vertices;
+    std::vector<vkg::Vertex> m_vertices;
     std::vector<uint32_t> m_indices;
 
     std::vector<PrimitiveComponent> m_primitives;
@@ -119,3 +124,4 @@ struct Mesh
         }
     }
 };
+} // namespace aln

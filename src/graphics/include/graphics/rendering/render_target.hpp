@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg::render
 {
 
 /// @brief Holds render target info and objects.

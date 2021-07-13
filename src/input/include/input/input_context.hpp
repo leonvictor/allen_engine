@@ -8,6 +8,8 @@
 #include <functional>
 #include <map>
 
+namespace aln::input
+{
 /// @brief Input context hold a group of actions dependant on the same context. They are used to prioritize between them, and to allow easier
 /// enabling/disabling
 class InputContext
@@ -80,3 +82,4 @@ class InputContext
 
     bool IsEnabled() const { return m_enabled; }
 };
+} // namespace aln::input

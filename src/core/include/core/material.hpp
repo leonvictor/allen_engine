@@ -1,5 +1,7 @@
 #pragma once
 
+namespace aln
+{
 /// @brief Material ressource
 /// TODO
 struct Material
@@ -30,3 +32,4 @@ struct MaterialBufferObject
         shininess = glm::vec1(8.0f);
     }
 };
+}

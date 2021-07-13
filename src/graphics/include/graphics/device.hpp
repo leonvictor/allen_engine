@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg
 {
 
 struct SwapchainSupportDetails
@@ -160,4 +160,4 @@ class Device
         return iter->second.get();
     }
 };
-} // namespace vkg
+} // namespace aln::vkg

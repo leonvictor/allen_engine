@@ -6,6 +6,8 @@
 #include <typeindex>
 #include <unordered_map>
 
+namespace aln::utils
+{
 class ITypeHelper
 {
   public:
@@ -117,3 +119,4 @@ class TypeInfo
     const bool operator==(const TypeInfo& other) const { return m_ID == other.m_ID; }
     const bool operator!=(const TypeInfo& other) const { return !operator==(other); }
 };
+} // namespace aln::utils

@@ -6,8 +6,9 @@
 
 #include <vector>
 
+namespace aln::input
+{
 /// TODO: https://www.gamedev.net/blogs/entry/2250186-designing-a-robust-input-handling-system-for-games/
-
 class InputContext;
 
 /// @brief Input is the overarching system recording and dispatching input operations.
@@ -24,8 +25,8 @@ class Input
     // List of active InputContexts
     std::vector<InputContext*> m_contexts;
 
-    input::devices::Keyboard m_keyboard;
-    input::devices::Mouse m_mouse;
+    Keyboard m_keyboard;
+    Mouse m_mouse;
 
     // TODO: Merge in a single function and handle device internally
     static void UpdateKeyboardControlState(int code, int action)
@@ -59,10 +60,11 @@ class Input
 
     // TODO: Handle multiple device of each type.
     /// @brief Static access to the keyboard.
-    static const input::devices::Keyboard& Keyboard();
+    static const Keyboard& Keyboard();
     /// @brief Static access to the mouse.
-    static const input::devices::Mouse& Mouse();
+    static const Mouse& Mouse();
 
     /// TODO: Static access to the gamepad.
-    // static const input::devices::Gamepad& Gamepad();
+    // static const Gamepad& Gamepad();
 };
+}

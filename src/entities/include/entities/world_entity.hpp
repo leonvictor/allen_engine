@@ -7,6 +7,8 @@
 #include <map>
 #include <typeinfo>
 
+namespace aln::entities
+{
 /// @brief The one entity that represents the world. Holds entities and world systems.
 class WorldEntity
 {
@@ -15,10 +17,10 @@ class WorldEntity
     std::map<std::type_index, IWorldSystem*> m_systems;
 
     /// @brief Build the loading context by registering callbacks to this world entity.
-    ObjectModel::LoadingContext GetLoadingContext()
+    LoadingContext GetLoadingContext()
     {
         // Register callbacks to propagate component registrations to world systems
-        ObjectModel::LoadingContext loadingContext;
+        LoadingContext loadingContext;
         loadingContext.m_registerWithWorldSystems = std::bind(&WorldEntity::RegisterComponent, this, std::placeholders::_1, std::placeholders::_2);
         loadingContext.m_unregisterWithWorldSystems = std::bind(&WorldEntity::UnregisterComponent, this, std::placeholders::_1, std::placeholders::_2);
         loadingContext.m_registerEntityUpdate = std::bind(&WorldEntity::RegisterEntity, this, std::placeholders::_1);
@@ -48,7 +50,7 @@ class WorldEntity
 
     /// @brief 2 phases: loading and updating.
     /// @todo: better explanations (when it's donezo)
-    void Update(ObjectModel::UpdateContext const& context)
+    void Update(UpdateContext const& context)
     {
         // --------------
         // Loading phase
@@ -138,3 +140,4 @@ class WorldEntity
         }
     }
 };
+}

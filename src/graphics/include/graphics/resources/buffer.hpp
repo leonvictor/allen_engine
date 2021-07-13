@@ -5,10 +5,13 @@
 
 #include <memory>
 
-namespace vkg
+namespace aln::vkg
+{
+class Device;
+
+namespace resources
 {
 class Image;
-class Device;
 
 class Buffer : public Allocation
 {
@@ -26,9 +29,9 @@ class Buffer : public Allocation
     /// @brief Copy the content of this buffer to an image.
     void CopyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions) const;
     void CopyTo(vk::CommandBuffer& cb, vk::Image& image, const uint32_t width, const uint32_t height) const;
-    void CopyTo(vk::CommandBuffer& cb, vkg::Image& image) const;
-    void CopyTo(vk::CommandBuffer& cb, vkg::Buffer& dstBuffer, const vk::DeviceSize& size) const;
-    void CopyTo(vk::CommandBuffer& cb, vkg::Buffer& dstBuffer) const;
+    void CopyTo(vk::CommandBuffer& cb, vkg::resources::Image& image) const;
+    void CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSize& size) const;
+    void CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer) const;
 
     inline vk::DescriptorBufferInfo GetDescriptor() const
     {
@@ -44,4 +47,5 @@ class Buffer : public Allocation
     void Allocate(const vk::MemoryPropertyFlags& memProperties);
     void Initialize(std::shared_ptr<Device> pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data);
 };
-} // namespace vkg
+} // namespace resources
+} // namespace aln::vkg

@@ -3,11 +3,11 @@
 #include <functional>
 #include <vector>
 
+namespace aln::entities
+{
 class Entity;
 class IComponent;
 
-namespace ObjectModel
-{
 struct LoadingContext
 {
     /// @brief Callback to notify the world entity that a new component/entity pair should be registered with the world systems.
@@ -19,4 +19,4 @@ struct LoadingContext
     /// @brief Callback to notify the world systems that an entity has been "turned off".
     std::function<void(Entity*)> m_unregisterEntityUpdate;
 };
-} // namespace ObjectModel
+}

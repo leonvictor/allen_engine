@@ -8,6 +8,8 @@
 #include <set>
 #include <vector>
 
+namespace aln::entities
+{
 class Entity;
 
 class EntityMap : private EntityCollection
@@ -35,7 +37,7 @@ class EntityMap : private EntityCollection
 
     /// @brief Clear this map. If it is the main one, deactivate and unload
     /// all entities in the underlying collection.
-    void Clear(const ObjectModel::LoadingContext& loadingContext);
+    void Clear(const LoadingContext& loadingContext);
 
     bool IsActivated()
     {
@@ -47,6 +49,7 @@ class EntityMap : private EntityCollection
 
     /// @brief Update the state of each entity
     /// @note This function should be called exactly once per frame.
-    bool Load(const ObjectModel::LoadingContext& loadingContext);
-    void Activate(const ObjectModel::LoadingContext& loadingContext);
+    bool Load(const LoadingContext& loadingContext);
+    void Activate(const LoadingContext& loadingContext);
 };
+}

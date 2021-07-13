@@ -11,11 +11,14 @@
 #include <graphics/ubo.hpp>
 #include <graphics/vertex.hpp>
 
-#include <object_model/spatial_component.hpp>
+#include <entities/spatial_component.hpp>
 #include <utils/files.hpp>
 
 #include "material.hpp"
 #include "mesh.hpp"
+
+namespace aln
+{
 
 /// @brief The MeshRenderer component holds a mesh, its material, and the vulkan objects
 // representing them on the GPU.
@@ -30,21 +33,21 @@ class MeshRenderer : public SpatialComponent
     Material m_material;
 
     vk::UniqueDescriptorSet m_vkDescriptorSet;
-    vkg::Buffer m_vertexBuffer;
-    vkg::Buffer m_indexBuffer;
-    vkg::Buffer m_uniformBuffer;
-    vkg::Buffer m_materialBuffer;
-    vkg::Image m_materialTexture;
+    vkg::resources::Buffer m_vertexBuffer;
+    vkg::resources::Buffer m_indexBuffer;
+    vkg::resources::Buffer m_uniformBuffer;
+    vkg::resources::Buffer m_materialBuffer;
+    vkg::resources::Image m_materialTexture;
 
     void CreateDataBuffers()
     {
         // Create vertex buffer
-        vkg::Buffer vertexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_mesh.m_vertices);
-        m_vertexBuffer = vkg::Buffer(m_pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        vkg::resources::Buffer vertexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_mesh.m_vertices);
+        m_vertexBuffer = vkg::resources::Buffer(m_pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         // Create index buffer
-        vkg::Buffer indexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_mesh.m_indices);
-        m_indexBuffer = vkg::Buffer(m_pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        vkg::resources::Buffer indexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_mesh.m_indices);
+        m_indexBuffer = vkg::resources::Buffer(m_pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
             {
@@ -56,12 +59,12 @@ class MeshRenderer : public SpatialComponent
     void CreateMaterialTexture()
     {
         // TODO: Split image loading and vulkan texture creation
-        m_materialTexture = vkg::Image::FromFile(m_pDevice, m_material.m_texturePath);
+        m_materialTexture = vkg::resources::Image::FromFile(m_pDevice, m_material.m_texturePath);
         m_materialTexture.AddView();
         m_materialTexture.AddSampler();
         m_materialTexture.SetDebugName("Material Texture");
 
-        m_materialBuffer = vkg::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        m_materialBuffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
 
         // TMP while materials are poopy
         auto material = MaterialBufferObject();
@@ -72,7 +75,7 @@ class MeshRenderer : public SpatialComponent
 
     void CreateUniformBuffer()
     {
-        m_uniformBuffer = vkg::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        m_uniformBuffer = vkg::resources::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 
     // TODO: Descriptor allocation and update is managed by the swapchain.
@@ -183,14 +186,14 @@ class MeshRenderer : public SpatialComponent
         m_vkDescriptorSet.reset();
 
         // TODO: Make sure reassignement is good enough.
-        m_materialTexture = vkg::Image();
+        m_materialTexture = vkg::resources::Image();
         m_materialTexture.SetDebugName("Material Texture");
 
-        m_materialBuffer = vkg::Buffer();
+        m_materialBuffer = vkg::resources::Buffer();
 
-        m_uniformBuffer = vkg::Buffer();
-        m_vertexBuffer = vkg::Buffer();
-        m_indexBuffer = vkg::Buffer();
+        m_uniformBuffer = vkg::resources::Buffer();
+        m_vertexBuffer = vkg::resources::Buffer();
+        m_indexBuffer = vkg::resources::Buffer();
 
         m_pDevice.reset();
     }
@@ -220,3 +223,4 @@ class MeshRenderer : public SpatialComponent
         m_material.Unload();
     }
 };
+} // namespace aln

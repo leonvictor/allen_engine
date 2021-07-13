@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg
 {
 class Subpass
 {
@@ -36,4 +36,4 @@ class Subpass
     }
 };
 
-} // namespace vkg
+} // namespace aln::vkg

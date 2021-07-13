@@ -8,7 +8,7 @@
 #include <utils/uuid.hpp>
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg
 {
 
 /// @brief Wrapper around a vulkan pipeline.

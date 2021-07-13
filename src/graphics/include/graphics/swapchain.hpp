@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg
 {
 
 class Device;

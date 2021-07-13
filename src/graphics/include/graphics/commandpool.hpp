@@ -6,7 +6,7 @@
 
 #include "queue.hpp"
 
-namespace vkg
+namespace aln::vkg
 {
 class CommandPool
 {
@@ -44,4 +44,4 @@ class CommandPool
     std::vector<vk::CommandBuffer> AllocateCommandBuffers(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
     std::vector<vk::UniqueCommandBuffer> AllocateCommandBuffersUnique(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
 };
-} // namespace vkg
+} // namespace aln::vkg

@@ -2,10 +2,10 @@
 
 // https://www.youtube.com/watch?v=jjEsB611kxs @1:49:00
 
-namespace ObjectModel
+namespace aln::entities
 {
+
 class UpdateContext;
-}
 class UpdatePriorities;
 class Entity;
 class IComponent;
@@ -54,7 +54,7 @@ class IWorldSystem
     virtual void Shutdown() = 0;
 
     /// @brief System update
-    virtual void Update(const ObjectModel::UpdateContext& context) = 0;
+    virtual void Update(const UpdateContext& context) = 0;
 
     /// @brief Called whenever a new component is activated (added to the world).
     virtual void RegisterComponent(const Entity* pEntity, IComponent* pComponent) = 0;
@@ -74,3 +74,4 @@ class IWorldSystem
         m_status = Status::Initialized;
     }
 };
+}

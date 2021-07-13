@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg::resources
 {
 Buffer::Buffer() {} // Empty ctor is required for now. Todo: Remove when we can
 
@@ -20,7 +20,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, std::vector<vk::B
     cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::Image& image) const
+void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::resources::Image& image) const
 {
     CopyTo(cb, image.GetVkImage(), image.GetWidth(), image.GetHeight());
 }
@@ -44,7 +44,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, const uint32_t wi
     cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::Buffer& dstBuffer, const vk::DeviceSize& size) const
+void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSize& size) const
 {
     vk::BufferCopy copyRegion;
     copyRegion.srcOffset = 0;
@@ -54,7 +54,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::Buffer& dstBuffer, const vk::Dev
     cb.copyBuffer(m_vkBuffer.get(), dstBuffer.m_vkBuffer.get(), copyRegion);
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::Buffer& dstBuffer) const
+void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer) const
 {
     // Default to dstBuffer's size
     CopyTo(cb, dstBuffer, dstBuffer.m_size);
@@ -115,4 +115,4 @@ void Buffer::Initialize(std::shared_ptr<Device> pDevice, const vk::DeviceSize& s
         Unmap();
     }
 }
-}; // namespace vkg
+}; // namespace aln::vkg::resources

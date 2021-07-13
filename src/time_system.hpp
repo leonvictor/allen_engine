@@ -3,9 +3,11 @@
 #include <chrono>
 #include <utils/singleton.hpp>
 
+namespace aln
+{
 /// @brief Interface to get time information. Use as a singleton (i.e. Time::GetTime())
 /// @todo Unity uses a "fake" timer to enforce a maximum delta time
-class Time : private ISingleton<Time>
+class Time
 {
     friend class ISingleton<Time>;
     friend class Engine;
@@ -26,6 +28,8 @@ class Time : private ISingleton<Time>
     /// @brief Notify the time system that we changed frames. Get the current time and update internal fields accordingly.
     static void Update();
 
+    static Time& Singleton();
+
     Time();
 
   public:
@@ -41,5 +45,4 @@ class Time : private ISingleton<Time>
     /// @brief Real time since the start of the application (in seconds).
     static float GetTimeSinceStartup();
 };
-
-extern template class ISingleton<Time>;
+} // namespace aln

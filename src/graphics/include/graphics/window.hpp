@@ -8,7 +8,7 @@
 #include <glm/vec2.hpp>
 #include <vector>
 
-namespace vkg
+namespace aln::vkg
 {
 
 class Instance;
@@ -95,4 +95,4 @@ class Window
     /// @brief Create the vulkan surface
     void CreateSurface(const vkg::Instance* pInstance);
 };
-} // namespace vkg
+} // namespace aln::vkg

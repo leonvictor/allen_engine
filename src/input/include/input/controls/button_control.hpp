@@ -1,6 +1,8 @@
 #pragma once
 #include "input_control.hpp"
 
+namespace aln::input
+{
 /// @brief Control for arbitrary buttons.
 /// TODO: Accept an actuation threshold
 class ButtonControl : public InputControl<float>
@@ -17,3 +19,4 @@ class ButtonControl : public InputControl<float>
         // TODO: For now we use GLFW scancodes as ids. We should use a guid
     }
 };
+}

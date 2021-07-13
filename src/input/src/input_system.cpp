@@ -1,19 +1,21 @@
 #include "input_system.hpp"
 #include "input_context.hpp"
 
+namespace aln::input
+{
 void Input::RegisterContext(InputContext* pContext)
 {
     Input& singleton = Input::Singleton();
     singleton.m_contexts.push_back(pContext);
 }
 
-const input::devices::Keyboard& Input::Keyboard()
+const Keyboard& Input::Keyboard()
 {
     Input& singleton = Input::Singleton();
     return singleton.m_keyboard;
 };
 
-const input::devices::Mouse& Input::Mouse()
+const Mouse& Input::Mouse()
 {
     Input& singleton = Input::Singleton();
     return singleton.m_mouse;
@@ -50,4 +52,5 @@ Input& Input::Singleton()
 {
     static Input singleton;
     return singleton;
+}
 }

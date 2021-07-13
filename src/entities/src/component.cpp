@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <stdexcept>
 
+namespace aln::entities
+{
 bool IComponent::LoadComponent()
 {
     assert(m_status == Status::Unloaded);
@@ -69,4 +71,5 @@ void IComponent::ShutdownComponent()
     assert(m_status == Status::Initialized);
     Shutdown();
     m_status = Status::Loaded;
+}
 }

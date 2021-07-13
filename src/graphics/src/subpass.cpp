@@ -1,6 +1,6 @@
 #include "subpass.hpp"
 
-namespace vkg
+namespace aln::vkg
 {
 void Subpass::ReferenceColorAttachment(int attachmentIndex, vk::ImageLayout layout)
 {
@@ -28,4 +28,4 @@ void Subpass::ReferenceResolveAttachment(int attachmentIndex, vk::ImageLayout la
 
     m_resolveAttachments.push_back(ref);
 }
-} // namespace vkg
+} // namespace aln::vkg

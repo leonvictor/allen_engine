@@ -1,5 +1,7 @@
 #include "transform.hpp"
 
+namespace aln::entities
+{
 Transform& Transform::operator=(const Transform& other)
 {
     position = other.position;
@@ -16,4 +18,5 @@ bool operator==(const Transform& a, const Transform& b)
 bool operator!=(const Transform& lhs, const Transform& rhs)
 {
     return !(lhs == rhs);
+}
 }

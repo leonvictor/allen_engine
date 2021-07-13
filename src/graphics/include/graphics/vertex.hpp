@@ -8,6 +8,8 @@
 
 #include <array>
 
+namespace aln::vkg
+{
 class Vertex
 {
   public:
@@ -103,13 +105,14 @@ class SkinnedVertex : public Vertex
         return attributeDescription;
     }
 };
+} // namespace aln::vkg
 
 namespace std
 {
 template <>
-struct hash<Vertex>
+struct hash<aln::vkg::Vertex>
 {
-    size_t operator()(Vertex const& vertex) const
+    size_t operator()(aln::vkg::Vertex const& vertex) const
     {
         return (
                    (hash<glm::vec3>()(vertex.pos) ^

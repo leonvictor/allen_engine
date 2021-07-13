@@ -2,7 +2,9 @@
 
 #include <fstream>
 
-namespace vkg
+using namespace aln::utils;
+
+namespace aln::vkg
 {
 
 void Pipeline::CopyTo(Pipeline& other) const
@@ -334,8 +336,8 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
         {
             badCache = true;
             std::cout << "  UUID mismatch in " << path << ".\n";
-            std::cout << "    Cache contains: " << core::UUID(pipelineCacheUUID) << "\n";
-            std::cout << "    Driver expects: " << core::UUID(m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID) << "\n";
+            std::cout << "    Cache contains: " << utils::UUID(pipelineCacheUUID) << "\n";
+            std::cout << "    Driver expects: " << utils::UUID(m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID) << "\n";
         }
         if (badCache)
         {
@@ -364,4 +366,4 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
 
     return pipelineCache;
 }
-} // namespace vkg
+} // namespace aln::vkg

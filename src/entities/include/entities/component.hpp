@@ -3,10 +3,15 @@
 #include <future>
 #include <utils/uuid.hpp>
 
+namespace aln::entities
+{
+
 /// @brief Data storage attached to Entities.
 /// @note https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
 class IComponent
 {
+    using UUID = aln::utils::UUID;
+
     friend class Entity;
     // TODO: Serialization
 
@@ -21,10 +26,10 @@ class IComponent
         Initialized    // Ready to use
     };
 
-    const core::UUID m_ID;
+    const UUID m_ID;
     Status m_status = Status::Unloaded;
-    bool m_isSingleton = false;                      // Whether you can have multiple components of this type per entity
-    core::UUID m_entityID = core::UUID::InvalidID(); // Entity this component is attached to.
+    bool m_isSingleton = false;          // Whether you can have multiple components of this type per entity
+    UUID m_entityID = UUID::InvalidID(); // Entity this component is attached to.
 
     std::future<bool> m_loadingTask;
 
@@ -56,8 +61,9 @@ class IComponent
     inline bool IsLoading() const { return m_status == Status::Loading; }
     inline bool IsLoaded() const { return m_status == Status::Loaded; }
 
-    const core::UUID& GetID() const { return m_ID; }
+    const UUID& GetID() const { return m_ID; }
 
     bool operator==(const IComponent& other) const { return m_ID == other.GetID(); }
     bool operator!=(const IComponent& other) const { return !operator==(other); }
 };
+} // namespace aln::entities

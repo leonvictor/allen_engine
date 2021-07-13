@@ -1,6 +1,6 @@
 #include "render_pass.hpp"
 
-namespace vkg
+namespace aln::vkg
 {
 
 RenderPass::RenderPass(std::shared_ptr<Device> pDevice, int width, int height)
@@ -147,4 +147,4 @@ void RenderPass::CreateInternal(uint32_t width, uint32_t height)
     m_vkRenderPass = m_pDevice->GetVkDevice().createRenderPassUnique(renderPassInfo);
     m_status = State::Initialized;
 }
-} // namespace vkg
+} // namespace aln::vkg

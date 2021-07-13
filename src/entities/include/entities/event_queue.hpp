@@ -3,8 +3,13 @@
 
 #include "entity.hpp"
 
+namespace aln::entities
+{
+
+// fwd
 class Component;
 class EntitySystem;
+
 // TODO: Move somewhere where this makes sense
 class EventQueue
 {
@@ -21,7 +26,7 @@ class EventQueue
     }
 
     // TODO: Update should be called by a world system managing entities.
-    void Update(ObjectModel::LoadingContext& context)
+    void Update(LoadingContext& context)
     {
         // Asynchronously execute the queued event
         // When should the updates occur ? Probably sometime inbetween frames
@@ -56,3 +61,4 @@ class EventQueue
         }
     }
 };
+} // namespace aln::entities

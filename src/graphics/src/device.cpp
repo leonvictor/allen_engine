@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg
 {
 
 Device::Device() {}

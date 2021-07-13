@@ -3,7 +3,7 @@
 
 #include <assert.h>
 
-namespace vkg
+namespace aln::vkg
 {
 
 Window::~Window()
@@ -117,7 +117,7 @@ void Window::InitializeWindow()
     glfwGetMonitorWorkarea(monitor, nullptr, nullptr, &width, &height);
 
     // Create the GLFW window
-    m_pGlfwWindow = glfwCreateWindow(width, height, "PoopyEngine", nullptr, nullptr);
+    m_pGlfwWindow = glfwCreateWindow(width, height, "AllenEngine", nullptr, nullptr);
 
     // Adjust window dimensions and position to fit the screen, including title bars
     // Only frameTop is used on w10
@@ -168,4 +168,4 @@ glm::vec2 Window::GetCursorPosition() const
     return {xpos, ypos};
 }
 
-} // namespace vkg
+} // namespace aln::vkg

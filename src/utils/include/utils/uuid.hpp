@@ -6,7 +6,7 @@
 #include <gsl/span>
 #include <stduuids.h>
 
-namespace core
+namespace aln::utils
 {
 class UUID
 {
@@ -58,4 +58,4 @@ class UUID
     }
 };
 
-} // namespace core
+} // namespace aln::utils

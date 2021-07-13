@@ -3,9 +3,8 @@
 #include <optional>
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg
 {
-
 class Queue
 {
   private:
@@ -94,5 +93,4 @@ class Queue
         }
     };
 };
-
-} // namespace vkg
+} // namespace aln::vkg

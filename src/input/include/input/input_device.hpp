@@ -2,6 +2,8 @@
 
 #include <map>
 
+namespace aln::input
+{
 class ControlStateChangedEvent;
 
 class IInputDevice
@@ -40,3 +42,4 @@ class IInputDevice
 
     // virtual void UpdateControlState(int code, int action) = 0;
 };
+} // namespace aln::input

@@ -8,6 +8,13 @@
 
 #include <future>
 
+namespace aln::entities
+{
+
+using aln::utils::TypeHelper;
+using aln::utils::TypeInfo;
+using aln::utils::UUID;
+
 // -------------------------------------------------
 // State management
 // -------------------------------------------------
@@ -15,7 +22,7 @@
 /// @brief Check the loading status of all components and updates the entity status if necessary.
 /// @return Whether the loading is finished
 /// @todo This is synchrone for now
-bool Entity::UpdateLoadingAndEntityState(const ObjectModel::LoadingContext& loadingContext)
+bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
 {
     assert(m_status == Status::Unloaded);
     bool allLoaded = true;
@@ -44,7 +51,7 @@ bool Entity::UpdateLoadingAndEntityState(const ObjectModel::LoadingContext& load
     return allLoaded;
 }
 
-void Entity::LoadComponents(const ObjectModel::LoadingContext& loadingContext)
+void Entity::LoadComponents(const LoadingContext& loadingContext)
 {
     assert(m_status == Status::Unloaded);
 
@@ -60,7 +67,7 @@ void Entity::LoadComponents(const ObjectModel::LoadingContext& loadingContext)
     m_status = Status::Loaded;
 }
 
-void Entity::UnloadComponents(const ObjectModel::LoadingContext& loadingContext)
+void Entity::UnloadComponents(const LoadingContext& loadingContext)
 {
     assert(m_status == Status::Loaded);
 
@@ -81,7 +88,7 @@ void Entity::UnloadComponents(const ObjectModel::LoadingContext& loadingContext)
     m_status = Status::Unloaded;
 }
 
-void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
+void Entity::Activate(const LoadingContext& loadingContext)
 {
     assert(IsLoaded());
 
@@ -127,7 +134,7 @@ void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
     loadingContext.m_registerEntityUpdate(this);
 }
 
-void Entity::Deactivate(const ObjectModel::LoadingContext& loadingContext)
+void Entity::Deactivate(const LoadingContext& loadingContext)
 {
     // Exact opposite of Activate
     assert(m_status == Status::Activated);
@@ -215,7 +222,7 @@ void Entity::CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo)
 }
 
 // TODO: Put back const modifier when we've fixed the pSystemTypeInfo setter
-void Entity::CreateSystemDeferred(const ObjectModel::LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -240,7 +247,7 @@ void Entity::DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeIn
     m_systems.erase(systemIt);
 }
 
-void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
 {
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -252,7 +259,7 @@ void Entity::DestroySystemDeferred(const ObjectModel::LoadingContext& loadingCon
     }
 }
 
-void Entity::UpdateSystems(ObjectModel::UpdateContext const& context)
+void Entity::UpdateSystems(UpdateContext const& context)
 {
     const UpdateStage updateStage = context.GetUpdateStage();
     // TODO: make sure stages convert nicely to uint8_t
@@ -267,7 +274,7 @@ void Entity::UpdateSystems(ObjectModel::UpdateContext const& context)
 // -------------------------------------------------
 // Components
 // -------------------------------------------------
-void Entity::DestroyComponent(const core::UUID& componentID)
+void Entity::DestroyComponent(const UUID& componentID)
 {
     assert(componentID.IsValid());
     auto componentIt = std::find_if(m_components.begin(), m_components.end(), [componentID](IComponent* comp)
@@ -320,7 +327,7 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
         }
     }
 
-    pComponent->m_entityID = core::UUID::InvalidID();
+    pComponent->m_entityID = UUID::InvalidID();
     // TODO: Shutdown / Unload here ?
     pComponent->ShutdownComponent();
     pComponent->UnloadComponent();
@@ -330,7 +337,7 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
     delete pComponent;
 }
 
-void Entity::DestroyComponentDeferred(const ObjectModel::LoadingContext& context, IComponent* pComponent)
+void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent* pComponent)
 {
     DestroyComponentImmediate(pComponent);
     if (IsLoaded())
@@ -340,7 +347,7 @@ void Entity::DestroyComponentDeferred(const ObjectModel::LoadingContext& context
     }
 }
 
-void Entity::AddComponent(IComponent* pComponent, const core::UUID& parentSpatialComponentID)
+void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID)
 {
     assert(pComponent != nullptr && pComponent->GetID().IsValid());
     assert(!pComponent->m_entityID.IsValid() && pComponent->IsUnloaded());
@@ -422,7 +429,7 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
     m_components.emplace_back(pComponent);
 }
 
-void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, IComponent* pComponent, SpatialComponent* pParentComponent)
+void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     AddComponentImmediate(pComponent, pParentComponent);
 
@@ -439,7 +446,7 @@ void Entity::AddComponentDeferred(const ObjectModel::LoadingContext& context, IC
 // Spatial stuff
 // -------------------------------------------------
 
-SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const core::UUID& socketID) const
+SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const UUID& socketID) const
 {
     assert(pComponentToSearch != nullptr);
     if (pComponentToSearch->HasSocket(socketID))
@@ -458,7 +465,7 @@ SpatialComponent* Entity::FindSocketAttachmentComponent(SpatialComponent* pCompo
     return nullptr;
 }
 
-SpatialComponent* Entity::GetSpatialComponent(const core::UUID& spatialComponentID)
+SpatialComponent* Entity::GetSpatialComponent(const UUID& spatialComponentID)
 {
     if (!spatialComponentID.IsValid())
     {
@@ -532,7 +539,7 @@ void Entity::DetachFromParent()
 
     // Remove component hierarchy values
     // m_pRootSpatialComponent->m_pSpatialParent = nullptr;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = core::UUID::InvalidID();
+    // m_pRootSpatialComponent->m_parentAttachmentSocketID = UUID::InvalidID();
 
     m_isAttachedToParent = false;
 }
@@ -558,3 +565,4 @@ Entity* Entity::Create(std::string name)
     // TODO: Make sure Id is generated and valid
     return pEntity;
 }
+} // namespace aln::entities

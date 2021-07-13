@@ -3,6 +3,8 @@
 #include "component.hpp"
 #include <vector>
 
+namespace aln::entities
+{
 template <typename T>
 class ComponentPool
 {
@@ -17,4 +19,5 @@ class ComponentFactory
     {
         ComponentPool<T>::m_components
     }
+}
 }

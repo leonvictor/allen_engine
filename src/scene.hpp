@@ -1,7 +1,7 @@
 #pragma once
 
-#include "object_model/entity.hpp"
-#include "object_model/world_entity.cpp"
+#include "entities/entity.hpp"
+#include "entities/world_entity.cpp"
 
 class Scene
 {

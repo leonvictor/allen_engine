@@ -5,7 +5,7 @@
 #include "commandpool.hpp"
 #include "queue.hpp"
 
-namespace vkg
+namespace aln::vkg
 {
 CommandPool::CommandPool(vk::Device* device, Queue* queue, vk::CommandPoolCreateFlagBits flags)
 {
@@ -73,4 +73,4 @@ std::vector<vk::UniqueCommandBuffer> CommandPool::AllocateCommandBuffersUnique(i
 
     return m_pVkDevice->allocateCommandBuffersUnique(allocInfo);
 }
-}; // namespace vkg
+}; // namespace aln::vkg

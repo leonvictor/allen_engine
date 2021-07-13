@@ -4,12 +4,12 @@
 
 #include "../update_stages.hpp"
 
+namespace aln::entities
+{
+
+// fwd
 class Entity;
 class IComponent;
-
-// TODO: Get rid of this namespace.
-namespace ObjectModel
-{
 
 /// @brief Data structure containing info on the current context.
 /// Will be propagated through the object model, entities and systems will act depending on it.
@@ -31,4 +31,4 @@ class UpdateContext
         return m_updateStage;
     }
 };
-} // namespace ObjectModel
+} // namespace aln::entities

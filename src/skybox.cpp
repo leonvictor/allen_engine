@@ -20,7 +20,7 @@ class Skybox
 {
   public:
     Mesh mesh;
-    vkg::Image texture;
+    vkg::resources::Image texture;
     vk::UniqueDescriptorSet descriptorSet;
     Transform transform;
     std::shared_ptr<vkg::Device> m_pDevice;

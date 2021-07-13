@@ -1,5 +1,7 @@
 #pragma once
 
+namespace aln::input
+{
 enum InputActionPhase
 {
     Disabled,  // Not enabled.
@@ -8,3 +10,4 @@ enum InputActionPhase
     Performed, // Associated control successfuly reached the end of the expected sequence.
     Canceled   // Associated control has not successfuly reached the end of the expected sequence (ex: not held long enough).
 };
+}

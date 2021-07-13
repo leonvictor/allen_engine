@@ -7,8 +7,12 @@
 
 #include <vector>
 
+namespace aln::entities
+{
+
 /// @brief Wrapper around an object calling a suffix method when it's destroyed.
 /// @note Adapted from https://stroustrup.com/wrapper.pdf
+/// @todo Move to utils ?
 template <class T, class Suf>
 class Call_proxy
 {
@@ -49,6 +53,8 @@ typedef Call_proxy<Transform, std::function<void()>> ModifiableTransform;
 class SpatialComponent : public IComponent
 {
   private:
+    using UUID = aln::utils::UUID;
+
     friend class Entity;
 
     /// @brief List of attached children components.
@@ -56,10 +62,10 @@ class SpatialComponent : public IComponent
 
     /// @brief Parent component.
     SpatialComponent* m_pSpatialParent = nullptr;
-    std::vector<core::UUID> m_sockets;
+    std::vector<UUID> m_sockets;
 
     // TODO: Handle socket
-    core::UUID m_parentAttachmentSocketID;
+    UUID m_parentAttachmentSocketID;
 
     Transform m_localTransform;
     Transform m_worldTransform;
@@ -85,13 +91,13 @@ class SpatialComponent : public IComponent
     // Cached + write access denied to derived classes
     // TODO: world transform/bounds are calculated on the parent component
 
-    bool HasSocket(const core::UUID& socketID);
+    bool HasSocket(const aln::utils::UUID& socketID);
 
     /// @brief Attach this component to another one.
     /// @param pParentComponent: The component to attach to.
     /// @param socketId: TODO
     /// @todo Document Attached/Detached state
-    void AttachTo(SpatialComponent* pParentComponent, const core::UUID& socketID = core::UUID::InvalidID());
+    void AttachTo(SpatialComponent* pParentComponent, const aln::utils::UUID& socketID = aln::utils::UUID::InvalidID());
 
     /// @brief Detach this component from its parent.
     void Detach();
@@ -124,3 +130,4 @@ class SpatialComponent : public IComponent
         AfterTransformUpdate();
     }
 };
+}
