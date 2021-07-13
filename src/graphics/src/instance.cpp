@@ -88,9 +88,9 @@ void Instance::Create()
 
     // Populate the ApplicationInfo struct. Optionnal but may provide useful info to the driver
     vk::ApplicationInfo appInfo{
-        .pApplicationName = "Not-so-poopy game editor",
+        .pApplicationName = "Allen Game Editor",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "Not-so-poopy engine",
+        .pEngineName = "AllenEngine",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
         .apiVersion = VK_API_VERSION_1_2,
     };
