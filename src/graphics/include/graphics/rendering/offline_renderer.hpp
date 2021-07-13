@@ -6,7 +6,7 @@
 #include "render_target.hpp"
 #include "renderer.hpp"
 
-namespace vkg
+namespace aln::vkg::render
 {
 
 class OfflineRenderer : public IRenderer
@@ -22,7 +22,7 @@ class OfflineRenderer : public IRenderer
 
         for (int i = 0; i < m_nTargetImages; ++i)
         {
-            auto target = std::make_shared<vkg::Image>(
+            auto target = std::make_shared<Image>(
                 m_pDevice, m_width, m_height, 1,
                 vk::SampleCountFlagBits::e1,
                 m_colorImageFormat,
@@ -114,4 +114,4 @@ class OfflineRenderer : public IRenderer
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 };
-} // namespace vkg
+} // namespace aln::vkg::render

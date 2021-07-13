@@ -1,6 +1,13 @@
 #include "time_system.hpp"
 
-template class ISingleton<Time>;
+namespace aln
+{
+Time& Time::Singleton()
+{
+    static Time singleton = Time();
+    return singleton;
+}
+
 void Time::Update()
 {
     auto& singleton = Singleton();
@@ -36,3 +43,4 @@ float Time::GetTimeSinceStartup()
     auto diff = Clock::now() - singleton.m_startTime;
     return diff.count();
 }
+} // namespace aln

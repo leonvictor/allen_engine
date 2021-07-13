@@ -3,7 +3,7 @@
 
 #include <assert.h>
 
-namespace vkg
+namespace aln::vkg
 {
 
 Window::~Window()
@@ -168,4 +168,4 @@ glm::vec2 Window::GetCursorPosition() const
     return {xpos, ypos};
 }
 
-} // namespace vkg
+} // namespace aln::vkg

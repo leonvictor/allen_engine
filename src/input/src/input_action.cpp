@@ -3,6 +3,8 @@
 #include "callback_context.hpp"
 #include "input_action_phase.hpp"
 
+namespace aln::input
+{
 void InputAction::Trigger(InputAction::Context actionContext)
 {
     // Do nothing if the action is not enabled.
@@ -60,4 +62,5 @@ void InputAction::Trigger(InputAction::Context actionContext)
         m_phase = InputActionPhase::Waiting;
         break;
     }
+}
 }

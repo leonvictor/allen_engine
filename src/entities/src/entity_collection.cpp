@@ -1,15 +1,18 @@
 #include "entity_collection.hpp"
 #include "entity.hpp"
 
-std::map<core::UUID, Entity>& EntityCollection::Collection()
+namespace aln::entities
 {
-    static std::map<core::UUID, Entity> collection;
+
+std::map<UUID, Entity>& EntityCollection::Collection()
+{
+    static std::map<UUID, Entity> collection;
     return collection;
 }
 
-std::map<core::UUID, Entity>& EntityCollection::NewlyCreatedEntities()
+std::map<UUID, Entity>& EntityCollection::NewlyCreatedEntities()
 {
-    static std::map<core::UUID, Entity> collection;
+    static std::map<UUID, Entity> collection;
     return collection;
 }
 
@@ -29,7 +32,7 @@ Entity* EntityCollection::Create()
     return &(it->second);
 }
 
-void EntityCollection::RemoveEntity(const core::UUID& id)
+void EntityCollection::RemoveEntity(const UUID& id)
 {
     auto& collection = Collection();
     auto it = collection.find(id);
@@ -44,3 +47,5 @@ void EntityCollection::Clear()
     Collection().clear();
     NewlyCreatedEntities().clear();
 }
+
+} // namespace aln::entities

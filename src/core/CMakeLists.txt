@@ -9,7 +9,7 @@ set(LIB_DEPENDENCIES
     ${Vulkan_INCLUDE_DIRS}
     )
 
-set(LIB_LINK_DEPENDENCIES utils object_model graphics)
+set(LIB_LINK_DEPENDENCIES utils entities graphics)
 
 target_include_directories(${LIB_NAME} PRIVATE
     $<BUILD_INTERFACE:include/${LIB_NAME} ${LIB_DEPENDENCIES}>

@@ -3,6 +3,11 @@
 #include "entity.hpp"
 #include "loading_context.hpp"
 
+namespace aln::entities
+{
+template <typename T>
+using TypeInfo = aln::utils::TypeInfo<T>;
+
 void Command::Execute(Entity* pEntity)
 {
     // Read the deferredActions, probably store them somewhere
@@ -12,7 +17,7 @@ void Command::Execute(Entity* pEntity)
     // TODO: Where does the context come from ?
 
     // Example for one:
-    ObjectModel::LoadingContext context; // TODO
+    LoadingContext context; // TODO
     for (auto action : pEntity->m_deferredActions)
     {
         switch (action.m_type)
@@ -38,3 +43,4 @@ void Command::Execute(Entity* pEntity)
         // Remove the action from the list if it has been executed successfully
     }
 }
+} // namespace aln::entities

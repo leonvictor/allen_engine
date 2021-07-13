@@ -4,6 +4,8 @@
 
 #include <glfw/glfw3.h>
 
+namespace aln::input
+{
 /// @brief Control for keyboard keys.
 /// TODO: Update to manage various keyboard layouts
 class KeyControl : public InputControl<uint8_t>
@@ -22,3 +24,4 @@ class KeyControl : public InputControl<uint8_t>
         m_id = code; // TODO: For now we use GLFW scancodes as ids
     }
 };
+}

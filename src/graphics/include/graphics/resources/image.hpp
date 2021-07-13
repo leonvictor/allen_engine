@@ -9,7 +9,7 @@
 #include <stb_image.h>
 #include <stdexcept>
 
-namespace vkg
+namespace aln::vkg::resources
 {
 class Buffer;
 
@@ -202,4 +202,4 @@ class Image : public Allocation
 
     vk::DescriptorSet& GetDescriptorSet();
 };
-} // namespace vkg
+} // namespace aln::vkg::resources

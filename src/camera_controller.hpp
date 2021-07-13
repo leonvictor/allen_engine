@@ -4,12 +4,18 @@
 #include <iostream>
 
 #include <core/camera.hpp>
-#include <object_model/entity_system.hpp>
+#include <entities/entity_system.hpp>
 
 #include <input/callback_context.hpp>
 #include <input/input_action.hpp>
 #include <input/input_context.hpp>
 #include <input/input_system.hpp>
+
+using namespace aln::entities;
+using namespace aln::input;
+
+namespace aln
+{
 
 class EditorCameraController : IEntitySystem
 {
@@ -82,3 +88,4 @@ class EditorCameraController : IEntitySystem
         auto t = m_pCameraInstance->ModifyTransform()->position += m_pCameraInstance->forward * delta.y;
     }
 };
+} // namespace aln

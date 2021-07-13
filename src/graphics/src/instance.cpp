@@ -1,7 +1,7 @@
 #include "instance.hpp"
 #include <iostream>
 
-namespace vkg
+namespace aln::vkg
 {
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -133,4 +133,4 @@ void Instance::Create()
 
     m_status = State::Initialized;
 }
-}; // namespace vkg
+}; // namespace aln::vkg

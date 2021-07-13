@@ -7,16 +7,16 @@
 #include <glm/vec2.hpp>
 #include <map>
 
-class Input;
+namespace aln
+{
 class Engine;
-
-namespace input::devices
+namespace input
 {
 
 /// @brief Describes a physical keyboard.
 class Keyboard : public IInputDevice
 {
-    friend class Engine;
+    friend aln::Engine;
     friend class Input; // TODO: Add an indirection level to let input handle this
 
   private:
@@ -89,4 +89,5 @@ class Keyboard : public IInputDevice
         throw;
     }
 };
-} // namespace input::devices
+} // namespace input
+} // namespace aln

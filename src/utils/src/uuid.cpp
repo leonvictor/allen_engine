@@ -1,7 +1,7 @@
 #include "uuid.hpp"
 #include <assert.h>
 
-namespace core
+namespace aln::utils
 {
 
 UUID::UUID(bool isValid)
@@ -10,4 +10,4 @@ UUID::UUID(bool isValid)
 }
 
 UUID::UUID() : m_ID(uuids::uuid_system_generator{}()) {}
-} // namespace core
+} // namespace aln::utils

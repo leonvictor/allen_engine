@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <unordered_map>
 
+namespace aln::entities
+{
 /// @brief Represents the stages during which a system should be updated, as well as the system's priority in each stage.
 struct UpdatePriorities
 {
@@ -24,3 +26,4 @@ struct UpdatePriorities
 
     // TODO: allow systems to add and (maybe) update their priorities
 };
+}

@@ -30,9 +30,9 @@
 #include "time_system.hpp"
 #include <input/input_system.hpp>
 
-#include <object_model/entity.hpp>
-#include <object_model/world_entity.hpp>
-#include <object_model/world_update.hpp>
+#include <entities/entity.hpp>
+#include <entities/world_entity.hpp>
+#include <entities/world_update.hpp>
 
 #include <core/camera.hpp>
 #include <core/light.hpp>
@@ -45,6 +45,9 @@
 #include "imgui_internal.h"
 
 #include <config/path.h>
+
+namespace aln
+{
 
 const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.obj";
 const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.png";
@@ -102,8 +105,8 @@ class Engine
     vkg::Window m_window;
     std::shared_ptr<vkg::Device> m_pDevice;
     vkg::Swapchain m_swapchain;
-    vkg::SwapchainRenderer m_renderer;
-    vkg::OfflineRenderer m_sceneRenderer;
+    vkg::render::SwapchainRenderer m_renderer;
+    vkg::render::OfflineRenderer m_sceneRenderer;
     vkg::ImGUI m_imgui;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
@@ -207,12 +210,12 @@ class Engine
 
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?
-            ObjectModel::UpdateContext context = ObjectModel::UpdateContext(UpdateStage::FrameStart);
+            aln::entities::UpdateContext context = aln::entities::UpdateContext(UpdateStage::FrameStart);
             context.displayWidth = m_window.GetWidth();
             context.displayHeight = m_window.GetHeight();
             m_worldEntity.Update(context);
 
-            context = ObjectModel::UpdateContext(UpdateStage::FrameEnd);
+            context = aln::entities::UpdateContext(UpdateStage::FrameEnd);
             context.displayWidth = m_window.GetWidth();
             context.displayHeight = m_window.GetHeight();
             m_worldEntity.Update(context);
@@ -342,10 +345,11 @@ class Engine
         ImGui::ShowDemoWindow();
     }
 };
+} // namespace aln
 
 int main()
 {
-    std::unique_ptr<Engine> app = std::make_unique<Engine>();
+    std::unique_ptr<aln::Engine> app = std::make_unique<aln::Engine>();
 
     try
     {
@@ -358,4 +362,4 @@ int main()
     }
     app.reset();
     return EXIT_SUCCESS;
-}
+};

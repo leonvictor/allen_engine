@@ -6,9 +6,9 @@
 #include <core/light.hpp>
 #include <core/mesh_renderer.hpp>
 
-#include <object_model/entity.hpp>
-#include <object_model/object_model.hpp>
-#include <object_model/world_system.hpp>
+#include <entities/entity.hpp>
+#include <entities/object_model.hpp>
+#include <entities/world_system.hpp>
 
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
@@ -17,9 +17,12 @@
 
 #include <map>
 
+namespace aln
+{
+
 class GraphicsSystem : public IWorldSystem
 {
-    vkg::IRenderer* m_pRenderer = nullptr;
+    vkg::render::IRenderer* m_pRenderer = nullptr;
 
     // TODO: Replace the map with something else. We *can* have multiple meshes per entity
     std::map<const Entity*, MeshRenderer*> m_components;
@@ -27,7 +30,7 @@ class GraphicsSystem : public IWorldSystem
     Camera* m_pCameraComponent = nullptr;
 
     // Lights use a shared buffer and descriptorSet, so it's held in the system
-    vkg::Buffer m_lightsBuffer;
+    vkg::resources::Buffer m_lightsBuffer;
     vk::UniqueDescriptorSet m_lightsVkDescriptorSet;
 
     void CreateLightsDescriptorSet()
@@ -54,16 +57,16 @@ class GraphicsSystem : public IWorldSystem
     void Shutdown() override
     {
         m_lightsVkDescriptorSet.reset();
-        m_lightsBuffer = vkg::Buffer();
+        m_lightsBuffer = vkg::resources::Buffer();
     }
 
     void Initialize() override
     {
-        m_lightsBuffer = vkg::Buffer(m_pRenderer->GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        m_lightsBuffer = vkg::resources::Buffer(m_pRenderer->GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
         CreateLightsDescriptorSet();
     }
 
-    void Update(const ObjectModel::UpdateContext& context) override
+    void Update(const aln::entities::UpdateContext& context) override
     {
         if (context.GetUpdateStage() != UpdateStage::FrameEnd)
             return;
@@ -211,8 +214,9 @@ class GraphicsSystem : public IWorldSystem
     };
 
   public:
-    GraphicsSystem(vkg::IRenderer* pRenderer)
+    GraphicsSystem(vkg::render::IRenderer* pRenderer)
     {
         m_pRenderer = pRenderer;
     }
 };
+} // namespace aln

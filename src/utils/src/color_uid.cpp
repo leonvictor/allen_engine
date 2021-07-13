@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+namespace aln::utils
+{
 struct ColorUID
 {
     static uint32_t current;
@@ -52,3 +54,4 @@ inline bool operator<(const ColorUID& a, const ColorUID& b)
 }
 
 uint32_t ColorUID::current;
+}

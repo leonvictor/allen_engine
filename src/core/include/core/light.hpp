@@ -1,11 +1,13 @@
 #pragma once
 
-#include <object_model/spatial_component.hpp>
+#include <entities/spatial_component.hpp>
 #include <vulkan/vulkan.hpp>
 
 #include <graphics/device.hpp>
 #include <graphics/resources/buffer.hpp>
 
+namespace aln
+{
 struct LightUniform
 {
     alignas(16) glm::vec4 position;  // position.w represents type of light
@@ -63,3 +65,4 @@ class Light : public SpatialComponent
         return bindings;
     }
 };
+}

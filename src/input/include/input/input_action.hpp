@@ -6,6 +6,8 @@
 #include <functional>
 #include <memory>
 
+namespace aln::input
+{
 /// Forward declaration
 class IInputControl;
 class Interaction;
@@ -39,3 +41,4 @@ class InputAction
     /// @brief Whether the action is neither disabled or waiting.
     inline bool IsActive() { return IsEnabled() && m_phase != Waiting; }
 };
+}

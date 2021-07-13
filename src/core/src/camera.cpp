@@ -1,4 +1,9 @@
 #include "camera.hpp"
+#include "entities/transform.hpp"
+
+namespace aln
+{
+using Transform = aln::entities::Transform;
 
 glm::mat4 Camera::GetViewMatrix() const
 {
@@ -16,4 +21,5 @@ void Camera::AfterTransformUpdate()
 
     right = glm::normalize(glm::cross(forward, world_up));
     up = glm::normalize(glm::cross(right, forward));
+}
 }

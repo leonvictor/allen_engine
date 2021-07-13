@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../device.hpp"
+#include "../resources/image.hpp"
 #include "../swapchain.hpp"
 #include "render_target.hpp"
 #include "renderer.hpp"
@@ -8,8 +9,9 @@
 #include <functional>
 #include <vulkan/vulkan.hpp>
 
-namespace vkg
+namespace aln::vkg::render
 {
+using vkg::resources::Image;
 
 class SwapchainRenderer : public IRenderer
 {
@@ -24,7 +26,7 @@ class SwapchainRenderer : public IRenderer
 
         for (size_t i = 0; i < images.size(); i++)
         {
-            auto target = std::make_shared<vkg::Image>(m_pDevice, images[i], m_colorImageFormat);
+            auto target = std::make_shared<Image>(m_pDevice, images[i], m_colorImageFormat);
             target->AddView(vk::ImageAspectFlagBits::eColor);
             target->SetDebugName("Swapchain Target");
             m_targetImages.push_back(target);
@@ -92,4 +94,4 @@ class SwapchainRenderer : public IRenderer
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 };
-} // namespace vkg
+} // namespace aln::vkg::render

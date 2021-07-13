@@ -11,7 +11,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-using namespace vkg;
+namespace aln::vkg::resources
+{
 
 Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
     vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
@@ -226,12 +227,12 @@ void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
     m_layout = newLayout;
 }
 
-void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage)
+void Image::Blit(vk::CommandBuffer cb, Image& dstImage)
 {
     Blit(cb, dstImage, m_width, m_height);
 }
 
-void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height)
+void Image::Blit(vk::CommandBuffer cb, Image& dstImage, int width, int height)
 {
     vk::Offset3D blitSize = {width, height, 1};
 
@@ -250,12 +251,12 @@ void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int heig
         vk::Filter::eNearest);
 }
 
-void Image::CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage)
+void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage)
 {
     CopyTo(cb, dstImage, m_width, m_height);
 }
 
-void Image::CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height)
+void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage, int width, int height)
 {
     vk::ImageCopy imageCopyRegion;
     imageCopyRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -664,3 +665,4 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
         });
     return std::move(image);
 }
+} // namespace aln::vkg::resources

@@ -92,7 +92,7 @@ target_include_directories(main PUBLIC ${EXTERNAL_DIR})
 # Include submodules
 add_subdirectory(src/utils)
 add_subdirectory(src/core)
-add_subdirectory(src/object_model)
+add_subdirectory(src/entities)
 add_subdirectory(src/graphics)
 add_subdirectory(src/input)
 add_subdirectory(src/assets)
@@ -102,7 +102,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 target_compile_features(main PUBLIC cxx_std_20)
 
-target_link_libraries(main PUBLIC glfw ${GLFW_LIBRARIES} shaderc ${Vulkan_LIBRARIES} imm32 utils input graphics object_model core)
+target_link_libraries(main PUBLIC glfw ${GLFW_LIBRARIES} shaderc ${Vulkan_LIBRARIES} imm32 utils input graphics entities core)
 
 
 

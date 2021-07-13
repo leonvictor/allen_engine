@@ -1,12 +1,14 @@
 #pragma once
 
-#include <object_model/spatial_component.hpp>
+#include <entities/spatial_component.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
-class Camera : public SpatialComponent
+namespace aln
+{
+class Camera : public aln::entities::SpatialComponent
 {
     friend class EditorCameraController;
 
@@ -42,3 +44,4 @@ class Camera : public SpatialComponent
   private:
     void AfterTransformUpdate() override;
 };
+}

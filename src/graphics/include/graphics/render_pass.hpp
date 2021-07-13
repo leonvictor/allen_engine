@@ -7,7 +7,7 @@
 
 #include <assert.h>
 
-namespace vkg
+namespace aln::vkg
 {
 /// @brief Wrapper around the vulkan render pass object. Also acts as a sort of factory.
 class RenderPass
@@ -74,4 +74,4 @@ class RenderPass
     /// Called whenever the rendering target change sizes.
     void CreateInternal(uint32_t width, uint32_t height);
 };
-} // namespace vkg
+} // namespace aln::vkg

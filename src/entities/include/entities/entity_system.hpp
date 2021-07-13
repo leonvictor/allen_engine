@@ -12,13 +12,22 @@
 #include <string>
 #include <vector>
 
+namespace aln::entities
+{
+//fwd
+class Entity;
 class IComponent;
+
+namespace impl
+{
+
+using aln::utils::TypeInfo;
 
 /// @brief Abstract base class for systems operating on entities. Systems are singletons (only one of each type associated to an entity).
 /// Systems are added to a single entity an can only operate on its components.
 class IEntitySystem
 {
-    friend class Entity;
+    friend Entity;
     friend class TypeInfo<IEntitySystem>;
 
   private:
@@ -42,7 +51,7 @@ class IEntitySystem
     UpdatePriorities m_requiredUpdatePriorities;
     std::string m_name;
 
-    virtual void Update(ObjectModel::UpdateContext const& context){};
+    virtual void Update(UpdateContext const& context){};
 
     /// @brief Register a component with this system.
     virtual void RegisterComponent(IComponent* pComponent) = 0;
@@ -61,3 +70,6 @@ class IEntitySystem
   public:
     std::string GetName() const { return m_name; }
 };
+} // namespace impl
+using impl::IEntitySystem;
+} // namespace aln::entities

@@ -7,7 +7,7 @@
 
 #include <utils/singleton.hpp>
 
-namespace vkg
+namespace aln::vkg
 {
 
 /// @brief Instance stores application-wide parameters and info, as well as the debugging utilities.
@@ -82,4 +82,4 @@ class Instance
 
     bool ValidationLayersEnabled() const { return m_validationLayersEnabled; }
 };
-} // namespace vkg
+} // namespace aln::vkg

@@ -4,6 +4,7 @@
 #include "../imgui.hpp"
 #include "../pipeline.hpp"
 #include "../render_pass.hpp"
+#include "../resources/image.hpp"
 #include "../swapchain.hpp"
 #include "../window.hpp"
 #include "render_target.hpp"
@@ -12,11 +13,18 @@
 #include <cstring>
 #include <vulkan/vulkan.hpp>
 
+namespace aln
+{
+
+// fwd
 class MeshRenderer;
 class Light;
 
-namespace vkg
+namespace vkg::render
 {
+
+using vkg::resources::Image;
+
 struct FrameSync
 {
     vk::UniqueSemaphore imageAvailable;
@@ -87,14 +95,14 @@ class IRenderer
         m_colorImageFormat = colorImageFormat;
 
         // Create color attachment resources for multisampling
-        m_colorImage = vkg::Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(), m_colorImageFormat,
+        m_colorImage = Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(), m_colorImageFormat,
             vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
         m_colorImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_colorImage.AddView(vk::ImageAspectFlagBits::eColor);
         m_colorImage.SetDebugName("Renderer Color Attachment");
 
         // Create depth attachment ressources
-        m_depthImage = vkg::Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(),
+        m_depthImage = Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(),
             m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
         m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
@@ -161,8 +169,8 @@ class IRenderer
         // How do we bundle them ?
         pipelines.objects.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
         pipelines.objects.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
-        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<Light>());
-        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<MeshRenderer>());
+        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
+        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::MeshRenderer>());
         pipelines.objects.Create("objects_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(pipelines.objects.GetVkPipeline(), "Objects Pipeline");
 
@@ -298,7 +306,7 @@ class IRenderer
         return m_renderTargets[m_activeImageIndex];
     }
 
-    std::shared_ptr<vkg::Image> GetActiveImage()
+    std::shared_ptr<Image> GetActiveImage()
     {
         return m_targetImages[m_activeImageIndex];
     }
@@ -310,4 +318,5 @@ class IRenderer
         return pipelines.objects;
     }
 };
-} // namespace vkg
+} // namespace vkg::render
+} // namespace aln

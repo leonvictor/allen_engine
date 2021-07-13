@@ -9,7 +9,7 @@
 #include "render_pass.hpp"
 #include "window.hpp"
 
-namespace vkg
+namespace aln::vkg
 {
 
 /// @brief Handles RAII for ImGui.
@@ -132,4 +132,4 @@ class ImGUI
         ImGui_ImplVulkan_RenderDrawData(draw_data, cb);
     }
 };
-} // namespace vkg
+} // namespace aln::vkg

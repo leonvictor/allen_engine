@@ -3,11 +3,11 @@
 #include <map>
 #include <utils/uuid.hpp>
 
-class Entity;
-namespace core
+namespace aln::entities
 {
-class UUID;
-}
+
+class Entity;
+using UUID = aln::utils::UUID;
 
 /// @brief Singleton holder of *all* the entities.
 // TODO: Should be responsible for ensuring concurrency
@@ -15,15 +15,15 @@ class UUID;
 class EntityCollection
 {
   private:
-    friend class Entity;
+    friend Entity;
 
   protected:
-    static std::map<core::UUID, Entity>& Collection();
+    static std::map<UUID, Entity>& Collection();
 
     /// @note I think it'd be good if newlyCreated existed separately in each thread.
     /// Then we could concatenate at some point. Maybe all execution thread acquires a separate EntityMap object,
     /// and the "main" (not transient) one syncs up once per frame ?
-    static std::map<core::UUID, Entity>& NewlyCreatedEntities();
+    static std::map<UUID, Entity>& NewlyCreatedEntities();
 
     /// @brief Create a new entity, insert it in the collection and return it.
     /// @todo Ensure this works even if called from different threads
@@ -34,8 +34,9 @@ class EntityCollection
     static Entity* Create();
 
     /// @brief Definitely remove an entity from the collection.
-    static void RemoveEntity(const core::UUID& id);
+    static void RemoveEntity(const UUID& id);
 
     /// @brief Definitely remove all entities from this collection.
     static void Clear();
 };
+} // namespace aln::entities

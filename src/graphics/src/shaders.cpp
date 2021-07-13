@@ -6,7 +6,7 @@
 
 #include <utils/files.hpp>
 
-namespace vkg::shaders
+namespace aln::vkg::shaders
 {
 
 vk::ShaderModule CreateShaderModule(std::shared_ptr<Device> device, const std::string& filename)
@@ -84,4 +84,4 @@ std::vector<uint32_t> CompileGlslToSpvBinary(const std::string& source_name,
 
     return {module.cbegin(), module.cend()};
 }
-} // namespace vkg::shaders
+} // namespace aln::vkg::shaders

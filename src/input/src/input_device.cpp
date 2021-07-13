@@ -2,6 +2,8 @@
 
 #include "input_device.hpp"
 
+namespace aln::input
+{
 uint8_t IInputDevice::MapGLFWActionCode(int action)
 {
     if (action == GLFW_PRESS)
@@ -40,3 +42,4 @@ uint8_t IInputDevice::MapGLFWActionCode(int action)
 // }
 
 // virtual void UpdateControlState(int code, int action) = 0;
+}

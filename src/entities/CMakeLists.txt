@@ -1,4 +1,4 @@
-set(LIB_NAME object_model)
+set(LIB_NAME entities)
 add_library(
     ${LIB_NAME} SHARED
 

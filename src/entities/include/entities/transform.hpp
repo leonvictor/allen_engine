@@ -4,6 +4,8 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/vec3.hpp>
 
+namespace aln::entities
+{
 // TODO: rotation should probably be in quaternions or matrix format
 // but we need to access it as euler angles. How do we handle this ?
 // Simple getter/setter is not possible as we need to access values directly in imgui
@@ -18,3 +20,4 @@ struct Transform
 
 bool operator==(const Transform& a, const Transform& b);
 bool operator!=(const Transform& lhs, const Transform& rhs);
+} // namespace aln::entities
