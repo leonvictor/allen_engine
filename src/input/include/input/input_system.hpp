@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utils/singleton.hpp>
-
 #include "callback_context.hpp"
 #include "keyboard.hpp"
 #include "mouse.hpp"
@@ -10,11 +8,13 @@
 
 /// TODO: https://www.gamedev.net/blogs/entry/2250186-designing-a-robust-input-handling-system-for-games/
 
-/// @brief Input is the overarching system recording and dispatching input operations.
 class InputContext;
 
-class Input : private ISingleton<Input>
+/// @brief Input is the overarching system recording and dispatching input operations.
+class Input
 {
+    friend class Engine;
+
   private:
     // TODO:
     // - Order contexts by priority (only one context can handle an input at a given time)
@@ -24,20 +24,45 @@ class Input : private ISingleton<Input>
     // List of active InputContexts
     std::vector<InputContext*> m_contexts;
 
-  public:
-    // TODO: Handle multiple device of each type.
-    /// Static access to the mouse.
-    static Mouse Mouse;
-    /// Static access to the keyboard.
-    static Keyboard Keyboard;
-    /// Static access to the gamepad.
-    // static Gamepad Gamepad;
+    input::devices::Keyboard m_keyboard;
+    input::devices::Mouse m_mouse;
 
+    // TODO: Merge in a single function and handle device internally
+    static void UpdateKeyboardControlState(int code, int action)
+    {
+        Singleton().m_keyboard.UpdateControlState(code, action);
+    }
+
+    static void UpdateMouseControlState(int code, int action)
+    {
+        Singleton().m_mouse.UpdateControlState(code, action);
+    }
+
+    static void UpdateScrollControlState(int xoffset, int yoffset)
+    {
+        Singleton().m_mouse.UpdateScrollControlState(xoffset, yoffset);
+    }
+
+    static void UpdateMousePosition(glm::vec2 position)
+    {
+        Singleton().m_mouse.Update(position);
+    }
+
+    static Input& Singleton();
+
+  public:
     static void RegisterContext(InputContext* pContext);
 
     /// @brief Process registered input by passing them to active contexts.
     /// TODO: Shouldn't be accessible outside the main engine loop
     static void Dispatch();
-};
 
-extern template class ISingleton<Input>;
+    // TODO: Handle multiple device of each type.
+    /// @brief Static access to the keyboard.
+    static const input::devices::Keyboard& Keyboard();
+    /// @brief Static access to the mouse.
+    static const input::devices::Mouse& Mouse();
+
+    /// TODO: Static access to the gamepad.
+    // static const input::devices::Gamepad& Gamepad();
+};

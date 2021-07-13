@@ -34,7 +34,7 @@ class EditorCameraController : IEntitySystem
         rotateAction.SetInteraction(Interaction::Type::Hold);
         rotateAction.SetCallback(std::bind(&EditorCameraController::Rotate, *this, std::placeholders::_1));
 
-        auto& zoomAction = m_inputContext.AddAction(Input::Mouse.TEMPORARY_SCROLL_ID);
+        auto& zoomAction = m_inputContext.AddAction(Input::Mouse().TEMPORARY_SCROLL_ID);
         zoomAction.SetInteraction(Interaction::Type::Hold);
         zoomAction.SetCallback(std::bind(&EditorCameraController::Zoom, *this, std::placeholders::_1));
 
@@ -47,7 +47,7 @@ class EditorCameraController : IEntitySystem
     {
         if (pComponent == m_pCameraInstance)
         {
-            m_pCameraInstance == nullptr;
+            m_pCameraInstance = nullptr;
             m_inputContext.Disable();
             // TODO: Unregister input context
         }
@@ -63,13 +63,13 @@ class EditorCameraController : IEntitySystem
     /// @brief Translate the camera position on the 2D plane parallel to the screen.
     void Move(CallbackContext context)
     {
-        auto delta = Input::Mouse.GetDelta() * m_translationSensitivity;
+        auto delta = Input::Mouse().GetDelta() * m_translationSensitivity;
         m_pCameraInstance->ModifyTransform()->position += (m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x);
     }
 
     void Rotate(CallbackContext context)
     {
-        auto delta = Input::Mouse.GetDelta() * m_rotationSensitivity;
+        auto delta = Input::Mouse().GetDelta() * m_rotationSensitivity;
 
         auto t = m_pCameraInstance->ModifyTransform();
         t->rotation.x += delta.x;
@@ -78,7 +78,7 @@ class EditorCameraController : IEntitySystem
 
     void Zoom(CallbackContext context)
     {
-        auto delta = Input::Mouse.GetScroll();
+        auto delta = Input::Mouse().GetScroll();
         auto t = m_pCameraInstance->ModifyTransform()->position += m_pCameraInstance->forward * delta.y;
     }
 };

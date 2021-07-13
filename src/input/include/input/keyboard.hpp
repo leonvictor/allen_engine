@@ -7,7 +7,13 @@
 #include <glm/vec2.hpp>
 #include <map>
 
-/// @brief Describe a physical keyboard.
+class Input;
+class Engine;
+
+namespace input::devices
+{
+
+/// @brief Describes a physical keyboard.
 class Keyboard : public IInputDevice
 {
     friend class Engine;
@@ -19,41 +25,6 @@ class Keyboard : public IInputDevice
     std::map<int, KeyControl> m_keys;
 
     std::multimap<int, ControlStateChangedEvent> m_statesChanged;
-
-  public:
-    /// @brief Translate a GLFW Event to KeyControl
-    // TODO: Move to virtual fn in InputDevice (possibly InputControl even ?)
-    // TODO: Shouldn't be public
-
-    void UpdateControlState(int code, int action)
-    {
-        // Ignore GLFW key repeat events as they are unreliable. Eventually we should gather the events directly from the hardware.
-        if (action == GLFW_REPEAT)
-        {
-            return;
-        }
-
-        // Find the control if it has already been added to the device, create it otherwise
-        auto iter = m_keys.emplace(std::make_pair(code, KeyControl(code))).first;
-        // Update the control value
-        iter->second.SetValue(MapGLFWActionCode(action));
-        // SetControlValue(iter->second, MapGLFWActionCode(action));
-
-        // Create and populate a control state changed event
-        auto& event = m_statesChanged.emplace(std::make_pair(code, ControlStateChangedEvent()))->second;
-        event.pControl = &iter->second;
-    }
-
-    KeyControl& GetKey(int code)
-    {
-        auto iter = m_keys.find(code);
-        if (iter != m_keys.end())
-        {
-            return iter->second;
-        }
-
-        throw;
-    }
 
     /// @brief Return a list of state changed events that occured since the last call to this function.
     std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() override
@@ -83,4 +54,39 @@ class Keyboard : public IInputDevice
         m_statesChanged.clear();
         return clone;
     }
+
+    /// @brief Translate a GLFW Event to KeyControl
+    /// @todo Move to virtual fn in InputDevice (possibly InputControl even ?)
+    /// @todo Shouldn't be public
+    void UpdateControlState(int code, int action)
+    {
+        // Ignore GLFW key repeat events as they are unreliable. Eventually we should gather the events directly from the hardware.
+        if (action == GLFW_REPEAT)
+        {
+            return;
+        }
+
+        // Find the control if it has already been added to the device, create it otherwise
+        auto iter = m_keys.emplace(std::make_pair(code, KeyControl(code))).first;
+        // Update the control value
+        iter->second.SetValue(MapGLFWActionCode(action));
+        // SetControlValue(iter->second, MapGLFWActionCode(action));
+
+        // Create and populate a control state changed event
+        auto& event = m_statesChanged.emplace(std::make_pair(code, ControlStateChangedEvent()))->second;
+        event.pControl = &iter->second;
+    }
+
+  public:
+    KeyControl& GetKey(int code)
+    {
+        auto iter = m_keys.find(code);
+        if (iter != m_keys.end())
+        {
+            return iter->second;
+        }
+
+        throw;
+    }
 };
+} // namespace input::devices

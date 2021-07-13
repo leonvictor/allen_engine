@@ -8,10 +8,16 @@
 #include <glm/vec2.hpp>
 #include <vector>
 
+class Engine;
+class Input;
+
+namespace input::devices
+{
 /// @brief Describe a physical mouse and its on-screen cursor relative.
 class Mouse : IInputDevice
 {
     friend class Engine;
+    friend class Input;
 
   private:
     // Position in screen space.
@@ -28,30 +34,11 @@ class Mouse : IInputDevice
     AxisControl m_scrollControl;
 
     /// @brief Update position and delta according to the new provided position.
-    void
-    Update(glm::vec2 position)
+    void Update(glm::vec2 position)
     {
         m_delta = position - m_position;
         m_position = position;
     }
-
-  public:
-    const int TEMPORARY_SCROLL_ID = 11111;
-
-    /// @brief Default constructor creates standard mouse controls (right and left click, scrolling wheel).
-    Mouse()
-    {
-        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_1, ButtonControl(GLFW_MOUSE_BUTTON_1)));
-        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_2, ButtonControl(GLFW_MOUSE_BUTTON_2)));
-        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_3, ButtonControl(GLFW_MOUSE_BUTTON_3)));
-
-        // FIXME: ID should be unique
-        m_scrollControl = AxisControl(TEMPORARY_SCROLL_ID);
-    }
-
-    glm::vec2 GetPosition() { return m_position; }
-    glm::vec2 GetDelta() { return m_delta; }
-    glm::vec2 GetScroll() { return m_scrollDelta; }
 
     /// @brief Return a list of state changed events that occured since the last call to this function.
     /// TODO: Share this behavior with Keyboard (and other devices)
@@ -112,4 +99,23 @@ class Mouse : IInputDevice
 
         m_scrollDelta = glm::vec2(xdelta, ydelta);
     }
+
+  public:
+    const int TEMPORARY_SCROLL_ID = 11111;
+
+    /// @brief Default constructor creates standard mouse controls (right and left click, scrolling wheel).
+    Mouse()
+    {
+        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_1, ButtonControl(GLFW_MOUSE_BUTTON_1)));
+        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_2, ButtonControl(GLFW_MOUSE_BUTTON_2)));
+        m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_3, ButtonControl(GLFW_MOUSE_BUTTON_3)));
+
+        // FIXME: ID should be unique
+        m_scrollControl = AxisControl(TEMPORARY_SCROLL_ID);
+    }
+
+    const glm::vec2& GetPosition() const { return m_position; }
+    const glm::vec2& GetDelta() const { return m_delta; }
+    const glm::vec2& GetScroll() const { return m_scrollDelta; }
 };
+} // namespace input::devices

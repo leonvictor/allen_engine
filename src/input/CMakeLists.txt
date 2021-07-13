@@ -20,7 +20,7 @@ set(LIB_INCLUDE_DIRS
 )
 
 set(LIB_DEPENDENCIES
-    imm32 utils glfw ${GLFW_LIBRARIES}
+    imm32 glfw ${GLFW_LIBRARIES}
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC ${LIB_DEPENDENCIES})

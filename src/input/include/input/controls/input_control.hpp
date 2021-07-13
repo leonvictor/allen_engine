@@ -16,10 +16,18 @@ class IInputControl
 
 bool operator<(const IInputControl& left, const IInputControl& right);
 
+namespace input::devices
+{
+class Keyboard;
+class Mouse;
+} // namespace input::devices
+
 template <typename T>
 class InputControl : public IInputControl
 {
     friend class IInputDevice;
+    friend class input::devices::Keyboard;
+    friend class input::devices::Mouse;
 
   protected:
     T m_value;
