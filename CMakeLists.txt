@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(custom-engine VERSION 0.1)
+project(ALLEN VERSION 0.1)
 
 set(SOURCE 
     src/main.cpp
@@ -21,9 +21,9 @@ configure_file(
 include_directories(CONFIG_INCLUDE_DIRS)
 
 # Put the .exe and .dll in the build directory's root so we can find them.
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${custom-engine_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${custom-engine_BINARY_DIR})
-set(ARCHIVE_OUTPUT_DIRECTORY ${custom-engine_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
+set(ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 
 # TODO: ?
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
