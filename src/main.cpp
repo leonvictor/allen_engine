@@ -1,14 +1,6 @@
-#include <vulkan/vulkan.hpp>
+#include <glm/vec3.hpp>
 
-#include <GLFW/glfw3.h>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <chrono> // std::chrono::seconds
-#include <glm/gtx/hash.hpp>
 #include <thread> // std::this_thread::sleep_for
 
 #include <array>
@@ -25,34 +17,37 @@
 #include <unordered_map>
 #include <vector>
 
-#include "camera.cpp" // TODO: Create .h
 #include "camera_controller.hpp"
-#include "graphics/device.hpp"
-#include "graphics/imgui.hpp"
-#include "graphics/instance.hpp"
-// #include "graphics/renderer.hpp"
-#include "graphics/imgui.hpp"
-#include "graphics/rendering/offline_renderer.hpp"
-#include "graphics/rendering/swapchain_renderer.hpp"
-#include "graphics/resources/image.hpp"
-#include "graphics/window.hpp"
+
+#include <graphics/device.hpp>
+#include <graphics/imgui.hpp>
+#include <graphics/instance.hpp>
+#include <graphics/rendering/offline_renderer.hpp>
+#include <graphics/rendering/swapchain_renderer.hpp>
+#include <graphics/ubo.hpp>
+#include <graphics/window.hpp>
+
 #include "time_system.hpp"
+#include <input/input_system.hpp>
 
-#include "ubo.hpp"
+#include <object_model/entity.hpp>
+#include <object_model/world_entity.hpp>
+#include <object_model/world_update.hpp>
 
-#include "light.cpp"
-#include "scene_object.cpp"
-#include "skybox.cpp"
-#include "utils/color_uid.cpp"
-#include "vertex.hpp"
+#include <core/camera.hpp>
+#include <core/light.hpp>
+#include <core/mesh_renderer.hpp>
+#include <core/render_system.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include "imgui_internal.h"
 
-const std::string MODEL_PATH = "assets/models/cube.obj";
-const std::string TEXTURE_PATH = "assets/textures/container2.png";
+#include <config/path.h>
+
+const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.obj";
+const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.png";
 const int MAX_MODELS = 50;
 
 class Engine
@@ -60,8 +55,12 @@ class Engine
   public:
     Engine()
     {
-        m_window.Initialize();
-        m_pDevice = std::make_shared<vkg::Device>(m_window.GetVkSurface());
+        m_window.InitializeWindow();
+        m_instance.RequestExtensions(m_window.GetRequiredExtensions());
+        m_instance.Create();
+        m_window.CreateSurface(&m_instance);
+
+        m_pDevice = std::make_shared<vkg::Device>(&m_instance, m_window.GetVkSurface());
         m_swapchain = vkg::Swapchain(m_pDevice, &m_window);
 
         m_renderer.Create(&m_swapchain);
@@ -73,17 +72,24 @@ class Engine
             m_swapchain.GetImageFormat());
 
         m_imgui.Initialize(m_window.GetGLFWWindow(), m_pDevice, m_renderer.GetRenderPass(), m_renderer.GetNumberOfImages());
+
+        // Register callbacks to transfer events from the window to the input system
+        // TODO: Ideally this would be managed entirelly by the input system, without a dependency on the window
+        m_window.AddKeyCallback(std::bind(Input::UpdateKeyboardControlState, std::placeholders::_1, std::placeholders::_2));
+        m_window.AddMouseButtonCallback(std::bind(Input::UpdateMouseControlState, std::placeholders::_1, std::placeholders::_2));
+        m_window.AddScrollCallback(std::bind(Input::UpdateScrollControlState, std::placeholders::_1, std::placeholders::_2));
+
         // TODO: Get rid of all the references to m_pDevice
         // They should not be part of this class
 
-        loadModels();
-        setUpLights();
         setupSkyBox();
 
         // TODO:
         //  - Do not update if no object were modified
         //  - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
+
+        CreateWorld();
     }
 
     void run()
@@ -94,15 +100,11 @@ class Engine
     ~Engine()
     {
         // Cleanup vulkan objects
-        clickables.clear();
-        models.clear();
-        selectedObject.reset();
-        lightsBuffer.reset();
-        lightsDescriptorSet.reset();
-        skybox.reset();
+        // skybox.reset();
     }
 
   private:
+    vkg::Instance m_instance;
     vkg::Window m_window;
     std::shared_ptr<vkg::Device> m_pDevice;
     vkg::Swapchain m_swapchain;
@@ -118,225 +120,110 @@ class Engine
     const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
     const glm::vec3 WORLD_DOWN = -WORLD_UP;
 
-    Camera camera = Camera(WORLD_BACKWARD * 2.0f);
-    EditorCameraController cameraController = EditorCameraController(&camera);
-
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
-
-    // Maybe unique_ptr and pass around weak_ptrs ? We pass the list to the swapchain when recording commands.
-    // We also need to notify the selected field if an object is deleted
-    std::vector<std::shared_ptr<SceneObject>> models;
-    std::map<ColorUID, std::shared_ptr<SceneObject>> clickables; // Good candidate for weak_ptrs ?
-    std::shared_ptr<SceneObject> selectedObject;
-    std::vector<Light> lights;
-    std::shared_ptr<Skybox> skybox;
 
     std::array<glm::vec3, 3> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
         glm::vec3(2.0f, 5.0f, -15.0f),
         LIGHT_POSITION};
 
-    int objectToDelete = -1; // Index of objects marked for deletion
-    int objectsToCreate = 0; // Number of objects to create
-
     // GUI toggles
     bool showTransformGUI = false;
 
-    void addObject()
-    {
-        auto pos = glm::vec3(-1.5f, -2.2f, -2.5f);
+    // Object model
 
-        // TODO:
-        std::shared_ptr<SceneObject> m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, pos, MaterialBufferObject(), TEXTURE_PATH);
-        models.push_back(m);
-        clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
-    }
+    WorldEntity m_worldEntity;
 
-    void removeObject(int index)
+    void CreateWorld()
     {
-        if (models.size() > 0)
+        m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
+
+        // Create some entities
         {
-            // TODO: clear selectedObject if this is this one
-            clickables.erase(models[index]->colorId);
-            // models[index].reset();
-            models.erase(models.begin() + index);
-        }
-    }
+            Entity* pCameraEntity = Entity::Create("MainCamera");
+            auto pCameraComponent = pCameraEntity->AddComponent<Camera>();
 
-    void loadModels()
-    {
-        for (int i = 0; i < cubePositions.size(); i++)
-        {
-            // TODO: This logic is a duplicate of addObject.
-            auto m = std::make_shared<SceneObject>(m_pDevice, MODEL_PATH, cubePositions[i], MaterialBufferObject(), TEXTURE_PATH);
-            models.push_back(m);
-            clickables.insert(std::pair<ColorUID, std::shared_ptr<SceneObject>>(m->colorId, m));
+            pCameraComponent->ModifyTransform()->position = WORLD_BACKWARD * 2.0f;
+            pCameraComponent->ModifyTransform()->rotation.x = 90.0f;
+
+            pCameraEntity->CreateSystem<EditorCameraController>();
         }
-        selectedObject = nullptr;
+
+        {
+            Entity* pLightEntity = Entity::Create("DirectionnalLight");
+            Light* pLightComponent = pLightEntity->AddComponent<Light>();
+            pLightComponent->color = glm::vec3(1.0f);
+            pLightComponent->direction = WORLD_RIGHT;
+            pLightComponent->type = Light::Type::Directionnal;
+            auto t = pLightComponent->ModifyTransform()->position = LIGHT_POSITION;
+
+            Entity* pPointLightEntity = Entity::Create("PointLight");
+            Light* pPLightComponent = pPointLightEntity->AddComponent<Light>();
+            pPLightComponent->color = glm::vec3(1.0f);
+            pPLightComponent->direction = WORLD_RIGHT;
+            pPLightComponent->type = Light::Type::Directionnal;
+            t = pPLightComponent->ModifyTransform()->position = LIGHT_POSITION;
+        }
+
+        for (auto pos : cubePositions)
+        {
+            // TODO: This api is too verbose
+            Entity* pCube = Entity::Create("cube");
+            auto pMesh = pCube->AddComponent<MeshRenderer>(m_pDevice, MODEL_PATH, TEXTURE_PATH);
+            pMesh->ModifyTransform()->position = pos;
+        }
     }
 
     void setupSkyBox()
     {
-        skybox = std::make_shared<Skybox>(m_pDevice, "", MODEL_PATH);
-        updateSkyboxUBO();
+        // skybox = std::make_shared<Skybox>(m_pDevice, "", MODEL_PATH);
+        // updateSkyboxUBO();
     }
 
     void updateSkyboxUBO()
     {
-        vkg::UniformBufferObject ubo;
-        ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-        ubo.view = glm::mat4(1.0f);                                                                                                            // eye/camera position, center position, up axis
-        ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        ubo.projection[1][1] *= -1;                                                                                                            // GLM is designed for OpenGL which uses inverted y coordinates
-        ubo.cameraPos = camera.transform.position;
-        skybox->updateUniformBuffer(ubo);
+        // vkg::UniformBufferObject ubo;
+        // ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
+        // ubo.view = glm::mat4(1.0f);                                                                                                            // eye/camera position, center position, up axis
+        // ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
+        // ubo.projection[1][1] *= -1;                                                                                                            // GLM is designed for OpenGL which uses inverted y coordinates
+        // ubo.cameraPos = camera.transform.position;
+        // skybox->updateUniformBuffer(ubo);
     }
-
-#pragma region lights_descriptor
-    // TODO: Move lights descriptor somewhere according to requirements
-    // - All the lights in a scene share a buffer (so Scene should hold them)
-    // - For now swapchain holds the layout of the descriptor
-    // - The descriptor itself is allocated and registered here
-    vk::UniqueDescriptorSet lightsDescriptorSet;
-    std::unique_ptr<vkg::Buffer> lightsBuffer;
-
-    void createLightsBuffer()
-    {
-        // TODO: Handle "max lights" (rn its 5)
-        lightsBuffer = std::make_unique<vkg::Buffer>(m_pDevice, 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    }
-
-    void updateLightBufferCount(int count)
-    {
-        lightsBuffer->Map(0, sizeof(int)); // TODO: Respect spec alignment for int
-        lightsBuffer->Copy(&count, sizeof(int));
-        lightsBuffer->Unmap();
-    }
-
-    void updateLightsBuffer(Light light, int index)
-    {
-        auto ubo = light.getUniform();
-        lightsBuffer->Map(sizeof(int) + index * sizeof(LightUniform), sizeof(LightUniform));
-        lightsBuffer->Copy(&ubo, sizeof(LightUniform));
-        lightsBuffer->Unmap();
-    }
-
-    void setUpLights()
-    {
-        // For now manually add a light
-        Light light;
-        light.color = glm::vec3(1.0f, 1.0f, 1.0f);
-        light.position = LIGHT_POSITION;
-        light.direction = WORLD_RIGHT; // Point toward 0,0,0
-        light.type = LightType::Directionnal;
-
-        lights.push_back(light);
-
-        // Reuse the info
-        // Direction is not used for point lights
-        light.type = LightType::Point;
-        lights.push_back(light);
-
-        createLightsBuffer();
-        createLightsDescriptorSet();
-
-        updateLightBufferCount(lights.size());
-
-        for (int i = 0; i < lights.size(); i++)
-        {
-            updateLightsBuffer(lights[i], i);
-        }
-    }
-
-    // TODO: Move to light class
-    void createLightsDescriptorSet()
-    {
-        vk::DescriptorSetAllocateInfo allocInfo;
-        allocInfo.descriptorPool = m_pDevice->GetDescriptorPool();
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_pDevice->GetDescriptorSetLayout<Light>();
-
-        lightsDescriptorSet = std::move(m_pDevice->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
-        m_pDevice->SetDebugUtilsObjectName(lightsDescriptorSet.get(), "Lights Descriptor Set");
-
-        vk::DescriptorBufferInfo lightsBufferInfo;
-        lightsBufferInfo.buffer = lightsBuffer->GetVkBuffer(); // TODO: How do we update the lights array ?
-        lightsBufferInfo.offset = 0;
-        lightsBufferInfo.range = VK_WHOLE_SIZE;
-
-        vk::WriteDescriptorSet writeDescriptor;
-        writeDescriptor.dstSet = lightsDescriptorSet.get();
-        writeDescriptor.dstBinding = 0;
-        writeDescriptor.dstArrayElement = 0;
-        writeDescriptor.descriptorType = vk::DescriptorType::eStorageBuffer;
-        writeDescriptor.descriptorCount = 1;
-        writeDescriptor.pBufferInfo = &lightsBufferInfo;
-
-        m_pDevice->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
-    }
-
-#pragma endregion
 
     void mainLoop()
     {
         // TODO: Move to window
-        while (!glfwWindowShouldClose(m_window.GetGLFWWindow()))
+        while (!m_window.ShouldClose())
         {
             // std::this_thread::sleep_for(std::chrono::seconds(1));
+            // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             Time::Update();
 
+            // TODO: Group glfw accesses in a window.NewFrame() method
             // Map GLFW events to the Input system
-            glfwPollEvents();
+            m_window.NewFrame();
 
-            double xpos, ypos;
-            glfwGetCursorPos(m_window.GetGLFWWindow(), &xpos, &ypos);
-            Input::Mouse.Update({xpos, ypos});
-
+            Input::UpdateMousePosition(m_window.GetCursorPosition());
             // Trigger input callbacks
             Input::Dispatch();
 
             m_renderer.BeginFrame();
             m_imgui.NewFrame();
-            m_sceneRenderer.BeginFrame();
 
-            // This is rough. TODO: Make it better:
-            //  * Allow multiple objects to be deleted. Handle the object list to avoid too much overhead
-            //  * Enable selecting objects to delete
-            if (objectToDelete >= 0)
-            {
-                removeObject(objectToDelete);
-                objectToDelete = -1;
-            }
+            // Object model: Update systems at various points in the frame.
+            // TODO: Handle sync points here ?
+            ObjectModel::UpdateContext context = ObjectModel::UpdateContext(UpdateStage::FrameStart);
+            context.displayWidth = m_window.GetWidth();
+            context.displayHeight = m_window.GetHeight();
+            m_worldEntity.Update(context);
 
-            // TODO: Refine as well
-            //  * Change the position of the object
-            //  * Specify the model
-            for (int i = 0; i < objectsToCreate; i++)
-            {
-                addObject();
-                objectsToCreate = 0;
-            }
-
-            // TODO: How do we handle lights ? It would make more sense to build a buffer once
-            // The buffer should be associated in a descriptor Set.
-            // Right now descriptor sets are created by model, so we would need to duplicate the light buffer -> not good !
+            context = ObjectModel::UpdateContext(UpdateStage::FrameEnd);
+            context.displayWidth = m_window.GetWidth();
+            context.displayHeight = m_window.GetHeight();
+            m_worldEntity.Update(context);
 
             updateSkyboxUBO();
-
-            for (auto model : models)
-            {
-                glm::mat4 modelMatrix = model->getModelMatrix();
-                vkg::UniformBufferObject ubo;
-                ubo.model = modelMatrix;
-                // eye/camera position, center position, up axis
-                ubo.view = camera.getViewMatrix();
-                // 45deg vertical fov, aspect ratio, near view plane, far view plane
-                ubo.projection = glm::perspective(glm::radians(45.0f), m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 100.f);
-                // GLM is designed for OpenGL which uses inverted y coordinates
-                ubo.projection[1][1] *= -1;
-                ubo.cameraPos = camera.transform.position;
-                model->getComponent<Mesh>()->updateUniformBuffers(ubo);
-            }
 
             // TODO: Handle picker again
             // if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())
@@ -347,12 +234,6 @@ class Engine
             //     // TODO: Make sure ColorUID has a reserved id for the background
             //     selectedObject = clickables[cID];
             // }
-
-            // swapchain->recordCommandBuffer(imageIndex, models, lightsDescriptorSet, skybox);
-            m_sceneRenderer.Draw(skybox);
-            m_sceneRenderer.Draw(models, lightsDescriptorSet);
-
-            m_sceneRenderer.EndFrame();
 
             DrawUI();
 
@@ -389,9 +270,8 @@ class Engine
                 }
                 ImGui::EndMenuBar();
             }
-
-            ImGui::End();
         }
+        ImGui::End();
 
         if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags))
         {
@@ -406,9 +286,8 @@ class Engine
 
                 ImGui::EndMenuBar();
             }
-
-            ImGui::End();
         }
+        ImGui::End();
 
         if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
         {
@@ -418,7 +297,6 @@ class Engine
             auto tex = m_sceneRenderer.GetActiveImage();
             ImGui::Image((ImTextureID) tex->GetDescriptorSet(), dim);
         }
-
         ImGui::End();
 
         if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
@@ -432,42 +310,41 @@ class Engine
                 }
                 ImGui::EndTabBar();
             }
-            ImGui::End();
         }
-
-        if (ImGui::Begin("Transform", nullptr) && selectedObject != nullptr)
-        {
-            auto transform = selectedObject->getComponent<Transform>();
-            ImGui::PushItemWidth(60);
-            // TODO: vec3 might deserve a helper function to create ui for the 3 components...
-            // Position
-            ImGui::Text("Position");
-            ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
-            ImGui::SameLine();
-            ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
-            ImGui::SameLine();
-            ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
-
-            // Rotation
-            ImGui::Text("Rotation");
-            ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
-            ImGui::SameLine();
-            ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
-            ImGui::SameLine();
-            ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
-
-            // Scale
-            ImGui::Text("Scale");
-            ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
-            ImGui::SameLine();
-            ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
-            ImGui::SameLine();
-            ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
-
-            ImGui::End();
-        }
-
         ImGui::End();
+        // if (ImGui::Begin("Transform", nullptr) && selectedObject != nullptr)
+        if (ImGui::Begin("Transform", nullptr))
+        {
+            // auto transform = selectedObject->getComponent<Transform>();
+            // ImGui::PushItemWidth(60);
+            // // TODO: vec3 might deserve a helper function to create ui for the 3 components...
+            // // Position
+            // ImGui::Text("Position");
+            // ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
+            // ImGui::SameLine();
+            // ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
+            // ImGui::SameLine();
+            // ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
+
+            // // Rotation
+            // ImGui::Text("Rotation");
+            // ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
+            // ImGui::SameLine();
+            // ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
+            // ImGui::SameLine();
+            // ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
+
+            // // Scale
+            // ImGui::Text("Scale");
+            // ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
+            // ImGui::SameLine();
+            // ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
+            // ImGui::SameLine();
+            // ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+        }
+        ImGui::End();
+
+        // ImGui::End();
         ImGui::ShowDemoWindow();
     }
 };
