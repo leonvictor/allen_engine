@@ -31,7 +31,7 @@ class EntityMap : private EntityCollection
 
     // ...
     Status m_status = Status::Deactivated;
-    bool m_isTransientMap;
+    bool m_isTransientMap = false;
 
     bool IsActivated()
     {

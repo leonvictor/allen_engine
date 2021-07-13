@@ -69,7 +69,7 @@ class Entity
     bool m_isAttachedToParent = false;
 
     // TODO:
-    static Command EntityStateUpdatedEvent;
+    Command EntityStateUpdatedEvent;
     std::vector<EntityInternalStateAction> m_deferredActions;
 
     // Constructor is private to prevent extending this class

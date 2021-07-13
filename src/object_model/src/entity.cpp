@@ -8,8 +8,6 @@
 
 #include <future>
 
-Command Entity::EntityStateUpdatedEvent;
-
 // -------------------------------------------------
 // State management
 // -------------------------------------------------
