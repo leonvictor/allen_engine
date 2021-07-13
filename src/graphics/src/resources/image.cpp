@@ -1,55 +1,43 @@
 #include "resources/image.hpp"
 #include "resources/allocation.hpp"
+#include "resources/buffer.hpp"
 
+#include <assets/asset_system/asset_system.hpp>
+#include <assets/asset_system/texture_asset.hpp>
+
+#include <cmath>
 #include <fstream>
-#include <memory>
-
-#include <vulkan/vulkan.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace vkg
-{
+using namespace vkg;
 
-// Minimal Cpp wrapper for STB loader
-// TODO by order of preference :
-// 1) Get rid of it
-// 2) Find it a better name
-// 3) Move it somewhere else
-stbi_uc* pixels;
-int width, height, channels;
-
-ImageFile::ImageFile(std::string path)
+Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
-    load(path);
+    m_pDevice = pDevice;
+    InitImage(width, height, mipLevels, numSamples, format, tiling, usage, arrayLayers, flags, layout, type);
 }
 
-void ImageFile::load(std::string path)
+Image::Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format)
 {
-    pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-    if (!pixels)
-    {
-        throw std::runtime_error("Failed to load image at " + path);
-    }
+    m_pDevice = pDevice;
+    m_externallyOwnedImage = true;
+    m_vkImage = vk::UniqueImage(image);
+    m_format = format;
 }
 
 void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout)
+    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
-
     // Enforce vk specs
     assert(layout == vk::ImageLayout::eUndefined || layout == vk::ImageLayout::ePreinitialized);
 
     vk::ImageCreateInfo imageInfo;
     imageInfo.flags = flags;
     imageInfo.imageType = vk::ImageType::e2D;
-    imageInfo.extent = vk::Extent3D{
-        .width = static_cast<uint32_t>(width),
-        .height = static_cast<uint32_t>(height),
-        .depth = 1,
-    },
+    imageInfo.extent = vk::Extent3D(width, height, 1);
     imageInfo.mipLevels = mipLevels;
     imageInfo.arrayLayers = arrayLayers;
     imageInfo.format = format;
@@ -69,19 +57,12 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     m_height = height;
 }
 
-void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
-{
-    vk::MemoryRequirements memRequirements = m_pDevice->GetVkDevice().getImageMemoryRequirements(m_vkImage.get());
-    Allocation::Allocate(memRequirements, memProperties);
-    m_pDevice->GetVkDevice().bindImageMemory(m_vkImage.get(), m_memory.get(), 0);
-}
-
-void Image::InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
+void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
     assert(!m_vkView && "Image view is already initialized.");
 
     vk::ImageViewCreateInfo createInfo;
-    createInfo.format = format;
+    createInfo.format = m_format;
     createInfo.image = m_vkImage.get();
     createInfo.viewType = viewtype;
     createInfo.subresourceRange.aspectMask = aspectMask;
@@ -93,30 +74,34 @@ void Image::InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::Ima
     m_vkView = m_pDevice->GetVkDevice().createImageViewUnique(createInfo);
 }
 
-// TODO: Default arguments
-Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-    vk::ImageUsageFlags usage, vk::MemoryPropertyFlags memProperties, vk::ImageAspectFlags aspectMask, vk::ImageLayout layout)
+void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-
-    m_pDevice = pDevice;
-
-    InitImage(width, height, mipLevels, numSamples, format, tiling, usage, 1, {}, layout);
-    Allocate(memProperties);
-    InitView(format, aspectMask);
+    auto memRequirements = m_pDevice->GetVkDevice().getImageMemoryRequirements(m_vkImage.get());
+    Allocation::Allocate(memRequirements, memProperties);
+    m_pDevice->GetVkDevice().bindImageMemory(m_vkImage.get(), m_memory.get(), 0);
 }
 
-Image::Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format, uint32_t mipLevels, vk::ImageAspectFlags aspectMask)
+void Image::AddSampler(vk::SamplerAddressMode adressMode)
 {
-    m_pDevice = pDevice;
-    m_externallyOwned = true;
+    vk::SamplerCreateInfo samplerInfo;
+    samplerInfo.magFilter = vk::Filter::eLinear; // How to interpolate texels that are magnified...
+    samplerInfo.minFilter = vk::Filter::eLinear; // or minified
+    // Addressing mode per axis
+    samplerInfo.addressModeU = adressMode; // x
+    samplerInfo.addressModeV = adressMode; // y
+    samplerInfo.addressModeW = adressMode; // z
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 16;
+    samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = vk::CompareOp::eAlways;
+    samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+    samplerInfo.mipLodBias = 0;
+    samplerInfo.maxLod = static_cast<uint32_t>(m_mipLevels);
+    samplerInfo.minLod = 0;
 
-    m_vkImage = vk::UniqueImage(image);
-
-    m_mipLevels = mipLevels;
-    m_format = format;
-    m_arrayLayers = 1;
-
-    InitView(format, aspectMask);
+    m_vkSampler = m_pDevice->GetVkDevice().createSamplerUnique(samplerInfo);
 }
 
 void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
@@ -231,7 +216,7 @@ void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 
 void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage)
 {
-    Blit(cb, dstImage, width, height);
+    Blit(cb, dstImage, m_width, m_height);
 }
 
 void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height)
@@ -255,7 +240,7 @@ void Image::Blit(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int heig
 
 void Image::CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage)
 {
-    CopyTo(cb, dstImage, width, height);
+    CopyTo(cb, dstImage, m_width, m_height);
 }
 
 void Image::CopyTo(vk::CommandBuffer cb, vkg::Image& dstImage, int width, int height)
@@ -294,14 +279,14 @@ void Image::Save(std::string filename, bool colorSwizzle)
 
     // ppm header
     file << "P6\n"
-         << width << "\n"
-         << height << "\n"
+         << m_width << "\n"
+         << m_height << "\n"
          << 255 << "\n";
 
-    for (uint32_t y = 0; y < height; y++)
+    for (uint32_t y = 0; y < m_height; y++)
     {
         unsigned int* row = (unsigned int*) data;
-        for (uint32_t x = 0; x < width; x++)
+        for (uint32_t x = 0; x < m_width; x++)
         {
             if (colorSwizzle)
             {
@@ -338,10 +323,10 @@ glm::vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
 
     // TODO: Offsets depend on image format
     // TODO: Get rid of the loops
-    for (uint32_t iy = 0; iy < height; iy++)
+    for (uint32_t iy = 0; iy < m_height; iy++)
     {
         unsigned int* row = (unsigned int*) data;
-        for (uint32_t ix = 0; ix < width; ix++)
+        for (uint32_t ix = 0; ix < m_width; ix++)
         {
             uint8_t* pixel = (uint8_t*) row;
             if (ix == x && iy == y)
@@ -371,9 +356,9 @@ glm::vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
     return glm::vec3();
 }
 
-void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels)
+void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 {
-    auto formatProperties = m_pDevice->GetFormatProperties(format);
+    auto formatProperties = m_pDevice->GetFormatProperties(m_format);
 
     vk::ImageMemoryBarrier barrier;
     barrier.image = m_vkImage.get();
@@ -384,8 +369,8 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t t
     barrier.subresourceRange.layerCount = 1;
     barrier.subresourceRange.levelCount = 1;
 
-    int32_t mipWidth = texWidth;
-    int32_t mipHeight = texHeight;
+    int32_t mipWidth = m_width;
+    int32_t mipHeight = m_height;
 
     for (uint32_t i = 1; i < mipLevels; i++)
     {
@@ -458,4 +443,208 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, vk::Format format, uint32_t t
     m_mipLevels = mipLevels;
     m_layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 }
-} // namespace vkg
+
+vk::DescriptorSet& Image::GetDescriptorSet()
+{
+    // Lazy allocation of the descriptor set
+    if (!m_descriptorSet)
+    {
+        m_descriptorSet = m_pDevice->AllocateDescriptorSet<Image>();
+
+        // Update the Descriptor Set:
+        vk::WriteDescriptorSet writeDesc[1] = {};
+        writeDesc[0].dstSet = m_descriptorSet.get();
+        writeDesc[0].descriptorCount = 1;
+        writeDesc[0].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+        auto desc = GetDescriptor();
+        writeDesc[0].pImageInfo = &desc;
+
+        m_pDevice->GetVkDevice().updateDescriptorSets(1, writeDesc, 0, nullptr);
+    }
+    return m_descriptorSet.get();
+}
+
+std::vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
+{
+    // Is it possible do get a descriptor for a non-sampled image ?
+    std::vector<vk::DescriptorSetLayoutBinding> bindings{
+        {0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
+    };
+
+    return bindings;
+}
+
+static vk::Format MapAssetFormatToVulkan(assets::TextureFormat format)
+{
+    switch (format)
+    {
+    case assets::TextureFormat::RGBA8:
+        return vk::Format::eR8G8B8A8Srgb;
+    default:
+        throw; // TODO
+    }
+}
+
+Image Image::FromAsset(std::shared_ptr<Device> pDevice, std::string filename)
+{
+    assets::AssetFile file;
+    bool loaded = assets::LoadBinaryFile(filename, file);
+
+    if (!loaded)
+    {
+        std::cout << "Error loading texture asset" << std::endl;
+        throw; // TODO
+    }
+
+    assets::TextureInfo info = assets::ReadTextureInfo(&file);
+
+    auto format = MapAssetFormatToVulkan(info.format);
+
+    void* data;
+    assets::UnpackTexture(&info, file.binaryBlob.data(), file.binaryBlob.size(), (char*) data);
+
+    // Copy data to staging buffer
+    Buffer stagingBuffer(pDevice, (vk::DeviceSize) info.size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data);
+
+    auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(info.pixelSize[0], info.pixelSize[1])))) + 1;
+    Image image = FromBuffer(pDevice, stagingBuffer, info.pixelSize[0], info.pixelSize[1], mipLevels);
+
+    return std::move(image);
+}
+
+Image Image::FromFile(std::shared_ptr<Device> pDevice, std::string path)
+{
+    int width, height, channels;
+    stbi_uc* pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+    if (!pixels)
+    {
+        std::cout << "Failed to load texture file " << path << std::endl;
+        throw;
+    }
+
+    // Copy data to staging buffer
+    Buffer stagingBuffer(pDevice, width * height * 4, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, pixels);
+
+    auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+    Image image = FromBuffer(pDevice, stagingBuffer, width, height, mipLevels);
+
+    return std::move(image);
+}
+
+Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, vk::ImageType type)
+{
+    Image image = Image(pDevice, width, height, mipLevels,
+        vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
+        arrayLayers, {}, vk::ImageLayout::eUndefined, type);
+
+    image.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    pDevice->GetGraphicsCommandPool()
+        .Execute([&](vk::CommandBuffer cb)
+            {
+                image.TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+                buffer.CopyTo(cb, image);
+                // Optionnaly generate mipmaps
+                if (mipLevels > 1)
+                {
+
+                    image.GenerateMipMaps(cb, mipLevels);
+                }
+                else
+                {
+                    image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+                }
+            });
+
+    return std::move(image);
+}
+
+Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string path)
+{
+    // TODO: Quick and dirty way of storing faces names for now
+    // Generate optimized file ?
+    std::array<std::string, 6> faces = {
+        "Right",
+        "Left",
+        "Up",
+        "Down",
+        "Front",
+        "Back",
+    };
+
+    // TODO: Remove hardcoded path to textures
+    // TODO: Load the first face before the loop to initialize buffers
+    auto facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[0] + ".png";
+
+    int width, height, channels;
+    stbi_uc* pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+    if (!pixels)
+    {
+        std::cout << "Failed to load texture file " << facePath << std::endl;
+        throw;
+    }
+
+    vk::DeviceSize faceSize = width * height * channels;
+    Buffer stagingBuffer = Buffer(pDevice, faceSize * 6, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    stagingBuffer.Map(0, faceSize);
+    stagingBuffer.Copy(pixels, static_cast<size_t>(faceSize));
+    stagingBuffer.Unmap();
+
+    std::vector<vk::BufferImageCopy> bufferCopyRegions;
+
+    vk::BufferImageCopy bufferImageCopy;
+    bufferImageCopy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+    bufferImageCopy.imageSubresource.layerCount = 1;
+
+    bufferImageCopy.imageExtent.depth = 1;
+    bufferImageCopy.imageExtent.width = width;
+    bufferImageCopy.imageExtent.height = height;
+
+    bufferImageCopy.bufferOffset = 0;
+    bufferImageCopy.imageSubresource.mipLevel = 0;
+    bufferImageCopy.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegions.push_back(bufferImageCopy);
+
+    for (uint32_t i = 1; i < faces.size(); i++)
+    {
+        facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[i] + ".png";
+
+        pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+        if (!pixels)
+        {
+            std::cout << "Failed to load texture file " << path << std::endl;
+            throw;
+        }
+
+        // Copy data to staging buffer
+        stagingBuffer.Map(i * faceSize, faceSize);
+        stagingBuffer.Copy(pixels, static_cast<size_t>(faceSize));
+        stagingBuffer.Unmap();
+
+        bufferImageCopy.bufferOffset = faceSize * i;
+        bufferImageCopy.imageSubresource.mipLevel = 0;
+        bufferImageCopy.imageSubresource.baseArrayLayer = i;
+        // bufferImageCopy.imageExtent = {width, height};
+        bufferCopyRegions.push_back(bufferImageCopy);
+    }
+
+    Image image = Image(pDevice, width, height, 1,
+        vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
+        6, vk::ImageCreateFlagBits::eCubeCompatible, vk::ImageLayout::eUndefined, vk::ImageType::e3D);
+
+    image.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
+        {
+            image.TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+            stagingBuffer.CopyTo(cb, image);
+            image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+        });
+    return std::move(image);
+}

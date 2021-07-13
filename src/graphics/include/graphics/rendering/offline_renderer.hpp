@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "../resources/texture.hpp"
+#include "../resources/image.hpp"
 #include "render_target.hpp"
 #include "renderer.hpp"
 
@@ -22,14 +22,15 @@ class OfflineRenderer : public IRenderer
 
         for (int i = 0; i < m_nTargetImages; ++i)
         {
-            auto target = std::make_shared<Texture>(
+            auto target = std::make_shared<vkg::Image>(
                 m_pDevice, m_width, m_height, 1,
                 vk::SampleCountFlagBits::e1,
                 m_colorImageFormat,
                 vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
-                vk::MemoryPropertyFlagBits::eDeviceLocal,
-                vk::ImageAspectFlagBits::eColor);
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled);
+            target->Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+            target->AddView(vk::ImageAspectFlagBits::eColor);
+            target->AddSampler();
 
             target->TransitionLayout(cbs[0], vk::ImageLayout::eGeneral);
             m_pDevice->SetDebugUtilsObjectName(target->GetVkImage(), "Offline Render Target Image (" + std::to_string(i) + ")");

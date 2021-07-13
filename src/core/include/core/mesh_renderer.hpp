@@ -7,9 +7,10 @@
 
 #include <graphics/device.hpp>
 #include <graphics/resources/buffer.hpp>
-#include <graphics/resources/texture.hpp>
+#include <graphics/resources/image.hpp>
 #include <graphics/ubo.hpp>
 #include <graphics/vertex.hpp>
+
 #include <object_model/spatial_component.hpp>
 #include <utils/files.hpp>
 
@@ -44,7 +45,10 @@ class MeshRenderer : public SpatialComponent
     void CreateMaterialTexture()
     {
         // TODO: Split image loading and vulkan texture creation
-        m_materialTexture = vkg::Texture(m_pDevice, m_material.m_texturePath);
+        m_materialTexture = vkg::Image::FromFile(m_pDevice, m_material.m_texturePath);
+        m_materialTexture.AddView();
+        m_materialTexture.AddSampler();
+
         m_materialBuffer = vkg::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
 
         // TMP while materials are poopy
@@ -106,7 +110,7 @@ class MeshRenderer : public SpatialComponent
     vkg::Buffer m_indexBuffer;
     vkg::Buffer m_uniformBuffer;
     vkg::Buffer m_materialBuffer;
-    vkg::Texture m_materialTexture;
+    vkg::Image m_materialTexture;
 
     /// @brief Construct a MeshRenderer component.
     /// @param pDevice: pointer to the rendering device.
@@ -176,7 +180,7 @@ class MeshRenderer : public SpatialComponent
         m_vkDescriptorSet.reset();
 
         // TODO: Make sure reassignement is good enough.
-        m_materialTexture = vkg::Texture();
+        m_materialTexture = vkg::Image();
         m_materialBuffer = vkg::Buffer();
 
         m_uniformBuffer = vkg::Buffer();

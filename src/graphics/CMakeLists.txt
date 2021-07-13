@@ -13,8 +13,6 @@ add_library(
     src/window.cpp
     src/resources/buffer.cpp
     src/resources/image.cpp
-    src/resources/texture.cpp
-    src/resources/texture_cubemap.cpp
     )
 
 set(LIB_INCLUDE_DIRS
@@ -26,7 +24,7 @@ set(LIB_INCLUDE_DIRS
 )
 
 set(LIB_DEPENDENCIES
-    ${Vulkan_LIBRARIES} utils shaderc glfw ${GLFW_LIBRARIES}
+    ${Vulkan_LIBRARIES} utils shaderc glfw ${GLFW_LIBRARIES} assets
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC ${LIB_DEPENDENCIES})

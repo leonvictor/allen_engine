@@ -82,6 +82,9 @@ set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 # add_compile_definitions(UUID_SYSTEM_GENERATOR)
 # target_include_directories(main PUBLIC ${STDUUID_INCLUDE_DIR})
 
+# json
+set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
+
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main PUBLIC ${EXTERNAL_DIR})
@@ -92,6 +95,7 @@ add_subdirectory(src/core)
 add_subdirectory(src/object_model)
 add_subdirectory(src/graphics)
 add_subdirectory(src/input)
+add_subdirectory(src/assets)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20) 

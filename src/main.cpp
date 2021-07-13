@@ -294,7 +294,7 @@ class Engine
             // TODO: What behavior do we expect when the scene tab is resized ?
             // Current: resize the displayed scene render image. This can cause wrong scaling, and we do not want that
             auto dim = ImGui::GetContentRegionAvail();
-            auto tex = std::dynamic_pointer_cast<vkg::Texture>(m_sceneRenderer.GetActiveImage());
+            auto tex = m_sceneRenderer.GetActiveImage();
             ImGui::Image((ImTextureID) tex->GetDescriptorSet(), dim);
         }
         ImGui::End();
