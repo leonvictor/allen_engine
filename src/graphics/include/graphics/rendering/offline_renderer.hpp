@@ -31,6 +31,7 @@ class OfflineRenderer : public IRenderer
             target->Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
             target->AddView(vk::ImageAspectFlagBits::eColor);
             target->AddSampler();
+            target->SetDebugName("Offline Renderer Target");
 
             target->TransitionLayout(cbs[0], vk::ImageLayout::eGeneral);
             m_pDevice->SetDebugUtilsObjectName(target->GetVkImage(), "Offline Render Target Image (" + std::to_string(i) + ")");

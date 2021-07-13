@@ -26,6 +26,7 @@ class SwapchainRenderer : public IRenderer
         {
             auto target = std::make_shared<vkg::Image>(m_pDevice, images[i], m_colorImageFormat);
             target->AddView(vk::ImageAspectFlagBits::eColor);
+            target->SetDebugName("Swapchain Target");
             m_targetImages.push_back(target);
         };
     }

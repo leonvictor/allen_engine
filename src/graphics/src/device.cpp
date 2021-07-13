@@ -20,7 +20,9 @@ Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
     CreateLogicalDevice(surface);
 
     m_commandpools.graphics = CommandPool(&m_logical.get(), &m_queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+    SetDebugUtilsObjectName(m_commandpools.graphics.m_vkCommandPool.get(), "Graphics Command Pool");
     m_commandpools.transfer = CommandPool(&m_logical.get(), &m_queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
+    SetDebugUtilsObjectName(m_commandpools.transfer.m_vkCommandPool.get(), "Transfer Command Pool");
     m_msaaSamples = GetMaxUsableSampleCount();
 
     // TODO: Refactor

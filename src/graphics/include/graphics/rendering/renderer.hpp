@@ -91,11 +91,15 @@ class IRenderer
             vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
         m_colorImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_colorImage.AddView(vk::ImageAspectFlagBits::eColor);
+        m_colorImage.SetDebugName("Renderer Color Attachment");
+
         // Create depth attachment ressources
         m_depthImage = vkg::Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(),
             m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
         m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
+        m_depthImage.SetDebugName("Renderer Depth Attachment");
+
         CreateRenderpass();
 
         // Create the render targets

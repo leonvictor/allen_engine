@@ -32,7 +32,7 @@ struct SwapchainSupportDetails
 /// @brief Wrapper around  a vulkan logical device.
 class Device
 {
-  public:
+  private:
     vkg::Instance* m_pInstance;
 
     // Physical device we're associated to.
@@ -65,6 +65,13 @@ class Device
     // TODO: Multi-threaded requires a different pool per thread
     vk::UniqueDescriptorPool m_descriptorPool;
 
+    void CreateLogicalDevice(const vk::SurfaceKHR& surface);
+    vk::PhysicalDevice PickPhysicalDevice(const vk::SurfaceKHR& surface);
+    vk::SampleCountFlagBits GetMaxUsableSampleCount();
+
+    static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, std::vector<const char*> requiredExtensions);
+
+  public:
     Device();
     Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface);
 
@@ -146,16 +153,11 @@ class Device
             info.pBindings = bindings.data();
 
             auto layout = m_logical->createDescriptorSetLayoutUnique(info);
+            SetDebugUtilsObjectName(layout.get(), typeid(T).name());
+
             iter = m_descriptorSetLayouts.emplace(type_index, std::move(layout)).first;
         }
         return iter->second.get();
     }
-
-  private:
-    void CreateLogicalDevice(const vk::SurfaceKHR& surface);
-    vk::PhysicalDevice PickPhysicalDevice(const vk::SurfaceKHR& surface);
-    vk::SampleCountFlagBits GetMaxUsableSampleCount();
-
-    static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, std::vector<const char*> requiredExtensions);
 };
 } // namespace vkg

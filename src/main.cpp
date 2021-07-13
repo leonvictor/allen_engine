@@ -97,12 +97,6 @@ class Engine
         mainLoop();
     }
 
-    ~Engine()
-    {
-        // Cleanup vulkan objects
-        // skybox.reset();
-    }
-
   private:
     vkg::Instance m_instance;
     vkg::Window m_window;
