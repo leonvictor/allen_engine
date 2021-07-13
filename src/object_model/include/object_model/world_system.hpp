@@ -17,11 +17,38 @@ class IWorldSystem
 {
     friend class WorldEntity;
 
+  private:
+    enum class Status
+    {
+        Uninitialized,
+        Initialized,
+        Enabled,
+    };
+
+    Status m_status = Status::Uninitialized;
+
+    // Wrapper method used by the world entity.
+    // Used to hide the status from user code.
+    void InitializeSystem()
+    {
+        assert(m_status == Status::Uninitialized);
+        Initialize();
+        m_status = Status::Initialized;
+    }
+
+    void ShutdownSystem()
+    {
+        assert(m_status == Status::Initialized);
+        Shutdown();
+        m_status = Status::Uninitialized;
+    }
+
   protected:
     virtual const UpdatePriorities& GetUpdatePriorities() = 0;
 
     // TODO: Called when the system is registered with the world
     // virtual void Initialize(const SystemRegistry& systemRegistry) {};
+    virtual void Initialize() = 0;
 
     /// @brief Called when the system is removed from the world.
     virtual void Shutdown() = 0;
@@ -35,12 +62,15 @@ class IWorldSystem
     /// @brief Called immediately before a component is deactivated.
     virtual void UnregisterComponent(const Entity* pEntity, IComponent* pComponent) = 0;
 
-  private:
-    enum class Status
+    void Enable()
     {
-        Disabled,
-        Enabled,
-    };
+        assert(m_status == Status::Initialized);
+        m_status = Status::Enabled;
+    }
 
-    Status m_status = Status::Disabled;
+    void Disable()
+    {
+        assert(m_status == Status::Enabled);
+        m_status = Status::Initialized;
+    }
 };

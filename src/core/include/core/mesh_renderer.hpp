@@ -21,9 +21,20 @@
 // representing them on the GPU.
 class MeshRenderer : public SpatialComponent
 {
+    friend class GraphicsSystem;
+
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
+
+    Mesh m_mesh;
+    Material m_material;
+
     vk::UniqueDescriptorSet m_vkDescriptorSet;
+    vkg::Buffer m_vertexBuffer;
+    vkg::Buffer m_indexBuffer;
+    vkg::Buffer m_uniformBuffer;
+    vkg::Buffer m_materialBuffer;
+    vkg::Image m_materialTexture;
 
     void CreateDataBuffers()
     {
@@ -48,6 +59,7 @@ class MeshRenderer : public SpatialComponent
         m_materialTexture = vkg::Image::FromFile(m_pDevice, m_material.m_texturePath);
         m_materialTexture.AddView();
         m_materialTexture.AddSampler();
+        m_materialTexture.SetDebugName("Material Texture");
 
         m_materialBuffer = vkg::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
 
@@ -103,15 +115,6 @@ class MeshRenderer : public SpatialComponent
     }
 
   public:
-    Mesh m_mesh;
-    Material m_material;
-
-    vkg::Buffer m_vertexBuffer;
-    vkg::Buffer m_indexBuffer;
-    vkg::Buffer m_uniformBuffer;
-    vkg::Buffer m_materialBuffer;
-    vkg::Image m_materialTexture;
-
     /// @brief Construct a MeshRenderer component.
     /// @param pDevice: pointer to the rendering device.
     /// @param path: path to the model file.
@@ -181,11 +184,15 @@ class MeshRenderer : public SpatialComponent
 
         // TODO: Make sure reassignement is good enough.
         m_materialTexture = vkg::Image();
+        m_materialTexture.SetDebugName("Material Texture");
+
         m_materialBuffer = vkg::Buffer();
 
         m_uniformBuffer = vkg::Buffer();
         m_vertexBuffer = vkg::Buffer();
         m_indexBuffer = vkg::Buffer();
+
+        m_pDevice.reset();
     }
 
     bool Load() override

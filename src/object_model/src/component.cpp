@@ -3,6 +3,20 @@
 #include <assert.h>
 #include <stdexcept>
 
+bool IComponent::LoadComponent()
+{
+    assert(m_status == Status::Unloaded);
+
+    if (Load())
+    {
+        m_status = Status::Loaded;
+        return true;
+    }
+
+    m_status = Status::LoadingFailed;
+    return false;
+}
+
 bool IComponent::LoadComponentAsync()
 {
     // Loading must be running or not started yet.

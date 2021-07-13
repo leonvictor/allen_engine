@@ -53,7 +53,7 @@ void Entity::LoadComponents(const ObjectModel::LoadingContext& loadingContext)
         if (pComponent->IsUnloaded())
         {
             // TODO: What do we do with loadingContext ?
-            pComponent->Load();
+            pComponent->LoadComponent();
         }
     }
 
@@ -66,15 +66,19 @@ void Entity::UnloadComponents(const ObjectModel::LoadingContext& loadingContext)
 
     for (auto pComponent : m_components)
     {
+        if (pComponent->IsInitialized())
+        {
+            pComponent->ShutdownComponent();
+        }
         // TODO: Component *should* be loaded in all cases
-        if (pComponent->IsLoaded())
+        if (pComponent->IsLoaded() || pComponent->IsLoading())
         {
             // TODO: What do we do with loadingContext ?
-            pComponent->Unload();
+            pComponent->UnloadComponent();
         }
     }
 
-    m_status = Status::Loaded;
+    m_status = Status::Unloaded;
 }
 
 void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
@@ -86,7 +90,6 @@ void Entity::Activate(const ObjectModel::LoadingContext& loadingContext)
     if (IsSpatialEntity())
     {
         // Calculate the initial world transform but do not trigger the callback to the component
-        // TODO: ?
         m_pRootSpatialComponent->CalculateWorldTransform(false);
     }
 
@@ -319,8 +322,8 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
 
     pComponent->m_entityID = core::UUID::InvalidID();
     // TODO: Shutdown / Unload here ?
-    pComponent->Shutdown();
-    pComponent->Unload();
+    pComponent->ShutdownComponent();
+    pComponent->UnloadComponent();
 
     // TODO: Experiment with different component storage modes
     // Using a pool might be a good idea, to pack them in contiguous memory regions

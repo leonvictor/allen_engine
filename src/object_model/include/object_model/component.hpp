@@ -31,9 +31,9 @@ class IComponent
     // Private state management methods. Use verbose naming to differentiate with the inner virtual ones.
     bool LoadComponent();
     bool LoadComponentAsync();
+    void UnloadComponent();
     void InitializeComponent();
     void ShutdownComponent();
-    void UnloadComponent();
 
   protected:
     /// @brief Allocate internal transient data.

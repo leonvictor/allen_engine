@@ -32,12 +32,7 @@ class GraphicsSystem : public IWorldSystem
 
     void CreateLightsDescriptorSet()
     {
-        vk::DescriptorSetAllocateInfo allocInfo;
-        allocInfo.descriptorPool = m_pRenderer->GetDevice()->GetDescriptorPool();
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &(m_pRenderer->GetDevice()->GetDescriptorSetLayout<Light>());
-
-        m_lightsVkDescriptorSet = std::move(m_pRenderer->GetDevice()->GetVkDevice().allocateDescriptorSetsUnique(allocInfo)[0]);
+        m_lightsVkDescriptorSet = m_pRenderer->GetDevice()->AllocateDescriptorSet<Light>();
         m_pRenderer->GetDevice()->SetDebugUtilsObjectName(m_lightsVkDescriptorSet.get(), "Lights Descriptor Set");
 
         vk::DescriptorBufferInfo lightsBufferInfo;
@@ -58,6 +53,14 @@ class GraphicsSystem : public IWorldSystem
 
     void Shutdown() override
     {
+        m_lightsVkDescriptorSet.reset();
+        m_lightsBuffer = vkg::Buffer();
+    }
+
+    void Initialize() override
+    {
+        m_lightsBuffer = vkg::Buffer(m_pRenderer->GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        CreateLightsDescriptorSet();
     }
 
     void Update(const ObjectModel::UpdateContext& context) override
@@ -211,8 +214,5 @@ class GraphicsSystem : public IWorldSystem
     GraphicsSystem(vkg::IRenderer* pRenderer)
     {
         m_pRenderer = pRenderer;
-
-        m_lightsBuffer = vkg::Buffer(m_pRenderer->GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        CreateLightsDescriptorSet();
     }
 };
