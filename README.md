@@ -1,7 +1,6 @@
-# vulkan_sandbox
+# Allen Engine
 
-My experiments using Vulkan. I plan to make a simple renderer to begin with, then I'll switch my focus to tooling (especially Animation)
-The first raw edition of the program was developped following [this tutorial](https://vulkan-tutorial.com/).
+Allen is a pet game engine I started developing on my free time while in lockdown. I started to write a renderer in vulkan, to learn a bunch of things on graphics, discover the standard and practice my c++-fu (which was pretty poopy at that time (and apparently still is, considering how often I get bitten back by my code)). It then gradually mutated into a project in which I practiced my software engineering, of which I don't do much during my current day job.
 
 # Setting up a dev environment (VSCode on Windows)
  - Download and install Vulkan (TODO: version; link)
