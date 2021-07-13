@@ -5,6 +5,8 @@ add_library(
     src/input_action.cpp
     src/input_device.cpp
     src/input_system.cpp
+    src/mouse.cpp
+    src/keyboard.cpp
     src/controls/input_control.cpp
     )
 
@@ -20,7 +22,7 @@ set(LIB_INCLUDE_DIRS
 )
 
 set(LIB_DEPENDENCIES
-    imm32 glfw ${GLFW_LIBRARIES}
+    imm32
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC ${LIB_DEPENDENCIES})
