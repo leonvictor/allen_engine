@@ -7,7 +7,7 @@ namespace aln::entities
 {
 
 class Entity;
-using UUID = aln::utils::UUID;
+using aln::utils::UUID;
 
 /// @brief Singleton holder of *all* the entities.
 // TODO: Should be responsible for ensuring concurrency

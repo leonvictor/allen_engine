@@ -99,4 +99,10 @@ void WorldEntity::UnregisterEntity(Entity* pEntity)
     std::cout << "Entity unregistered w/ world systems: " << pEntity->GetName() << std::endl;
     // TODO
 }
+
+std::map<aln::utils::UUID, Entity>& WorldEntity::GetEntitiesCollection()
+{
+    return m_entityMap.Collection();
+}
+
 } // namespace aln::entities

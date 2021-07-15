@@ -61,6 +61,11 @@ class IComponent
     inline bool IsLoading() const { return m_status == Status::Loading; }
     inline bool IsLoaded() const { return m_status == Status::Loaded; }
 
+    /// @brief Get a string representation of the component type.
+    /// @todo This bloats the objects unnecessarily. Type reflection might be a better idea, or a static method somewhere ?
+    /// That would be cool but how do we "force" client code to implement it ?
+    virtual std::string GetComponentTypeName() = 0;
+
     const UUID& GetID() const { return m_ID; }
 
     bool operator==(const IComponent& other) const { return m_ID == other.GetID(); }

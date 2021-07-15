@@ -8,6 +8,8 @@
 #include <typeindex>
 #include <typeinfo>
 
+#include <utils/uuid.hpp>
+
 namespace aln::entities
 {
 /// @brief The one entity that represents the world. Holds entities and world systems.
@@ -45,7 +47,6 @@ class WorldEntity
         T* system = new T(args...);
         system->InitializeSystem();
         m_systems.emplace(std::make_pair(std::type_index(typeid(T)), system));
-        // TODO: !! Handle deletion on destruction.
     }
 
     template <typename T>
@@ -61,5 +62,7 @@ class WorldEntity
             m_systems.erase(iter->first);
         }
     }
+
+    std::map<aln::utils::UUID, Entity>& GetEntitiesCollection();
 };
 } // namespace aln::entities

@@ -102,12 +102,15 @@ class Entity
     void RefreshEntityAttachments();
 
   public:
-    inline bool IsLoaded() const { return m_status == Status::Loaded; }
-    inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
-    inline bool IsActivated() const { return m_status == Status::Activated; }
-    inline bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
-    inline const UUID& GetID() const { return m_ID; };
+    bool IsLoaded() const { return m_status == Status::Loaded; }
+    bool IsUnloaded() const { return m_status == Status::Unloaded; }
+    bool IsActivated() const { return m_status == Status::Activated; }
+    bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
+    const UUID& GetID() const { return m_ID; };
     std::string GetName() const { return m_name; }
+
+    /// @todo Consider implications of this being public ?
+    SpatialComponent* GetRootSpatialComponent() { return m_pRootSpatialComponent; }
 
     void LoadComponents(const LoadingContext& loadingContext);
     void UnloadComponents(const LoadingContext& loadingContext);
@@ -179,6 +182,10 @@ class Entity
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context);
 
+    // -------------------------------------------------
+    // Components
+    // -------------------------------------------------
+
     /// @brief Destroy a component from this entity.
     /// @param componentID: UUID of the component to destroy.
     void DestroyComponent(const UUID& componentID);
@@ -201,6 +208,11 @@ class Entity
         T* pComponent = new T(args...);
         AddComponent(pComponent);
         return pComponent;
+    }
+
+    const std::vector<IComponent*>& GetComponents()
+    {
+        return m_components;
     }
 
     SpatialComponent* FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const UUID& socketID) const;
