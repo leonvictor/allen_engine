@@ -3,8 +3,7 @@
 #include <entities/spatial_component.hpp>
 #include <vulkan/vulkan.hpp>
 
-#include <graphics/device.hpp>
-#include <graphics/resources/buffer.hpp>
+#include <glm/vec3.hpp>
 
 namespace aln
 {
@@ -16,7 +15,7 @@ struct LightUniform
     // TODO: Add inner and outer cutoff for spot lights
 };
 
-class Light : public SpatialComponent
+class Light : public entities::SpatialComponent
 {
   public:
     enum class Type
@@ -39,30 +38,11 @@ class Light : public SpatialComponent
     bool Load() override { return true; } // Lights do not need to load resources
     void Unload() override {}
 
-    LightUniform GetUniform()
-    {
-        Transform t = GetWorldTransform();
-
-        LightUniform u;
-        u.position = glm::vec4(t.position, (float) type);
-        u.direction = glm::vec4(direction, range);
-        u.color = glm::vec4(color, intensity);
-
-        return u;
-    }
+    LightUniform GetUniform();
 
     /// @brief Returns the vulkan bindings representing a light.
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
-    {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings{
-            vk::DescriptorSetLayoutBinding{
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eStorageBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-            }};
+    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
 
-        return bindings;
-    }
+    std::string GetComponentTypeName() { return "Light"; }
 };
-}
+} // namespace aln

@@ -8,7 +8,7 @@
 
 namespace aln
 {
-class Camera : public aln::entities::SpatialComponent
+class Camera : public entities::SpatialComponent
 {
     friend class EditorCameraController;
 
@@ -41,7 +41,9 @@ class Camera : public aln::entities::SpatialComponent
     bool Load() override { return true; }
     void Unload() override {}
 
+    std::string GetComponentTypeName() { return "Camera"; };
+
   private:
     void AfterTransformUpdate() override;
 };
-}
+} // namespace aln

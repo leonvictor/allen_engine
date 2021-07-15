@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glm/gtc/vec1.hpp>
+#include <glm/vec3.hpp>
+
 namespace aln
 {
 /// @brief Material ressource
@@ -32,4 +35,4 @@ struct MaterialBufferObject
         shininess = glm::vec1(8.0f);
     }
 };
-}
+} // namespace aln
