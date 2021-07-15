@@ -27,21 +27,11 @@ class IWorldSystem
 
     Status m_status = Status::Uninitialized;
 
-    // Wrapper method used by the world entity.
+    // Wrapper methods used by the world entity.
     // Used to hide the status from user code.
-    void InitializeSystem()
-    {
-        assert(m_status == Status::Uninitialized);
-        Initialize();
-        m_status = Status::Initialized;
-    }
+    void InitializeSystem();
 
-    void ShutdownSystem()
-    {
-        assert(m_status == Status::Initialized);
-        Shutdown();
-        m_status = Status::Uninitialized;
-    }
+    void ShutdownSystem();
 
   protected:
     virtual const UpdatePriorities& GetUpdatePriorities() = 0;
@@ -62,16 +52,8 @@ class IWorldSystem
     /// @brief Called immediately before a component is deactivated.
     virtual void UnregisterComponent(const Entity* pEntity, IComponent* pComponent) = 0;
 
-    void Enable()
-    {
-        assert(m_status == Status::Initialized);
-        m_status = Status::Enabled;
-    }
+    void Enable();
 
-    void Disable()
-    {
-        assert(m_status == Status::Enabled);
-        m_status = Status::Initialized;
-    }
+    void Disable();
 };
 }
