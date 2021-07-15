@@ -10,4 +10,9 @@ UUID::UUID(bool isValid)
 }
 
 UUID::UUID() : m_ID(uuids::uuid_system_generator{}()) {}
+
+bool UUID::IsValid() const { return !m_ID.is_nil(); }
+
+std::string UUID::ToString() const { return uuids::to_string(m_ID); }
+
 } // namespace aln::utils

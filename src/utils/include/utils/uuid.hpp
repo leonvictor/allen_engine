@@ -37,7 +37,9 @@ class UUID
         m_ID = uuids::uuid(std::begin(cache), std::end(cache));
     }
 
-    inline bool IsValid() const { return !m_ID.is_nil(); }
+    std::string ToString() const;
+
+    bool IsValid() const;
 
     inline bool operator==(const UUID& other) const { return m_ID == other.m_ID; }
     inline bool operator!=(const UUID& other) const { return !operator==(other); }
