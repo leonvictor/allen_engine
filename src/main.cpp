@@ -126,9 +126,9 @@ class Engine
 
     // GUI toggles
     bool showTransformGUI = false;
+    Entity* m_pSelectedEntity = nullptr;
 
     // Object model
-
     WorldEntity m_worldEntity;
 
     void CreateWorld()
@@ -309,39 +309,93 @@ class Engine
             }
         }
         ImGui::End();
-        // if (ImGui::Begin("Transform", nullptr) && selectedObject != nullptr)
-        if (ImGui::Begin("Transform", nullptr))
+
+        if (m_pSelectedEntity != nullptr)
         {
-            // auto transform = selectedObject->getComponent<Transform>();
-            // ImGui::PushItemWidth(60);
-            // // TODO: vec3 might deserve a helper function to create ui for the 3 components...
-            // // Position
-            // ImGui::Text("Position");
-            // ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
-            // ImGui::SameLine();
-            // ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
-            // ImGui::SameLine();
-            // ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
+            if (ImGui::Begin("Inspector", nullptr))
+            {
+                if (m_pSelectedEntity->IsSpatialEntity())
+                {
+                    auto transform = m_pSelectedEntity->GetRootSpatialComponent()->ModifyTransform();
+                    ImGui::PushItemWidth(60);
 
-            // // Rotation
-            // ImGui::Text("Rotation");
-            // ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
-            // ImGui::SameLine();
-            // ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
-            // ImGui::SameLine();
-            // ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
+                    // TODO: vec3 might deserve a helper function to create ui for the 3 components...
+                    // Position
+                    ImGui::Text("Position");
+                    ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
+                    ImGui::SameLine();
+                    ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
+                    ImGui::SameLine();
+                    ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
 
-            // // Scale
-            // ImGui::Text("Scale");
-            // ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
-            // ImGui::SameLine();
-            // ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
-            // ImGui::SameLine();
-            // ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+                    // Rotation
+                    ImGui::Text("Rotation");
+                    ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
+                    ImGui::SameLine();
+                    ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
+                    ImGui::SameLine();
+                    ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
+
+                    // Scale
+                    ImGui::Text("Scale");
+                    ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
+                    ImGui::SameLine();
+                    ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
+                    ImGui::SameLine();
+                    ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+                }
+            }
+            ImGui::End();
+        }
+
+        if (ImGui::Begin("Outline"))
+        {
+            static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+            // TODO: How do we grab entities as a hierachy ?
+            // Probably a method in entityMap
+            auto& collec = m_worldEntity.GetEntitiesCollection();
+            for (auto& [id, entity] : collec)
+            {
+                // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
+                ImGuiTreeNodeFlags node_flags = base_flags;
+
+                // const bool is_selected = (selection_mask & (1 << i)) != 0;
+                if (m_pSelectedEntity != nullptr && *m_pSelectedEntity == entity)
+                {
+                    node_flags |= ImGuiTreeNodeFlags_Selected;
+                }
+
+                // We add the id to the ImGui hash to differentiate entities with the same name
+                std::string entityLabel = entity.GetName() + "##" + entity.GetID().ToString();
+                bool node_open = ImGui::TreeNodeEx(entityLabel.c_str());
+
+                if (ImGui::IsItemClicked())
+                    m_pSelectedEntity = &entity;
+
+                // if (test_drag_and_drop && ImGui::BeginDragDropSource())
+                // {
+                //     ImGui::SetDragDropPayload("_TREENODE", NULL, 0);
+                //     ImGui::Text("This is a drag and drop source");
+                //     ImGui::EndDragDropSource();
+                // }
+                if (node_open)
+                {
+                    // ImGui::BulletText(entity.GetID().ToString().c_str());
+                    for (auto pComponent : entity.GetComponents())
+                    {
+                        // TODO: Replace this method by a static reflection type
+                        std::string compType = pComponent->GetComponentTypeName();
+                        ImGui::BulletText(compType.c_str());
+                    }
+
+                    ImGui::TreePop();
+                }
+            }
+            // m_worldEntity.
         }
         ImGui::End();
 
-        // ImGui::End();
         ImGui::ShowDemoWindow();
     }
 };
