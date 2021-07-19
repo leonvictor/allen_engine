@@ -20,7 +20,7 @@ class Entity;
 class IComponent;
 } // namespace entities
 
-namespace vkg
+namespace vkg::render
 {
 class IRenderer;
 }

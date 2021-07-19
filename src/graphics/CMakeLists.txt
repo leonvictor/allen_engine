@@ -13,6 +13,8 @@ add_library(
     src/window.cpp
     src/resources/buffer.cpp
     src/resources/image.cpp
+
+    ${IMGUI_SOURCE}
     )
 
 set(LIB_INCLUDE_DIRS
@@ -21,6 +23,7 @@ set(LIB_INCLUDE_DIRS
     ${GLM_INCLUDE_DIR}
     ${STB_INCLUDE_DIR}
     ${CONFIG_INCLUDE_DIRS}
+    ${IMGUI_INCLUDE_DIRS}
 )
 
 set(LIB_DEPENDENCIES

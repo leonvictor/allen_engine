@@ -13,7 +13,7 @@ set(LIB_DEPENDENCIES
     ${TINYOBJLOADER_INCLUDE_DIR}    
 )
 
-set(LIB_LINK_DEPENDENCIES utils entities graphics)
+set(LIB_LINK_DEPENDENCIES utils entities graphics tinyobjloader)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

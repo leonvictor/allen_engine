@@ -29,15 +29,25 @@ set(ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Add Imgui to sources
-file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")
-set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/backends/imgui_impl_vulkan.cpp" "external/imgui/backends/imgui_impl_glfw.cpp")
+file(GLOB IMGUI_SOURCE ${CMAKE_SOURCE_DIR}/external/imgui/*.cpp)
+set(IMGUI_SOURCE ${IMGUI_SOURCE} 
+    ${CMAKE_SOURCE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
+    ${CMAKE_SOURCE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
+)
+
+set(SOURCE ${SOURCE} ${IMGUI_SOURCE})
+
 set(SOURCE ${SOURCE} "external/imgui_plugins/ImGuizmo.cpp")
 
 add_executable(main ${SOURCE})
 
 # Include ImGui
-target_include_directories(main PUBLIC "external/imgui/backends")
-target_include_directories(main PUBLIC "external/imgui")
+set(IMGUI_INCLUDE_DIRS 
+    ${CMAKE_SOURCE_DIR}/external/imgui/backends
+    ${CMAKE_SOURCE_DIR}/external/imgui
+)
+
+target_include_directories(main PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
 add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
@@ -75,7 +85,7 @@ set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
 target_include_directories(main PUBLIC ${STB_INCLUDE_DIR})
 
 # tinyobjloader
-set(TINYOBJLOADER_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/tinyobjloader)
+add_subdirectory(external/tinyobjloader)
 
 # stduuids
 set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)

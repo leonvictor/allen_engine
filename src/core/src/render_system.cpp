@@ -2,9 +2,9 @@
 
 #include <graphics/rendering/renderer.hpp>
 
-#include <core/camera.hpp>
-#include <core/light.hpp>
-#include <core/mesh_renderer.hpp>
+#include "camera.hpp"
+#include "light.hpp"
+#include "mesh_renderer.hpp"
 
 #include <entities/entity.hpp>
 #include <entities/object_model.hpp>
