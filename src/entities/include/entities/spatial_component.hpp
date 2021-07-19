@@ -1,8 +1,7 @@
 #pragma once
 
 #include "component.hpp"
-#include "transform.hpp"
-
+#include <common/transform.hpp>
 #include <utils/uuid.hpp>
 
 #include <vector>
@@ -130,4 +129,4 @@ class SpatialComponent : public IComponent
         AfterTransformUpdate();
     }
 };
-}
+} // namespace aln::entities

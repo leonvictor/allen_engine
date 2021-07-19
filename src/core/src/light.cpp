@@ -1,11 +1,10 @@
 #include "light.hpp"
 
-#include <entities/transform.hpp>
+#include <common/transform.hpp>
 #include <glm/vec4.hpp>
 
 namespace aln
 {
-using namespace entities;
 
 LightUniform Light::GetUniform()
 {

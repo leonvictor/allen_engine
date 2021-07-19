@@ -14,7 +14,7 @@
 #include <entities/spatial_component.hpp>
 
 #include "material.hpp"
-#include "mesh.hpp"
+#include <common/mesh.hpp>
 
 namespace aln
 {

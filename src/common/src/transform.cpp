@@ -1,6 +1,6 @@
 #include "transform.hpp"
 
-namespace aln::entities
+namespace aln
 {
 Transform& Transform::operator=(const Transform& other)
 {

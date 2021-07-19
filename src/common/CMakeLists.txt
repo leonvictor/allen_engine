@@ -1,18 +1,15 @@
-set(LIB_NAME core)
+set(LIB_NAME common)
 
 add_library(${LIB_NAME} SHARED
-    src/camera.cpp
-    src/mesh_renderer.cpp
-    src/light.cpp
-    src/render_system.cpp
+    src/mesh.cpp
+    src/transform.cpp
 )
 
 set(LIB_DEPENDENCIES 
     ${GLM_INCLUDE_DIR}
-    ${Vulkan_INCLUDE_DIRS}
 )
 
-set(LIB_LINK_DEPENDENCIES utils common entities graphics)
+set(LIB_LINK_DEPENDENCIES utils tinyobjloader)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

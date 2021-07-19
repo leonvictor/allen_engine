@@ -1,9 +1,9 @@
 #include "camera.hpp"
-#include "entities/transform.hpp"
+
+#include <common/transform.hpp>
 
 namespace aln
 {
-using Transform = aln::entities::Transform;
 
 glm::mat4 Camera::GetViewMatrix() const
 {

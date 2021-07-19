@@ -91,7 +91,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     float aspectRatio = context.displayWidth / (float) context.displayHeight;
 
     vkg::UniformBufferObject ubo;
-    entities::Transform t = m_pCameraComponent->GetWorldTransform();
+    Transform t = m_pCameraComponent->GetWorldTransform();
     ubo.cameraPos = t.position;
     ubo.view = m_pCameraComponent->GetViewMatrix();
     ubo.projection = glm::perspective(
@@ -107,7 +107,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     for (auto& [pEntity, pMeshRenderer] : m_components)
     {
         // Compute this mesh's model matrix
-        entities::Transform transform = pMeshRenderer->GetLocalTransform();
+        Transform transform = pMeshRenderer->GetLocalTransform();
         ubo.model = glm::mat4(1.0f);
         ubo.model = glm::translate(ubo.model, transform.position);
         ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));

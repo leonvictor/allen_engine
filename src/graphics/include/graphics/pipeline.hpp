@@ -2,7 +2,6 @@
 
 #include "device.hpp"
 #include "shaders.hpp"
-#include "vertex.hpp"
 
 #include <iomanip>
 #include <utils/uuid.hpp>
@@ -105,4 +104,4 @@ class Pipeline
     /// - remove verbose output OR make it debug only
     vk::UniquePipelineCache LoadCachedPipeline(std::string path);
 };
-} // namespace vkg
+} // namespace aln::vkg

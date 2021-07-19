@@ -8,7 +8,6 @@ add_library(
     src/entity_map.cpp
     src/spatial_component.cpp
     src/command.cpp
-    src/transform.cpp
     src/world_entity.cpp
     src/world_system.cpp
     )
@@ -19,6 +18,7 @@ set(LIB_INCLUDE_DIRS
 
 set(LIB_LINK_DEPENDENCIES
     utils
+    common
 )
 
 target_compile_features(main PUBLIC cxx_std_20)
