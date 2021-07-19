@@ -59,6 +59,7 @@ class Input
 
   public:
     static void RegisterContext(InputContext* pContext);
+    static void UnregisterContext(InputContext* pContext);
 
     /// @brief Process registered input by passing them to active contexts.
     /// TODO: Shouldn't be accessible outside the main engine loop
