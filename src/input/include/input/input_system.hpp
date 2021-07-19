@@ -6,15 +6,21 @@
 
 #include <vector>
 
-namespace aln::input
+namespace aln
 {
+
+class Engine;
+
+namespace input
+{
+
 /// TODO: https://www.gamedev.net/blogs/entry/2250186-designing-a-robust-input-handling-system-for-games/
 class InputContext;
 
 /// @brief Input is the overarching system recording and dispatching input operations.
 class Input
 {
-    friend class Engine;
+    friend aln::Engine;
 
   private:
     // TODO:
@@ -67,4 +73,5 @@ class Input
     /// TODO: Static access to the gamepad.
     // static const Gamepad& Gamepad();
 };
-}
+} // namespace input
+} // namespace aln

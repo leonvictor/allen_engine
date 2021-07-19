@@ -4,7 +4,7 @@
 
 namespace aln::utils
 {
-std::vector<char> utils::readFile(const std::string& filename)
+std::vector<char> readFile(const std::string& filename)
 {
     // We start to read at the end of the file so we can use the read position to determine the size of the file to allocate a buffer
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -25,7 +25,7 @@ std::vector<char> utils::readFile(const std::string& filename)
     return buffer;
 }
 
-std::string utils::getFileExtension(const std::string& fileName)
+std::string getFileExtension(const std::string& fileName)
 {
     if (fileName.find_last_of(".") != std::string::npos)
         return fileName.substr(fileName.find_last_of(".") + 1);

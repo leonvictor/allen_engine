@@ -8,7 +8,12 @@
 #include <glm/vec2.hpp>
 #include <vector>
 
-namespace aln::vkg
+namespace aln
+{
+
+class Engine;
+
+namespace vkg
 {
 
 class Instance;
@@ -23,7 +28,7 @@ struct Size2D
 /// Also wraps the window library (GLFW).
 class Window
 {
-    friend class Engine;
+    friend aln::Engine;
 
   public:
     ~Window();
@@ -95,4 +100,5 @@ class Window
     /// @brief Create the vulkan surface
     void CreateSurface(const vkg::Instance* pInstance);
 };
-} // namespace aln::vkg
+} // namespace vkg
+} // namespace aln
