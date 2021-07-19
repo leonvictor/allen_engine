@@ -75,7 +75,8 @@ set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
 target_include_directories(main PUBLIC ${STB_INCLUDE_DIR})
 
 # tinyobjloader
-target_include_directories(main PUBLIC "external/tinyobjloader")
+set(TINY_OBJ_LOADER_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/tinyobjloader)
+target_include_directories(main PUBLIC ${TINY_OBJ_LOADER_INCLUDE_DIR})
 
 # stduuids
 set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)

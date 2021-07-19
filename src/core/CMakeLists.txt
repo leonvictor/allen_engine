@@ -2,12 +2,14 @@ set(LIB_NAME core)
 
 add_library(${LIB_NAME} SHARED
     src/camera.cpp
-    )
+    src/mesh_renderer.cpp
+)
 
 set(LIB_DEPENDENCIES 
     ${GLM_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
-    )
+    ${TINY_OBJ_LOADER_INCLUDE_DIR}    
+)
 
 set(LIB_LINK_DEPENDENCIES utils entities graphics)
 
