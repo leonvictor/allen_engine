@@ -6,6 +6,8 @@
 namespace aln
 {
 
+Mesh::Mesh(std::string sourceFile) : m_sourceFile(sourceFile) {}
+
 void Mesh::Unload()
 {
     m_vertices.clear();

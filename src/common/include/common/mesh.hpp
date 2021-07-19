@@ -18,8 +18,9 @@ struct PrimitiveComponent
 };
 
 /// @brief Mesh resource
-struct Mesh
+class Mesh
 {
+  protected:
     std::string m_sourceFile;
 
     std::vector<Vertex> m_vertices;
@@ -27,8 +28,14 @@ struct Mesh
 
     std::vector<PrimitiveComponent> m_primitives;
 
-    void Unload();
+  public:
+    Mesh(std::string sourceFile);
+
+    /// @brief Load the mesh from the source file.
     bool Load();
+
+    /// @brief Free mesh resources.
+    void Unload();
 
     void RevertNormals();
 };

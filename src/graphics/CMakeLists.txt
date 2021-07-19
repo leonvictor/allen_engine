@@ -14,6 +14,8 @@ add_library(
     src/resources/buffer.cpp
     src/resources/image.cpp
 
+    src/draw_mesh.cpp
+
     ${IMGUI_SOURCE}
     )
 

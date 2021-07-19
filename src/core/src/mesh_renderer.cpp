@@ -5,23 +5,6 @@
 namespace aln
 {
 
-void MeshRenderer::CreateDataBuffers()
-{
-    // Create vertex buffer
-    vkg::resources::Buffer vertexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_mesh.m_vertices);
-    m_vertexBuffer = vkg::resources::Buffer(m_pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-    // Create index buffer
-    vkg::resources::Buffer indexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_mesh.m_indices);
-    m_indexBuffer = vkg::resources::Buffer(m_pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-    m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
-        {
-            vertexStagingBuffer.CopyTo(cb, m_vertexBuffer);
-            indexStagingBuffer.CopyTo(cb, m_indexBuffer);
-        });
-}
-
 void MeshRenderer::CreateMaterialTexture()
 {
     // TODO: Split image loading and vulkan texture creation
@@ -84,9 +67,8 @@ void MeshRenderer::CreateDescriptorSet()
 }
 
 MeshRenderer::MeshRenderer(std::shared_ptr<vkg::Device> pDevice, std::string modelPath, std::string texturePath)
+    : m_pDevice(pDevice), m_mesh(modelPath)
 {
-    m_pDevice = pDevice;
-    m_mesh.m_sourceFile = modelPath;
     m_material.m_texturePath = texturePath;
 }
 
@@ -136,7 +118,7 @@ vk::DescriptorSet& MeshRenderer::GetDescriptorSet() { return m_vkDescriptorSet.g
 
 void MeshRenderer::Initialize()
 {
-    CreateDataBuffers();
+    m_mesh.CreateGraphicResources(m_pDevice);
     CreateUniformBuffer();
     CreateMaterialTexture();
     CreateDescriptorSet();
@@ -153,8 +135,7 @@ void MeshRenderer::Shutdown()
     m_materialBuffer = vkg::resources::Buffer();
 
     m_uniformBuffer = vkg::resources::Buffer();
-    m_vertexBuffer = vkg::resources::Buffer();
-    m_indexBuffer = vkg::resources::Buffer();
+    m_mesh.FreeGraphicResources();
 
     m_pDevice.reset();
 }

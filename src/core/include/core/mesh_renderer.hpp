@@ -14,7 +14,7 @@
 #include <entities/spatial_component.hpp>
 
 #include "material.hpp"
-#include <common/mesh.hpp>
+#include <graphics/draw_mesh.hpp>
 
 namespace aln
 {
@@ -33,12 +33,10 @@ class MeshRenderer : public entities::SpatialComponent
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
 
-    Mesh m_mesh;
+    vkg::DrawMesh m_mesh;
     Material m_material;
 
     vk::UniqueDescriptorSet m_vkDescriptorSet;
-    vkg::resources::Buffer m_vertexBuffer;
-    vkg::resources::Buffer m_indexBuffer;
     vkg::resources::Buffer m_uniformBuffer;
     vkg::resources::Buffer m_materialBuffer;
     vkg::resources::Image m_materialTexture;

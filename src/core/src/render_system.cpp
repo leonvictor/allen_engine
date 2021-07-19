@@ -119,12 +119,9 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
         pMeshRenderer->UpdateUniformBuffers(ubo);
 
         // Bind the mesh buffers
-        vk::DeviceSize offset = 0;
-        cb.bindVertexBuffers(0, pMeshRenderer->m_vertexBuffer.GetVkBuffer(), offset);
-        cb.bindIndexBuffer(pMeshRenderer->m_indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
-
         objectPipeline.BindDescriptorSet(cb, pMeshRenderer->GetDescriptorSet(), 1);
-        cb.drawIndexed(pMeshRenderer->m_mesh.m_indices.size(), 1, 0, 0, 0);
+        vk::DeviceSize offset = 0;
+        pMeshRenderer->m_mesh.Bind(cb, offset);
     }
 
     m_pRenderer->EndFrame();
