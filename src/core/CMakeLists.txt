@@ -4,13 +4,14 @@ add_library(${LIB_NAME} SHARED
     src/camera.cpp
     src/mesh_renderer.cpp
     src/light.cpp
-    )
+    src/render_system.cpp
+)
 
 set(LIB_DEPENDENCIES 
     ${GLM_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
-    ${TINYOBJLOADER_INCLUDE_DIR}
-    )
+    ${TINYOBJLOADER_INCLUDE_DIR}    
+)
 
 set(LIB_LINK_DEPENDENCIES utils entities graphics)
 

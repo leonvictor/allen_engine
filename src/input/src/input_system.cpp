@@ -9,6 +9,16 @@ void Input::RegisterContext(InputContext* pContext)
     singleton.m_contexts.push_back(pContext);
 }
 
+void Input::UnregisterContext(InputContext* pContext)
+{
+    Input& singleton = Input::Singleton();
+    auto iter = std::find(singleton.m_contexts.begin(), singleton.m_contexts.end(), pContext);
+
+    assert(iter != singleton.m_contexts.end()); // Tried to unregister an unregistered context
+
+    singleton.m_contexts.erase(iter);
+}
+
 const Keyboard& Input::Keyboard()
 {
     Input& singleton = Input::Singleton();
@@ -53,4 +63,4 @@ Input& Input::Singleton()
     static Input singleton;
     return singleton;
 }
-}
+} // namespace aln::input

@@ -9,6 +9,9 @@
 
 #include <graphics/resources/buffer.hpp>
 #include <graphics/resources/image.hpp>
+#include <graphics/ubo.hpp>
+
+#include <entities/spatial_component.hpp>
 
 #include "material.hpp"
 #include "mesh.hpp"
@@ -40,16 +43,12 @@ class MeshRenderer : public entities::SpatialComponent
     vkg::resources::Buffer m_materialBuffer;
     vkg::resources::Image m_materialTexture;
 
+    // -------------------------------------------------
+    // Vulkan resources creation
+    // -------------------------------------------------
     void CreateDataBuffers();
-
     void CreateMaterialTexture();
-
     void CreateUniformBuffer();
-
-    // TODO: Descriptor allocation and update is managed by the swapchain.
-    // We could extract this part and use a method where each objects requests a descriptor from the pool ?
-    // Each descriptable Component should register its descriptor to its parent object
-    // *before* creation
     void CreateDescriptorSet();
 
   public:
@@ -60,10 +59,9 @@ class MeshRenderer : public entities::SpatialComponent
 
     /// @brief Returns the vulkan bindings representing a scene object.
     static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
+    vk::DescriptorSet& GetDescriptorSet();
 
     void UpdateUniformBuffers(vkg::UniformBufferObject& ubo);
-
-    vk::DescriptorSet& GetDescriptorSet();
 
     // -------------------------------------------------
     // Components Methods

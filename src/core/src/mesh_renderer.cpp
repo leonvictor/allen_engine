@@ -1,23 +1,10 @@
 #include "mesh_renderer.hpp"
 
-#include <memory>
-#include <vector>
-#include <vulkan/vulkan.hpp>
-
 #include <graphics/device.hpp>
-#include <graphics/resources/buffer.hpp>
-#include <graphics/resources/image.hpp>
-#include <graphics/ubo.hpp>
-#include <graphics/vertex.hpp>
-
-#include <entities/spatial_component.hpp>
-#include <utils/files.hpp>
-
-#include "material.hpp"
-#include "mesh.hpp"
 
 namespace aln
 {
+
 void MeshRenderer::CreateDataBuffers()
 {
     // Create vertex buffer
@@ -57,6 +44,10 @@ void MeshRenderer::CreateUniformBuffer()
     m_uniformBuffer = vkg::resources::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
 
+// TODO: Descriptor allocation and update is managed by the swapchain.
+// We could extract this part and use a method where each objects requests a descriptor from the pool ?
+// Each descriptable Component should register its descriptor to its parent object
+// *before* creation
 void MeshRenderer::CreateDescriptorSet()
 {
     m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<MeshRenderer>();
@@ -138,6 +129,10 @@ void MeshRenderer::UpdateUniformBuffers(vkg::UniformBufferObject& ubo)
 }
 
 vk::DescriptorSet& MeshRenderer::GetDescriptorSet() { return m_vkDescriptorSet.get(); }
+
+// -------------------------------------------------
+// Components Methods
+// -------------------------------------------------
 
 void MeshRenderer::Initialize()
 {

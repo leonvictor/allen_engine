@@ -55,7 +55,7 @@ class EditorCameraController : IEntitySystem
         {
             m_pCameraInstance = nullptr;
             m_inputContext.Disable();
-            // TODO: Unregister input context
+            Input::UnregisterContext(&m_inputContext);
         }
     }
 
