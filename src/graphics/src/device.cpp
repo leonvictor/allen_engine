@@ -16,6 +16,7 @@ Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
 {
     m_pInstance = pInstance;
     m_physical = PickPhysicalDevice(surface);
+    m_gpuProperties = m_physical.getProperties();
 
     CreateLogicalDevice(surface);
 
@@ -107,6 +108,18 @@ vk::Format Device::FindSupportedFormat(const std::vector<vk::Format>& candidates
         }
     }
     throw std::runtime_error("Failed to find a supported format.");
+}
+
+size_t Device::PadUniformBufferSize(size_t originalSize)
+{
+    // Calculate required alignment based on minimum device offset alignment
+    size_t minUboAlignment = m_gpuProperties.limits.minUniformBufferOffsetAlignment;
+    size_t alignedSize = originalSize;
+    if (minUboAlignment > 0)
+    {
+        alignedSize = (alignedSize + minUboAlignment - 1) & ~(minUboAlignment - 1);
+    }
+    return alignedSize;
 }
 
 bool Device::SupportsBlittingToLinearImages()
@@ -201,8 +214,7 @@ vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
 
 vk::SampleCountFlagBits Device::GetMaxUsableSampleCount()
 {
-    auto properties = m_physical.getProperties();
-    vk::SampleCountFlags counts = properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts;
+    vk::SampleCountFlags counts = m_gpuProperties.limits.framebufferColorSampleCounts & m_gpuProperties.limits.framebufferDepthSampleCounts;
 
     // TODO: Beurk
     if (counts & vk::SampleCountFlagBits::e64)
@@ -250,4 +262,4 @@ bool Device::IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::Surfac
     auto supportedFeatures = device.getFeatures();
     return familyIndices.IsComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy;
 }
-}; // namespace vkg
+}; // namespace aln::vkg

@@ -42,6 +42,7 @@ class Device
     vk::UniqueDevice m_logical;
 
     vk::PhysicalDeviceMemoryProperties m_memoryProperties;
+    vk::PhysicalDeviceProperties m_gpuProperties;
 
     std::vector<const char*> m_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -82,6 +83,11 @@ class Device
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
     vk::Format FindDepthFormat();
     vk::Format FindSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+
+    /// @brief Pad a given size to meet the device's alignment requirements.
+    /// @return: Adjusted size
+    /// @note https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
+    size_t PadUniformBufferSize(size_t originalSize);
 
     /// @brief Check if the device supports blitting to linear images.
     // TODO: Make more versatile
