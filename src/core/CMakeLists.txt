@@ -5,6 +5,7 @@ add_library(${LIB_NAME} SHARED
     src/mesh_renderer.cpp
     src/light.cpp
     src/render_system.cpp
+    src/skybox.cpp
 )
 
 set(LIB_DEPENDENCIES 

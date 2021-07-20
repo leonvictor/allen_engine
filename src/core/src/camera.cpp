@@ -11,6 +11,18 @@ glm::mat4 Camera::GetViewMatrix() const
     return glm::lookAt(t.position, t.position + forward, up);
 }
 
+glm::mat4 Camera::GetProjectionMatrix(float aspectRatio) const
+{
+    auto projectionMatrix = glm::perspective(
+        glm::radians(fov),
+        aspectRatio,
+        nearPlane,
+        farPlane);
+
+    projectionMatrix[1][1] *= -1; // GLM is designed for OpenGL which uses inverted y coordinates
+    return projectionMatrix;
+}
+
 void Camera::AfterTransformUpdate()
 {
     Transform t = GetLocalTransform();
@@ -22,4 +34,4 @@ void Camera::AfterTransformUpdate()
     right = glm::normalize(glm::cross(forward, world_up));
     up = glm::normalize(glm::cross(right, forward));
 }
-}
+} // namespace aln

@@ -27,5 +27,6 @@ class DrawMesh : public Mesh
     void FreeGraphicResources();
 
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset);
+    void Draw(vk::CommandBuffer& cb);
 };
 } // namespace aln::vkg

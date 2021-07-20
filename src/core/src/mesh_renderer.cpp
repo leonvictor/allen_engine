@@ -27,10 +27,6 @@ void MeshRenderer::CreateUniformBuffer()
     m_uniformBuffer = vkg::resources::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
 
-// TODO: Descriptor allocation and update is managed by the swapchain.
-// We could extract this part and use a method where each objects requests a descriptor from the pool ?
-// Each descriptable Component should register its descriptor to its parent object
-// *before* creation
 void MeshRenderer::CreateDescriptorSet()
 {
     m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<MeshRenderer>();

@@ -13,6 +13,7 @@ namespace aln
 class MeshRenderer;
 class Light;
 class Camera;
+class Skybox;
 
 namespace entities
 {
@@ -20,10 +21,14 @@ class Entity;
 class IComponent;
 } // namespace entities
 
-namespace vkg::render
+namespace vkg
+{
+class UniformBufferObject;
+namespace render
 {
 class IRenderer;
 }
+} // namespace vkg
 
 class GraphicsSystem : public entities::IWorldSystem
 {
@@ -33,6 +38,7 @@ class GraphicsSystem : public entities::IWorldSystem
     std::map<const entities::Entity*, MeshRenderer*> m_components;
     std::map<const entities::Entity*, Light*> m_lightComponents;
     Camera* m_pCameraComponent = nullptr;
+    Skybox* m_pSkyboxComponent = nullptr;
 
     // Lights use a shared buffer and descriptorSet, so it's held in the system
     vkg::resources::Buffer m_lightsBuffer;

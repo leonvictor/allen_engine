@@ -38,6 +38,7 @@
 #include <core/light.hpp>
 #include <core/mesh_renderer.hpp>
 #include <core/render_system.hpp>
+#include <core/skybox.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -169,6 +170,9 @@ class Engine
             auto pMesh = pCube->AddComponent<MeshRenderer>(m_pDevice, MODEL_PATH, TEXTURE_PATH);
             pMesh->ModifyTransform()->position = pos;
         }
+
+        Entity* pSkybox = Entity::Create("Skybox");
+        auto pSkComponent = pSkybox->AddComponent<Skybox>(m_pDevice, MODEL_PATH, "");
     }
 
     void setupSkyBox()

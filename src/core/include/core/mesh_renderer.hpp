@@ -36,6 +36,8 @@ class MeshRenderer : public entities::SpatialComponent
     vkg::DrawMesh m_mesh;
     Material m_material;
 
+    // TODO: Another method could be to manage a single descriptor set shared by all mesh_renderers.
+    // Then we would just have to bind the right buffers every time
     vk::UniqueDescriptorSet m_vkDescriptorSet;
     vkg::resources::Buffer m_uniformBuffer;
     vkg::resources::Buffer m_materialBuffer;

@@ -35,6 +35,7 @@ class Camera : public entities::SpatialComponent
     float farPlane = 300.f;
 
     glm::mat4 GetViewMatrix() const;
+    glm::mat4 GetProjectionMatrix(float aspectRatio) const;
 
     void Initialize() override {}
     void Shutdown() override {}

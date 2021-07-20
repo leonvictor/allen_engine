@@ -16,6 +16,7 @@ struct Transform
     glm::vec3 scale = glm::vec3(1.0f);
 
     Transform& operator=(const Transform& other);
+    glm::mat4 GetModelMatrix() const;
 };
 
 bool operator==(const Transform& a, const Transform& b);

@@ -19,6 +19,7 @@ namespace aln
 // fwd
 class MeshRenderer;
 class Light;
+class Skybox;
 
 namespace vkg::render
 {
@@ -175,17 +176,17 @@ class IRenderer
         m_pDevice->SetDebugUtilsObjectName(pipelines.objects.GetVkPipeline(), "Objects Pipeline");
 
         // Skybox pipeline
-        // TODO: !! Put back skybox
-        // pipelines.skybox = Pipeline(m_pDevice);
-        // pipelines.skybox.SetRenderPass(m_renderpass.GetVkRenderPass());
-        // pipelines.skybox.SetExtent({m_width, m_height});
-        // pipelines.skybox.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
-        // pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
-        // pipelines.skybox.SetDepthTestWriteEnable(true, false);
-        // pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
-        // // pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<MeshRenderer>());
-        // pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
-        // m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
+        // TODO : !!Put back skybox
+        pipelines.skybox = Pipeline(m_pDevice);
+        pipelines.skybox.SetRenderPass(m_renderpass.GetVkRenderPass());
+        pipelines.skybox.SetExtent({m_width, m_height});
+        pipelines.skybox.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/skybox.vert", vk::ShaderStageFlagBits::eVertex);
+        pipelines.skybox.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/skybox.frag", vk::ShaderStageFlagBits::eFragment);
+        pipelines.skybox.SetDepthTestWriteEnable(true, false);
+        pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
+        pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Skybox>());
+        pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
+        m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
     }
 
     /// @brief Configure and create the render pass. Override this function in derived renderer if necessary.
@@ -316,6 +317,11 @@ class IRenderer
     Pipeline& GetObjectsPipeline()
     {
         return pipelines.objects;
+    }
+
+    Pipeline& GetSkyboxPipeline()
+    {
+        return pipelines.skybox;
     }
 };
 } // namespace vkg::render

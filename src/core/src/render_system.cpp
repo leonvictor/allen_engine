@@ -5,6 +5,7 @@
 #include "camera.hpp"
 #include "light.hpp"
 #include "mesh_renderer.hpp"
+#include "skybox.hpp"
 
 #include <entities/entity.hpp>
 #include <entities/object_model.hpp>
@@ -66,10 +67,24 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
 
     // Get the active command buffer
     auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();
-    auto& objectPipeline = m_pRenderer->GetObjectsPipeline();
+    float aspectRatio = context.displayWidth / (float) context.displayHeight;
 
-    // Bind the pipeline
-    objectPipeline.Bind(cb);
+    // Update the skybox
+    if (m_pSkyboxComponent != nullptr)
+    {
+        vkg::UniformBufferObject ubo;
+        ubo.model = glm::mat4(glm::mat3(m_pCameraComponent->GetViewMatrix()));
+        ubo.view = glm::mat4(1.0f);
+        ubo.projection = m_pCameraComponent->GetProjectionMatrix(aspectRatio);
+        ubo.cameraPos = m_pCameraComponent->GetWorldTransform().position;
+        m_pSkyboxComponent->UpdateUniformBuffer(ubo);
+
+        auto& skyboxPipeline = m_pRenderer->GetSkyboxPipeline();
+        skyboxPipeline.BindDescriptorSet(cb, m_pSkyboxComponent->GetDescriptorSet(), 0);
+        m_pSkyboxComponent->m_mesh.Bind(cb, 0);
+        skyboxPipeline.Bind(cb);
+        m_pSkyboxComponent->m_mesh.Draw(cb);
+    }
 
     // Update the lights buffer
     int nLights = m_lightComponents.size();
@@ -86,42 +101,34 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
         m_lightsBuffer.Unmap();
     }
 
-    objectPipeline.BindDescriptorSet(cb, m_lightsVkDescriptorSet.get(), 0);
-
-    float aspectRatio = context.displayWidth / (float) context.displayHeight;
-
+    // Build the UBO
     vkg::UniformBufferObject ubo;
-    Transform t = m_pCameraComponent->GetWorldTransform();
-    ubo.cameraPos = t.position;
+    ubo.cameraPos = m_pCameraComponent->GetWorldTransform().position;
     ubo.view = m_pCameraComponent->GetViewMatrix();
-    ubo.projection = glm::perspective(
-        glm::radians(m_pCameraComponent->fov),
-        aspectRatio,
-        m_pCameraComponent->nearPlane,
-        m_pCameraComponent->farPlane);
+    ubo.projection = m_pCameraComponent->GetProjectionMatrix(aspectRatio);
 
-    // GLM is designed for OpenGL which uses inverted y coordinates
-    ubo.projection[1][1] *= -1;
+    auto& objectPipeline = m_pRenderer->GetObjectsPipeline();
+
+    // Bind the pipeline
+    objectPipeline.Bind(cb);
+    objectPipeline.BindDescriptorSet(cb, m_lightsVkDescriptorSet.get(), 0);
 
     // Loop over the registered components
     for (auto& [pEntity, pMeshRenderer] : m_components)
     {
         // Compute this mesh's model matrix
-        Transform transform = pMeshRenderer->GetLocalTransform();
-        ubo.model = glm::mat4(1.0f);
-        ubo.model = glm::translate(ubo.model, transform.position);
-        ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
-        ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.y), glm::vec3(0, 1, 0));
-        ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.z), glm::vec3(0, 0, 1));
-        ubo.model = glm::scale(ubo.model, transform.scale);
+        ubo.model = pMeshRenderer->GetLocalTransform().GetModelMatrix();
 
         // Update the ubo
         pMeshRenderer->UpdateUniformBuffers(ubo);
 
         // Bind the mesh buffers
-        objectPipeline.BindDescriptorSet(cb, pMeshRenderer->GetDescriptorSet(), 1);
+        // TODO: We don't have to bind every frame
+        // TODO: When then ?
         vk::DeviceSize offset = 0;
         pMeshRenderer->m_mesh.Bind(cb, offset);
+        objectPipeline.BindDescriptorSet(cb, pMeshRenderer->GetDescriptorSet(), 1);
+        pMeshRenderer->m_mesh.Draw(cb);
     }
 
     m_pRenderer->EndFrame();
@@ -129,6 +136,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
 
 void GraphicsSystem::RegisterComponent(const entities::Entity* pEntity, entities::IComponent* pComponent)
 {
+    // TODO: This could be better
     auto pCamera = dynamic_cast<Camera*>(pComponent);
     if (pCamera != nullptr)
     {
@@ -153,6 +161,12 @@ void GraphicsSystem::RegisterComponent(const entities::Entity* pEntity, entities
     {
         m_lightComponents.emplace(std::make_pair(pEntity, pLight));
         return;
+    }
+
+    auto pSkybox = dynamic_cast<Skybox*>(pComponent);
+    if (pSkybox != nullptr)
+    {
+        m_pSkyboxComponent = pSkybox;
     }
 }
 

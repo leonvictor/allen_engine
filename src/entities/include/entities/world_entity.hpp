@@ -44,7 +44,7 @@ class WorldEntity
     void CreateSystem(Args... args)
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
-        T* system = new T(args...);
+        T* system = new T(args...); // TODO: Get rid of the "new"
         system->InitializeSystem();
         m_systems.emplace(std::make_pair(std::type_index(typeid(T)), system));
     }
