@@ -4,6 +4,7 @@
 
 #include <assets/asset_system/asset_system.hpp>
 #include <assets/asset_system/texture_asset.hpp>
+#include <config/path.h>
 
 #include <cmath>
 #include <fstream>
@@ -593,14 +594,15 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
 
     // TODO: Remove hardcoded path to textures
     // TODO: Load the first face before the loop to initialize buffers
-    auto facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[0] + ".png";
-
+    auto facePath = std::string(DEFAULT_ASSETS_DIR) + "/skyboxes/midday/CloudyCrown_Midday_" + faces[0] + ".png";
     int width, height, channels;
     stbi_uc* pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
     if (!pixels)
     {
         std::cout << "Failed to load texture file " << facePath << std::endl;
+        auto why = stbi_failure_reason();
+        std::cout << why << std::endl;
         throw;
     }
 
@@ -628,7 +630,7 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
 
     for (uint32_t i = 1; i < faces.size(); i++)
     {
-        facePath = "assets/skyboxes/midday/CloudyCrown_Midday_" + faces[i] + ".png";
+        facePath = std::string(DEFAULT_ASSETS_DIR) + "/skyboxes/midday/CloudyCrown_Midday_" + faces[i] + ".png";
 
         pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
