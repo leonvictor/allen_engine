@@ -29,7 +29,8 @@ class EntityInternalStateAction
         DestroyComponent,
         AddComponent,
         CreateSystem,
-        DestroySystem
+        DestroySystem,
+        ParentChanged, // The entity's parent has changed
     };
 
     Type m_type;           // Type of action add/destroy components or systems
@@ -77,7 +78,7 @@ class Entity
     bool m_isAttachedToParent = false;
 
     // TODO:
-    Command EntityStateUpdatedEvent;
+    inline static Command EntityStateUpdatedEvent;
     std::vector<EntityInternalStateAction> m_deferredActions;
 
     // Constructor is private to prevent extending this class
@@ -99,6 +100,13 @@ class Entity
     void AddComponentImmediate(IComponent* pComponent, SpatialComponent* pParentComponent);
     void AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent);
 
+    /// @brief Attach to the parent entity.
+    void AttachToParent();
+    /// @brief Detach from the parent entity.
+    void DetachFromParent();
+
+    void RemoveChild(Entity* pEntity);
+    void AddChild(Entity* pEntity);
     void RefreshEntityAttachments();
 
   public:
@@ -108,9 +116,18 @@ class Entity
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
     const UUID& GetID() const { return m_ID; };
     std::string GetName() const { return m_name; }
+    bool HasParentEntity() const { return m_pParentSpatialEntity != nullptr; }
+    bool HasChildrenEntities() const { return !m_attachedEntities.empty(); }
+    const std::vector<Entity*> GetChildren() const
+    {
+        return m_attachedEntities;
+    }
 
     /// @todo Consider implications of this being public ?
-    SpatialComponent* GetRootSpatialComponent() { return m_pRootSpatialComponent; }
+    SpatialComponent* GetRootSpatialComponent()
+    {
+        return m_pRootSpatialComponent;
+    }
 
     void LoadComponents(const LoadingContext& loadingContext);
     void UnloadComponents(const LoadingContext& loadingContext);
@@ -224,11 +241,8 @@ class Entity
         return FindSocketAttachmentComponent(m_pRootSpatialComponent, socketID);
     };
 
-    /// @brief Attach to the parent entity.
-    void AttachToParent();
-
-    /// @brief Detach from the parent entity.
-    void DetachFromParent();
+    /// @brief Add a parent entity.
+    void SetParentEntity(Entity* pEntity);
 
     /// Factory methods
     // TODO: Is that how we want to generate entities ?

@@ -483,19 +483,69 @@ SpatialComponent* Entity::GetSpatialComponent(const UUID& spatialComponentID)
     return pSpatialComponent;
 }
 
+void Entity::RemoveChild(Entity* pEntity)
+{
+    auto it = std::find(m_attachedEntities.begin(), m_attachedEntities.end(), pEntity);
+    assert(it != m_attachedEntities.end());
+    m_attachedEntities.erase(it);
+}
+
+void Entity::AddChild(Entity* pEntity)
+{
+    m_attachedEntities.push_back(pEntity);
+}
+
+void Entity::SetParentEntity(Entity* pEntity)
+{
+    assert(IsSpatialEntity());
+
+    // If the entity already had a parent
+    bool hadParent = m_pParentSpatialEntity != nullptr;
+    if (hadParent)
+    {
+        m_pParentSpatialEntity->RemoveChild(this);
+    }
+
+    m_pParentSpatialEntity = pEntity;
+
+    if (pEntity != nullptr)
+    {
+        assert(pEntity->IsSpatialEntity());
+        pEntity->AddChild(this);
+    }
+
+    if (IsActivated())
+    {
+        if (hadParent)
+        {
+            DetachFromParent();
+        }
+
+        if (pEntity != nullptr)
+        {
+            AttachToParent();
+        }
+
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::ParentChanged;
+        action.m_ptr = nullptr;
+
+        EntityStateUpdatedEvent.Execute(this);
+    }
+}
+
 void Entity::AttachToParent()
 {
     assert(IsSpatialEntity());
     assert(m_pParentSpatialEntity != nullptr && !m_isAttachedToParent);
 
     // Find component to attach to
-    auto pParentEntity = m_pParentSpatialEntity;
-    SpatialComponent* pParentRootComponent = pParentEntity->m_pRootSpatialComponent;
+    SpatialComponent* pParentRootComponent = m_pParentSpatialEntity->m_pRootSpatialComponent;
 
     // TODO: Set parentAttachmentSocketID when we set the parent entity
     if (m_parentAttachmentSocketID.IsValid())
     {
-        if (auto pFoundComponent = pParentEntity->FindSocketAttachmentComponent(m_parentAttachmentSocketID))
+        if (auto pFoundComponent = m_pParentSpatialEntity->FindSocketAttachmentComponent(m_parentAttachmentSocketID))
         {
             pParentRootComponent = pFoundComponent;
         }
@@ -506,6 +556,7 @@ void Entity::AttachToParent()
     }
 
     // Perform attachment
+    // TODO: Recompute local transform so as not to move if we change root component
     m_pRootSpatialComponent->AttachTo(pParentRootComponent, m_parentAttachmentSocketID);
 
     // assert(pParentRootComponent != nullptr);

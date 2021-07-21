@@ -64,5 +64,6 @@ class WorldEntity
     }
 
     std::map<aln::utils::UUID, Entity>& GetEntitiesCollection();
+    std::vector<Entity*>& GetEntityTree() { return m_entityMap.m_entitiesTree; }
 };
 } // namespace aln::entities

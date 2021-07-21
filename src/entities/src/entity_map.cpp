@@ -39,6 +39,70 @@ void EntityMap::RemoveEntity(Entity* pEntity)
 
 bool EntityMap::Load(const LoadingContext& loadingContext)
 {
+    // Manage the events registered by entities outside of the loading phase
+    for (auto* pEntity : Entity::EntityStateUpdatedEvent.m_updatedEntities)
+    {
+        // TODO: Maybe early out if the entity is in the "remove" list ?
+        for (auto action : pEntity->m_deferredActions)
+        {
+            switch (action.m_type)
+            {
+            case EntityInternalStateAction::Type::ParentChanged:
+            {
+                auto it = std::find(m_entitiesTree.begin(), m_entitiesTree.end(), pEntity);
+                if (pEntity->HasParentEntity()) // It shouldn't be at the tree root
+                {
+                    if (it != m_entitiesTree.end())
+                    {
+                        m_entitiesTree.erase(it);
+                    }
+                }
+                else
+                {
+                    if (it == m_entitiesTree.end()) // Add it to the tree root if it previously had a parent
+                    {
+                        m_entitiesTree.push_back(pEntity);
+                    }
+                    // Otherwise it's already in the right place
+                }
+                break;
+            }
+
+            case EntityInternalStateAction::Type::AddComponent:
+            {
+
+                auto pParentComponent = pEntity->GetSpatialComponent(action.m_ID);
+                pEntity->AddComponentDeferred(loadingContext, (IComponent*) action.m_ptr, pParentComponent);
+                break;
+            }
+
+            case EntityInternalStateAction::Type::CreateSystem:
+            {
+
+                throw std::runtime_error("Not implemented");
+                // pEntity->CreateSystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
+                break;
+            }
+
+            case EntityInternalStateAction::Type::DestroyComponent:
+                throw std::runtime_error("Not implemented");
+
+                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
+                break;
+
+            case EntityInternalStateAction::Type::DestroySystem:
+                throw std::runtime_error("Not implemented");
+                // pEntity->DestroySystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
+                break;
+
+            default:
+                throw std::runtime_error("Unsupported operation");
+            }
+        }
+        pEntity->m_deferredActions.clear();
+    }
+    Entity::EntityStateUpdatedEvent.m_updatedEntities.clear();
+
     auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
     // Gather up newly created entities, add them to the loading list and move them to the static collection
     for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
@@ -104,6 +168,11 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
             if (IsActivated() && !pEntity->IsActivated())
             {
                 pEntity->Activate(loadingContext);
+
+                if (!pEntity->HasParentEntity())
+                {
+                    m_entitiesTree.push_back(pEntity);
+                }
             }
         }
         else // Entity is still loading
@@ -132,7 +201,12 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
         if (entity.IsLoaded())
         {
             entity.Activate(loadingContext);
+
+            if (!entity.HasParentEntity())
+            {
+                m_entitiesTree.push_back(&entity);
+            }
         }
     }
 }
-}
+} // namespace aln::entities

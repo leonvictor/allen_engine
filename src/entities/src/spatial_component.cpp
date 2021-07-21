@@ -61,7 +61,7 @@ void SpatialComponent::AttachTo(SpatialComponent* pParentComponent, const UUID& 
     CalculateWorldTransform();
 
     // Add to the list of child components on the component to attach to
-    pParentComponent->m_spatialChildren.emplace_back(this);
+    pParentComponent->m_spatialChildren.push_back(this);
 }
 
 void SpatialComponent::Detach()
