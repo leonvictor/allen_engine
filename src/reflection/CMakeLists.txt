@@ -6,7 +6,7 @@ add_library(${LIB_NAME} SHARED
     ${IMGUI_SOURCE}
     )
 
-set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})
+set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS} ${GLM_INCLUDE_DIR})
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
 target_include_directories(${LIB_NAME} 
