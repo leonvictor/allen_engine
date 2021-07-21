@@ -22,4 +22,10 @@ void Camera::AfterTransformUpdate()
     right = glm::normalize(glm::cross(forward, world_up));
     up = glm::normalize(glm::cross(right, forward));
 }
-}
+} // namespace aln
+
+ALN_REGISTER_IMPL_BEGIN(aln::Camera)
+ALN_REFLECT_MEMBER(fov)
+ALN_REFLECT_MEMBER(nearPlane)
+ALN_REFLECT_MEMBER(farPlane)
+ALN_REGISTER_IMPL_END()

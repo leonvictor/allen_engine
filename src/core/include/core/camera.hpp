@@ -10,6 +10,8 @@ namespace aln
 {
 class Camera : public entities::SpatialComponent
 {
+    ALN_REGISTER_TYPE();
+
     friend class EditorCameraController;
 
     enum class Type
@@ -40,8 +42,6 @@ class Camera : public entities::SpatialComponent
     void Shutdown() override {}
     bool Load() override { return true; }
     void Unload() override {}
-
-    std::string GetComponentTypeName() { return "Camera"; };
 
   private:
     void AfterTransformUpdate() override;

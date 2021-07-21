@@ -17,6 +17,8 @@ struct LightUniform
 
 class Light : public entities::SpatialComponent
 {
+    ALN_REGISTER_TYPE();
+
   public:
     enum class Type
     {
@@ -42,7 +44,5 @@ class Light : public entities::SpatialComponent
 
     /// @brief Returns the vulkan bindings representing a light.
     static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
-
-    std::string GetComponentTypeName() { return "Light"; }
 };
 } // namespace aln

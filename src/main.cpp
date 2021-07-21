@@ -45,6 +45,7 @@
 #include "imgui_internal.h"
 
 #include <config/path.h>
+#include <reflection/reflection.hpp>
 
 namespace aln
 {
@@ -93,6 +94,7 @@ class Engine
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
 
         CreateWorld();
+        ShareImGuiContext();
     }
 
     void run()
@@ -130,6 +132,19 @@ class Engine
 
     // Object model
     WorldEntity m_worldEntity;
+
+    /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
+    void ShareImGuiContext()
+    {
+        ImGuiMemAllocFunc pAllocFunc;
+        ImGuiMemFreeFunc pFreeFunc;
+        void* pUserData;
+
+        ImGui::GetAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
+
+        reflect::SetImGuiContext(ImGui::GetCurrentContext());
+        reflect::SetImGuiAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
+    }
 
     void CreateWorld()
     {
@@ -343,6 +358,12 @@ class Engine
                     ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
                     ImGui::SameLine();
                     ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+
+                    for (auto pComponent : m_pSelectedEntity->GetComponents())
+                    {
+                        auto typeDesc = pComponent->GetStaticType();
+                        typeDesc->InEditor(pComponent);
+                    }
                 }
             }
             ImGui::End();
@@ -381,14 +402,6 @@ class Engine
                 // }
                 if (node_open)
                 {
-                    // ImGui::BulletText(entity.GetID().ToString().c_str());
-                    for (auto pComponent : entity.GetComponents())
-                    {
-                        // TODO: Replace this method by a static reflection type
-                        std::string compType = pComponent->GetComponentTypeName();
-                        ImGui::BulletText(compType.c_str());
-                    }
-
                     ImGui::TreePop();
                 }
             }

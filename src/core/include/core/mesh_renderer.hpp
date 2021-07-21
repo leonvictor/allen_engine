@@ -25,6 +25,8 @@ class UniformBufferObject;
 // representing them on the GPU.
 class MeshRenderer : public entities::SpatialComponent
 {
+    ALN_REGISTER_TYPE();
+
     friend class GraphicsSystem;
 
   private:
@@ -41,9 +43,7 @@ class MeshRenderer : public entities::SpatialComponent
     vkg::resources::Image m_materialTexture;
 
     void CreateDataBuffers();
-
     void CreateMaterialTexture();
-
     void CreateUniformBuffer();
 
     // TODO: Descriptor allocation and update is managed by the swapchain.
@@ -73,7 +73,5 @@ class MeshRenderer : public entities::SpatialComponent
     void Shutdown() override;
     bool Load() override;
     void Unload() override;
-
-    std::string GetComponentTypeName() { return "MeshRenderer"; };
 };
 } // namespace aln
