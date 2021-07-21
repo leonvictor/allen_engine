@@ -107,7 +107,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     for (auto& [pEntity, pMeshRenderer] : m_components)
     {
         // Compute this mesh's model matrix
-        Transform transform = pMeshRenderer->GetLocalTransform();
+        Transform transform = pMeshRenderer->GetWorldTransform();
         ubo.model = glm::mat4(1.0f);
         ubo.model = glm::translate(ubo.model, transform.position);
         ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
