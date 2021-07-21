@@ -8,3 +8,4 @@ Based on [this blog post](https://github.com/preshing/FlexibleReflection/tree/a1
  - Separate the editor stuff from the rest to avoid having to include imgui in every lib.
  - Add some sort of scope utility to separate families of types
  - Wrap some primitives to allow more fluidity in UI widget selection (i.e. wrap glm::vec3 in a Color class to allow using the color picker)
+ - Prettify type names when displaying them in Editor

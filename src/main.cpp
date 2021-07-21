@@ -329,35 +329,39 @@ class Engine
         {
             if (ImGui::Begin("Inspector", nullptr))
             {
+                ImGui::Text(m_pSelectedEntity->GetName().c_str());
                 if (m_pSelectedEntity->IsSpatialEntity())
                 {
-                    auto transform = m_pSelectedEntity->GetRootSpatialComponent()->ModifyTransform();
-                    ImGui::PushItemWidth(60);
+                    if (ImGui::CollapsingHeader("Transform"))
+                    {
+                        auto transform = m_pSelectedEntity->GetRootSpatialComponent()->ModifyTransform();
+                        ImGui::PushItemWidth(60);
 
-                    // TODO: vec3 might deserve a helper function to create ui for the 3 components...
-                    // Position
-                    ImGui::Text("Position");
-                    ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
-                    ImGui::SameLine();
-                    ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
-                    ImGui::SameLine();
-                    ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
+                        // TODO: vec3 might deserve a helper function to create ui for the 3 components...
+                        // Position
+                        ImGui::Text("Position");
+                        ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
+                        ImGui::SameLine();
+                        ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
+                        ImGui::SameLine();
+                        ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
 
-                    // Rotation
-                    ImGui::Text("Rotation");
-                    ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
-                    ImGui::SameLine();
-                    ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
-                    ImGui::SameLine();
-                    ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
+                        // Rotation
+                        ImGui::Text("Rotation");
+                        ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
+                        ImGui::SameLine();
+                        ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
+                        ImGui::SameLine();
+                        ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
 
-                    // Scale
-                    ImGui::Text("Scale");
-                    ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
-                    ImGui::SameLine();
-                    ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
-                    ImGui::SameLine();
-                    ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+                        // Scale
+                        ImGui::Text("Scale");
+                        ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
+                        ImGui::SameLine();
+                        ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
+                        ImGui::SameLine();
+                        ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+                    }
 
                     for (auto pComponent : m_pSelectedEntity->GetComponents())
                     {

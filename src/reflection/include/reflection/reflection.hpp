@@ -118,9 +118,12 @@ struct TypeDescriptor_Struct : TypeDescriptor
 
     virtual void InEditor(void* obj, const char* fieldName = "") const override
     {
-        for (const Member& member : members)
+        if (ImGui::CollapsingHeader(name))
         {
-            member.type->InEditor((char*) obj + member.offset, member.name);
+            for (const Member& member : members)
+            {
+                member.type->InEditor((char*) obj + member.offset, member.name);
+            }
         }
     }
 };
