@@ -72,4 +72,7 @@ void IComponent::ShutdownComponent()
     Shutdown();
     m_status = Status::Loaded;
 }
-}
+} // namespace aln::entities
+
+ALN_REGISTER_IMPL_BEGIN(aln::entities::IComponent)
+ALN_REGISTER_IMPL_END()
