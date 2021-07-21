@@ -177,12 +177,14 @@ class Engine
             t = pPLightComponent->ModifyTransform()->position = LIGHT_POSITION;
         }
 
+        int i = 1;
         for (auto pos : cubePositions)
         {
             // TODO: This api is too verbose
-            Entity* pCube = Entity::Create("cube");
+            Entity* pCube = Entity::Create(std::string("cube (") + std::to_string(i) + ")");
             auto pMesh = pCube->AddComponent<MeshRenderer>(m_pDevice, MODEL_PATH, TEXTURE_PATH);
             pMesh->ModifyTransform()->position = pos;
+            i++;
         }
     }
 
@@ -325,6 +327,7 @@ class Engine
         }
         ImGui::End();
 
+        // Inspector panel
         if (m_pSelectedEntity != nullptr)
         {
             if (ImGui::Begin("Inspector", nullptr))
@@ -373,47 +376,85 @@ class Engine
             ImGui::End();
         }
 
+        // Outline panel
         if (ImGui::Begin("Outline"))
         {
-            static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-
-            // TODO: How do we grab entities as a hierachy ?
-            // Probably a method in entityMap
-            auto& collec = m_worldEntity.GetEntitiesCollection();
-            for (auto& [id, entity] : collec)
+            auto& tree = m_worldEntity.GetEntityTree();
+            for (Entity* node : tree)
             {
-                // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
-                ImGuiTreeNodeFlags node_flags = base_flags;
-
-                // const bool is_selected = (selection_mask & (1 << i)) != 0;
-                if (m_pSelectedEntity != nullptr && *m_pSelectedEntity == entity)
-                {
-                    node_flags |= ImGuiTreeNodeFlags_Selected;
-                }
-
-                // We add the id to the ImGui hash to differentiate entities with the same name
-                std::string entityLabel = entity.GetName() + "##" + entity.GetID().ToString();
-                bool node_open = ImGui::TreeNodeEx(entityLabel.c_str());
-
-                if (ImGui::IsItemClicked())
-                    m_pSelectedEntity = &entity;
-
-                // if (test_drag_and_drop && ImGui::BeginDragDropSource())
-                // {
-                //     ImGui::SetDragDropPayload("_TREENODE", NULL, 0);
-                //     ImGui::Text("This is a drag and drop source");
-                //     ImGui::EndDragDropSource();
-                // }
-                if (node_open)
-                {
-                    ImGui::TreePop();
-                }
+                RecurseEntityTree(node);
             }
-            // m_worldEntity.
+
+            // TODO: Drop zone in the panel
+            // if (ImGui::BeginDragDropTarget())
+            // {
+            //     if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY"))
+            //     {
+            //         assert(payload->DataSize == sizeof(Entity**));
+            //         Entity* entityPayload = *((Entity**) payload->Data);
+            //         entityPayload->SetParentEntity(nullptr);
+            //     }
+            //     ImGui::EndDragDropTarget();
+            // }
         }
         ImGui::End();
 
         ImGui::ShowDemoWindow();
+    }
+
+    void RecurseEntityTree(Entity* pEntity)
+    {
+        static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+        // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
+        ImGuiTreeNodeFlags node_flags = base_flags;
+
+        // const bool is_selected = (selection_mask & (1 << i)) != 0;
+        if (m_pSelectedEntity != nullptr && m_pSelectedEntity == pEntity)
+        {
+            node_flags |= ImGuiTreeNodeFlags_Selected;
+        }
+
+        // We add the id to the ImGui hash to differentiate entities with the same name
+        std::string entityLabel = pEntity->GetName() + "##" + pEntity->GetID().ToString();
+        bool hasChildren = pEntity->HasChildrenEntities();
+        if (!hasChildren)
+        {
+            node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet;
+        }
+
+        bool node_open = ImGui::TreeNodeEx(entityLabel.c_str(), node_flags);
+
+        if (ImGui::IsItemClicked())
+            m_pSelectedEntity = pEntity;
+
+        if (ImGui::BeginDragDropSource())
+        {
+            ImGui::SetDragDropPayload("ENTITY", &pEntity, sizeof(Entity**));
+            ImGui::Text(pEntity->GetName().c_str());
+            ImGui::EndDragDropSource();
+        }
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY"))
+            {
+                assert(payload->DataSize == sizeof(Entity**));
+                Entity* entityPayload = *((Entity**) payload->Data);
+                entityPayload->SetParentEntity(pEntity);
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if (node_open)
+        {
+            for (auto child : pEntity->GetChildren())
+            {
+                RecurseEntityTree(child);
+            }
+
+            ImGui::TreePop();
+        }
     }
 };
 } // namespace aln
