@@ -29,15 +29,28 @@ set(ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Add Imgui to sources
-file(GLOB IMGUI_SOURCE "external/imgui/*.cpp")
-set(SOURCE ${SOURCE} ${IMGUI_SOURCE} "external/imgui/backends/imgui_impl_vulkan.cpp" "external/imgui/backends/imgui_impl_glfw.cpp")
+file(GLOB IMGUI_SOURCE ${CMAKE_SOURCE_DIR}/external/imgui/*.cpp)
+set(IMGUI_SOURCE ${IMGUI_SOURCE} ${CMAKE_SOURCE_DIR}/external/imgui/misc/cpp/imgui_stdlib.cpp)
+set(SOURCE 
+    ${SOURCE} 
+    ${IMGUI_SOURCE}
+    ${CMAKE_SOURCE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp 
+    ${CMAKE_SOURCE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
+)
+
 set(SOURCE ${SOURCE} "external/imgui_plugins/ImGuizmo.cpp")
+
+set(IMGUI_INCLUDE_DIRS 
+    ${CMAKE_SOURCE_DIR}/external/imgui/backends
+    ${CMAKE_SOURCE_DIR}/external/imgui
+    ${CMAKE_SOURCE_DIR}/external/imgui/misc/cpp
+)
 
 add_executable(main ${SOURCE})
 
+
 # Include ImGui
-target_include_directories(main PUBLIC "external/imgui/backends")
-target_include_directories(main PUBLIC "external/imgui")
+target_include_directories(main PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
 add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
@@ -90,6 +103,7 @@ set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main PUBLIC ${EXTERNAL_DIR})
 
 # Include submodules
+add_subdirectory(src/reflection)
 add_subdirectory(src/utils)
 add_subdirectory(src/core)
 add_subdirectory(src/entities)
@@ -102,7 +116,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 target_compile_features(main PUBLIC cxx_std_20)
 
-target_link_libraries(main PUBLIC glfw ${GLFW_LIBRARIES} shaderc ${Vulkan_LIBRARIES} imm32 utils input graphics entities core)
+target_link_libraries(main PUBLIC glfw ${GLFW_LIBRARIES} shaderc ${Vulkan_LIBRARIES} imm32 reflection utils input graphics entities core)
 
 
 
