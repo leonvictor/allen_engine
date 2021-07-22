@@ -499,13 +499,17 @@ void Entity::SetParentEntity(Entity* pEntity)
 {
     assert(IsSpatialEntity());
 
-    // If the entity already had a parent
+    // If the entity already had a parent, remove it
     bool hadParent = m_pParentSpatialEntity != nullptr;
     if (hadParent)
     {
+        if (IsActivated())
+            DetachFromParent();
+
         m_pParentSpatialEntity->RemoveChild(this);
     }
 
+    // Set the new parent
     m_pParentSpatialEntity = pEntity;
 
     if (pEntity != nullptr)
@@ -516,10 +520,6 @@ void Entity::SetParentEntity(Entity* pEntity)
 
     if (IsActivated())
     {
-        if (hadParent)
-        {
-            DetachFromParent();
-        }
 
         if (pEntity != nullptr)
         {

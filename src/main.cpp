@@ -385,17 +385,17 @@ class Engine
                 RecurseEntityTree(node);
             }
 
-            // TODO: Drop zone in the panel
-            // if (ImGui::BeginDragDropTarget())
-            // {
-            //     if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY"))
-            //     {
-            //         assert(payload->DataSize == sizeof(Entity**));
-            //         Entity* entityPayload = *((Entity**) payload->Data);
-            //         entityPayload->SetParentEntity(nullptr);
-            //     }
-            //     ImGui::EndDragDropTarget();
-            // }
+            ImGui::Dummy(ImGui::GetWindowSize());
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
+                {
+                    assert(payload->DataSize == sizeof(Entity**));
+                    Entity* entityPayload = *((Entity**) payload->Data);
+                    entityPayload->SetParentEntity(nullptr);
+                }
+                ImGui::EndDragDropTarget();
+            }
         }
         ImGui::End();
 
@@ -437,7 +437,7 @@ class Engine
 
         if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY"))
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
             {
                 assert(payload->DataSize == sizeof(Entity**));
 
