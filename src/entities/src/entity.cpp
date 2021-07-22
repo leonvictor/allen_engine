@@ -497,6 +497,9 @@ void Entity::AddChild(Entity* pEntity)
 
 void Entity::SetParentEntity(Entity* pEntity)
 {
+    if (m_pParentSpatialEntity == pEntity)
+        return;
+
     assert(IsSpatialEntity());
 
     // If the entity already had a parent, remove it

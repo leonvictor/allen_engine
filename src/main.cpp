@@ -385,7 +385,9 @@ class Engine
                 RecurseEntityTree(node);
             }
 
+            // Add a dummy panel to the rest of the outline pane
             ImGui::Dummy(ImGui::GetWindowSize());
+
             if (ImGui::BeginDragDropTarget())
             {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
@@ -396,10 +398,31 @@ class Engine
                 }
                 ImGui::EndDragDropTarget();
             }
+
+            EntityOutlinePopup(nullptr);
         }
         ImGui::End();
 
         ImGui::ShowDemoWindow();
+    }
+
+    void EntityOutlinePopup(Entity* pEntity = nullptr)
+    {
+        auto id = pEntity != nullptr ? pEntity->GetID().ToString() : "no_context";
+        if (ImGui::BeginPopupContextItem(("ENTITY_POPUP_" + id).c_str(), ImGuiPopupFlags_MouseButtonRight))
+        {
+            auto contextEntityAndNotSpatial = (pEntity != nullptr && !pEntity->IsSpatialEntity());
+            if (ImGui::MenuItem("Add Empty Entity", "", false, pEntity == nullptr))
+            {
+                auto* pNewEntity = Entity::Create("Entity");
+                // TODO: This will be useful with other options, but empty entities are not spatial so they can't be attached to others.
+                // if (pEntity != nullptr)
+                // {
+                //     pNewEntity->SetParentEntity(pEntity);
+                // }
+            }
+            ImGui::EndPopup();
+        }
     }
 
     void RecurseEntityTree(Entity* pEntity)
@@ -425,7 +448,9 @@ class Engine
         std::string entityLabel = pEntity->GetName() + "##" + pEntity->GetID().ToString();
         bool node_open = ImGui::TreeNodeEx(entityLabel.c_str(), node_flags);
 
-        if (ImGui::IsItemClicked())
+        EntityOutlinePopup(pEntity);
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
             m_pSelectedEntity = pEntity;
 
         if (ImGui::BeginDragDropSource())
@@ -442,10 +467,14 @@ class Engine
                 assert(payload->DataSize == sizeof(Entity**));
 
                 Entity* entityPayload = *((Entity**) payload->Data);
-                entityPayload->SetParentEntity(pEntity);
 
-                // Set the receiving node as open
-                ImGui::GetStateStorage()->SetInt(ImGui::GetID(entityLabel.c_str()), 1);
+                if (entityPayload->IsSpatialEntity())
+                {
+                    entityPayload->SetParentEntity(pEntity);
+
+                    // Set the receiving node as open
+                    ImGui::GetStateStorage()->SetInt(ImGui::GetID(entityLabel.c_str()), 1);
+                }
             }
             ImGui::EndDragDropTarget();
         }

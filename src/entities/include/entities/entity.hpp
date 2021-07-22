@@ -227,6 +227,16 @@ class Entity
         return pComponent;
     }
 
+    template <typename T, class... Args>
+    T* AddComponent(const UUID& parentSpatialComponentID, Args... args)
+    {
+        static_assert(std::is_base_of_v<IComponent, T>, "Invalid component type");
+
+        T* pComponent = new T(args...);
+        AddComponent(pComponent, parentSpatialComponentID);
+        return pComponent;
+    }
+
     const std::vector<IComponent*>& GetComponents()
     {
         return m_components;

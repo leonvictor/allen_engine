@@ -11,8 +11,6 @@ namespace aln::entities
 /// @note https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
 class IComponent
 {
-    using UUID = aln::utils::UUID;
-
     friend class Entity;
     // TODO: Serialization
 
@@ -27,10 +25,10 @@ class IComponent
         Initialized    // Ready to use
     };
 
-    const UUID m_ID;
+    const aln::utils::UUID m_ID;
     Status m_status = Status::Unloaded;
-    bool m_isSingleton = false;          // Whether you can have multiple components of this type per entity
-    UUID m_entityID = UUID::InvalidID(); // Entity this component is attached to.
+    bool m_isSingleton = false;                                  // Whether you can have multiple components of this type per entity
+    aln::utils::UUID m_entityID = aln::utils::UUID::InvalidID(); // Entity this component is attached to.
 
     std::future<bool> m_loadingTask;
 
@@ -62,7 +60,7 @@ class IComponent
     inline bool IsLoading() const { return m_status == Status::Loading; }
     inline bool IsLoaded() const { return m_status == Status::Loaded; }
 
-    const UUID& GetID() const { return m_ID; }
+    const aln::utils::UUID& GetID() const { return m_ID; }
 
     bool operator==(const IComponent& other) const { return m_ID == other.GetID(); }
     bool operator!=(const IComponent& other) const { return !operator==(other); }
