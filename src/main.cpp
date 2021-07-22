@@ -404,7 +404,7 @@ class Engine
 
     void RecurseEntityTree(Entity* pEntity)
     {
-        static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+        static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
         // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
         ImGuiTreeNodeFlags node_flags = base_flags;
@@ -415,14 +415,14 @@ class Engine
             node_flags |= ImGuiTreeNodeFlags_Selected;
         }
 
-        // We add the id to the ImGui hash to differentiate entities with the same name
-        std::string entityLabel = pEntity->GetName() + "##" + pEntity->GetID().ToString();
         bool hasChildren = pEntity->HasChildrenEntities();
         if (!hasChildren)
         {
-            node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet;
+            node_flags |= ImGuiTreeNodeFlags_Leaf;
         }
 
+        // We add the id to the ImGui hash to differentiate entities with the same name
+        std::string entityLabel = pEntity->GetName() + "##" + pEntity->GetID().ToString();
         bool node_open = ImGui::TreeNodeEx(entityLabel.c_str(), node_flags);
 
         if (ImGui::IsItemClicked())
@@ -440,20 +440,24 @@ class Engine
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY"))
             {
                 assert(payload->DataSize == sizeof(Entity**));
+
                 Entity* entityPayload = *((Entity**) payload->Data);
                 entityPayload->SetParentEntity(pEntity);
+
+                // Set the receiving node as open
+                ImGui::GetStateStorage()->SetInt(ImGui::GetID(entityLabel.c_str()), 1);
             }
             ImGui::EndDragDropTarget();
         }
 
-        if (node_open)
+        if (node_open && hasChildren)
         {
+            ImGui::Indent();
             for (auto child : pEntity->GetChildren())
             {
                 RecurseEntityTree(child);
             }
-
-            ImGui::TreePop();
+            ImGui::Unindent();
         }
     }
 };
