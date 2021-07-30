@@ -28,6 +28,8 @@ class UniformBufferObject;
 // representing them on the GPU.
 class MeshRenderer : public entities::SpatialComponent
 {
+    ALN_REGISTER_TYPE();
+
     friend class GraphicsSystem;
 
   private:
@@ -69,7 +71,5 @@ class MeshRenderer : public entities::SpatialComponent
     void Shutdown() override;
     bool Load() override;
     void Unload() override;
-
-    std::string GetComponentTypeName() { return "MeshRenderer"; };
 };
 } // namespace aln

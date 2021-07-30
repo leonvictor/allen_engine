@@ -25,6 +25,7 @@ class EntityMap : private EntityCollection
     };
 
     // std::vector<Entity*> m_entitiesToAdd;
+    std::vector<Entity*> m_entitiesTree;
     std::vector<Entity*> m_entitiesToRemove;
     std::vector<Entity*> m_loadingEntities;
     std::vector<Entity*> m_entitiesToReload; // TODO

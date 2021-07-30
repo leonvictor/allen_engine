@@ -16,11 +16,6 @@ set(LIB_INCLUDE_DIRS
     ${GLM_INCLUDE_DIR}
     )
 
-set(LIB_LINK_DEPENDENCIES
-    utils
-    common
-)
-
 target_compile_features(main PUBLIC cxx_std_20)
 
 target_include_directories(${LIB_NAME} 
@@ -32,4 +27,10 @@ target_include_directories(${LIB_NAME}
         $<INSTALL_INTERFACE:include ${LIB_INCLUDE_DIRS}>
 )
 
-target_link_libraries(${LIB_NAME} PRIVATE ${LIB_LINK_DEPENDENCIES})
+target_link_libraries(${LIB_NAME} 
+    PRIVATE 
+        utils
+    PUBLIC
+        reflection
+        common
+)

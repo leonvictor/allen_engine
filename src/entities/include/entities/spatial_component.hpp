@@ -19,7 +19,6 @@ class Call_proxy
     Suf suffix;
 
     mutable bool accessed;
-    mutable T copy;
 
     Call_proxy& operator=(const Call_proxy&); // prevent assignment
     Call_proxy(const Call_proxy&);            // prevent copy constructor
@@ -33,14 +32,13 @@ class Call_proxy
 
     ~Call_proxy()
     {
-        if (accessed && copy != *p)
+        if (accessed)
             suffix();
     }
 
     T* operator->() const
     {
         accessed = true;
-        copy = *p;
         return p;
     }
 };
