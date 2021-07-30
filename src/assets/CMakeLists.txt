@@ -15,13 +15,15 @@ set(LIB_LINK_DEPENDENCIES )
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
-target_include_directories(${LIB_NAME} 
+target_include_directories(${LIB_NAME}
+    SYSTEM PUBLIC
+        ${LIB_DEPENDENCIES}
     PRIVATE
-        $<BUILD_INTERFACE:include/${LIB_NAME} ${LIB_DEPENDENCIES}>
-        $<INSTALL_INTERFACE:include/${LIB_NAME} ${LIB_DEPENDENCIES}>
+        $<BUILD_INTERFACE:include/${LIB_NAME} >
+        $<INSTALL_INTERFACE:include/${LIB_NAME} >
     INTERFACE
-        $<BUILD_INTERFACE:include ${LIB_DEPENDENCIES}>
-        $<INSTALL_INTERFACE:include ${LIB_DEPENDENCIES}>
+        $<BUILD_INTERFACE:include >
+        $<INSTALL_INTERFACE:include >
 
 )
 

@@ -21,18 +21,18 @@ add_library(
 
 set(LIB_INCLUDE_DIRS
     ${Vulkan_INCLUDE_DIRS} 
-    ${GLFW_INCLUDE_DIR} 
-    ${GLM_INCLUDE_DIR}
     ${STB_INCLUDE_DIR}
     ${CONFIG_INCLUDE_DIRS}
     ${IMGUI_INCLUDE_DIRS}
 )
 
 set(LIB_DEPENDENCIES
-    ${Vulkan_LIBRARIES} utils common shaderc glfw ${GLFW_LIBRARIES} assets
+    ${Vulkan_LIBRARIES} glm glfw utils common shaderc assets
 )
 
-target_link_libraries(${LIB_NAME} PUBLIC ${LIB_DEPENDENCIES})
+target_link_libraries(${LIB_NAME} 
+    PUBLIC
+        ${LIB_DEPENDENCIES})
 
 target_include_directories(${LIB_NAME}
     PRIVATE # Include directories inside this lib access the headers directly
