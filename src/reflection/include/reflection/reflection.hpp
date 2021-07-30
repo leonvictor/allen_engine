@@ -25,9 +25,23 @@ struct TypeDescriptor
     TypeDescriptor(const char* name, size_t size) : name{name}, size{size} {}
     virtual ~TypeDescriptor() {}
     virtual std::string GetFullName() const { return name; }
+
+    /// @brief Return a prettified version of the type's name.
+    virtual std::string GetPrettyName() const
+    {
+        // Use std::format (C++20). Not available in most compilers as of 04/06/2021
+        std::string prettyName = std::string(name);
+        // Remove the namespace info
+        prettyName = prettyName.substr(prettyName.rfind(":") + 1);
+        // TODO: Remove member variable prefix m_ if necessary
+        return prettyName;
+    }
+
     virtual void Dump(const void* obj, int indentLevel = 0) const = 0;
     virtual void InEditor(void* obj, const char* fieldName = "") const = 0;
 };
+
+std::vector<TypeDescriptor*>& GetTypesInScope(std::string scopeName);
 
 //--------------------------------------------------------
 // Finding type descriptors
@@ -126,7 +140,7 @@ struct TypeDescriptor_Struct : TypeDescriptor
     static void InitReflection(aln::reflect::TypeDescriptor_Struct*); \
     virtual const aln::reflect::TypeDescriptor_Struct* GetStaticType(); // virtual so we can specialize
 
-#define ALN_REGISTER_IMPL_BEGIN(type)                                           \
+#define ALN_REGISTER_IMPL_BEGIN(scope, type)                                    \
     aln::reflect::TypeDescriptor_Struct type::Reflection{type::InitReflection}; \
     const aln::reflect::TypeDescriptor_Struct* type::GetStaticType()            \
     {                                                                           \
@@ -135,6 +149,8 @@ struct TypeDescriptor_Struct : TypeDescriptor
                                                                                 \
     void type::InitReflection(aln::reflect::TypeDescriptor_Struct* typeDesc)    \
     {                                                                           \
+        auto& scopedTypes = aln::reflect::GetTypesInScope(#scope);              \
+                                                                                \
         using T = type;                                                         \
         typeDesc->name = #type;                                                 \
         typeDesc->size = sizeof(T);                                             \
@@ -143,9 +159,10 @@ struct TypeDescriptor_Struct : TypeDescriptor
 #define ALN_REFLECT_MEMBER(name) \
     {#name, offsetof(T, name), aln::reflect::TypeResolver<decltype(T::name)>::get()},
 
-#define ALN_REGISTER_IMPL_END() \
-    }                           \
-    ;                           \
+#define ALN_REGISTER_IMPL_END()      \
+    }                                \
+    ;                                \
+    scopedTypes.push_back(typeDesc); \
     }
 
 //--------------------------------------------------------

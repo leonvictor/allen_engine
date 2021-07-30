@@ -166,5 +166,5 @@ void MeshRenderer::Unload()
 }
 } // namespace aln
 
-ALN_REGISTER_IMPL_BEGIN(aln::MeshRenderer)
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::MeshRenderer)
 ALN_REGISTER_IMPL_END()

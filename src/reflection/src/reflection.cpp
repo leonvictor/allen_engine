@@ -1,4 +1,5 @@
 #include "reflection.hpp"
+#include <map>
 
 namespace aln::reflect
 {
@@ -13,7 +14,7 @@ void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc*
 
 void TypeDescriptor_Struct::InEditor(void* obj, const char* fieldName) const
 {
-    if (ImGui::CollapsingHeader(name))
+    if (ImGui::CollapsingHeader(GetPrettyName().c_str()))
     {
         for (const Member& member : members)
         {
@@ -21,4 +22,12 @@ void TypeDescriptor_Struct::InEditor(void* obj, const char* fieldName) const
         }
     }
 }
+
+std::vector<TypeDescriptor*>& GetTypesInScope(std::string scopeName)
+{
+    static std::map<std::string, std::vector<TypeDescriptor*>> typeScopes;
+    auto it = typeScopes.try_emplace(scopeName);
+    return it.first->second;
+}
+
 } // namespace aln::reflect
