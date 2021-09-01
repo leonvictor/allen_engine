@@ -169,6 +169,9 @@ class IRenderer
         // How do we bundle them ?
         pipelines.objects.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
         pipelines.objects.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
+
+        // TODO: Get rid of the hard-coded descriptor layout registration.
+        // We could discover them from the cache ? Or they could be associated with pipelines when they're created ?
         pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
         pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::MeshRenderer>());
         pipelines.objects.Create("objects_pipeline_cache_data.bin");

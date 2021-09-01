@@ -26,25 +26,7 @@ Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
     SetDebugUtilsObjectName(m_commandpools.transfer.m_vkCommandPool.get(), "Transfer Command Pool");
     m_msaaSamples = GetMaxUsableSampleCount();
 
-    // TODO: Refactor
-    int MAX_OBJECTS = 10000;
-
-    // Create descriptor pools.
-    /// TODO: Find a principled way of deciding the max number of elements
-    std::array<vk::DescriptorPoolSize, 3> poolSizes;
-    poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
-    poolSizes[0].descriptorCount = (MAX_OBJECTS * 3) + 1; // +1 for skybox. TODO: This should be dynamic
-    poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-    poolSizes[1].descriptorCount = MAX_OBJECTS + 1; // +1 TODO Same here
-    poolSizes[2].type = vk::DescriptorType::eStorageBuffer;
-    poolSizes[2].descriptorCount = 1; // For now, only used by lights
-
-    vk::DescriptorPoolCreateInfo createInfo;
-    createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    createInfo.pPoolSizes = poolSizes.data();
-    createInfo.maxSets = (MAX_OBJECTS * 2) + 2;                              // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker
-    createInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // Necessary for automatic freeing
-    m_descriptorPool = m_logical->createDescriptorPoolUnique(createInfo);
+    m_descriptorAllocator.Init(&m_logical.get());
 }
 
 SwapchainSupportDetails Device::GetSwapchainSupport(const vk::SurfaceKHR& surface)
