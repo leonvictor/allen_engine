@@ -16,6 +16,8 @@ add_library(
 
     src/draw_mesh.cpp
 
+    src/descriptor_allocator.cpp
+
     ${IMGUI_SOURCE}
     )
 
