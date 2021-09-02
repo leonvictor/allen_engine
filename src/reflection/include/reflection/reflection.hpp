@@ -1,7 +1,10 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -10,9 +13,40 @@
 namespace aln::reflect
 {
 
+// ImGui method to set the context and allocator functions in case reflection is in a separate library.
 void SetImGuiContext(ImGuiContext* pContext);
 void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData);
 
+class ITypeHelper
+{
+  public:
+    virtual void* CreateType() = 0;
+};
+
+struct TypeHelperResolver
+{
+    // This version is called if T is constructible:
+    template <typename T,
+        typename std::enable_if<std::is_constructible<T>::value, bool>::type = true>
+    static T* CreateType()
+    {
+        return new T();
+    }
+
+    // This version is called otherwise:
+    template <typename T,
+        typename std::enable_if<!std::is_constructible<T>::value, bool>::type = true>
+    static T* CreateType()
+    {
+        throw std::runtime_error("Failed creating from type: " << typeid(T).name() << " is not constructible.");
+    }
+};
+
+template <typename T>
+struct TypeHelper : public ITypeHelper
+{
+    void* CreateType() override { return TypeHelperResolver::CreateType<T>(); }
+};
 //--------------------------------------------------------
 // Base class of all type descriptors
 //--------------------------------------------------------
@@ -22,8 +56,12 @@ struct TypeDescriptor
     const char* name;
     size_t size;
 
+    std::shared_ptr<ITypeHelper> typeHelper;
+
     TypeDescriptor(const char* name, size_t size) : name{name}, size{size} {}
     virtual ~TypeDescriptor() {}
+
+    /// @brief Return the full type name.
     virtual std::string GetFullName() const { return name; }
 
     /// @brief Return a prettified version of the type's name.
@@ -37,10 +75,18 @@ struct TypeDescriptor
         return prettyName;
     }
 
+    /// @brief Print a text representation of an object of the reflected type.
     virtual void Dump(const void* obj, int indentLevel = 0) const = 0;
+
+    /// @brief Display an object of this reflected type in the editor.
+    /// Override to define custom behavior.
+    /// @param obj: The object to display
+    /// @param fieldName: Display name of the object
     virtual void InEditor(void* obj, const char* fieldName = "") const = 0;
 };
 
+/// @brief Retrieve a list of all the types registered to a specific scope.
+/// @param: scopeName: The scope to retrieve from.
 std::vector<TypeDescriptor*>& GetTypesInScope(std::string scopeName);
 
 //--------------------------------------------------------
@@ -51,7 +97,7 @@ std::vector<TypeDescriptor*>& GetTypesInScope(std::string scopeName);
 template <typename T>
 TypeDescriptor* GetPrimitiveDescriptor();
 
-// A helper class to find TypeDescriptors in different ways:
+/// @brief A helper class to find TypeDescriptors in different ways.
 struct DefaultResolver
 {
     template <typename T>
@@ -118,18 +164,7 @@ struct TypeDescriptor_Struct : TypeDescriptor
     {
     }
 
-    virtual void Dump(const void* obj, int indentLevel) const override
-    {
-        std::cout << name << " {" << std::endl;
-        for (const Member& member : members)
-        {
-            std::cout << std::string(4 * (indentLevel + 1), ' ') << member.name << " = ";
-            member.type->Dump((char*) obj + member.offset, indentLevel + 1);
-            std::cout << std::endl;
-        }
-        std::cout << std::string(4 * indentLevel, ' ') << "}";
-    }
-
+    virtual void Dump(const void* obj, int indentLevel) const override;
     virtual void InEditor(void* obj, const char* fieldName = "") const override;
 };
 
@@ -146,12 +181,12 @@ struct TypeDescriptor_Struct : TypeDescriptor
     {                                                                           \
         return &Reflection;                                                     \
     }                                                                           \
-                                                                                \
     void type::InitReflection(aln::reflect::TypeDescriptor_Struct* typeDesc)    \
     {                                                                           \
         auto& scopedTypes = aln::reflect::GetTypesInScope(#scope);              \
                                                                                 \
         using T = type;                                                         \
+        typeDesc->typeHelper = std::make_shared<aln::reflect::TypeHelper<T>>(); \
         typeDesc->name = #type;                                                 \
         typeDesc->size = sizeof(T);                                             \
         typeDesc->members = {
@@ -164,71 +199,5 @@ struct TypeDescriptor_Struct : TypeDescriptor
     ;                                \
     scopedTypes.push_back(typeDesc); \
     }
-
-//--------------------------------------------------------
-// Type descriptors for std::vector
-//--------------------------------------------------------
-
-struct TypeDescriptor_StdVector : TypeDescriptor
-{
-    TypeDescriptor* itemType;
-    size_t (*getSize)(const void*);
-    const void* (*getItem)(const void*, size_t);
-
-    template <typename ItemType>
-    TypeDescriptor_StdVector(ItemType*)
-        : TypeDescriptor{"std::vector<>", sizeof(std::vector<ItemType>)},
-          itemType{TypeResolver<ItemType>::get()}
-    {
-        getSize = [](const void* vecPtr) -> size_t
-        {
-            const std::vector<ItemType>& vec = *(const std::vector<ItemType>*) vecPtr;
-            return vec.size();
-        };
-        getItem = [](const void* vecPtr, size_t index) -> const void*
-        {
-            const std::vector<ItemType>& vec = *(const std::vector<ItemType>*) vecPtr;
-            return &vec[index];
-        };
-    }
-
-    virtual std::string GetFullName() const override
-    {
-        return std::string("std::vector<") + itemType->GetFullName() + ">";
-    }
-
-    virtual void Dump(const void* obj, int indentLevel) const override
-    {
-        size_t numItems = getSize(obj);
-        std::cout << GetFullName();
-        if (numItems == 0)
-        {
-            std::cout << "{}";
-        }
-        else
-        {
-            std::cout << "{" << std::endl;
-            for (size_t index = 0; index < numItems; index++)
-            {
-                std::cout << std::string(4 * (indentLevel + 1), ' ') << "[" << index << "] ";
-                itemType->Dump(getItem(obj, index), indentLevel + 1);
-                std::cout << std::endl;
-            }
-            std::cout << std::string(4 * indentLevel, ' ') << "}";
-        }
-    }
-};
-
-// Partially specialize TypeResolver<> for std::vectors:
-template <typename T>
-class TypeResolver<std::vector<T>>
-{
-  public:
-    static TypeDescriptor* get()
-    {
-        static TypeDescriptor_StdVector typeDesc{(T*) nullptr};
-        return &typeDesc;
-    }
-};
 
 } // namespace aln::reflect

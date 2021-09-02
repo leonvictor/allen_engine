@@ -1,7 +1,9 @@
 set(LIB_NAME reflection)
 
 add_library(${LIB_NAME} SHARED
-    src/primitives.cpp
+    src/type_descriptors/primitives.cpp
+    src/type_descriptors/std.cpp
+    src/type_descriptors/glm.cpp
     src/reflection.cpp
     ${IMGUI_SOURCE}
     )
