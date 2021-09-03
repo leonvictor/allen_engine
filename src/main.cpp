@@ -383,7 +383,9 @@ class Engine
                     for (auto pComponent : m_pSelectedEntity->GetComponents())
                     {
                         auto typeDesc = pComponent->GetType();
-                        typeDesc->InEditor(pComponent);
+                        // TODO: This should happen through the partial template specialization for components
+                        auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
+                        typeDesc->InEditor(pComponent, compId.c_str());
                     }
 
                     if (ImGui::Button("Add Component"))
