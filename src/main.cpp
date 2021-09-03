@@ -40,6 +40,7 @@
 #include <core/mesh_renderer.hpp>
 #include <core/render_system.hpp>
 
+#include "IconsFontAwesome4.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
@@ -347,6 +348,14 @@ class Engine
             if (ImGui::Begin("Inspector", nullptr))
             {
                 ImGui::Text(m_pSelectedEntity->GetName().c_str());
+                ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+                ImGui::Text(ICON_FA_EYE);
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Disable entity");
+                    // TODO: Disable entity
+                }
+
                 if (m_pSelectedEntity->IsSpatialEntity())
                 {
                     if (ImGui::CollapsingHeader("Transform"))
