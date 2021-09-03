@@ -4,7 +4,14 @@
 #include <reflection/reflection.hpp>
 #include <utils/uuid.hpp>
 
-namespace aln::entities
+#include "component_creation_context.hpp"
+
+namespace aln
+{
+// fwd
+class ComponentFactory;
+
+namespace entities
 {
 
 /// @brief Data storage attached to Entities.
@@ -14,6 +21,7 @@ class IComponent
     using UUID = aln::utils::UUID;
 
     friend class Entity;
+    friend class aln::ComponentFactory;
     // TODO: Serialization
 
   private:
@@ -42,6 +50,8 @@ class IComponent
     void ShutdownComponent();
 
   protected:
+    virtual void Construct(const ComponentCreationContext&) {}
+
     /// @brief Allocate internal transient data.
     /// @todo: Occurs automatically once loading completes sucessfully.
     virtual void Initialize() = 0;
@@ -69,4 +79,5 @@ class IComponent
 
     ALN_REGISTER_TYPE()
 };
-} // namespace aln::entities
+} // namespace entities
+} // namespace aln

@@ -38,13 +38,14 @@ struct TypeHelperResolver
         typename std::enable_if<!std::is_constructible<T>::value, bool>::type = true>
     static T* CreateType()
     {
-        throw std::runtime_error("Failed creating from type: " << typeid(T).name() << " is not constructible.");
+        throw std::runtime_error("Cannot instanciate the reflected type: Not constructible");
     }
 };
 
 template <typename T>
 struct TypeHelper : public ITypeHelper
 {
+    using type = T;
     void* CreateType() override { return TypeHelperResolver::CreateType<T>(); }
 };
 //--------------------------------------------------------
@@ -169,18 +170,29 @@ struct TypeDescriptor_Struct : TypeDescriptor
 };
 
 /// @brief Register the currect type for class reflection.
-#define ALN_REGISTER_TYPE()                                           \
-    friend struct aln::reflect::DefaultResolver;                      \
-    static aln::reflect::TypeDescriptor_Struct Reflection;            \
-    static void InitReflection(aln::reflect::TypeDescriptor_Struct*); \
-    virtual const aln::reflect::TypeDescriptor_Struct* GetStaticType(); // virtual so we can specialize
+#define ALN_REGISTER_TYPE()                                            \
+    friend struct aln::reflect::DefaultResolver;                       \
+                                                                       \
+  public:                                                              \
+    static const aln::reflect::TypeDescriptor_Struct* GetStaticType(); \
+    virtual const aln::reflect::TypeDescriptor_Struct* GetType();      \
+                                                                       \
+  private:                                                             \
+    static aln::reflect::TypeDescriptor_Struct Reflection;             \
+    static void InitReflection(aln::reflect::TypeDescriptor_Struct*);
 
 #define ALN_REGISTER_IMPL_BEGIN(scope, type)                                    \
     aln::reflect::TypeDescriptor_Struct type::Reflection{type::InitReflection}; \
+    const aln::reflect::TypeDescriptor_Struct* type::GetType()                  \
+    {                                                                           \
+        return &Reflection;                                                     \
+    }                                                                           \
+                                                                                \
     const aln::reflect::TypeDescriptor_Struct* type::GetStaticType()            \
     {                                                                           \
         return &Reflection;                                                     \
     }                                                                           \
+                                                                                \
     void type::InitReflection(aln::reflect::TypeDescriptor_Struct* typeDesc)    \
     {                                                                           \
         auto& scopedTypes = aln::reflect::GetTypesInScope(#scope);              \
