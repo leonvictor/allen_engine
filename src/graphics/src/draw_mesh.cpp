@@ -6,9 +6,6 @@
 namespace aln::vkg
 {
 
-DrawMesh::DrawMesh(std::string modelPath)
-    : Mesh(modelPath){};
-
 void DrawMesh::CreateGraphicResources(std::shared_ptr<Device> pDevice)
 {
     // Create vertex buffer

@@ -212,31 +212,6 @@ class Entity
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
     void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID());
 
-    /// @brief Create a component of type T and add it to this entity.
-    /// @param args: Arguments forwarded to the component constructor.
-    /// @return A pointer to the constructed component
-    /// @todo Experiment with other memory handling methods
-    /// @todo Support parent spatial component in an elegant way
-    template <typename T, class... Args>
-    T* AddComponent(Args... args)
-    {
-        static_assert(std::is_base_of_v<IComponent, T>, "Invalid component type");
-
-        T* pComponent = new T(args...);
-        AddComponent(pComponent);
-        return pComponent;
-    }
-
-    template <typename T, class... Args>
-    T* AddComponent(const UUID& parentSpatialComponentID, Args... args)
-    {
-        static_assert(std::is_base_of_v<IComponent, T>, "Invalid component type");
-
-        T* pComponent = new T(args...);
-        AddComponent(pComponent, parentSpatialComponentID);
-        return pComponent;
-    }
-
     const std::vector<IComponent*>& GetComponents()
     {
         return m_components;

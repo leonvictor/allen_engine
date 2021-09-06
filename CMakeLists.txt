@@ -55,7 +55,7 @@ set(IMGUI_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/external/imgui
 )
 
-target_include_directories(main PUBLIC ${IMGUI_INCLUDE_DIRS})
+target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
 add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
@@ -76,17 +76,18 @@ set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
-set(GLFW_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/glfw/include)
-target_include_directories(main PUBLIC ${GLFW_INCLUDE_DIR})
 add_subdirectory(external/glfw)
 
 # GLM
-set(GLM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/glm)
 add_compile_definitions(GLM_FORCE_RADIANS)
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
 add_compile_definitions(GLM_GTX_hash)
-target_include_directories(main PUBLIC ${GLM_INCLUDE_DIR})
+add_subdirectory(external/glm)
+
+# Hack: set glm's include dir as system to ignore warnings (not our code)
+get_target_property(_inc glm INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(glm SYSTEM INTERFACE ${_inc})
 
 # stb
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
@@ -105,7 +106,7 @@ set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
 
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
-target_include_directories(main PUBLIC ${EXTERNAL_DIR})
+target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})
 
 # Include submodules
 add_subdirectory(src/common)
@@ -122,7 +123,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 target_compile_features(main PUBLIC cxx_std_20)
 
-target_link_libraries(main PUBLIC common reflection glfw ${GLFW_LIBRARIES} shaderc ${Vulkan_LIBRARIES} imm32 utils input graphics entities core)
+target_link_libraries(main PUBLIC common reflection glfw shaderc ${Vulkan_LIBRARIES} imm32 utils input graphics entities core)
 
 
 

@@ -24,7 +24,7 @@ void Camera::AfterTransformUpdate()
 }
 } // namespace aln
 
-ALN_REGISTER_IMPL_BEGIN(aln::Camera)
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::Camera)
 ALN_REFLECT_MEMBER(fov)
 ALN_REFLECT_MEMBER(nearPlane)
 ALN_REFLECT_MEMBER(farPlane)

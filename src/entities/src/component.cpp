@@ -74,5 +74,5 @@ void IComponent::ShutdownComponent()
 }
 } // namespace aln::entities
 
-ALN_REGISTER_IMPL_BEGIN(aln::entities::IComponent)
+ALN_REGISTER_IMPL_BEGIN(BASE, aln::entities::IComponent)
 ALN_REGISTER_IMPL_END()

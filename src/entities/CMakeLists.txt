@@ -12,23 +12,20 @@ add_library(
     src/world_system.cpp
     )
 
-set(LIB_INCLUDE_DIRS
-    ${GLM_INCLUDE_DIR}
-    )
-
 target_compile_features(main PUBLIC cxx_std_20)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE # Include directories inside this lib access the headers directly
-        $<BUILD_INTERFACE:include/${LIB_NAME} ${LIB_INCLUDE_DIRS}>
-        $<INSTALL_INTERFACE:include/${LIB_NAME} ${LIB_INCLUDE_DIRS}>
+        $<BUILD_INTERFACE:include/${LIB_NAME} >
+        $<INSTALL_INTERFACE:include/${LIB_NAME} >
     INTERFACE # Outside of this lib, refer to headers as libname/header.hpp
-        $<BUILD_INTERFACE:include ${LIB_INCLUDE_DIRS}>
-        $<INSTALL_INTERFACE:include ${LIB_INCLUDE_DIRS}>
+        $<BUILD_INTERFACE:include >
+        $<INSTALL_INTERFACE:include >
 )
 
 target_link_libraries(${LIB_NAME} 
     PRIVATE 
+        glm
         utils
     PUBLIC
         reflection

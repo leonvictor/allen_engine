@@ -32,7 +32,7 @@ std::vector<vk::DescriptorSetLayoutBinding> Light::GetDescriptorSetLayoutBinding
 }
 } // namespace aln
 
-ALN_REGISTER_IMPL_BEGIN(aln::Light)
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::Light)
 ALN_REFLECT_MEMBER(color)
 ALN_REFLECT_MEMBER(intensity)
 ALN_REGISTER_IMPL_END()

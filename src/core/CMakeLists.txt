@@ -8,11 +8,10 @@ add_library(${LIB_NAME} SHARED
 )
 
 set(LIB_DEPENDENCIES 
-    ${GLM_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
 )
 
-set(LIB_LINK_DEPENDENCIES utils common entities graphics)
+set(LIB_LINK_DEPENDENCIES glm utils common entities graphics)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

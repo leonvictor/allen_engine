@@ -35,6 +35,7 @@
 #include <entities/world_update.hpp>
 
 #include <core/camera.hpp>
+#include <core/component_factory.hpp>
 #include <core/light.hpp>
 #include <core/mesh_renderer.hpp>
 #include <core/render_system.hpp>
@@ -93,6 +94,13 @@ class Engine
         //  - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
 
+        // Create a default context
+        m_componentFactory.context = {
+            .graphicsDevice = m_pDevice,
+            .defaultTexturePath = TEXTURE_PATH,
+            .defaultModelPath = MODEL_PATH,
+        };
+
         CreateWorld();
         ShareImGuiContext();
     }
@@ -133,6 +141,8 @@ class Engine
     // Object model
     WorldEntity m_worldEntity;
 
+    ComponentFactory m_componentFactory;
+
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
     {
@@ -153,28 +163,31 @@ class Engine
         // Create some entities
         {
             Entity* pCameraEntity = Entity::Create("MainCamera");
-            auto pCameraComponent = pCameraEntity->AddComponent<Camera>();
+            auto pCameraComponent = m_componentFactory.Create<Camera>();
 
             pCameraComponent->ModifyTransform()->position = WORLD_BACKWARD * 2.0f;
             pCameraComponent->ModifyTransform()->rotation.x = 90.0f;
+            pCameraEntity->AddComponent(pCameraComponent);
 
             pCameraEntity->CreateSystem<EditorCameraController>();
         }
 
         {
-            Entity* pLightEntity = Entity::Create("DirectionnalLight");
-            Light* pLightComponent = pLightEntity->AddComponent<Light>();
+            Entity* pLightEntity = Entity::Create("DirectionalLight");
+            Light* pLightComponent = m_componentFactory.Create<Light>();
             pLightComponent->color = glm::vec3(1.0f);
             pLightComponent->direction = WORLD_RIGHT;
-            pLightComponent->type = Light::Type::Directionnal;
+            pLightComponent->type = Light::Type::Directional;
             auto t = pLightComponent->ModifyTransform()->position = LIGHT_POSITION;
+            pLightEntity->AddComponent(pLightComponent);
 
             Entity* pPointLightEntity = Entity::Create("PointLight");
-            Light* pPLightComponent = pPointLightEntity->AddComponent<Light>();
+            Light* pPLightComponent = m_componentFactory.Create<Light>();
             pPLightComponent->color = glm::vec3(1.0f);
             pPLightComponent->direction = WORLD_RIGHT;
-            pPLightComponent->type = Light::Type::Directionnal;
+            pPLightComponent->type = Light::Type::Point;
             t = pPLightComponent->ModifyTransform()->position = LIGHT_POSITION;
+            pPointLightEntity->AddComponent(pPLightComponent);
         }
 
         int i = 1;
@@ -182,8 +195,9 @@ class Engine
         {
             // TODO: This api is too verbose
             Entity* pCube = Entity::Create(std::string("cube (") + std::to_string(i) + ")");
-            auto pMesh = pCube->AddComponent<MeshRenderer>(m_pDevice, MODEL_PATH, TEXTURE_PATH);
+            auto pMesh = m_componentFactory.Create<MeshRenderer>();
             pMesh->ModifyTransform()->position = pos;
+            pCube->AddComponent(pMesh);
             i++;
         }
     }
@@ -368,8 +382,30 @@ class Engine
 
                     for (auto pComponent : m_pSelectedEntity->GetComponents())
                     {
-                        auto typeDesc = pComponent->GetStaticType();
-                        typeDesc->InEditor(pComponent);
+                        auto typeDesc = pComponent->GetType();
+                        // TODO: This should happen through the partial template specialization for components
+                        auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
+                        typeDesc->InEditor(pComponent, compId.c_str());
+                    }
+
+                    if (ImGui::Button("Add Component"))
+                    {
+                        // Open a dropdown with all components types
+                        ImGui::OpenPopup("add_component_popup");
+                    }
+
+                    if (ImGui::BeginPopup("add_component_popup"))
+                    {
+                        auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
+                        for (auto& comp : componentTypes)
+                        {
+                            if (ImGui::Selectable(comp->GetPrettyName().c_str()))
+                            {
+                                auto newComp = m_componentFactory.Create(comp);
+                                m_pSelectedEntity->AddComponent(newComp);
+                            }
+                        }
+                        ImGui::EndPopup();
                     }
                 }
             }

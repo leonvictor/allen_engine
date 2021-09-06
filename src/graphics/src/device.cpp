@@ -16,6 +16,7 @@ Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
 {
     m_pInstance = pInstance;
     m_physical = PickPhysicalDevice(surface);
+    m_gpuProperties = m_physical.getProperties();
 
     CreateLogicalDevice(surface);
 
@@ -25,25 +26,7 @@ Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
     SetDebugUtilsObjectName(m_commandpools.transfer.m_vkCommandPool.get(), "Transfer Command Pool");
     m_msaaSamples = GetMaxUsableSampleCount();
 
-    // TODO: Refactor
-    int MAX_OBJECTS = 10000;
-
-    // Create descriptor pools.
-    /// TODO: Find a principled way of deciding the max number of elements
-    std::array<vk::DescriptorPoolSize, 3> poolSizes;
-    poolSizes[0].type = vk::DescriptorType::eUniformBuffer;
-    poolSizes[0].descriptorCount = (MAX_OBJECTS * 3) + 1; // +1 for skybox. TODO: This should be dynamic
-    poolSizes[1].type = vk::DescriptorType::eCombinedImageSampler;
-    poolSizes[1].descriptorCount = MAX_OBJECTS + 1; // +1 TODO Same here
-    poolSizes[2].type = vk::DescriptorType::eStorageBuffer;
-    poolSizes[2].descriptorCount = 1; // For now, only used by lights
-
-    vk::DescriptorPoolCreateInfo createInfo;
-    createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    createInfo.pPoolSizes = poolSizes.data();
-    createInfo.maxSets = (MAX_OBJECTS * 2) + 2;                              // TODO: +2 is for lights / skybox. Make it less hardcoded.  * 2 for color picker
-    createInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet; // Necessary for automatic freeing
-    m_descriptorPool = m_logical->createDescriptorPoolUnique(createInfo);
+    m_descriptorAllocator.Init(&m_logical.get());
 }
 
 SwapchainSupportDetails Device::GetSwapchainSupport(const vk::SurfaceKHR& surface)
@@ -107,6 +90,18 @@ vk::Format Device::FindSupportedFormat(const std::vector<vk::Format>& candidates
         }
     }
     throw std::runtime_error("Failed to find a supported format.");
+}
+
+size_t Device::PadUniformBufferSize(size_t originalSize)
+{
+    // Calculate required alignment based on minimum device offset alignment
+    size_t minUboAlignment = m_gpuProperties.limits.minUniformBufferOffsetAlignment;
+    size_t alignedSize = originalSize;
+    if (minUboAlignment > 0)
+    {
+        alignedSize = (alignedSize + minUboAlignment - 1) & ~(minUboAlignment - 1);
+    }
+    return alignedSize;
 }
 
 bool Device::SupportsBlittingToLinearImages()
@@ -201,8 +196,7 @@ vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
 
 vk::SampleCountFlagBits Device::GetMaxUsableSampleCount()
 {
-    auto properties = m_physical.getProperties();
-    vk::SampleCountFlags counts = properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts;
+    vk::SampleCountFlags counts = m_gpuProperties.limits.framebufferColorSampleCounts & m_gpuProperties.limits.framebufferDepthSampleCounts;
 
     // TODO: Beurk
     if (counts & vk::SampleCountFlagBits::e64)
@@ -250,4 +244,4 @@ bool Device::IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::Surfac
     auto supportedFeatures = device.getFeatures();
     return familyIndices.IsComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy;
 }
-}; // namespace vkg
+}; // namespace aln::vkg

@@ -66,12 +66,6 @@ void MeshRenderer::CreateDescriptorSet()
     m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
 }
 
-MeshRenderer::MeshRenderer(std::shared_ptr<vkg::Device> pDevice, std::string modelPath, std::string texturePath)
-    : m_pDevice(pDevice), m_mesh(modelPath)
-{
-    m_material.m_texturePath = texturePath;
-}
-
 std::vector<vk::DescriptorSetLayoutBinding> MeshRenderer::GetDescriptorSetLayoutBindings()
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings{
@@ -166,5 +160,5 @@ void MeshRenderer::Unload()
 }
 } // namespace aln
 
-ALN_REGISTER_IMPL_BEGIN(aln::MeshRenderer)
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::MeshRenderer)
 ALN_REGISTER_IMPL_END()

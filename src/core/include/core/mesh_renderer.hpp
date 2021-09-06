@@ -4,17 +4,17 @@
 #include <string>
 #include <vector>
 
-#include <entities/spatial_component.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include <graphics/draw_mesh.hpp>
 #include <graphics/resources/buffer.hpp>
 #include <graphics/resources/image.hpp>
 #include <graphics/ubo.hpp>
 
 #include <entities/spatial_component.hpp>
 
+#include "component_factory.hpp"
 #include "material.hpp"
-#include <graphics/draw_mesh.hpp>
 
 namespace aln
 {
@@ -52,10 +52,13 @@ class MeshRenderer : public entities::SpatialComponent
     void CreateDescriptorSet();
 
   public:
-    /// @brief Construct a MeshRenderer component.
-    /// @param pDevice: pointer to the rendering device.
-    /// @param path: path to the model file.
-    MeshRenderer(std::shared_ptr<vkg::Device> pDevice, std::string modelPath, std::string texturePath);
+    // TODO: Should this be public ?
+    void Construct(const entities::ComponentCreationContext& ctx) override
+    {
+        m_mesh.m_sourceFile = ctx.defaultModelPath;
+        m_material.m_texturePath = ctx.defaultTexturePath;
+        m_pDevice = ctx.graphicsDevice;
+    }
 
     /// @brief Returns the vulkan bindings representing a scene object.
     static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();

@@ -20,6 +20,8 @@ struct PrimitiveComponent
 /// @brief Mesh resource
 class Mesh
 {
+    friend class MeshRenderer;
+
   protected:
     std::string m_sourceFile;
 
@@ -29,8 +31,6 @@ class Mesh
     std::vector<PrimitiveComponent> m_primitives;
 
   public:
-    Mesh(std::string sourceFile);
-
     /// @brief Load the mesh from the source file.
     bool Load();
 

@@ -18,8 +18,6 @@ class DrawMesh : public Mesh
     resources::Buffer m_indexBuffer;
 
   public:
-    DrawMesh(std::string modelPath);
-
     /// @brief Create and fill the vulkan buffers to back the mesh.
     void CreateGraphicResources(std::shared_ptr<Device> pDevice);
 

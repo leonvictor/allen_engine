@@ -22,7 +22,7 @@ class Light : public entities::SpatialComponent
   public:
     enum class Type
     {
-        Directionnal,
+        Directional,
         Spot,
         Point
     };
