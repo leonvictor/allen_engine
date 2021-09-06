@@ -1,5 +1,6 @@
 #pragma once
 
+#include <common/colors.hpp>
 #include <entities/spatial_component.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -35,6 +36,9 @@ class Camera : public entities::SpatialComponent
     float fov = 45.0f;
     float nearPlane = 0.1f;
     float farPlane = 300.f;
+
+    // TODO: Optionnaly render the skybox as background
+    RGBAColor m_backgroundColor = {0.0f, 0.0f, 0.0f, 1.0f};
 
     glm::mat4 GetViewMatrix() const;
 
