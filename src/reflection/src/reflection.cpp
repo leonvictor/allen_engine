@@ -31,7 +31,7 @@ void TypeDescriptor_Struct::InEditor(void* obj, const char* fieldName) const
     {
         for (const Member& member : members)
         {
-            member.type->InEditor((char*) obj + member.offset, member.name);
+            member.type->InEditor((char*) obj + member.offset, member.GetPrettyName().c_str());
         }
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cctype>
 #include <cstddef>
 #include <functional>
 #include <iostream>
@@ -66,13 +67,14 @@ struct TypeDescriptor
     virtual std::string GetFullName() const { return name; }
 
     /// @brief Return a prettified version of the type's name.
+    /// @todo: Cache the prettified name
     virtual std::string GetPrettyName() const
     {
         // Use std::format (C++20). Not available in most compilers as of 04/06/2021
         std::string prettyName = std::string(name);
+
         // Remove the namespace info
         prettyName = prettyName.substr(prettyName.rfind(":") + 1);
-        // TODO: Remove member variable prefix m_ if necessary
         return prettyName;
     }
 
@@ -150,6 +152,32 @@ struct TypeDescriptor_Struct : TypeDescriptor
         const char* name;
         size_t offset;
         TypeDescriptor* type;
+
+        std::string GetPrettyName() const
+        {
+            std::string prettyName = std::string(name);
+
+            // Remove member variable prefix m_ if necessary
+            auto prefix = prettyName.substr(0, prettyName.find("_"));
+            if (prefix == "m")
+            {
+                prettyName = prettyName.substr(prettyName.find("_") + 1);
+            }
+
+            // Add spaces before each upper case letter
+            for (int i = 0; i < prettyName.length(); i++)
+            {
+                if (std::isupper(prettyName[i]))
+                {
+                    prettyName.insert(i++, " ");
+                }
+            }
+
+            // First letter is uppercase in any way
+            prettyName[0] = std::toupper(prettyName[0]);
+
+            return prettyName;
+        }
     };
 
     std::vector<Member> members;
