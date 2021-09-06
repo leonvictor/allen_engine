@@ -135,9 +135,10 @@ class Engine
         glm::vec3(2.0f, 5.0f, -15.0f),
         LIGHT_POSITION};
 
-    // GUI toggles
-    bool showTransformGUI = false;
     Entity* m_pSelectedEntity = nullptr;
+
+    float m_scenePreviewWidth = 1.0f;
+    float m_scenePreviewHeight = 1.0f;
 
     // Object model
     WorldEntity m_worldEntity;
@@ -243,13 +244,21 @@ class Engine
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?
             aln::entities::UpdateContext context = aln::entities::UpdateContext(UpdateStage::FrameStart);
-            context.displayWidth = m_window.GetWidth();
-            context.displayHeight = m_window.GetHeight();
+
+            // When out of editor
+            // context.displayWidth = m_window.GetWidth();
+            // context.displayHeight = m_window.GetHeight();
+
+            context.displayWidth = m_scenePreviewWidth;
+            context.displayHeight = m_scenePreviewHeight;
+
             m_worldEntity.Update(context);
 
             context = aln::entities::UpdateContext(UpdateStage::FrameEnd);
-            context.displayWidth = m_window.GetWidth();
-            context.displayHeight = m_window.GetHeight();
+            // context.displayWidth = m_window.GetWidth();
+            // context.displayHeight = m_window.GetHeight();
+            context.displayWidth = m_scenePreviewWidth;
+            context.displayHeight = m_scenePreviewHeight;
             m_worldEntity.Update(context);
 
             updateSkyboxUBO();
@@ -320,9 +329,9 @@ class Engine
 
         if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
         {
-            // TODO: What behavior do we expect when the scene tab is resized ?
-            // Current: resize the displayed scene render image. This can cause wrong scaling, and we do not want that
             auto dim = ImGui::GetContentRegionAvail();
+            m_scenePreviewWidth = dim.x;
+            m_scenePreviewHeight = dim.y;
             auto tex = m_sceneRenderer.GetActiveImage();
             ImGui::Image((ImTextureID) tex->GetDescriptorSet(), dim);
         }
