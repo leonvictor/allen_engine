@@ -132,8 +132,9 @@ class Entity
     void LoadComponents(const LoadingContext& loadingContext);
     void UnloadComponents(const LoadingContext& loadingContext);
 
-    /// @brief TODO
-    /// @return Whether the loading is finished.
+    /// @brief Check the loading status of all components and updates the entity status if necessary.
+    /// @return Whether the loading is finished
+    /// @todo This is synchrone for now
     bool UpdateLoadingAndEntityState(const LoadingContext& loadingContext);
 
     /// @brief Triggers registration with the systems (local and global)

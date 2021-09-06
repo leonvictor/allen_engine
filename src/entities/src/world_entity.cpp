@@ -47,7 +47,7 @@ void WorldEntity::Update(const UpdateContext& context)
         return; // Not all entities are loaded yet, return.
     }
 
-    assert(m_entityMap.m_status == EntityMap::Status::Loaded);
+    // assert(m_entityMap.m_status == EntityMap::Status::Loaded);
 
     if (!m_entityMap.IsActivated())
     {
@@ -90,19 +90,30 @@ void WorldEntity::UnregisterComponent(Entity* pEntity, IComponent* pComponent)
 
 void WorldEntity::RegisterEntity(Entity* pEntity)
 {
+
+    // TODO : Notify the world systems that this entity should be updated
     std::cout << "Entity registered w/ world systems: " << pEntity->GetName() << std::endl;
-    // TODO
 }
 
 void WorldEntity::UnregisterEntity(Entity* pEntity)
 {
-    std::cout << "Entity unregistered w/ world systems: " << pEntity->GetName() << std::endl;
     // TODO
+    std::cout << "Entity unregistered w/ world systems: " << pEntity->GetName() << std::endl;
 }
 
-std::map<aln::utils::UUID, Entity>& WorldEntity::GetEntitiesCollection()
+void WorldEntity::ActivateEntity(Entity* pEntity)
 {
-    return m_entityMap.Collection();
+    m_entityMap.ActivateEntity(pEntity);
 }
+
+void WorldEntity::DeactivateEntity(Entity* pEntity)
+{
+    m_entityMap.DeactivateEntity(pEntity);
+}
+
+// std::map<aln::utils::UUID, Entity>& WorldEntity::GetEntitiesCollection()
+// {
+//     return m_entityMap.Collection();
+// }
 
 } // namespace aln::entities

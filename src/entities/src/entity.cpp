@@ -19,9 +19,6 @@ using aln::utils::UUID;
 // State management
 // -------------------------------------------------
 
-/// @brief Check the loading status of all components and updates the entity status if necessary.
-/// @return Whether the loading is finished
-/// @todo This is synchrone for now
 bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
 {
     assert(m_status == Status::Unloaded);
@@ -434,7 +431,7 @@ void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pCo
     AddComponentImmediate(pComponent, pParentComponent);
 
     // If resources have already been loaded, notify the world system that this entity requires a reload
-    if (IsLoaded())
+    if (IsLoaded() || IsActivated())
     {
         // TODO: should i use the same requests as for system ?
         context.m_unregisterEntityUpdate(this);

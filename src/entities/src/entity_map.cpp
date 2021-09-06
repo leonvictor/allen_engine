@@ -37,6 +37,16 @@ void EntityMap::RemoveEntity(Entity* pEntity)
     m_entitiesToRemove.push_back(pEntity);
 }
 
+void EntityMap::ActivateEntity(Entity* pEntity)
+{
+    m_entitiesToActivate.push_back(pEntity);
+}
+
+void EntityMap::DeactivateEntity(Entity* pEntity)
+{
+    m_entitiesToDeactivate.push_back(pEntity);
+}
+
 bool EntityMap::Load(const LoadingContext& loadingContext)
 {
     // Manage the events registered by entities outside of the loading phase
@@ -103,8 +113,8 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     }
     Entity::EntityStateUpdatedEvent.m_updatedEntities.clear();
 
-    auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
     // Gather up newly created entities, add them to the loading list and move them to the static collection
+    auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
     for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
     {
         // TODO: this is wonky
@@ -189,6 +199,18 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
         m_status = Status::Loaded;
     }
 
+    for (auto pEntity : m_entitiesToActivate)
+    {
+        pEntity->Activate(loadingContext);
+    }
+    m_entitiesToActivate.clear();
+
+    for (auto pEntity : m_entitiesToDeactivate)
+    {
+        pEntity->Deactivate(loadingContext);
+    }
+    m_entitiesToDeactivate.clear();
+
     return true;
 }
 
@@ -208,5 +230,6 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
             }
         }
     }
+    m_status = Status::Activated;
 }
 } // namespace aln::entities

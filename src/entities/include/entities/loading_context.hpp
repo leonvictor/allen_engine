@@ -10,7 +10,7 @@ class IComponent;
 
 struct LoadingContext
 {
-    /// @brief Callback to notify the world entity that a new component/entity pair should be registered with the world systems.
+    /// @brief Callback to notify the world entity that a component/entity pair should be unregistered from the world systems.
     std::function<void(Entity*, IComponent*)> m_unregisterWithWorldSystems;
     /// @brief Callback to notify the world entity that a new component/entity pair should be unregistered with the world systems.
     std::function<void(Entity*, IComponent*)> m_registerWithWorldSystems;
