@@ -62,7 +62,9 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     if (!m_pCameraComponent->IsInitialized())
         return; // Camera is the only necessary component, return if it's not loaded yet
 
-    m_pRenderer->BeginFrame();
+    aln::vkg::render::RenderContext ctx =
+        {.backgroundColor = m_pCameraComponent->m_backgroundColor};
+    m_pRenderer->BeginFrame(ctx);
 
     // Get the active command buffer
     auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();

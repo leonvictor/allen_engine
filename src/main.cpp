@@ -238,7 +238,7 @@ class Engine
             // Trigger input callbacks
             Input::Dispatch();
 
-            m_renderer.BeginFrame();
+            m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
             // Object model: Update systems at various points in the frame.

@@ -92,13 +92,20 @@ void RenderPass::AddSubpassDependency(vk::SubpassDependency dependency)
 }
 
 /// @brief Begin a render pass.
-void RenderPass::Begin(vk::CommandBuffer& commandBuffer, vk::Framebuffer& framebuffer)
+void RenderPass::Begin(RenderPass::Context& ctx)
 {
     assert(IsInitialized());
 
+    m_clearValues[0] = vk::ClearColorValue{std::array<float, 4>{
+        ctx.backgroundColor.x,
+        ctx.backgroundColor.y,
+        ctx.backgroundColor.z,
+        1.0f,
+    }};
+
     vk::RenderPassBeginInfo renderPassInfo{
         .renderPass = m_vkRenderPass.get(),
-        .framebuffer = framebuffer,
+        .framebuffer = ctx.framebuffer,
         .renderArea = {
             .offset = {0, 0},
             .extent = {m_width, m_height},
@@ -106,7 +113,8 @@ void RenderPass::Begin(vk::CommandBuffer& commandBuffer, vk::Framebuffer& frameb
         .clearValueCount = static_cast<uint32_t>(m_clearValues.size()),
         .pClearValues = m_clearValues.data(),
     };
-    commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+
+    ctx.commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 }
 
 void RenderPass::End(vk::CommandBuffer& cb)
