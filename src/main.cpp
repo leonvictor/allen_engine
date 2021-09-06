@@ -349,11 +349,34 @@ class Engine
             {
                 ImGui::Text(m_pSelectedEntity->GetName().c_str());
                 ImGui::SameLine(ImGui::GetWindowWidth() - 30);
-                ImGui::Text(ICON_FA_EYE);
-                if (ImGui::IsItemHovered())
+                if (m_pSelectedEntity->IsActivated())
                 {
-                    ImGui::SetTooltip("Disable entity");
-                    // TODO: Disable entity
+
+                    ImGui::Text(ICON_FA_EYE);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("Disable entity");
+                    }
+                    if (ImGui::IsItemClicked())
+                    {
+                        // TODO: Disable entity
+                        std::cout << "Disable entity" << std::endl;
+                        // m_worldEntity.DeactivateEntity(m_pSelectedEntity);
+                    }
+                }
+                else
+                {
+                    ImGui::Text(ICON_FA_EYE_SLASH);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("Enable entity");
+                    }
+                    if (ImGui::IsItemClicked())
+                    {
+                        // TODO: Enable entity
+                        std::cout << "Enable entity" << std::endl;
+                        // m_worldEntity.ActivateEntity(m_pSelectedEntity);
+                    }
                 }
 
                 if (m_pSelectedEntity->IsSpatialEntity())
