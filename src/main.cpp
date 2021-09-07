@@ -17,8 +17,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "camera_controller.hpp"
-
 #include <graphics/device.hpp>
 #include <graphics/imgui.hpp>
 #include <graphics/instance.hpp>
@@ -35,6 +33,7 @@
 #include <entities/world_update.hpp>
 
 #include <core/camera.hpp>
+#include <core/camera_controller.hpp>
 #include <core/component_factory.hpp>
 #include <core/light.hpp>
 #include <core/mesh_renderer.hpp>
@@ -48,6 +47,9 @@
 
 #include <config/path.h>
 #include <reflection/reflection.hpp>
+
+using namespace aln::input;
+using namespace aln::entities;
 
 namespace aln
 {

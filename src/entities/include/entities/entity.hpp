@@ -6,11 +6,12 @@
 #include "object_model.hpp"
 
 #include <assert.h>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include <utils/type_info.hpp>
+#include <reflection/reflection.hpp>
 #include <utils/uuid.hpp>
 
 namespace aln::entities
@@ -34,7 +35,7 @@ class EntityInternalStateAction
     };
 
     Type m_type;           // Type of action add/destroy components or systems
-    void* m_ptr;           // Pointer to the designed IComponent or system TypeInfo
+    const void* m_ptr;     // Pointer to the designed IComponent or system TypeInfo
     aln::utils::UUID m_ID; // Optional: ID of the spatial parent component
 };
 
@@ -43,8 +44,6 @@ class EntityInternalStateAction
 /// Entities can be organized in hierarchies.
 class Entity
 {
-    template <typename T>
-    using TypeInfo = aln::utils::TypeInfo<T>;
     using UUID = aln::utils::UUID;
 
     friend Command;
@@ -88,12 +87,12 @@ class Entity
 
     /// @brief Create a new system and add it to this Entity.
     /// An Entity can only have one system of a given type (subtypes included).
-    void CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 
     /// @brief Same as CreateSystemImmediate, but the world system is notified that it should reload the Entity.
-    void CreateSystemDeferred(const LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo);
-    void DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo);
-    void DestroySystemDeferred(const LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void CreateSystemDeferred(const LoadingContext& loadingContext, aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 
     void DestroyComponentImmediate(IComponent* pComponent);
     void DestroyComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent);
@@ -162,14 +161,14 @@ class Entity
 
         if (IsUnloaded())
         {
-            CreateSystemImmediate(IEntitySystem::GetStaticTypeInfo<T>());
+            CreateSystemImmediate(T::GetStaticType());
         }
         else
         {
             // Delegate the action to whoever is in charge
             auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
             action.m_type = EntityInternalStateAction::Type::CreateSystem;
-            action.m_ptr = IEntitySystem::GetStaticTypeInfo<T>();
+            action.m_ptr = T::GetStaticType();
 
             EntityStateUpdatedEvent.Execute(this);
         }
@@ -181,17 +180,17 @@ class Entity
     inline void DestroySystem()
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>);
-        assert(std::find(m_systems, T::GetTypeInfo()->m_ID) != m_systems.end());
+        assert(std::find(m_systems, T::GetStaticType()->m_ID) != m_systems.end());
 
         if (IsUnloaded())
         {
-            DestroySystemImmediate(T::GetTypeInfo()); // TODO: static type info...
+            DestroySystemImmediate(T::GetStaticType()); // TODO: static type info...
         }
         else
         {
             auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
             action.m_type = EntityInternalStateAction::Type::DestroySystem;
-            action.m_ptr = T::GetTypeInfo();
+            action.m_ptr = T::GetStaticType();
 
             EntityStateUpdatedEvent.Execute(this);
         }

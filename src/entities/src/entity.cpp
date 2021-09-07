@@ -11,8 +11,6 @@
 namespace aln::entities
 {
 
-using aln::utils::TypeHelper;
-using aln::utils::TypeInfo;
 using aln::utils::UUID;
 
 // -------------------------------------------------
@@ -195,7 +193,7 @@ void Entity::GenerateSystemUpdateList()
 // Systems
 // -------------------------------------------------
 
-void Entity::CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     assert(pSystemTypeInfo != nullptr);
     // TODO: assert that pSystemTypeInfo describes a type that is derived from IEntitySystem
@@ -204,22 +202,22 @@ void Entity::CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo)
     // Make sure we only have one system of this type
     for (auto pExistingSystem : m_systems)
     {
-        auto const pExistingSystemTypeInfo = pExistingSystem->GetTypeInfo();
-        if (pSystemTypeInfo->IsDerivedFrom(pExistingSystemTypeInfo->m_ID) || pSystemTypeInfo == pExistingSystemTypeInfo)
+        auto const pExistingSystemTypeInfo = pExistingSystem->GetType();
+        // TODO: Add inheritance info to the reflection system and put back the test.
+        // if (pSystemTypeInfo->IsDerivedFrom(pExistingSystemTypeInfo->m_ID) || pSystemTypeInfo == pExistingSystemTypeInfo)
+        if (pSystemTypeInfo == pExistingSystemTypeInfo)
         {
             throw std::runtime_error("Tried to add a second system of the same type to an entity.");
         }
     }
 
-    auto pSystem = std::static_pointer_cast<IEntitySystem>(pSystemTypeInfo->m_pTypeHelper->CreateType());
-    // TODO: Initialize the typeInfo member in the creation routine.
-    // TODO: Put back the const modifier to the pSystemTypeInfo arg.
-    pSystem->m_pTypeInfo = pSystemTypeInfo;
+    // TODO: new and shared_ptr(...) are not good.
+    auto pSystem = std::shared_ptr<IEntitySystem>((IEntitySystem*) pSystemTypeInfo->typeHelper->CreateType());
     m_systems.push_back(pSystem);
 }
 
 // TODO: Put back const modifier when we've fixed the pSystemTypeInfo setter
-void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -232,19 +230,19 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, TypeInfo
     }
 }
 
-void Entity::DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     // TODO: find the index of system in m_systems
 
     auto systemIt = std::find_if(m_systems.begin(), m_systems.end(), [&](std::shared_ptr<IEntitySystem> pSystem)
-        { return pSystem->GetTypeInfo()->m_ID == pSystemTypeInfo->m_ID; });
+        { return pSystem->GetType()->m_ID == pSystemTypeInfo->m_ID; });
     // int systemIdx = 0;
 
     // TODO: assert that systemIdx is valid
     m_systems.erase(systemIt);
 }
 
-void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
