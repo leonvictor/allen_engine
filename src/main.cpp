@@ -177,7 +177,6 @@ class Engine
         {
             Entity* pLightEntity = Entity::Create("DirectionalLight");
             Light* pLightComponent = m_componentFactory.Create<Light>();
-            pLightComponent->color = glm::vec3(1.0f);
             pLightComponent->direction = WORLD_RIGHT;
             pLightComponent->type = Light::Type::Directional;
             auto t = pLightComponent->ModifyTransform()->position = LIGHT_POSITION;
@@ -185,7 +184,6 @@ class Engine
 
             Entity* pPointLightEntity = Entity::Create("PointLight");
             Light* pPLightComponent = m_componentFactory.Create<Light>();
-            pPLightComponent->color = glm::vec3(1.0f);
             pPLightComponent->direction = WORLD_RIGHT;
             pPLightComponent->type = Light::Type::Point;
             t = pPLightComponent->ModifyTransform()->position = LIGHT_POSITION;

@@ -43,4 +43,36 @@ TypeDescriptor* GetPrimitiveDescriptor<aln::RGBAColor>()
     static TypeDescriptor_AlnRGBAColor typeDesc;
     return &typeDesc;
 }
+
+//--------------------------------------------------------
+// A type descriptor for RGBAColor
+//--------------------------------------------------------
+struct TypeDescriptor_AlnRGBColor : TypeDescriptor
+{
+    TypeDescriptor_AlnRGBColor() : TypeDescriptor{"aln::RGBColor", sizeof(aln::RGBColor)}
+    {
+    }
+
+    virtual void Dump(const void* obj, int) const override
+    {
+        glm::vec4* color = (glm::vec4*) obj;
+
+        std::cout << "aln::RGBColor{" << glm::to_string(*color) << "}";
+    }
+
+    virtual void InEditor(void* obj, const char* fieldName = "") const override
+    {
+        aln::RGBColor* color = (aln::RGBColor*) obj;
+        ImGui::ColorEdit3("##picker", (float*) color);
+        ImGui::SameLine();
+        ImGui::Text(fieldName);
+    }
+};
+
+template <>
+TypeDescriptor* GetPrimitiveDescriptor<aln::RGBColor>()
+{
+    static TypeDescriptor_AlnRGBColor typeDesc;
+    return &typeDesc;
 }
+} // namespace aln::reflect

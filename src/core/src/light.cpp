@@ -13,7 +13,7 @@ LightUniform Light::GetUniform()
     LightUniform u;
     u.position = glm::vec4(t.position, (float) type);
     u.direction = glm::vec4(direction, range);
-    u.color = glm::vec4(color, intensity);
+    u.color = glm::vec4(m_color, intensity);
 
     return u;
 }
@@ -33,6 +33,6 @@ std::vector<vk::DescriptorSetLayoutBinding> Light::GetDescriptorSetLayoutBinding
 } // namespace aln
 
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::Light)
-ALN_REFLECT_MEMBER(color)
+ALN_REFLECT_MEMBER(m_color)
 ALN_REFLECT_MEMBER(intensity)
 ALN_REGISTER_IMPL_END()
