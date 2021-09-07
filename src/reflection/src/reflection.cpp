@@ -13,6 +13,16 @@ void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc*
     ImGui::SetAllocatorFunctions(*pAllocFunc, *pFreeFunc, *pUserData);
 }
 
+bool operator==(const TypeDescriptor& a, const TypeDescriptor& b)
+{
+    return a.m_ID == b.m_ID;
+}
+
+bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b)
+{
+    return !(a == b);
+}
+
 void TypeDescriptor_Struct::Dump(const void* obj, int indentLevel) const
 {
     std::cout << name << " {" << std::endl;
