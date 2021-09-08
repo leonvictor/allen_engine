@@ -48,6 +48,11 @@ set(IMGUI_INCLUDE_DIRS
 
 add_executable(main ${SOURCE})
 
+# Tracy
+# TODO: Disable in prod.
+add_compile_definitions(TRACY_ENABLE)
+add_subdirectory(external/tracy)
+target_link_libraries(main PUBLIC TracyClient)
 
 # Include ImGui
 set(IMGUI_INCLUDE_DIRS 

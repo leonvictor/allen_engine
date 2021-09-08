@@ -48,6 +48,8 @@
 #include <config/path.h>
 #include <reflection/reflection.hpp>
 
+#include <Tracy.hpp>
+
 namespace aln
 {
 
@@ -270,6 +272,8 @@ class Engine
         }
 
         m_pDevice->GetVkDevice().waitIdle();
+
+        FrameMark;
     }
 
     void DrawUI()
@@ -383,7 +387,9 @@ class Engine
                     for (auto pComponent : m_pSelectedEntity->GetComponents())
                     {
                         auto typeDesc = pComponent->GetType();
-                        typeDesc->InEditor(pComponent);
+                        // TODO: This should happen through the partial template specialization for components
+                        auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
+                        typeDesc->InEditor(pComponent, compId.c_str());
                     }
 
                     if (ImGui::Button("Add Component"))
