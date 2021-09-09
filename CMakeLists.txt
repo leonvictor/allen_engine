@@ -7,8 +7,9 @@ set(SOURCE
     src/time_system.cpp
 )
 
-# Configure the config files
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
+# Configure the config file
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 set(DEFAULT_SHADERS_DIR ${PROJECT_SOURCE_DIR}/shaders)
 set(DEFAULT_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
