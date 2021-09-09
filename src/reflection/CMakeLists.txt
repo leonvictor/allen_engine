@@ -12,7 +12,7 @@ add_library(${LIB_NAME} SHARED
 set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
-target_link_libraries(${LIB_NAME} PUBLIC glm common)
+target_link_libraries(${LIB_NAME} PUBLIC glm common utils)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

@@ -5,5 +5,5 @@ Static and runtime reflection system used for various tasks such as generating E
 Based on [this blog post](https://github.com/preshing/FlexibleReflection/tree/a1c5a518e000383a89aca61116329d6fc09a6b3c).
 
 # TODO
+ - Document usage
  - Separate the editor stuff from the rest to avoid having to include imgui in every lib.
- - Wrap some primitives to allow more fluidity in UI widget selection (i.e. wrap glm::vec3 in a Color class to allow using the color picker)

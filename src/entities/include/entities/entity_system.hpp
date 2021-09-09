@@ -3,7 +3,6 @@
 #include <assert.h>
 
 #include "../update_stages.hpp"
-#include <utils/type_info.hpp>
 
 #include "object_model.hpp"
 #include "world_update.hpp"
@@ -11,6 +10,8 @@
 #include <map>
 #include <string>
 #include <vector>
+
+#include <reflection/reflection.hpp>
 
 namespace aln::entities
 {
@@ -21,30 +22,13 @@ class IComponent;
 namespace impl
 {
 
-using aln::utils::TypeInfo;
-
 /// @brief Abstract base class for systems operating on entities. Systems are singletons (only one of each type associated to an entity).
 /// Systems are added to a single entity an can only operate on its components.
 class IEntitySystem
 {
+    ALN_REGISTER_TYPE();
+
     friend Entity;
-    friend class TypeInfo<IEntitySystem>;
-
-  private:
-    /// @brief Return the reflection type of T.
-    template <typename T>
-    static TypeInfo<IEntitySystem>* GetStaticTypeInfo()
-    {
-        return TypeInfo<IEntitySystem>::GetTypeInfo<T>().get();
-    }
-
-    /// @brief Return the reflection type of this system.
-    TypeInfo<IEntitySystem>* GetTypeInfo()
-    {
-        return m_pTypeInfo;
-    }
-
-    TypeInfo<IEntitySystem>* m_pTypeInfo;
 
   protected:
     /// Stages during which the system should be updated with associated priority scores.
