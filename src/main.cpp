@@ -420,34 +420,34 @@ class Engine
                         ImGui::SameLine();
                         ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
                     }
+                }
 
-                    for (auto pComponent : m_pSelectedEntity->GetComponents())
-                    {
-                        auto typeDesc = pComponent->GetType();
-                        // TODO: This should happen through the partial template specialization for components
-                        auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
-                        typeDesc->InEditor(pComponent, compId.c_str());
-                    }
+                for (auto pComponent : m_pSelectedEntity->GetComponents())
+                {
+                    auto typeDesc = pComponent->GetType();
+                    // TODO: This should happen through the partial template specialization for components
+                    auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
+                    typeDesc->InEditor(pComponent, compId.c_str());
+                }
 
-                    if (ImGui::Button("Add Component"))
-                    {
-                        // Open a dropdown with all components types
-                        ImGui::OpenPopup("add_component_popup");
-                    }
+                if (ImGui::Button("Add Component"))
+                {
+                    // Open a dropdown with all components types
+                    ImGui::OpenPopup("add_component_popup");
+                }
 
-                    if (ImGui::BeginPopup("add_component_popup"))
+                if (ImGui::BeginPopup("add_component_popup"))
+                {
+                    auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
+                    for (auto& comp : componentTypes)
                     {
-                        auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
-                        for (auto& comp : componentTypes)
+                        if (ImGui::Selectable(comp->GetPrettyName().c_str()))
                         {
-                            if (ImGui::Selectable(comp->GetPrettyName().c_str()))
-                            {
-                                auto newComp = m_componentFactory.Create(comp);
-                                m_pSelectedEntity->AddComponent(newComp);
-                            }
+                            auto newComp = m_componentFactory.Create(comp);
+                            m_pSelectedEntity->AddComponent(newComp);
                         }
-                        ImGui::EndPopup();
                     }
+                    ImGui::EndPopup();
                 }
             }
             ImGui::End();
