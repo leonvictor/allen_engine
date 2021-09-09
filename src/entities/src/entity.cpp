@@ -6,6 +6,7 @@
 #include "component.hpp"
 #include "spatial_component.hpp"
 
+#include <Tracy.hpp>
 #include <future>
 
 namespace aln::entities
@@ -261,6 +262,8 @@ void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const T
 
 void Entity::UpdateSystems(UpdateContext const& context)
 {
+    ZoneScoped;
+
     const UpdateStage updateStage = context.GetUpdateStage();
     // TODO: make sure stages convert nicely to uint8_t
     for (auto pSystem : m_systemUpdateLists[(uint8_t) updateStage])
