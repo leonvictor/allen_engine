@@ -36,12 +36,12 @@ class WorldEntity
     /// @brief TODO: What does that do ?
     /// Called when an entity is activated or modified.
     /// @todo private ?
-    void RegisterEntity(Entity* pEntity);
+    void RegisterEntityUpdate(Entity* pEntity);
 
     /// @brief TODO: What does that do ?
     /// Called when an entity is modified (i.e. a component or system is added/removed) (unregister->register)
     /// @todo private ?
-    void UnregisterEntity(Entity* pEntity);
+    void UnregisterEntityUpdate(Entity* pEntity);
 
   public:
     ~WorldEntity();

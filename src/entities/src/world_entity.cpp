@@ -11,8 +11,8 @@ LoadingContext WorldEntity::GetLoadingContext()
     LoadingContext loadingContext;
     loadingContext.m_registerWithWorldSystems = std::bind(&WorldEntity::RegisterComponent, this, std::placeholders::_1, std::placeholders::_2);
     loadingContext.m_unregisterWithWorldSystems = std::bind(&WorldEntity::UnregisterComponent, this, std::placeholders::_1, std::placeholders::_2);
-    loadingContext.m_registerEntityUpdate = std::bind(&WorldEntity::RegisterEntity, this, std::placeholders::_1);
-    loadingContext.m_unregisterEntityUpdate = std::bind(&WorldEntity::UnregisterEntity, this, std::placeholders::_1);
+    loadingContext.m_registerEntityUpdate = std::bind(&WorldEntity::RegisterEntityUpdate, this, std::placeholders::_1);
+    loadingContext.m_unregisterEntityUpdate = std::bind(&WorldEntity::UnregisterEntityUpdate, this, std::placeholders::_1);
     // TODO: In order to paralellize, the entity registering functions could be bound from transient instances of the entity map.
     return loadingContext;
 }
@@ -72,6 +72,8 @@ void WorldEntity::Update(const UpdateContext& context)
 
 void WorldEntity::RegisterComponent(Entity* pEntity, IComponent* pComponent)
 {
+    // TODO: Create a task for each global system and feed them the entity/components pairs
+    // In the rare case multiple systems are interdependant, use the same thread for all of them.
     std::cout << "Register component for entity: " << pEntity->GetName() << std::endl;
     for (auto& [id, system] : m_systems)
     {
@@ -88,17 +90,16 @@ void WorldEntity::UnregisterComponent(Entity* pEntity, IComponent* pComponent)
     }
 }
 
-void WorldEntity::RegisterEntity(Entity* pEntity)
-{
-
-    // TODO : Notify the world systems that this entity should be updated
-    std::cout << "Entity registered w/ world systems: " << pEntity->GetName() << std::endl;
-}
-
-void WorldEntity::UnregisterEntity(Entity* pEntity)
+void WorldEntity::RegisterEntityUpdate(Entity* pEntity)
 {
     // TODO
-    std::cout << "Entity unregistered w/ world systems: " << pEntity->GetName() << std::endl;
+    std::cout << "Entity update list registered w/ world: " << pEntity->GetName() << std::endl;
+}
+
+void WorldEntity::UnregisterEntityUpdate(Entity* pEntity)
+{
+    // TODO
+    std::cout << "Entity update list unregistered w/ world: " << pEntity->GetName() << std::endl;
 }
 
 void WorldEntity::ActivateEntity(Entity* pEntity)

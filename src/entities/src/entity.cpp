@@ -86,6 +86,7 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
 void Entity::Activate(const LoadingContext& loadingContext)
 {
     assert(IsLoaded());
+    m_status = Status::Activated;
 
     // Initialize spatial hierachy
     // TODO: Transforms are set at serial time so we have all the info available to update
@@ -106,6 +107,7 @@ void Entity::Activate(const LoadingContext& loadingContext)
             }
 
             // ... and all global systems
+            // This is the non-parallelizable part
             loadingContext.m_registerWithWorldSystems(this, pComponent);
         }
     }
@@ -125,7 +127,6 @@ void Entity::Activate(const LoadingContext& loadingContext)
         RefreshEntityAttachments();
     }
 
-    m_status = Status::Activated;
     loadingContext.m_registerEntityUpdate(this);
 }
 
@@ -222,7 +223,7 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, aln::ref
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
 
-    // If already activated, notify the world systems that this entity requires a reload
+    // If already activated, notify the world systems that this entity update requirements changed
     if (IsActivated())
     {
         loadingContext.m_unregisterEntityUpdate(this);
@@ -247,6 +248,7 @@ void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const a
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
 
+    // If already activated, notify the world systems that this entity update requirements changed.
     if (IsActivated())
     {
         loadingContext.m_unregisterEntityUpdate(this);
@@ -334,12 +336,24 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
 
 void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent* pComponent)
 {
-    DestroyComponentImmediate(pComponent);
-    if (IsLoaded())
+    // TODO: !!!
+    if (IsActivated())
     {
-        context.m_unregisterEntityUpdate(this);
-        context.m_registerEntityUpdate(this);
+        // Unregister the component from local and world systems
+        context.m_unregisterWithWorldSystems(this, pComponent);
+
+        for (auto pSystem : m_systems)
+        {
+            pSystem->UnregisterComponent(pComponent);
+        }
     }
+
+    if (pComponent->IsLoaded())
+    {
+        pComponent->UnloadComponent();
+    }
+
+    DestroyComponentImmediate(pComponent);
 }
 
 void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID)
@@ -428,12 +442,20 @@ void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pCo
 {
     AddComponentImmediate(pComponent, pParentComponent);
 
-    // If resources have already been loaded, notify the world system that this entity requires a reload
-    if (IsLoaded() || IsActivated())
+    if (IsLoaded())
     {
-        // TODO: should i use the same requests as for system ?
-        context.m_unregisterEntityUpdate(this);
-        context.m_registerEntityUpdate(this);
+        // TODO: Async ?
+        pComponent->LoadComponent();
+    }
+
+    if (IsActivated())
+    {
+        // Register with local and world systems
+        for (auto pSystem : m_systems)
+        {
+            pSystem->RegisterComponent(pComponent);
+        }
+        context.m_registerWithWorldSystems(this, pComponent);
     }
 }
 

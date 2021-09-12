@@ -199,10 +199,15 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
         m_status = Status::Loaded;
     }
 
+    // TODO: All entities are activated in parallel.
+    // As the map will be instanciated for multiple threads this is ok for now i think ?
+    // We can call entity->Activate() for each of them because it manages the local parts of the activation,
+    // the rest is deffered.
     for (auto pEntity : m_entitiesToActivate)
     {
         pEntity->Activate(loadingContext);
     }
+
     m_entitiesToActivate.clear();
 
     for (auto pEntity : m_entitiesToDeactivate)

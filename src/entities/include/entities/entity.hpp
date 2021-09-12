@@ -109,7 +109,8 @@ class Entity
     void RefreshEntityAttachments();
 
   public:
-    bool IsLoaded() const { return m_status == Status::Loaded; }
+    /// @brief Whether this entity is loaded (some components might still be loading in case of dynamic add)
+    bool IsLoaded() const { return m_status == Status::Loaded || m_status == Status::Activated; }
     bool IsUnloaded() const { return m_status == Status::Unloaded; }
     bool IsActivated() const { return m_status == Status::Activated; }
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
