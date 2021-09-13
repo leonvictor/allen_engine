@@ -1,4 +1,5 @@
 #include "world_entity.hpp"
+#include "component.hpp"
 #include "entity.hpp"
 
 #include <assert.h>
@@ -75,6 +76,7 @@ void WorldEntity::RegisterComponent(Entity* pEntity, IComponent* pComponent)
     // TODO: Create a task for each global system and feed them the entity/components pairs
     // TODO: Also delay registration till components are ready.
     // In the rare case multiple systems are interdependant, use the same thread for all of them.
+    assert(!pComponent->IsUnloaded());
     std::cout << "Register component for entity: " << pEntity->GetName() << std::endl;
     for (auto& [id, system] : m_systems)
     {

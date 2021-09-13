@@ -26,12 +26,7 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
     {
         if (pComponent->IsUnloaded() || pComponent->IsLoading())
         {
-            if (pComponent->LoadComponentAsync())
-            {
-                pComponent->InitializeComponent();
-                assert(pComponent->IsInitialized());
-            }
-            else
+            if (!pComponent->LoadComponentAsync())
             {
                 allLoaded = false;
             }
@@ -446,6 +441,7 @@ void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pCo
     {
         // TODO: Async ?
         pComponent->LoadComponent();
+        pComponent->Initialize();
     }
 
     if (IsActivated())
