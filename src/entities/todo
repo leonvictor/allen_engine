@@ -1,0 +1,7 @@
+- Systems use a ComponentRecord class
+- Systems update priorities
+- Parallel entity activation
+- Parallel entity update
+- ComponentRecord iterator, simplify for loops
+- Multiple types of ComponentRegistry s (ex: accept a single component)
+- Delay the registration of component to world systems until they are loaded

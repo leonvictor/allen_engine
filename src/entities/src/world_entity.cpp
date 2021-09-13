@@ -73,6 +73,7 @@ void WorldEntity::Update(const UpdateContext& context)
 void WorldEntity::RegisterComponent(Entity* pEntity, IComponent* pComponent)
 {
     // TODO: Create a task for each global system and feed them the entity/components pairs
+    // TODO: Also delay registration till components are ready.
     // In the rare case multiple systems are interdependant, use the same thread for all of them.
     std::cout << "Register component for entity: " << pEntity->GetName() << std::endl;
     for (auto& [id, system] : m_systems)
