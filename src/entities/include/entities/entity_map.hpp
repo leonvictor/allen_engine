@@ -57,9 +57,12 @@ class EntityMap : private EntityCollection
     // Map state management
     // -------------------------------------------------
 
-    /// @brief Update the state of each entity
+    /// @brief Update the loading state of each entity
     /// @note This function should be called exactly once per frame.
     bool Load(const LoadingContext& loadingContext);
+
+    /// @brief Update the systems of each entity.
+    void Update(const UpdateContext& updateContext);
 
     /// @brief Activate all entities in the collection.
     void Activate(const LoadingContext& loadingContext);

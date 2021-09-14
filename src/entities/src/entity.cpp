@@ -187,6 +187,22 @@ void Entity::GenerateSystemUpdateList()
 // -------------------------------------------------
 // Systems
 // -------------------------------------------------
+void Entity::CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+{
+    if (IsUnloaded())
+    {
+        CreateSystemImmediate(pTypeDescriptor);
+    }
+    else
+    {
+        // Delegate the action to whoever is in charge
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::CreateSystem;
+        action.m_ptr = pTypeDescriptor;
+
+        EntityStateUpdatedEvent.Execute(this);
+    }
+}
 
 void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
@@ -208,6 +224,15 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
 
     // TODO: new and shared_ptr(...) are not good.
     auto pSystem = std::shared_ptr<IEntitySystem>((IEntitySystem*) pSystemTypeInfo->typeHelper->CreateType());
+
+    if (IsActivated())
+    {
+        for (auto pComponent : m_components)
+        {
+            pSystem->RegisterComponent(pComponent);
+        }
+    }
+
     m_systems.push_back(pSystem);
 }
 
