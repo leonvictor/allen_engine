@@ -80,28 +80,30 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
 
             case EntityInternalStateAction::Type::AddComponent:
             {
-
                 auto pParentComponent = pEntity->GetSpatialComponent(action.m_ID);
                 pEntity->AddComponentDeferred(loadingContext, (IComponent*) action.m_ptr, pParentComponent);
                 break;
             }
 
+            case EntityInternalStateAction::Type::DestroyComponent:
+            {
+                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
+                break;
+            }
+
             case EntityInternalStateAction::Type::CreateSystem:
             {
-
                 throw std::runtime_error("Not implemented");
                 // pEntity->CreateSystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
                 break;
             }
 
-            case EntityInternalStateAction::Type::DestroyComponent:
-                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
-                break;
-
             case EntityInternalStateAction::Type::DestroySystem:
+            {
                 throw std::runtime_error("Not implemented");
                 // pEntity->DestroySystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
                 break;
+            }
 
             default:
                 throw std::runtime_error("Unsupported operation");

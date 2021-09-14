@@ -173,8 +173,7 @@ void Entity::GenerateSystemUpdateList()
         }
 
         // Sort update list
-        // TODO: what does "T* const& var" mean ?
-        auto comparator = [i](std::shared_ptr<IEntitySystem> const& pSystemA, std::shared_ptr<IEntitySystem> const& pSystemB)
+        auto comparator = [i](const std::shared_ptr<IEntitySystem>& pSystemA, const std::shared_ptr<IEntitySystem>& pSystemB)
         {
             uint16_t A = pSystemA->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
             uint16_t B = pSystemB->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
@@ -212,8 +211,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
     m_systems.push_back(pSystem);
 }
 
-// TODO: Put back const modifier when we've fixed the pSystemTypeInfo setter
-void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -328,7 +326,6 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
 
 void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent* pComponent)
 {
-    // TODO: !!!
     if (IsActivated())
     {
         // Unregister the component from local and world systems
@@ -432,7 +429,7 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
 
     pComponent->m_entityID = m_ID;
     // TODO: make sure modification made to pSpatialComponent are taken into account here...
-    m_components.emplace_back(pComponent);
+    m_components.push_back(pComponent);
 }
 
 void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pComponent, SpatialComponent* pParentComponent)

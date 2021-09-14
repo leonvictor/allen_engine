@@ -34,7 +34,7 @@ class EntityInternalStateAction
         ParentChanged, // The entity's parent has changed
     };
 
-    Type m_type;           // Type of action add/destroy components or systems
+    Type m_type;           // Type of action
     const void* m_ptr;     // Pointer to the designed IComponent or system TypeInfo
     aln::utils::UUID m_ID; // Optional: ID of the spatial parent component
 };
@@ -90,7 +90,7 @@ class Entity
     void CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 
     /// @brief Same as CreateSystemImmediate, but the world system is notified that it should reload the Entity.
-    void CreateSystemDeferred(const LoadingContext& loadingContext, aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
     void DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
     void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 

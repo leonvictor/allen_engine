@@ -26,21 +26,15 @@ class WorldEntity
     void Cleanup();
 
     /// @brief Register a component with all the world systems. Called when an entity is activated.
-    /// @todo private ?
     void RegisterComponent(Entity* pEntity, IComponent* pComponent);
 
     /// @brief Unregister a component from all the world systems. Called when an entity is deactivated.
-    /// @todo private ?
     void UnregisterComponent(Entity* pEntity, IComponent* pComponent);
 
-    /// @brief TODO: What does that do ?
-    /// Called when an entity is activated or modified.
-    /// @todo private ?
+    /// @brief Register an entity's update priorities list to the world. Called when an entity is activated or modified.
     void RegisterEntityUpdate(Entity* pEntity);
 
-    /// @brief TODO: What does that do ?
-    /// Called when an entity is modified (i.e. a component or system is added/removed) (unregister->register)
-    /// @todo private ?
+    /// @brief Unegister an entity's update priorities list from the world. Called when an entity is activated or modified.
     void UnregisterEntityUpdate(Entity* pEntity);
 
   public:
