@@ -443,6 +443,16 @@ class Engine
                     }
                 }
 
+                for (auto pSystem : m_pSelectedEntity->GetSystems())
+                {
+                    auto typeDesc = pSystem->GetType();
+                    auto sysId = typeDesc->GetPrettyName() + "##" + m_pSelectedEntity->GetId().ToString();
+                    if (ImGui::CollapsingHeader(sysId.c_str()))
+                    {
+                        typeDesc->InEditor(pSystem.get());
+                    }
+                }
+
                 if (ImGui::Button("Add Component"))
                 {
                     // Open a dropdown with all components types
