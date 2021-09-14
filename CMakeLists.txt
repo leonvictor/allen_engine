@@ -6,8 +6,9 @@ set(SOURCE
     src/main.cpp
 )
 
-# Configure the config files
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
+# Configure the config file
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 set(DEFAULT_SHADERS_DIR ${PROJECT_SOURCE_DIR}/shaders)
 set(DEFAULT_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
@@ -50,6 +51,11 @@ set(IMGUI_INCLUDE_DIRS
 
 add_executable(main ${SOURCE})
 
+# Tracy
+# TODO: Disable in prod.
+add_compile_definitions(TRACY_ENABLE)
+add_subdirectory(external/tracy)
+target_link_libraries(main PUBLIC TracyClient)
 
 # Include ImGui
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})

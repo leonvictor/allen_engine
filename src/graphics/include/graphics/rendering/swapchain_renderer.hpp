@@ -6,6 +6,7 @@
 #include "render_target.hpp"
 #include "renderer.hpp"
 
+#include <Tracy.hpp>
 #include <functional>
 #include <vulkan/vulkan.hpp>
 
@@ -67,6 +68,8 @@ class SwapchainRenderer : public IRenderer
     // TODO: De-duplicate
     void EndFrame()
     {
+        ZoneScoped;
+
         auto& cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
         cb.endRenderPass();
         cb.end();

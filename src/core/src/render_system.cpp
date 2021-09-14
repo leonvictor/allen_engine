@@ -15,6 +15,7 @@
 #include <glm/matrix.hpp>
 #include <glm/trigonometric.hpp>
 
+#include <Tracy.hpp>
 #include <map>
 
 namespace aln
@@ -55,6 +56,8 @@ void GraphicsSystem::Initialize()
 
 void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
 {
+    ZoneScoped;
+
     if (context.GetUpdateStage() != UpdateStage::FrameEnd)
         return;
 

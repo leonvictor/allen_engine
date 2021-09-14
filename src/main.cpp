@@ -49,6 +49,8 @@
 #include <config/path.h>
 #include <reflection/reflection.hpp>
 
+#include <Tracy.hpp>
+
 using namespace aln::input;
 using namespace aln::entities;
 
@@ -276,6 +278,8 @@ class Engine
         }
 
         m_pDevice->GetVkDevice().waitIdle();
+
+        FrameMark;
     }
 
     void DrawUI()

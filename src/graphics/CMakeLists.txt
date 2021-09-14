@@ -29,7 +29,7 @@ set(LIB_INCLUDE_DIRS
 )
 
 set(LIB_DEPENDENCIES
-    ${Vulkan_LIBRARIES} glm glfw utils common shaderc assets
+    ${Vulkan_LIBRARIES} glm glfw utils common shaderc assets TracyClient
 )
 
 target_link_libraries(${LIB_NAME} 

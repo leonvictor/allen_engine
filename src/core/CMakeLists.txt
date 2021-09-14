@@ -13,6 +13,7 @@ add_library(${LIB_NAME} SHARED
 
 set(LIB_DEPENDENCIES 
     ${Vulkan_INCLUDE_DIRS}
+    TracyClient
 )
 
 set(LIB_LINK_DEPENDENCIES glm utils common entities graphics input)

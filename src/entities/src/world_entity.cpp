@@ -3,6 +3,7 @@
 #include "entity.hpp"
 
 #include <assert.h>
+#include <Tracy.hpp>
 
 namespace aln::entities
 {
@@ -37,6 +38,8 @@ void WorldEntity::Cleanup()
 
 void WorldEntity::Update(const UpdateContext& context)
 {
+    ZoneScoped;
+    
     // --------------
     // Loading phase
     // --------------
