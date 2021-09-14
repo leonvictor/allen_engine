@@ -353,7 +353,7 @@ class Engine
             if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr))
             {
                 ImGui::AlignTextToFramePadding();
-                ImGui::Text(ICON_FA_CUBE);
+                ImGui::Text(ICON_FA_CUBES);
                 ImGui::SameLine();
                 ImGui::InputText(("##" + m_pSelectedEntity->GetID().ToString()).c_str(), &m_pSelectedEntity->GetName());
                 ImGui::SameLine(ImGui::GetWindowWidth() - 30);
@@ -421,7 +421,7 @@ class Engine
                 {
                     auto typeDesc = pComponent->GetType();
                     // TODO: This should happen through the partial template specialization for components
-                    auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
+                    auto compId = ICON_FA_CUBE " " + typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
 
                     if (ImGui::CollapsingHeader(compId.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
                     {
@@ -441,7 +441,7 @@ class Engine
                 for (auto pSystem : m_pSelectedEntity->GetSystems())
                 {
                     auto typeDesc = pSystem->GetType();
-                    auto sysId = typeDesc->GetPrettyName() + "##" + m_pSelectedEntity->GetId().ToString();
+                    auto sysId = ICON_FA_COGS " " + typeDesc->GetPrettyName() + "##" + m_pSelectedEntity->GetID().ToString();
                     if (ImGui::CollapsingHeader(sysId.c_str()))
                     {
                         typeDesc->InEditor(pSystem.get());
@@ -563,7 +563,7 @@ class Engine
         }
 
         // We add the id to the ImGui hash to differentiate entities with the same name
-        std::string entityLabel = ICON_FA_CUBE " " + pEntity->GetName() + "##" + pEntity->GetID().ToString();
+        std::string entityLabel = ICON_FA_CUBES " " + pEntity->GetName() + "##" + pEntity->GetID().ToString();
         bool node_open = ImGui::TreeNodeEx(entityLabel.c_str(), node_flags);
 
         EntityOutlinePopup(pEntity);

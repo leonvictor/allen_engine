@@ -189,6 +189,8 @@ class Entity
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context);
 
+    const std::vector<std::shared_ptr<IEntitySystem>> GetSystems() { return m_systems; }
+
     // -------------------------------------------------
     // Components
     // -------------------------------------------------
