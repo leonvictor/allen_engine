@@ -44,6 +44,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include "imgui_internal.h"
+#include "imgui_stdlib.h"
 
 #include <config/path.h>
 #include <reflection/reflection.hpp>
@@ -327,7 +328,7 @@ class Engine
         }
         ImGui::End();
 
-        if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
+        if (ImGui::Begin(ICON_FA_GLOBE " Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
         {
             auto dim = ImGui::GetContentRegionAvail();
             m_scenePreviewWidth = dim.x;
@@ -354,13 +355,16 @@ class Engine
         // Inspector panel
         if (m_pSelectedEntity != nullptr)
         {
-            if (ImGui::Begin("Inspector", nullptr))
+            if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr))
             {
-                ImGui::Text(m_pSelectedEntity->GetName().c_str());
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text(ICON_FA_CUBE);
+                ImGui::SameLine();
+                ImGui::InputText(("##" + m_pSelectedEntity->GetID().ToString()).c_str(), &m_pSelectedEntity->GetName());
                 ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+
                 if (m_pSelectedEntity->IsActivated())
                 {
-
                     ImGui::Text(ICON_FA_EYE);
                     if (ImGui::IsItemHovered())
                     {
@@ -368,9 +372,7 @@ class Engine
                     }
                     if (ImGui::IsItemClicked())
                     {
-                        // TODO: Disable entity
-                        std::cout << "Disable entity" << std::endl;
-                        // m_worldEntity.DeactivateEntity(m_pSelectedEntity);
+                        m_worldEntity.DeactivateEntity(m_pSelectedEntity);
                     }
                 }
                 else
@@ -382,9 +384,7 @@ class Engine
                     }
                     if (ImGui::IsItemClicked())
                     {
-                        // TODO: Enable entity
-                        std::cout << "Enable entity" << std::endl;
-                        // m_worldEntity.ActivateEntity(m_pSelectedEntity);
+                        m_worldEntity.ActivateEntity(m_pSelectedEntity);
                     }
                 }
 
@@ -427,13 +427,45 @@ class Engine
                     auto typeDesc = pComponent->GetType();
                     // TODO: This should happen through the partial template specialization for components
                     auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
-                    typeDesc->InEditor(pComponent, compId.c_str());
+
+                    if (ImGui::CollapsingHeader(compId.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
+                    {
+                        typeDesc->InEditor(pComponent, compId.c_str());
+                    }
+
+                    if (ImGui::BeginPopupContextItem(("COMPONENT_POPUP_" + pComponent->GetID().ToString()).c_str(), ImGuiPopupFlags_MouseButtonRight))
+                    {
+                        if (ImGui::MenuItem("Remove Component", "", false, true))
+                        {
+                            m_pSelectedEntity->DestroyComponent(pComponent->GetID());
+                        }
+                        ImGui::EndPopup();
+                    }
                 }
 
                 if (ImGui::Button("Add Component"))
                 {
                     // Open a dropdown with all components types
                     ImGui::OpenPopup("add_component_popup");
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Add System"))
+                {
+                    ImGui::OpenPopup("add_system_popup");
+                }
+
+                if (ImGui::BeginPopup("add_system_popup"))
+                {
+                    auto& systemTypes = aln::reflect::GetTypesInScope("SYSTEMS");
+                    for (auto& sys : systemTypes)
+                    {
+                        if (ImGui::Selectable(sys->GetPrettyName().c_str()))
+                        {
+                            // m_pSelectedEntity->CreateSystem(sys);
+                        }
+                    }
+                    ImGui::EndPopup();
                 }
 
                 if (ImGui::BeginPopup("add_component_popup"))
@@ -454,7 +486,7 @@ class Engine
         }
 
         // Outline panel
-        if (ImGui::Begin("Outline"))
+        if (ImGui::Begin(ICON_FA_LIST " Outline"))
         {
             auto& tree = m_worldEntity.GetEntityTree();
             for (Entity* node : tree)
@@ -509,7 +541,6 @@ class Engine
         // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
         ImGuiTreeNodeFlags node_flags = base_flags;
 
-        // const bool is_selected = (selection_mask & (1 << i)) != 0;
         if (m_pSelectedEntity != nullptr && m_pSelectedEntity == pEntity)
         {
             node_flags |= ImGuiTreeNodeFlags_Selected;
@@ -521,8 +552,13 @@ class Engine
             node_flags |= ImGuiTreeNodeFlags_Leaf;
         }
 
+        if (!pEntity->IsActivated())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        }
+
         // We add the id to the ImGui hash to differentiate entities with the same name
-        std::string entityLabel = pEntity->GetName() + "##" + pEntity->GetID().ToString();
+        std::string entityLabel = ICON_FA_CUBE " " + pEntity->GetName() + "##" + pEntity->GetID().ToString();
         bool node_open = ImGui::TreeNodeEx(entityLabel.c_str(), node_flags);
 
         EntityOutlinePopup(pEntity);
@@ -537,6 +573,7 @@ class Engine
             ImGui::EndDragDropSource();
         }
 
+        // Entity drag and drop target
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
@@ -564,6 +601,11 @@ class Engine
                 RecurseEntityTree(child);
             }
             ImGui::Unindent();
+        }
+
+        if (!pEntity->IsActivated())
+        {
+            ImGui::PopStyleColor();
         }
     }
 };

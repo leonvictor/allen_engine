@@ -121,8 +121,9 @@ class ImGUI
         static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
         ImFontConfig icons_config;
         icons_config.MergeMode = true;
-        icons_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fontawesome-webfont.ttf", 16.0f, &icons_config, icons_ranges);
+        icons_config.GlyphOffset.y = 1;
+        // icons_config.PixelSnapH = true;
+        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fontawesome-webfont.ttf", 13.0f, &icons_config, icons_ranges);
 
         // Use any command queue
         pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)

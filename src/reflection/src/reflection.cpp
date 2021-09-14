@@ -37,12 +37,9 @@ void TypeDescriptor_Struct::Dump(const void* obj, int indentLevel) const
 
 void TypeDescriptor_Struct::InEditor(void* obj, const char* fieldName) const
 {
-    if (ImGui::CollapsingHeader(fieldName))
+    for (const Member& member : members)
     {
-        for (const Member& member : members)
-        {
-            member.type->InEditor((char*) obj + member.offset, member.GetPrettyName().c_str());
-        }
+        member.type->InEditor((char*) obj + member.offset, member.GetPrettyName().c_str());
     }
 }
 

@@ -115,7 +115,7 @@ class Entity
     bool IsActivated() const { return m_status == Status::Activated; }
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
     const UUID& GetID() const { return m_ID; };
-    std::string GetName() const { return m_name; }
+    std::string& GetName() { return m_name; }
     bool HasParentEntity() const { return m_pParentSpatialEntity != nullptr; }
     bool HasChildrenEntities() const { return !m_attachedEntities.empty(); }
     const std::vector<Entity*> GetChildren() const
