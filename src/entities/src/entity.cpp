@@ -173,8 +173,7 @@ void Entity::GenerateSystemUpdateList()
         }
 
         // Sort update list
-        // TODO: what does "T* const& var" mean ?
-        auto comparator = [i](std::shared_ptr<IEntitySystem> const& pSystemA, std::shared_ptr<IEntitySystem> const& pSystemB)
+        auto comparator = [i](const std::shared_ptr<IEntitySystem>& pSystemA, const std::shared_ptr<IEntitySystem>& pSystemB)
         {
             uint16_t A = pSystemA->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
             uint16_t B = pSystemB->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
@@ -188,6 +187,22 @@ void Entity::GenerateSystemUpdateList()
 // -------------------------------------------------
 // Systems
 // -------------------------------------------------
+void Entity::CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+{
+    if (IsUnloaded())
+    {
+        CreateSystemImmediate(pTypeDescriptor);
+    }
+    else
+    {
+        // Delegate the action to whoever is in charge
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::CreateSystem;
+        action.m_ptr = pTypeDescriptor;
+
+        EntityStateUpdatedEvent.Execute(this);
+    }
+}
 
 void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
@@ -209,11 +224,19 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
 
     // TODO: new and shared_ptr(...) are not good.
     auto pSystem = std::shared_ptr<IEntitySystem>((IEntitySystem*) pSystemTypeInfo->typeHelper->CreateType());
+
+    if (IsActivated())
+    {
+        for (auto pComponent : m_components)
+        {
+            pSystem->RegisterComponent(pComponent);
+        }
+    }
+
     m_systems.push_back(pSystem);
 }
 
-// TODO: Put back const modifier when we've fixed the pSystemTypeInfo setter
-void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -320,9 +343,6 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
     }
 
     pComponent->m_entityID = UUID::InvalidID();
-    // TODO: Shutdown / Unload here ?
-    pComponent->ShutdownComponent();
-    pComponent->UnloadComponent();
 
     // TODO: Experiment with different component storage modes
     // Using a pool might be a good idea, to pack them in contiguous memory regions
@@ -331,7 +351,6 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
 
 void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent* pComponent)
 {
-    // TODO: !!!
     if (IsActivated())
     {
         // Unregister the component from local and world systems
@@ -341,6 +360,11 @@ void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent*
         {
             pSystem->UnregisterComponent(pComponent);
         }
+    }
+
+    if (pComponent->IsInitialized())
+    {
+        pComponent->ShutdownComponent();
     }
 
     if (pComponent->IsLoaded())
@@ -430,7 +454,7 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
 
     pComponent->m_entityID = m_ID;
     // TODO: make sure modification made to pSpatialComponent are taken into account here...
-    m_components.emplace_back(pComponent);
+    m_components.push_back(pComponent);
 }
 
 void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pComponent, SpatialComponent* pParentComponent)
@@ -441,7 +465,7 @@ void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pCo
     {
         // TODO: Async ?
         pComponent->LoadComponent();
-        pComponent->Initialize();
+        pComponent->InitializeComponent();
     }
 
     if (IsActivated())

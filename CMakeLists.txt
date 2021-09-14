@@ -4,7 +4,6 @@ project(ALLEN VERSION 0.1)
 
 set(SOURCE 
     src/main.cpp
-    src/time_system.cpp
 )
 
 # Configure the config files

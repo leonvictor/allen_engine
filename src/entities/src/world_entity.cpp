@@ -59,10 +59,9 @@ void WorldEntity::Update(const UpdateContext& context)
     // Updating phase
     // --------------
 
-    // TODO: Update all systems for each entity
-    // i.e. call entity.Update(context) for everyone.
-    // Maybe like this ?
-    // EntityCollection::Update(context);
+    // Update all systems for each entity
+    // TODO: Refine/parallelize
+    m_entityMap.Update(context);
 
     // TODO: Refine. For now a world update simply means updating all systems
     for (auto& [id, system] : m_systems)

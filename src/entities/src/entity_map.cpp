@@ -1,9 +1,10 @@
 #include "entity_map.hpp"
 
 #include "entity.hpp"
-
 #include "loading_context.hpp"
 #include "object_model.hpp"
+
+#include <reflection/reflection.hpp>
 
 #include <functional>
 #include <stdexcept>
@@ -50,6 +51,7 @@ void EntityMap::DeactivateEntity(Entity* pEntity)
 bool EntityMap::Load(const LoadingContext& loadingContext)
 {
     // Manage the events registered by entities outside of the loading phase
+    // TODO: Where should this logic be ?
     for (auto* pEntity : Entity::EntityStateUpdatedEvent.m_updatedEntities)
     {
         // TODO: Maybe early out if the entity is in the "remove" list ?
@@ -80,30 +82,29 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
 
             case EntityInternalStateAction::Type::AddComponent:
             {
-
                 auto pParentComponent = pEntity->GetSpatialComponent(action.m_ID);
                 pEntity->AddComponentDeferred(loadingContext, (IComponent*) action.m_ptr, pParentComponent);
                 break;
             }
 
-            case EntityInternalStateAction::Type::CreateSystem:
+            case EntityInternalStateAction::Type::DestroyComponent:
             {
-
-                throw std::runtime_error("Not implemented");
-                // pEntity->CreateSystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
+                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
                 break;
             }
 
-            case EntityInternalStateAction::Type::DestroyComponent:
-                throw std::runtime_error("Not implemented");
-
-                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
+            case EntityInternalStateAction::Type::CreateSystem:
+            {
+                pEntity->CreateSystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
                 break;
+            }
 
             case EntityInternalStateAction::Type::DestroySystem:
+            {
                 throw std::runtime_error("Not implemented");
-                // pEntity->DestroySystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
+                // pEntity->DestroySystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
                 break;
+            }
 
             default:
                 throw std::runtime_error("Unsupported operation");
@@ -236,5 +237,13 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
         }
     }
     m_status = Status::Activated;
+}
+
+void EntityMap::Update(const UpdateContext& updateContext)
+{
+    for (auto& [id, pEntity] : Collection())
+    {
+        pEntity.UpdateSystems(updateContext);
+    }
 }
 } // namespace aln::entities

@@ -34,7 +34,7 @@ class EntityInternalStateAction
         ParentChanged, // The entity's parent has changed
     };
 
-    Type m_type;           // Type of action add/destroy components or systems
+    Type m_type;           // Type of action
     const void* m_ptr;     // Pointer to the designed IComponent or system TypeInfo
     aln::utils::UUID m_ID; // Optional: ID of the spatial parent component
 };
@@ -89,8 +89,7 @@ class Entity
     /// An Entity can only have one system of a given type (subtypes included).
     void CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 
-    /// @brief Same as CreateSystemImmediate, but the world system is notified that it should reload the Entity.
-    void CreateSystemDeferred(const LoadingContext& loadingContext, aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
     void DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
     void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 
@@ -160,20 +159,10 @@ class Entity
         static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
 
-        if (IsUnloaded())
-        {
-            CreateSystemImmediate(T::GetStaticType());
-        }
-        else
-        {
-            // Delegate the action to whoever is in charge
-            auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
-            action.m_type = EntityInternalStateAction::Type::CreateSystem;
-            action.m_ptr = T::GetStaticType();
-
-            EntityStateUpdatedEvent.Execute(this);
-        }
+        CreateSystem(T::GetStaticType());
     }
+
+    void CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
 
     /// @brief Destroy the system of type T of this Entity. The destruction is effective
     /// immediately if the entity is unloaded, otherwise it will be effective in the next frame.
