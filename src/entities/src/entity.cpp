@@ -320,9 +320,6 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
     }
 
     pComponent->m_entityID = UUID::InvalidID();
-    // TODO: Shutdown / Unload here ?
-    pComponent->ShutdownComponent();
-    pComponent->UnloadComponent();
 
     // TODO: Experiment with different component storage modes
     // Using a pool might be a good idea, to pack them in contiguous memory regions
@@ -341,6 +338,11 @@ void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent*
         {
             pSystem->UnregisterComponent(pComponent);
         }
+    }
+
+    if (pComponent->IsInitialized())
+    {
+        pComponent->ShutdownComponent();
     }
 
     if (pComponent->IsLoaded())
@@ -441,7 +443,7 @@ void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pCo
     {
         // TODO: Async ?
         pComponent->LoadComponent();
-        pComponent->Initialize();
+        pComponent->InitializeComponent();
     }
 
     if (IsActivated())

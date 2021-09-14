@@ -95,8 +95,6 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
             }
 
             case EntityInternalStateAction::Type::DestroyComponent:
-                throw std::runtime_error("Not implemented");
-
                 pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
                 break;
 
