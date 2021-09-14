@@ -518,7 +518,6 @@ class Engine
         // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
         ImGuiTreeNodeFlags node_flags = base_flags;
 
-        // const bool is_selected = (selection_mask & (1 << i)) != 0;
         if (m_pSelectedEntity != nullptr && m_pSelectedEntity == pEntity)
         {
             node_flags |= ImGuiTreeNodeFlags_Selected;
@@ -528,6 +527,11 @@ class Engine
         if (!hasChildren)
         {
             node_flags |= ImGuiTreeNodeFlags_Leaf;
+        }
+
+        if (!pEntity->IsActivated())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
         }
 
         // We add the id to the ImGui hash to differentiate entities with the same name
@@ -546,6 +550,7 @@ class Engine
             ImGui::EndDragDropSource();
         }
 
+        // Entity drag and drop target
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
@@ -573,6 +578,11 @@ class Engine
                 RecurseEntityTree(child);
             }
             ImGui::Unindent();
+        }
+
+        if (!pEntity->IsActivated())
+        {
+            ImGui::PopStyleColor();
         }
     }
 };
