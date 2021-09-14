@@ -30,7 +30,6 @@ class IWorldSystem
     // Wrapper methods used by the world entity.
     // Used to hide the status from user code.
     void InitializeSystem();
-
     void ShutdownSystem();
 
   protected:
@@ -56,4 +55,4 @@ class IWorldSystem
 
     void Disable();
 };
-}
+} // namespace aln::entities

@@ -51,7 +51,7 @@ class IComponent
     virtual void Construct(const ComponentCreationContext&) {}
 
     /// @brief Allocate internal transient data.
-    /// @todo: Occurs automatically once loading completes sucessfully.
+    /// Occurs automatically once loading completes sucessfully.
     virtual void Initialize() = 0;
 
     /// @brief Deallocate internal transient data.

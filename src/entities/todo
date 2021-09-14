@@ -1,0 +1,12 @@
+- Systems update priorities
+- Parallel entity activation
+- Parallel entity update
+- Multiple types of ComponentRegistry s (ex: accept a single component)
+- Async the loading of dynamically added components.
+    - Delay the registration of component to world systems until they are loaded
+- Manage singleton components
+- Spatial Components OBBs
+- Fix transform update when changing parent
+- Keep entities in a tree
+- Rework spatial components to be standalone, and remove the possibility to organize components
+- Create the Script system for users to overload

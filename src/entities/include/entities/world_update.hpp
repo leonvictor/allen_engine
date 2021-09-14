@@ -24,6 +24,11 @@ struct UpdatePriorities
         return m_updatePriorityMap[stage];
     }
 
+    void SetPriorityForStage(const UpdateStage& stage, uint8_t priority)
+    {
+        m_updatePriorityMap.insert({stage, priority});
+    }
+
     // TODO: allow systems to add and (maybe) update their priorities
 };
 }

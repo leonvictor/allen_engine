@@ -13,6 +13,16 @@ void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc*
     ImGui::SetAllocatorFunctions(*pAllocFunc, *pFreeFunc, *pUserData);
 }
 
+bool operator==(const TypeDescriptor& a, const TypeDescriptor& b)
+{
+    return a.m_ID == b.m_ID;
+}
+
+bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b)
+{
+    return !(a == b);
+}
+
 void TypeDescriptor_Struct::Dump(const void* obj, int indentLevel) const
 {
     std::cout << name << " {" << std::endl;
@@ -27,12 +37,9 @@ void TypeDescriptor_Struct::Dump(const void* obj, int indentLevel) const
 
 void TypeDescriptor_Struct::InEditor(void* obj, const char* fieldName) const
 {
-    if (ImGui::CollapsingHeader(fieldName))
+    for (const Member& member : members)
     {
-        for (const Member& member : members)
-        {
-            member.type->InEditor((char*) obj + member.offset, member.name);
-        }
+        member.type->InEditor((char*) obj + member.offset, member.GetPrettyName().c_str());
     }
 }
 

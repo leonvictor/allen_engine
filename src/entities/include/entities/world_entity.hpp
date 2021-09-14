@@ -25,6 +25,18 @@ class WorldEntity
     /// @brief Remove all entities and system from this world.
     void Cleanup();
 
+    /// @brief Register a component with all the world systems. Called when an entity is activated.
+    void RegisterComponent(Entity* pEntity, IComponent* pComponent);
+
+    /// @brief Unregister a component from all the world systems. Called when an entity is deactivated.
+    void UnregisterComponent(Entity* pEntity, IComponent* pComponent);
+
+    /// @brief Register an entity's update priorities list to the world. Called when an entity is activated or modified.
+    void RegisterEntityUpdate(Entity* pEntity);
+
+    /// @brief Unegister an entity's update priorities list from the world. Called when an entity is activated or modified.
+    void UnregisterEntityUpdate(Entity* pEntity);
+
   public:
     ~WorldEntity();
 
@@ -32,13 +44,11 @@ class WorldEntity
     /// @todo: better explanations (when it's donezo)
     void Update(UpdateContext const& context);
 
-    void RegisterComponent(Entity* pEntity, IComponent* pComponent);
+    /// @brief Turn on an entity in the world.
+    void ActivateEntity(Entity* pEntity);
 
-    void UnregisterComponent(Entity* pEntity, IComponent* pComponent);
-
-    void RegisterEntity(Entity* pEntity);
-
-    void UnregisterEntity(Entity* pEntity);
+    /// @brief Turn off an entity in the world.
+    void DeactivateEntity(Entity* pEntity);
 
     template <typename T, class... Args>
     void CreateSystem(Args... args)
@@ -63,7 +73,7 @@ class WorldEntity
         }
     }
 
-    std::map<aln::utils::UUID, Entity>& GetEntitiesCollection();
+    // std::map<aln::utils::UUID, Entity>& GetEntitiesCollection();
     std::vector<Entity*>& GetEntityTree() { return m_entityMap.m_entitiesTree; }
 };
 } // namespace aln::entities

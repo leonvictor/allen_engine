@@ -39,6 +39,8 @@ bool IComponent::LoadComponentAsync()
         if (m_loadingTask.get())
         {
             m_status = Status::Loaded;
+            // TODO: Is this the right place to do this ?
+            InitializeComponent();
             return true;
         }
         else

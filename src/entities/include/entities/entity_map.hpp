@@ -24,13 +24,15 @@ class EntityMap : private EntityCollection
         Activated        // All entities activated. Some might still be loading in case of dynamic adds
     };
 
-    // std::vector<Entity*> m_entitiesToAdd;
+    /// Hierarchy of entities, used to display in the editor. TODO: Maybe disable outside of the editor ?
     std::vector<Entity*> m_entitiesTree;
+
+    std::vector<Entity*> m_entitiesToAdd;
     std::vector<Entity*> m_entitiesToRemove;
     std::vector<Entity*> m_loadingEntities;
     std::vector<Entity*> m_entitiesToReload; // TODO
-    // std::vector<Entity*> m_entitiesToActivate;
-    // std::vector<Entity*> m_entitiesToDeactivate;
+    std::vector<Entity*> m_entitiesToActivate;
+    std::vector<Entity*> m_entitiesToDeactivate;
 
     // ...
     Status m_status = Status::Deactivated;
@@ -45,12 +47,24 @@ class EntityMap : private EntityCollection
         return m_status == Status::Activated;
     }
 
-    /// @brief Remove an entity from the world.
+    /// @brief Permanently remove an entity from the collection.
     void RemoveEntity(Entity* pEntity);
 
-    /// @brief Update the state of each entity
+    void ActivateEntity(Entity* pEntity);
+    void DeactivateEntity(Entity* pEntity);
+
+    // -------------------------------------------------
+    // Map state management
+    // -------------------------------------------------
+
+    /// @brief Update the loading state of each entity
     /// @note This function should be called exactly once per frame.
     bool Load(const LoadingContext& loadingContext);
+
+    /// @brief Update the systems of each entity.
+    void Update(const UpdateContext& updateContext);
+
+    /// @brief Activate all entities in the collection.
     void Activate(const LoadingContext& loadingContext);
 };
-}
+} // namespace aln::entities

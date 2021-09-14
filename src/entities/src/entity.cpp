@@ -11,17 +11,12 @@
 namespace aln::entities
 {
 
-using aln::utils::TypeHelper;
-using aln::utils::TypeInfo;
 using aln::utils::UUID;
 
 // -------------------------------------------------
 // State management
 // -------------------------------------------------
 
-/// @brief Check the loading status of all components and updates the entity status if necessary.
-/// @return Whether the loading is finished
-/// @todo This is synchrone for now
 bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
 {
     assert(m_status == Status::Unloaded);
@@ -31,12 +26,7 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
     {
         if (pComponent->IsUnloaded() || pComponent->IsLoading())
         {
-            if (pComponent->LoadComponentAsync())
-            {
-                pComponent->InitializeComponent();
-                assert(pComponent->IsInitialized());
-            }
-            else
+            if (!pComponent->LoadComponentAsync())
             {
                 allLoaded = false;
             }
@@ -91,6 +81,7 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
 void Entity::Activate(const LoadingContext& loadingContext)
 {
     assert(IsLoaded());
+    m_status = Status::Activated;
 
     // Initialize spatial hierachy
     // TODO: Transforms are set at serial time so we have all the info available to update
@@ -111,6 +102,7 @@ void Entity::Activate(const LoadingContext& loadingContext)
             }
 
             // ... and all global systems
+            // This is the non-parallelizable part
             loadingContext.m_registerWithWorldSystems(this, pComponent);
         }
     }
@@ -130,7 +122,6 @@ void Entity::Activate(const LoadingContext& loadingContext)
         RefreshEntityAttachments();
     }
 
-    m_status = Status::Activated;
     loadingContext.m_registerEntityUpdate(this);
 }
 
@@ -182,8 +173,7 @@ void Entity::GenerateSystemUpdateList()
         }
 
         // Sort update list
-        // TODO: what does "T* const& var" mean ?
-        auto comparator = [i](std::shared_ptr<IEntitySystem> const& pSystemA, std::shared_ptr<IEntitySystem> const& pSystemB)
+        auto comparator = [i](const std::shared_ptr<IEntitySystem>& pSystemA, const std::shared_ptr<IEntitySystem>& pSystemB)
         {
             uint16_t A = pSystemA->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
             uint16_t B = pSystemB->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
@@ -197,8 +187,24 @@ void Entity::GenerateSystemUpdateList()
 // -------------------------------------------------
 // Systems
 // -------------------------------------------------
+void Entity::CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+{
+    if (IsUnloaded())
+    {
+        CreateSystemImmediate(pTypeDescriptor);
+    }
+    else
+    {
+        // Delegate the action to whoever is in charge
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::CreateSystem;
+        action.m_ptr = pTypeDescriptor;
 
-void Entity::CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo)
+        EntityStateUpdatedEvent.Execute(this);
+    }
+}
+
+void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     assert(pSystemTypeInfo != nullptr);
     // TODO: assert that pSystemTypeInfo describes a type that is derived from IEntitySystem
@@ -207,51 +213,79 @@ void Entity::CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo)
     // Make sure we only have one system of this type
     for (auto pExistingSystem : m_systems)
     {
-        auto const pExistingSystemTypeInfo = pExistingSystem->GetTypeInfo();
-        if (pSystemTypeInfo->IsDerivedFrom(pExistingSystemTypeInfo->m_ID) || pSystemTypeInfo == pExistingSystemTypeInfo)
+        auto const pExistingSystemTypeInfo = pExistingSystem->GetType();
+        // TODO: Add inheritance info to the reflection system and put back the test.
+        // if (pSystemTypeInfo->IsDerivedFrom(pExistingSystemTypeInfo->m_ID) || pSystemTypeInfo == pExistingSystemTypeInfo)
+        if (pSystemTypeInfo == pExistingSystemTypeInfo)
         {
             throw std::runtime_error("Tried to add a second system of the same type to an entity.");
         }
     }
 
-    auto pSystem = std::static_pointer_cast<IEntitySystem>(pSystemTypeInfo->m_pTypeHelper->CreateType());
-    // TODO: Initialize the typeInfo member in the creation routine.
-    // TODO: Put back the const modifier to the pSystemTypeInfo arg.
-    pSystem->m_pTypeInfo = pSystemTypeInfo;
+    // TODO: new and shared_ptr(...) are not good.
+    auto pSystem = std::shared_ptr<IEntitySystem>((IEntitySystem*) pSystemTypeInfo->typeHelper->CreateType());
+
+    if (IsActivated())
+    {
+        for (auto pComponent : m_components)
+        {
+            pSystem->RegisterComponent(pComponent);
+        }
+    }
+
     m_systems.push_back(pSystem);
 }
 
-// TODO: Put back const modifier when we've fixed the pSystemTypeInfo setter
-void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
 
-    // If already activated, notify the world systems that this entity requires a reload
+    // If already activated, notify the world systems that this entity update requirements changed
     if (IsActivated())
     {
         loadingContext.m_unregisterEntityUpdate(this);
         loadingContext.m_registerEntityUpdate(this);
     }
 }
+void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+{
+    assert(std::find_if(m_systems.begin(), m_systems.end(),
+               [&](std::shared_ptr<IEntitySystem> pSystem)
+               { return pSystem->GetType()->m_ID == pTypeDescriptor->m_ID; }) != m_systems.end());
 
-void Entity::DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo)
+    if (IsUnloaded())
+    {
+        DestroySystemImmediate(pTypeDescriptor);
+    }
+    else
+    {
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::DestroySystem;
+        action.m_ptr = pTypeDescriptor;
+
+        EntityStateUpdatedEvent.Execute(this);
+    }
+}
+
+void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     // TODO: find the index of system in m_systems
 
     auto systemIt = std::find_if(m_systems.begin(), m_systems.end(), [&](std::shared_ptr<IEntitySystem> pSystem)
-        { return pSystem->GetTypeInfo()->m_ID == pSystemTypeInfo->m_ID; });
+        { return pSystem->GetType()->m_ID == pSystemTypeInfo->m_ID; });
     // int systemIdx = 0;
 
     // TODO: assert that systemIdx is valid
     m_systems.erase(systemIt);
 }
 
-void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo)
+void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
 
+    // If already activated, notify the world systems that this entity update requirements changed.
     if (IsActivated())
     {
         loadingContext.m_unregisterEntityUpdate(this);
@@ -328,9 +362,6 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
     }
 
     pComponent->m_entityID = UUID::InvalidID();
-    // TODO: Shutdown / Unload here ?
-    pComponent->ShutdownComponent();
-    pComponent->UnloadComponent();
 
     // TODO: Experiment with different component storage modes
     // Using a pool might be a good idea, to pack them in contiguous memory regions
@@ -339,12 +370,28 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
 
 void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent* pComponent)
 {
-    DestroyComponentImmediate(pComponent);
-    if (IsLoaded())
+    if (IsActivated())
     {
-        context.m_unregisterEntityUpdate(this);
-        context.m_registerEntityUpdate(this);
+        // Unregister the component from local and world systems
+        context.m_unregisterWithWorldSystems(this, pComponent);
+
+        for (auto pSystem : m_systems)
+        {
+            pSystem->UnregisterComponent(pComponent);
+        }
     }
+
+    if (pComponent->IsInitialized())
+    {
+        pComponent->ShutdownComponent();
+    }
+
+    if (pComponent->IsLoaded())
+    {
+        pComponent->UnloadComponent();
+    }
+
+    DestroyComponentImmediate(pComponent);
 }
 
 void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID)
@@ -426,19 +473,28 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
 
     pComponent->m_entityID = m_ID;
     // TODO: make sure modification made to pSpatialComponent are taken into account here...
-    m_components.emplace_back(pComponent);
+    m_components.push_back(pComponent);
 }
 
 void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     AddComponentImmediate(pComponent, pParentComponent);
 
-    // If resources have already been loaded, notify the world system that this entity requires a reload
     if (IsLoaded())
     {
-        // TODO: should i use the same requests as for system ?
-        context.m_unregisterEntityUpdate(this);
-        context.m_registerEntityUpdate(this);
+        // TODO: Async ?
+        pComponent->LoadComponent();
+        pComponent->InitializeComponent();
+    }
+
+    if (IsActivated())
+    {
+        // Register with local and world systems
+        for (auto pSystem : m_systems)
+        {
+            pSystem->RegisterComponent(pComponent);
+        }
+        context.m_registerWithWorldSystems(this, pComponent);
     }
 }
 

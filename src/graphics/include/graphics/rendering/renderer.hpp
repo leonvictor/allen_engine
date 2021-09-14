@@ -9,6 +9,8 @@
 #include "../window.hpp"
 #include "render_target.hpp"
 
+#include <common/colors.hpp>
+
 #include <config/path.h>
 #include <cstring>
 #include <vulkan/vulkan.hpp>
@@ -30,6 +32,11 @@ struct FrameSync
     vk::UniqueSemaphore imageAvailable;
     vk::UniqueSemaphore renderFinished;
     vk::UniqueFence inFlight;
+};
+
+struct RenderContext
+{
+    aln::RGBAColor backgroundColor;
 };
 
 /// TODO: Modify the API to allow offline rendering. The idea would be to render to a texture which we can display onto an imgui window.
@@ -220,7 +227,7 @@ class IRenderer
     }
 
   public:
-    virtual void BeginFrame()
+    virtual void BeginFrame(const RenderContext& ctx)
     {
         // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
         m_pDevice->GetVkDevice().waitForFences(m_frames[m_currentFrameIndex].inFlight.get(), VK_TRUE, UINT64_MAX);
@@ -242,7 +249,12 @@ class IRenderer
 
         // Start a render pass
         // TODO: Pass a RenderTarget
-        m_renderpass.Begin(image.commandBuffer.get(), image.framebuffer.get());
+        RenderPass::Context renderPassCtx = {
+            .commandBuffer = image.commandBuffer.get(),
+            .framebuffer = image.framebuffer.get(),
+            .backgroundColor = ctx.backgroundColor,
+        };
+        m_renderpass.Begin(renderPassCtx);
 
         // return m_activeImageIndex;
     }

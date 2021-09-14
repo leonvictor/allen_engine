@@ -1,9 +1,10 @@
 #pragma once
 
+#include <common/colors.hpp>
 #include <entities/spatial_component.hpp>
-#include <vulkan/vulkan.hpp>
 
 #include <glm/vec3.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace aln
 {
@@ -30,7 +31,7 @@ class Light : public entities::SpatialComponent
     Type type;
 
     glm::vec3 direction;
-    glm::vec3 color;
+    RGBColor m_color = RGBColor(1.0f, 1.0f, 1.0f);
 
     float intensity = 1.0f;
     float range = 1.0f;

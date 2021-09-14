@@ -62,7 +62,9 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     if (!m_pCameraComponent->IsInitialized())
         return; // Camera is the only necessary component, return if it's not loaded yet
 
-    m_pRenderer->BeginFrame();
+    aln::vkg::render::RenderContext ctx =
+        {.backgroundColor = m_pCameraComponent->m_backgroundColor};
+    m_pRenderer->BeginFrame(ctx);
 
     // Get the active command buffer
     auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();
@@ -72,13 +74,13 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     objectPipeline.Bind(cb);
 
     // Update the lights buffer
-    int nLights = m_lightComponents.size();
+    int nLights = m_lightComponents.GetNumberOfRegisteredComponents();
     m_lightsBuffer.Map(0, sizeof(int)); // TODO: Respect spec alignment for int
     m_lightsBuffer.Copy(&nLights, sizeof(int));
     m_lightsBuffer.Unmap();
 
     int i = 0;
-    for (auto& [pEntity, pLight] : m_lightComponents)
+    for (auto pLight : m_lightComponents)
     {
         auto ubo = pLight->GetUniform();
         m_lightsBuffer.Map(sizeof(int) + i * sizeof(LightUniform), sizeof(LightUniform));
@@ -104,7 +106,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     ubo.projection[1][1] *= -1;
 
     // Loop over the registered components
-    for (auto& [pEntity, pMeshRenderer] : m_components)
+    for (auto pMeshRenderer : m_meshComponents)
     {
         // Compute this mesh's model matrix
         Transform transform = pMeshRenderer->GetWorldTransform();
@@ -144,14 +146,14 @@ void GraphicsSystem::RegisterComponent(const entities::Entity* pEntity, entities
     auto pMeshRenderer = dynamic_cast<MeshRenderer*>(pComponent);
     if (pMeshRenderer != nullptr)
     {
-        m_components.emplace(std::make_pair(pEntity, pMeshRenderer));
+        m_meshComponents.AddRecordEntry(pEntity->GetID(), pMeshRenderer);
         return;
     }
 
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        m_lightComponents.emplace(std::make_pair(pEntity, pLight));
+        m_lightComponents.AddRecordEntry(pEntity->GetID(), pLight);
         return;
     }
 }
@@ -173,19 +175,14 @@ void GraphicsSystem::UnregisterComponent(const entities::Entity* pEntity, entiti
     auto pMeshRenderer = dynamic_cast<MeshRenderer*>(pComponent);
     if (pMeshRenderer != nullptr)
     {
-        // TODO: Maps are not ideal
-        auto it = m_components.find(pEntity);
-        assert(it != m_components.end());
-        m_components.erase(it);
+        m_meshComponents.RemoveRecordEntry(pEntity->GetID(), pMeshRenderer);
         return;
     }
 
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        auto it = m_lightComponents.find(pEntity);
-        assert(it != m_lightComponents.end());
-        m_lightComponents.erase(it);
+        m_lightComponents.RemoveRecordEntry(pEntity->GetID(), pLight);
         return;
     }
 }

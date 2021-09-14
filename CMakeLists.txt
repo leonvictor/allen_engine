@@ -4,7 +4,6 @@ project(ALLEN VERSION 0.1)
 
 set(SOURCE 
     src/main.cpp
-    src/time_system.cpp
 )
 
 # Configure the config files
@@ -12,6 +11,8 @@ set(SOURCE
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 set(DEFAULT_SHADERS_DIR ${PROJECT_SOURCE_DIR}/shaders)
 set(DEFAULT_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
+set(FONTS_DIR ${PROJECT_SOURCE_DIR}/fonts)
+
 configure_file(
     "${CONFIG_INCLUDE_DIRS}/config/path.h.in"
     "${CONFIG_INCLUDE_DIRS}/config/path.h"
@@ -44,17 +45,13 @@ set(IMGUI_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/external/imgui/backends
     ${CMAKE_SOURCE_DIR}/external/imgui
     ${CMAKE_SOURCE_DIR}/external/imgui/misc/cpp
+    ${CMAKE_SOURCE_DIR}/external/imgui_plugins
 )
 
 add_executable(main ${SOURCE})
 
 
 # Include ImGui
-set(IMGUI_INCLUDE_DIRS 
-    ${CMAKE_SOURCE_DIR}/external/imgui/backends
-    ${CMAKE_SOURCE_DIR}/external/imgui
-)
-
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan

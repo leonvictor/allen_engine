@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cctype>
 #include <cstddef>
 #include <functional>
 #include <iostream>
@@ -9,6 +10,8 @@
 #include <vector>
 
 #include <imgui.h>
+
+#include <utils/uuid.hpp>
 
 namespace aln::reflect
 {
@@ -20,7 +23,7 @@ void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc*
 class ITypeHelper
 {
   public:
-    virtual void* CreateType() = 0;
+    virtual void* CreateType() const = 0;
 };
 
 struct TypeHelperResolver
@@ -30,6 +33,7 @@ struct TypeHelperResolver
         typename std::enable_if<std::is_constructible<T>::value, bool>::type = true>
     static T* CreateType()
     {
+        // TODO: Do NOT use new.
         return new T();
     }
 
@@ -46,7 +50,7 @@ template <typename T>
 struct TypeHelper : public ITypeHelper
 {
     using type = T;
-    void* CreateType() override { return TypeHelperResolver::CreateType<T>(); }
+    void* CreateType() const override { return TypeHelperResolver::CreateType<T>(); }
 };
 //--------------------------------------------------------
 // Base class of all type descriptors
@@ -56,23 +60,25 @@ struct TypeDescriptor
 {
     const char* name;
     size_t size;
+    const aln::utils::UUID m_ID;
 
     std::shared_ptr<ITypeHelper> typeHelper;
 
-    TypeDescriptor(const char* name, size_t size) : name{name}, size{size} {}
+    TypeDescriptor(const char* name, size_t size) : name{name}, size{size}, m_ID() {}
     virtual ~TypeDescriptor() {}
 
     /// @brief Return the full type name.
     virtual std::string GetFullName() const { return name; }
 
     /// @brief Return a prettified version of the type's name.
+    /// @todo: Cache the prettified name
     virtual std::string GetPrettyName() const
     {
         // Use std::format (C++20). Not available in most compilers as of 04/06/2021
         std::string prettyName = std::string(name);
+
         // Remove the namespace info
         prettyName = prettyName.substr(prettyName.rfind(":") + 1);
-        // TODO: Remove member variable prefix m_ if necessary
         return prettyName;
     }
 
@@ -85,6 +91,9 @@ struct TypeDescriptor
     /// @param fieldName: Display name of the object
     virtual void InEditor(void* obj, const char* fieldName = "") const = 0;
 };
+
+bool operator==(const TypeDescriptor& a, const TypeDescriptor& b);
+bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b);
 
 /// @brief Retrieve a list of all the types registered to a specific scope.
 /// @param: scopeName: The scope to retrieve from.
@@ -150,6 +159,32 @@ struct TypeDescriptor_Struct : TypeDescriptor
         const char* name;
         size_t offset;
         TypeDescriptor* type;
+
+        std::string GetPrettyName() const
+        {
+            std::string prettyName = std::string(name);
+
+            // Remove member variable prefix m_ if necessary
+            auto prefix = prettyName.substr(0, prettyName.find("_"));
+            if (prefix == "m")
+            {
+                prettyName = prettyName.substr(prettyName.find("_") + 1);
+            }
+
+            // Add spaces before each upper case letter
+            for (int i = 0; i < prettyName.length(); i++)
+            {
+                if (std::isupper(prettyName[i]))
+                {
+                    prettyName.insert(i++, " ");
+                }
+            }
+
+            // First letter is uppercase in any way
+            prettyName[0] = std::toupper(prettyName[0]);
+
+            return prettyName;
+        }
     };
 
     std::vector<Member> members;
@@ -161,29 +196,27 @@ struct TypeDescriptor_Struct : TypeDescriptor
     }
 
     TypeDescriptor_Struct(const char* name, size_t size, const std::initializer_list<Member>& init)
-        : TypeDescriptor(nullptr, 0), members(init)
-    {
-    }
+        : TypeDescriptor(nullptr, 0), members(init) {}
 
     virtual void Dump(const void* obj, int indentLevel) const override;
     virtual void InEditor(void* obj, const char* fieldName = "") const override;
 };
 
 /// @brief Register the currect type for class reflection.
-#define ALN_REGISTER_TYPE()                                            \
-    friend struct aln::reflect::DefaultResolver;                       \
-                                                                       \
-  public:                                                              \
-    static const aln::reflect::TypeDescriptor_Struct* GetStaticType(); \
-    virtual const aln::reflect::TypeDescriptor_Struct* GetType();      \
-                                                                       \
-  private:                                                             \
-    static aln::reflect::TypeDescriptor_Struct Reflection;             \
+#define ALN_REGISTER_TYPE()                                             \
+    friend struct aln::reflect::DefaultResolver;                        \
+                                                                        \
+  public:                                                               \
+    static const aln::reflect::TypeDescriptor_Struct* GetStaticType();  \
+    virtual const aln::reflect::TypeDescriptor_Struct* GetType() const; \
+                                                                        \
+  private:                                                              \
+    static aln::reflect::TypeDescriptor_Struct Reflection;              \
     static void InitReflection(aln::reflect::TypeDescriptor_Struct*);
 
 #define ALN_REGISTER_IMPL_BEGIN(scope, type)                                    \
     aln::reflect::TypeDescriptor_Struct type::Reflection{type::InitReflection}; \
-    const aln::reflect::TypeDescriptor_Struct* type::GetType()                  \
+    const aln::reflect::TypeDescriptor_Struct* type::GetType() const            \
     {                                                                           \
         return &Reflection;                                                     \
     }                                                                           \

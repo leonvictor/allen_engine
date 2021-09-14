@@ -2,6 +2,7 @@
 
 #include <graphics/resources/buffer.hpp>
 
+#include <entities/components_registry.hpp>
 #include <entities/object_model.hpp>
 #include <entities/world_system.hpp>
 
@@ -29,9 +30,9 @@ class GraphicsSystem : public entities::IWorldSystem
 {
     vkg::render::IRenderer* m_pRenderer = nullptr;
 
-    // TODO: Replace the map with something else. We *can* have multiple meshes per entity
-    std::map<const entities::Entity*, MeshRenderer*> m_components;
-    std::map<const entities::Entity*, Light*> m_lightComponents;
+    aln::entities::ComponentsRegistry<MeshRenderer> m_meshComponents;
+    aln::entities::ComponentsRegistry<Light> m_lightComponents;
+
     Camera* m_pCameraComponent = nullptr;
 
     // Lights use a shared buffer and descriptorSet, so it's held in the system

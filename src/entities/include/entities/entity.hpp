@@ -6,11 +6,12 @@
 #include "object_model.hpp"
 
 #include <assert.h>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include <utils/type_info.hpp>
+#include <reflection/reflection.hpp>
 #include <utils/uuid.hpp>
 
 namespace aln::entities
@@ -33,8 +34,8 @@ class EntityInternalStateAction
         ParentChanged, // The entity's parent has changed
     };
 
-    Type m_type;           // Type of action add/destroy components or systems
-    void* m_ptr;           // Pointer to the designed IComponent or system TypeInfo
+    Type m_type;           // Type of action
+    const void* m_ptr;     // Pointer to the designed IComponent or system TypeInfo
     aln::utils::UUID m_ID; // Optional: ID of the spatial parent component
 };
 
@@ -43,8 +44,6 @@ class EntityInternalStateAction
 /// Entities can be organized in hierarchies.
 class Entity
 {
-    template <typename T>
-    using TypeInfo = aln::utils::TypeInfo<T>;
     using UUID = aln::utils::UUID;
 
     friend Command;
@@ -88,12 +87,11 @@ class Entity
 
     /// @brief Create a new system and add it to this Entity.
     /// An Entity can only have one system of a given type (subtypes included).
-    void CreateSystemImmediate(TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 
-    /// @brief Same as CreateSystemImmediate, but the world system is notified that it should reload the Entity.
-    void CreateSystemDeferred(const LoadingContext& loadingContext, TypeInfo<IEntitySystem>* pSystemTypeInfo);
-    void DestroySystemImmediate(const TypeInfo<IEntitySystem>* pSystemTypeInfo);
-    void DestroySystemDeferred(const LoadingContext& loadingContext, const TypeInfo<IEntitySystem>* pSystemTypeInfo);
+    void CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
 
     void DestroyComponentImmediate(IComponent* pComponent);
     void DestroyComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent);
@@ -110,12 +108,13 @@ class Entity
     void RefreshEntityAttachments();
 
   public:
-    bool IsLoaded() const { return m_status == Status::Loaded; }
+    /// @brief Whether this entity is loaded (some components might still be loading in case of dynamic add)
+    bool IsLoaded() const { return m_status == Status::Loaded || m_status == Status::Activated; }
     bool IsUnloaded() const { return m_status == Status::Unloaded; }
     bool IsActivated() const { return m_status == Status::Activated; }
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
     const UUID& GetID() const { return m_ID; };
-    std::string GetName() const { return m_name; }
+    std::string& GetName() { return m_name; }
     bool HasParentEntity() const { return m_pParentSpatialEntity != nullptr; }
     bool HasChildrenEntities() const { return !m_attachedEntities.empty(); }
     const std::vector<Entity*> GetChildren() const
@@ -132,8 +131,9 @@ class Entity
     void LoadComponents(const LoadingContext& loadingContext);
     void UnloadComponents(const LoadingContext& loadingContext);
 
-    /// @brief TODO
-    /// @return Whether the loading is finished.
+    /// @brief Check the loading status of all components and updates the entity status if necessary.
+    /// @return Whether the loading is finished
+    /// @todo This is synchrone for now
     bool UpdateLoadingAndEntityState(const LoadingContext& loadingContext);
 
     /// @brief Triggers registration with the systems (local and global)
@@ -158,21 +158,10 @@ class Entity
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
-
-        if (IsUnloaded())
-        {
-            CreateSystemImmediate(IEntitySystem::GetStaticTypeInfo<T>());
-        }
-        else
-        {
-            // Delegate the action to whoever is in charge
-            auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
-            action.m_type = EntityInternalStateAction::Type::CreateSystem;
-            action.m_ptr = IEntitySystem::GetStaticTypeInfo<T>();
-
-            EntityStateUpdatedEvent.Execute(this);
-        }
+        CreateSystem(T::GetStaticType());
     }
+
+    void CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
 
     /// @brief Destroy the system of type T of this Entity. The destruction is effective
     /// immediately if the entity is unloaded, otherwise it will be effective in the next frame.
@@ -180,24 +169,17 @@ class Entity
     inline void DestroySystem()
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>);
-        assert(std::find(m_systems, T::GetTypeInfo()->m_ID) != m_systems.end());
-
-        if (IsUnloaded())
-        {
-            DestroySystemImmediate(T::GetTypeInfo()); // TODO: static type info...
-        }
-        else
-        {
-            auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
-            action.m_type = EntityInternalStateAction::Type::DestroySystem;
-            action.m_ptr = T::GetTypeInfo();
-
-            EntityStateUpdatedEvent.Execute(this);
-        }
+        DestroySystem(T::GetStaticType());
     }
+
+    /// @brief Destroy as system.
+    /// @todo used by the editor, should this be public ?
+    void DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
 
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context);
+
+    const std::vector<std::shared_ptr<IEntitySystem>> GetSystems() { return m_systems; }
 
     // -------------------------------------------------
     // Components

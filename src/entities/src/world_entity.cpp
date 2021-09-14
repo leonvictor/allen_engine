@@ -1,4 +1,5 @@
 #include "world_entity.hpp"
+#include "component.hpp"
 #include "entity.hpp"
 
 #include <assert.h>
@@ -11,8 +12,8 @@ LoadingContext WorldEntity::GetLoadingContext()
     LoadingContext loadingContext;
     loadingContext.m_registerWithWorldSystems = std::bind(&WorldEntity::RegisterComponent, this, std::placeholders::_1, std::placeholders::_2);
     loadingContext.m_unregisterWithWorldSystems = std::bind(&WorldEntity::UnregisterComponent, this, std::placeholders::_1, std::placeholders::_2);
-    loadingContext.m_registerEntityUpdate = std::bind(&WorldEntity::RegisterEntity, this, std::placeholders::_1);
-    loadingContext.m_unregisterEntityUpdate = std::bind(&WorldEntity::UnregisterEntity, this, std::placeholders::_1);
+    loadingContext.m_registerEntityUpdate = std::bind(&WorldEntity::RegisterEntityUpdate, this, std::placeholders::_1);
+    loadingContext.m_unregisterEntityUpdate = std::bind(&WorldEntity::UnregisterEntityUpdate, this, std::placeholders::_1);
     // TODO: In order to paralellize, the entity registering functions could be bound from transient instances of the entity map.
     return loadingContext;
 }
@@ -47,7 +48,7 @@ void WorldEntity::Update(const UpdateContext& context)
         return; // Not all entities are loaded yet, return.
     }
 
-    assert(m_entityMap.m_status == EntityMap::Status::Loaded);
+    // assert(m_entityMap.m_status == EntityMap::Status::Loaded);
 
     if (!m_entityMap.IsActivated())
     {
@@ -58,10 +59,9 @@ void WorldEntity::Update(const UpdateContext& context)
     // Updating phase
     // --------------
 
-    // TODO: Update all systems for each entity
-    // i.e. call entity.Update(context) for everyone.
-    // Maybe like this ?
-    // EntityCollection::Update(context);
+    // Update all systems for each entity
+    // TODO: Refine/parallelize
+    m_entityMap.Update(context);
 
     // TODO: Refine. For now a world update simply means updating all systems
     for (auto& [id, system] : m_systems)
@@ -72,6 +72,10 @@ void WorldEntity::Update(const UpdateContext& context)
 
 void WorldEntity::RegisterComponent(Entity* pEntity, IComponent* pComponent)
 {
+    // TODO: Create a task for each global system and feed them the entity/components pairs
+    // TODO: Also delay registration till components are ready.
+    // In the rare case multiple systems are interdependant, use the same thread for all of them.
+    assert(!pComponent->IsUnloaded());
     std::cout << "Register component for entity: " << pEntity->GetName() << std::endl;
     for (auto& [id, system] : m_systems)
     {
@@ -88,21 +92,31 @@ void WorldEntity::UnregisterComponent(Entity* pEntity, IComponent* pComponent)
     }
 }
 
-void WorldEntity::RegisterEntity(Entity* pEntity)
+void WorldEntity::RegisterEntityUpdate(Entity* pEntity)
 {
-    std::cout << "Entity registered w/ world systems: " << pEntity->GetName() << std::endl;
     // TODO
+    std::cout << "Entity update list registered w/ world: " << pEntity->GetName() << std::endl;
 }
 
-void WorldEntity::UnregisterEntity(Entity* pEntity)
+void WorldEntity::UnregisterEntityUpdate(Entity* pEntity)
 {
-    std::cout << "Entity unregistered w/ world systems: " << pEntity->GetName() << std::endl;
     // TODO
+    std::cout << "Entity update list unregistered w/ world: " << pEntity->GetName() << std::endl;
 }
 
-std::map<aln::utils::UUID, Entity>& WorldEntity::GetEntitiesCollection()
+void WorldEntity::ActivateEntity(Entity* pEntity)
 {
-    return m_entityMap.Collection();
+    m_entityMap.ActivateEntity(pEntity);
 }
+
+void WorldEntity::DeactivateEntity(Entity* pEntity)
+{
+    m_entityMap.DeactivateEntity(pEntity);
+}
+
+// std::map<aln::utils::UUID, Entity>& WorldEntity::GetEntitiesCollection()
+// {
+//     return m_entityMap.Collection();
+// }
 
 } // namespace aln::entities

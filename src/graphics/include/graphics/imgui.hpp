@@ -1,5 +1,9 @@
 #pragma once
 
+#include <config/path.h>
+
+#include "IconsFontAwesome4.h"
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
@@ -110,8 +114,18 @@ class ImGUI
         ImGui_ImplVulkan_Init(&init_info, renderPass.GetVkRenderPass());
 
         // Upload Fonts
-        // Use any command queue
+        io = ImGui::GetIO();
+        io.Fonts->AddFontDefault();
 
+        // merge in icons from Font Awesome
+        static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
+        ImFontConfig icons_config;
+        icons_config.MergeMode = true;
+        icons_config.GlyphOffset.y = 1;
+        // icons_config.PixelSnapH = true;
+        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fontawesome-webfont.ttf", 13.0f, &icons_config, icons_ranges);
+
+        // Use any command queue
         pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
             { ImGui_ImplVulkan_CreateFontsTexture(cb); });
 

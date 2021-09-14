@@ -1,11 +1,13 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
-
 #include "resources/image.hpp"
 #include "subpass.hpp"
 
 #include <assert.h>
+#include <glm/vec4.hpp>
+#include <vulkan/vulkan.hpp>
+
+#include <common/colors.hpp>
 
 namespace aln::vkg
 {
@@ -19,6 +21,13 @@ class RenderPass
     };
 
   public:
+    struct Context
+    {
+        vk::CommandBuffer& commandBuffer;
+        vk::Framebuffer& framebuffer;
+        aln::RGBAColor backgroundColor;
+    };
+
     RenderPass() {}
 
     // Possible feature: Put back a callback logic if and when we make the creation process modular
@@ -46,7 +55,7 @@ class RenderPass
     void AddSubpassDependency(vk::SubpassDependency dependency);
 
     /// @brief Begin a render pass.
-    void Begin(vk::CommandBuffer& commandBuffer, vk::Framebuffer& framebuffer);
+    void Begin(RenderPass::Context& ctx);
 
     void End(vk::CommandBuffer& cb);
 

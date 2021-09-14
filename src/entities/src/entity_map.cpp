@@ -1,9 +1,10 @@
 #include "entity_map.hpp"
 
 #include "entity.hpp"
-
 #include "loading_context.hpp"
 #include "object_model.hpp"
+
+#include <reflection/reflection.hpp>
 
 #include <functional>
 #include <stdexcept>
@@ -37,9 +38,20 @@ void EntityMap::RemoveEntity(Entity* pEntity)
     m_entitiesToRemove.push_back(pEntity);
 }
 
+void EntityMap::ActivateEntity(Entity* pEntity)
+{
+    m_entitiesToActivate.push_back(pEntity);
+}
+
+void EntityMap::DeactivateEntity(Entity* pEntity)
+{
+    m_entitiesToDeactivate.push_back(pEntity);
+}
+
 bool EntityMap::Load(const LoadingContext& loadingContext)
 {
     // Manage the events registered by entities outside of the loading phase
+    // TODO: Where should this logic be ?
     for (auto* pEntity : Entity::EntityStateUpdatedEvent.m_updatedEntities)
     {
         // TODO: Maybe early out if the entity is in the "remove" list ?
@@ -70,30 +82,28 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
 
             case EntityInternalStateAction::Type::AddComponent:
             {
-
                 auto pParentComponent = pEntity->GetSpatialComponent(action.m_ID);
                 pEntity->AddComponentDeferred(loadingContext, (IComponent*) action.m_ptr, pParentComponent);
                 break;
             }
 
-            case EntityInternalStateAction::Type::CreateSystem:
+            case EntityInternalStateAction::Type::DestroyComponent:
             {
-
-                throw std::runtime_error("Not implemented");
-                // pEntity->CreateSystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
+                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
                 break;
             }
 
-            case EntityInternalStateAction::Type::DestroyComponent:
-                throw std::runtime_error("Not implemented");
-
-                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
+            case EntityInternalStateAction::Type::CreateSystem:
+            {
+                pEntity->CreateSystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
                 break;
+            }
 
             case EntityInternalStateAction::Type::DestroySystem:
-                throw std::runtime_error("Not implemented");
-                // pEntity->DestroySystemDeferred(loadingContext, (TypeInfo<IEntitySystem>*) action.m_ptr);
+            {
+                pEntity->DestroySystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
                 break;
+            }
 
             default:
                 throw std::runtime_error("Unsupported operation");
@@ -103,8 +113,8 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     }
     Entity::EntityStateUpdatedEvent.m_updatedEntities.clear();
 
-    auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
     // Gather up newly created entities, add them to the loading list and move them to the static collection
+    auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
     for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
     {
         // TODO: this is wonky
@@ -189,6 +199,23 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
         m_status = Status::Loaded;
     }
 
+    // TODO: All entities are activated in parallel.
+    // As the map will be instanciated for multiple threads this is ok for now i think ?
+    // We can call entity->Activate() for each of them because it manages the local parts of the activation,
+    // the rest is deffered.
+    for (auto pEntity : m_entitiesToActivate)
+    {
+        pEntity->Activate(loadingContext);
+    }
+
+    m_entitiesToActivate.clear();
+
+    for (auto pEntity : m_entitiesToDeactivate)
+    {
+        pEntity->Deactivate(loadingContext);
+    }
+    m_entitiesToDeactivate.clear();
+
     return true;
 }
 
@@ -207,6 +234,15 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
                 m_entitiesTree.push_back(&entity);
             }
         }
+    }
+    m_status = Status::Activated;
+}
+
+void EntityMap::Update(const UpdateContext& updateContext)
+{
+    for (auto& [id, pEntity] : Collection())
+    {
+        pEntity.UpdateSystems(updateContext);
     }
 }
 } // namespace aln::entities

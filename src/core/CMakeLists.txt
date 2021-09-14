@@ -5,13 +5,17 @@ add_library(${LIB_NAME} SHARED
     src/mesh_renderer.cpp
     src/light.cpp
     src/render_system.cpp
+    src/camera_controller.cpp
+    src/time_system.cpp
+
+    src/systems/script.cpp
 )
 
 set(LIB_DEPENDENCIES 
     ${Vulkan_INCLUDE_DIRS}
 )
 
-set(LIB_LINK_DEPENDENCIES glm utils common entities graphics)
+set(LIB_LINK_DEPENDENCIES glm utils common entities graphics input)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE
