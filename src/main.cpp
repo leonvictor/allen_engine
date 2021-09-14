@@ -446,6 +446,15 @@ class Engine
                     {
                         typeDesc->InEditor(pSystem.get());
                     }
+
+                    if (ImGui::BeginPopupContextItem(("SYSTEM_POPUP_" + pSystem->GetType()->GetID().ToString()).c_str(), ImGuiPopupFlags_MouseButtonRight))
+                    {
+                        if (ImGui::MenuItem("Remove System", "", false, true))
+                        {
+                            // m_pSelectedEntity->DestroySystem(pSystem);
+                        }
+                        ImGui::EndPopup();
+                    }
                 }
 
                 if (ImGui::Button("Add Component"))
