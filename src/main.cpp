@@ -358,9 +358,9 @@ class Engine
             {
                 ImGui::Text(m_pSelectedEntity->GetName().c_str());
                 ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+
                 if (m_pSelectedEntity->IsActivated())
                 {
-
                     ImGui::Text(ICON_FA_EYE);
                     if (ImGui::IsItemHovered())
                     {
@@ -368,9 +368,7 @@ class Engine
                     }
                     if (ImGui::IsItemClicked())
                     {
-                        // TODO: Disable entity
-                        std::cout << "Disable entity" << std::endl;
-                        // m_worldEntity.DeactivateEntity(m_pSelectedEntity);
+                        m_worldEntity.DeactivateEntity(m_pSelectedEntity);
                     }
                 }
                 else
@@ -382,9 +380,7 @@ class Engine
                     }
                     if (ImGui::IsItemClicked())
                     {
-                        // TODO: Enable entity
-                        std::cout << "Enable entity" << std::endl;
-                        // m_worldEntity.ActivateEntity(m_pSelectedEntity);
+                        m_worldEntity.ActivateEntity(m_pSelectedEntity);
                     }
                 }
 
@@ -427,7 +423,20 @@ class Engine
                     auto typeDesc = pComponent->GetType();
                     // TODO: This should happen through the partial template specialization for components
                     auto compId = typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
-                    typeDesc->InEditor(pComponent, compId.c_str());
+
+                    if (ImGui::CollapsingHeader(compId.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
+                    {
+                        typeDesc->InEditor(pComponent, compId.c_str());
+                    }
+
+                    if (ImGui::BeginPopupContextItem(("COMPONENT_POPUP_" + pComponent->GetID().ToString()).c_str(), ImGuiPopupFlags_MouseButtonRight))
+                    {
+                        if (ImGui::MenuItem("Remove Component", "", false, true))
+                        {
+                            m_pSelectedEntity->DestroyComponent(pComponent->GetID());
+                        }
+                        ImGui::EndPopup();
+                    }
                 }
 
                 if (ImGui::Button("Add Component"))
