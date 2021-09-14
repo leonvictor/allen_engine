@@ -101,8 +101,7 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
 
             case EntityInternalStateAction::Type::DestroySystem:
             {
-                throw std::runtime_error("Not implemented");
-                // pEntity->DestroySystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
+                pEntity->DestroySystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
                 break;
             }
 

@@ -158,7 +158,6 @@ class Entity
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
-
         CreateSystem(T::GetStaticType());
     }
 
@@ -170,21 +169,12 @@ class Entity
     inline void DestroySystem()
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>);
-        assert(std::find(m_systems, T::GetStaticType()->m_ID) != m_systems.end());
-
-        if (IsUnloaded())
-        {
-            DestroySystemImmediate(T::GetStaticType()); // TODO: static type info...
-        }
-        else
-        {
-            auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
-            action.m_type = EntityInternalStateAction::Type::DestroySystem;
-            action.m_ptr = T::GetStaticType();
-
-            EntityStateUpdatedEvent.Execute(this);
-        }
+        DestroySystem(T::GetStaticType());
     }
+
+    /// @brief Destroy as system.
+    /// @todo used by the editor, should this be public ?
+    void DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
 
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context);

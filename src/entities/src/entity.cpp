@@ -248,6 +248,25 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const al
         loadingContext.m_registerEntityUpdate(this);
     }
 }
+void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+{
+    assert(std::find_if(m_systems.begin(), m_systems.end(),
+               [&](std::shared_ptr<IEntitySystem> pSystem)
+               { return pSystem->GetType()->m_ID == pTypeDescriptor->m_ID; }) != m_systems.end());
+
+    if (IsUnloaded())
+    {
+        DestroySystemImmediate(pTypeDescriptor);
+    }
+    else
+    {
+        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
+        action.m_type = EntityInternalStateAction::Type::DestroySystem;
+        action.m_ptr = pTypeDescriptor;
+
+        EntityStateUpdatedEvent.Execute(this);
+    }
+}
 
 void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {

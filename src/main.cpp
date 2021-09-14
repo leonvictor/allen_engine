@@ -447,11 +447,11 @@ class Engine
                         typeDesc->InEditor(pSystem.get());
                     }
 
-                    if (ImGui::BeginPopupContextItem(("SYSTEM_POPUP_" + pSystem->GetType()->GetID().ToString()).c_str(), ImGuiPopupFlags_MouseButtonRight))
+                    if (ImGui::BeginPopupContextItem(("SYSTEM_POPUP_" + pSystem->GetType()->m_ID.ToString()).c_str(), ImGuiPopupFlags_MouseButtonRight))
                     {
                         if (ImGui::MenuItem("Remove System", "", false, true))
                         {
-                            // m_pSelectedEntity->DestroySystem(pSystem);
+                            m_pSelectedEntity->DestroySystem(pSystem->GetType());
                         }
                         ImGui::EndPopup();
                     }
