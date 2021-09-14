@@ -244,23 +244,18 @@ class Engine
 
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?
-            aln::entities::UpdateContext context = aln::entities::UpdateContext(UpdateStage::FrameStart);
+            for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
+            {
+                aln::entities::UpdateContext context = aln::entities::UpdateContext(static_cast<UpdateStage>(stage));
+                // When out of editor
+                // context.displayWidth = m_window.GetWidth();
+                // context.displayHeight = m_window.GetHeight();
 
-            // When out of editor
-            // context.displayWidth = m_window.GetWidth();
-            // context.displayHeight = m_window.GetHeight();
+                context.displayWidth = m_scenePreviewWidth;
+                context.displayHeight = m_scenePreviewHeight;
 
-            context.displayWidth = m_scenePreviewWidth;
-            context.displayHeight = m_scenePreviewHeight;
-
-            m_worldEntity.Update(context);
-
-            context = aln::entities::UpdateContext(UpdateStage::FrameEnd);
-            // context.displayWidth = m_window.GetWidth();
-            // context.displayHeight = m_window.GetHeight();
-            context.displayWidth = m_scenePreviewWidth;
-            context.displayHeight = m_scenePreviewHeight;
-            m_worldEntity.Update(context);
+                m_worldEntity.Update(context);
+            }
 
             updateSkyboxUBO();
 
