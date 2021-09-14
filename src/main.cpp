@@ -449,6 +449,25 @@ class Engine
                     ImGui::OpenPopup("add_component_popup");
                 }
 
+                ImGui::SameLine();
+                if (ImGui::Button("Add System"))
+                {
+                    ImGui::OpenPopup("add_system_popup");
+                }
+
+                if (ImGui::BeginPopup("add_system_popup"))
+                {
+                    auto& systemTypes = aln::reflect::GetTypesInScope("SYSTEMS");
+                    for (auto& sys : systemTypes)
+                    {
+                        if (ImGui::Selectable(sys->GetPrettyName().c_str()))
+                        {
+                            // m_pSelectedEntity->CreateSystem(sys);
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+
                 if (ImGui::BeginPopup("add_component_popup"))
                 {
                     auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
