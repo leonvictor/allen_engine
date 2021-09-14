@@ -6,6 +6,9 @@ add_library(${LIB_NAME} SHARED
     src/light.cpp
     src/render_system.cpp
     src/camera_controller.cpp
+    src/time_system.cpp
+
+    src/systems/script.cpp
 )
 
 set(LIB_DEPENDENCIES 

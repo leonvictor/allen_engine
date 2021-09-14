@@ -9,5 +9,4 @@
 - Fix transform update when changing parent
 - Keep entities in a tree
 - Rework spatial components to be standalone, and remove the possibility to organize components
-- Create a sample system to try them
 - Create the Script system for users to overload

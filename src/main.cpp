@@ -25,7 +25,6 @@
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
 
-#include "time_system.hpp"
 #include <input/input_system.hpp>
 
 #include <entities/entity.hpp>
@@ -38,6 +37,7 @@
 #include <core/light.hpp>
 #include <core/mesh_renderer.hpp>
 #include <core/render_system.hpp>
+#include <core/time_system.hpp>
 
 #include "IconsFontAwesome4.h"
 #include "imgui.h"
@@ -462,7 +462,7 @@ class Engine
                     {
                         if (ImGui::Selectable(sys->GetPrettyName().c_str()))
                         {
-                            // m_pSelectedEntity->CreateSystem(sys);
+                            m_pSelectedEntity->CreateSystem(sys);
                         }
                     }
                     ImGui::EndPopup();
