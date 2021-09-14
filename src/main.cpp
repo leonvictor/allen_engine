@@ -44,6 +44,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include "imgui_internal.h"
+#include "imgui_stdlib.h"
 
 #include <config/path.h>
 #include <reflection/reflection.hpp>
@@ -327,7 +328,7 @@ class Engine
         }
         ImGui::End();
 
-        if (ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
+        if (ImGui::Begin(ICON_FA_GLOBE " Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
         {
             auto dim = ImGui::GetContentRegionAvail();
             m_scenePreviewWidth = dim.x;
@@ -354,9 +355,12 @@ class Engine
         // Inspector panel
         if (m_pSelectedEntity != nullptr)
         {
-            if (ImGui::Begin("Inspector", nullptr))
+            if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr))
             {
-                ImGui::Text(m_pSelectedEntity->GetName().c_str());
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text(ICON_FA_CUBE);
+                ImGui::SameLine();
+                ImGui::InputText(("##" + m_pSelectedEntity->GetID().ToString()).c_str(), &m_pSelectedEntity->GetName());
                 ImGui::SameLine(ImGui::GetWindowWidth() - 30);
 
                 if (m_pSelectedEntity->IsActivated())
@@ -463,7 +467,7 @@ class Engine
         }
 
         // Outline panel
-        if (ImGui::Begin("Outline"))
+        if (ImGui::Begin(ICON_FA_LIST " Outline"))
         {
             auto& tree = m_worldEntity.GetEntityTree();
             for (Entity* node : tree)
@@ -535,7 +539,7 @@ class Engine
         }
 
         // We add the id to the ImGui hash to differentiate entities with the same name
-        std::string entityLabel = pEntity->GetName() + "##" + pEntity->GetID().ToString();
+        std::string entityLabel = ICON_FA_CUBE " " + pEntity->GetName() + "##" + pEntity->GetID().ToString();
         bool node_open = ImGui::TreeNodeEx(entityLabel.c_str(), node_flags);
 
         EntityOutlinePopup(pEntity);
