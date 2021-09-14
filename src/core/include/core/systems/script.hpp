@@ -16,29 +16,21 @@ class ScriptSystem : public entities::IEntitySystem
 
     aln::entities::SpatialComponent* m_pRootComponent;
 
+    float m_rotationSpeedX = 15.0f;
+    float m_rotationSpeedY = 0.0f;
+    float m_rotationSpeedZ = 0.0f;
+
   public:
+    ScriptSystem()
+    {
+        m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::PostPhysics, 10);
+    }
+
     // TODO: Hide UpdateContext from users
-    void Update(const aln::entities::UpdateContext& ctx) override
-    {
-        auto transform = m_pRootComponent->ModifyTransform();
-        transform->rotation *= Time::GetDeltaTime();
-    }
+    void Update(const aln::entities::UpdateContext& ctx) override;
 
-    void RegisterComponent(aln::entities::IComponent* pComponent) override
-    {
-        auto pSpatialComponent = dynamic_cast<aln::entities::SpatialComponent*>(pComponent);
-        if (pSpatialComponent != nullptr)
-        {
-            m_pRootComponent = pSpatialComponent;
-        }
-    }
+    void RegisterComponent(aln::entities::IComponent* pComponent) override;
 
-    void UnregisterComponent(aln::entities::IComponent* pComponent) override
-    {
-        if (pComponent == m_pRootComponent)
-        {
-            m_pRootComponent = nullptr;
-        }
-    }
+    void UnregisterComponent(aln::entities::IComponent* pComponent) override;
 };
 } // namespace aln
