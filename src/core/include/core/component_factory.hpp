@@ -5,6 +5,8 @@
 
 #include <reflection/reflection.hpp>
 
+#include "Tracy.hpp"
+
 namespace aln
 {
 
@@ -29,6 +31,8 @@ class ComponentFactory
     template <typename T>
     T* Create()
     {
+        ZoneScoped;
+
         return (T*) Create(T::GetStaticType());
     }
 };

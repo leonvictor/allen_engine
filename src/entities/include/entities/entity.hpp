@@ -14,6 +14,8 @@
 #include <reflection/reflection.hpp>
 #include <utils/uuid.hpp>
 
+#include <Tracy.hpp>
+
 namespace aln::entities
 {
 
@@ -156,6 +158,8 @@ class Entity
     template <typename T>
     inline void CreateSystem()
     {
+        ZoneScoped;
+
         static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
         CreateSystem(T::GetStaticType());

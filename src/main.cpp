@@ -1,3 +1,4 @@
+#include <glm/gtc/random.hpp>
 #include <glm/vec3.hpp>
 
 #include <chrono> // std::chrono::seconds
@@ -37,6 +38,7 @@
 #include <core/light.hpp>
 #include <core/mesh_renderer.hpp>
 #include <core/render_system.hpp>
+#include <core/systems/script.hpp>
 #include <core/time_system.hpp>
 
 #include "IconsFontAwesome4.h"
@@ -304,6 +306,25 @@ class Engine
                 if (ImGui::BeginMenu("View"))
                 {
                     ImGui::MenuItem("Item");
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Debug"))
+                {
+                    if (ImGui::MenuItem("Lots of boxes"))
+                    {
+                        for (int i = 4; i < 300; i++)
+                        {
+                            Entity* pCube = Entity::Create(std::string("cube (") + std::to_string(i) + ")");
+                            auto pos = glm::vec3(
+                                glm::linearRand(-100.0f, 100.0f),
+                                glm::linearRand(-100.0f, 100.0f),
+                                glm::linearRand(-100.0f, 100.0f));
+                            auto pMesh = m_componentFactory.Create<MeshRenderer>();
+                            pMesh->ModifyTransform()->position = pos;
+                            pCube->AddComponent(pMesh);
+                            pCube->CreateSystem<ScriptSystem>();
+                        }
+                    }
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenuBar();

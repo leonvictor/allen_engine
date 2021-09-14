@@ -6,7 +6,6 @@
 #include "component.hpp"
 #include "spatial_component.hpp"
 
-#include <Tracy.hpp>
 #include <future>
 
 namespace aln::entities
@@ -81,6 +80,8 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
 
 void Entity::Activate(const LoadingContext& loadingContext)
 {
+    ZoneScoped;
+
     assert(IsLoaded());
     m_status = Status::Activated;
 
@@ -399,6 +400,8 @@ void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent*
 
 void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID)
 {
+    ZoneScoped;
+
     assert(pComponent != nullptr && pComponent->GetID().IsValid());
     assert(!pComponent->m_entityID.IsValid() && pComponent->IsUnloaded());
     // TODO: Assert that m_components does NOT contain a component of this type
@@ -673,6 +676,8 @@ void Entity::RefreshEntityAttachments()
 
 Entity* Entity::Create(std::string name)
 {
+    ZoneScoped;
+
     Entity* pEntity = EntityCollection::Create();
     pEntity->m_name = name;
     // TODO: Make sure Id is generated and valid
