@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <entities/component.hpp>
 #include <entities/component_creation_context.hpp>
 
@@ -17,15 +19,18 @@ class Device;
 
 class ComponentFactory
 {
+    std::vector<std::unique_ptr<entities::IComponent>> m_registry;
+
   public:
     entities::ComponentCreationContext context;
 
     entities::IComponent* Create(const reflect::TypeDescriptor* typeDescriptor)
     {
         // TODO: Alternatively allocate from a component pool
-        auto comp = (entities::IComponent*) typeDescriptor->typeHelper->CreateType();
+        auto comp = typeDescriptor->typeHelper->CreateType<entities::IComponent>();
         comp->Construct(context);
-        return comp;
+        auto& record = m_registry.emplace_back(std::move(comp));
+        return record.get();
     }
 
     template <typename T>

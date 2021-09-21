@@ -203,6 +203,8 @@ class Entity
         return m_components;
     }
 
+    const std::vector<IComponent*>& GetComponents() { return m_components; }
+
     SpatialComponent* FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const UUID& socketID) const;
 
     inline SpatialComponent* FindSocketAttachmentComponent(const UUID& socketID) const
@@ -214,10 +216,6 @@ class Entity
 
     /// @brief Add a parent entity.
     void SetParentEntity(Entity* pEntity);
-
-    /// Factory methods
-    // TODO: Is that how we want to generate entities ?
-    static Entity* Create(std::string name);
 
     inline bool operator==(const Entity& other) const { return other.GetID() == GetID(); }
     inline bool operator!=(const Entity& other) const { return !operator==(other); }

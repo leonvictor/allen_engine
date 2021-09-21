@@ -225,7 +225,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
     }
 
     // TODO: new and shared_ptr(...) are not good.
-    auto pSystem = std::shared_ptr<IEntitySystem>((IEntitySystem*) pSystemTypeInfo->typeHelper->CreateType());
+    auto pSystem = pSystemTypeInfo->typeHelper->CreateType<IEntitySystem>();
 
     if (IsActivated())
     {
@@ -235,7 +235,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
         }
     }
 
-    m_systems.push_back(pSystem);
+    m_systems.push_back(std::move(pSystem));
 }
 
 void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
@@ -369,7 +369,7 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
 
     // TODO: Experiment with different component storage modes
     // Using a pool might be a good idea, to pack them in contiguous memory regions
-    delete pComponent;
+    // delete pComponent;
 }
 
 void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent* pComponent)

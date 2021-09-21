@@ -10,14 +10,20 @@
 
 #include <utils/uuid.hpp>
 
-namespace aln::entities
+namespace aln
+{
+class Engine;
+
+namespace entities
 {
 /// @brief The one entity that represents the world. Holds entities and world systems.
 class WorldEntity
 {
+    friend class aln::Engine;
+
   private:
     EntityMap m_entityMap;
-    std::map<std::type_index, IWorldSystem*> m_systems;
+    std::map<std::type_index, std::unique_ptr<IWorldSystem>> m_systems;
 
     /// @brief Build the loading context by registering callbacks to this world entity.
     LoadingContext GetLoadingContext();
@@ -54,9 +60,9 @@ class WorldEntity
     void CreateSystem(Args... args)
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
-        T* system = new T(args...);
+        std::unique_ptr<T> system = std::make_unique<T>(args...);
         system->InitializeSystem();
-        m_systems.emplace(std::make_pair(std::type_index(typeid(T)), system));
+        m_systems.emplace(std::make_pair(std::type_index(typeid(T)), std::move(system)));
     }
 
     template <typename T>
@@ -68,7 +74,6 @@ class WorldEntity
         if (iter != m_systems.end())
         {
             iter->second->ShutdownSystem();
-            delete iter->second;
             m_systems.erase(iter->first);
         }
     }
@@ -76,4 +81,5 @@ class WorldEntity
     // std::map<aln::utils::UUID, Entity>& GetEntitiesCollection();
     std::vector<Entity*>& GetEntityTree() { return m_entityMap.m_entitiesTree; }
 };
-} // namespace aln::entities
+} // namespace entities
+} // namespace aln
