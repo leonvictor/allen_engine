@@ -128,5 +128,5 @@ target_compile_features(main PUBLIC cxx_std_20)
 
 target_link_libraries(main PUBLIC common reflection glfw shaderc ${Vulkan_LIBRARIES} imm32 utils input graphics entities core)
 
-
-
+set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /EHsc /W4 /D_DEBUG /MDd")
+message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})

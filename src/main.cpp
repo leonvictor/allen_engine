@@ -26,6 +26,11 @@
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+
+#include <crtdbg.h>
+
 #include <input/input_system.hpp>
 
 #include <entities/entity.hpp>
@@ -148,9 +153,8 @@ class Engine
     float m_scenePreviewHeight = 1.0f;
 
     // Object model
-    WorldEntity m_worldEntity;
-
     ComponentFactory m_componentFactory;
+    WorldEntity m_worldEntity;
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
@@ -171,9 +175,9 @@ class Engine
 
         // Create some entities
         {
-            Entity* pCameraEntity = Entity::Create("MainCamera");
+            // TODO: Refine how the editor accesses the map
+            Entity* pCameraEntity = m_worldEntity.m_entityMap.CreateEntity("MainCamera");
             auto pCameraComponent = m_componentFactory.Create<Camera>();
-
             pCameraComponent->ModifyTransform()->position = WORLD_BACKWARD * 2.0f;
             pCameraComponent->ModifyTransform()->rotation.x = 90.0f;
             pCameraEntity->AddComponent(pCameraComponent);
@@ -182,14 +186,14 @@ class Engine
         }
 
         {
-            Entity* pLightEntity = Entity::Create("DirectionalLight");
+            Entity* pLightEntity = m_worldEntity.m_entityMap.CreateEntity("DirectionalLight");
             Light* pLightComponent = m_componentFactory.Create<Light>();
             pLightComponent->direction = WORLD_RIGHT;
             pLightComponent->type = Light::Type::Directional;
             auto t = pLightComponent->ModifyTransform()->position = LIGHT_POSITION;
             pLightEntity->AddComponent(pLightComponent);
 
-            Entity* pPointLightEntity = Entity::Create("PointLight");
+            Entity* pPointLightEntity = m_worldEntity.m_entityMap.CreateEntity("PointLight");
             Light* pPLightComponent = m_componentFactory.Create<Light>();
             pPLightComponent->direction = WORLD_RIGHT;
             pPLightComponent->type = Light::Type::Point;
@@ -201,7 +205,7 @@ class Engine
         for (auto pos : cubePositions)
         {
             // TODO: This api is too verbose
-            Entity* pCube = Entity::Create(std::string("cube (") + std::to_string(i) + ")");
+            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(std::string("cube (") + std::to_string(i) + ")");
             auto pMesh = m_componentFactory.Create<MeshRenderer>();
             pMesh->ModifyTransform()->position = pos;
             pCube->AddComponent(pMesh);
@@ -314,7 +318,7 @@ class Engine
                     {
                         for (int i = 4; i < 300; i++)
                         {
-                            Entity* pCube = Entity::Create(std::string("cube (") + std::to_string(i) + ")");
+                            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(std::string("cube (") + std::to_string(i) + ")");
                             auto pos = glm::vec3(
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f),
@@ -339,9 +343,9 @@ class Engine
                 // Compute current FPS
                 // Use std::format (C++20). Not available in most compilers as of 04/06/2021
                 std::string fps = std::to_string(1.0 / Time::GetDeltaTime());
-                fps = fps.substr(0, fps.find("."));
-                fps += " FPS";
-                ImGui::Text(fps.c_str());
+                auto clean_fps = fps.substr(0, fps.find("."));
+                clean_fps += " FPS";
+                ImGui::Text(clean_fps.c_str());
 
                 ImGui::EndMenuBar();
             }
@@ -562,7 +566,7 @@ class Engine
             auto contextEntityAndNotSpatial = (pEntity != nullptr && !pEntity->IsSpatialEntity());
             if (ImGui::MenuItem("Add Empty Entity", "", false, pEntity == nullptr))
             {
-                auto* pNewEntity = Entity::Create("Entity");
+                auto* pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
                 // TODO: This will be useful with other options, but empty entities are not spatial so they can't be attached to others.
                 // if (pEntity != nullptr)
                 // {
@@ -652,6 +656,8 @@ class Engine
 
 int main()
 {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
     std::unique_ptr<aln::Engine> app = std::make_unique<aln::Engine>();
 
     try

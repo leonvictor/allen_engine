@@ -6,8 +6,12 @@
 
 #include <reflection/reflection.hpp>
 
+#include <array>
 #include <functional>
+#include <mutex>
+#include <semaphore>
 #include <stdexcept>
+#include <thread>
 
 namespace aln::entities
 {
@@ -74,8 +78,7 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
                     if (it == m_entitiesTree.end()) // Add it to the tree root if it previously had a parent
                     {
                         m_entitiesTree.push_back(pEntity);
-                    }
-                    // Otherwise it's already in the right place
+                    } // Otherwise it's already in the right place
                 }
                 break;
             }
@@ -113,23 +116,22 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     }
     Entity::EntityStateUpdatedEvent.m_updatedEntities.clear();
 
-    // Gather up newly created entities, add them to the loading list and move them to the static collection
-    auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
-    for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
-    {
-        // TODO: this is wonky
-        auto [nit, value] = EntityCollection::Collection().insert(std::move(*it));
-        m_loadingEntities.push_back(&(nit->second));
-        it = newlyCreated.erase(it);
-        // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
-        // (cause all threads could ask for an entity removal, or even loading)
-    }
-    newlyCreated.clear();
+    ///////////////
+    // Sync the newly created entities
+    ///////////////
 
-    if (m_loadingEntities.size() > 0 && m_status == Status::Deactivated)
-    {
-        m_status = Status::EntitiesLoading;
-    }
+    // // Gather up newly created entities, add them to the loading list and move them to the static collection
+    // auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
+    // for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
+    // {
+    //     // TODO: this is wonky
+    //     auto [nit, value] = EntityCollection::Collection().insert(std::move(*it));
+    //     m_loadingEntities.push_back(&(nit->second));
+    //     it = newlyCreated.erase(it);
+    //     // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
+    //     // (cause all threads could ask for an entity removal, or even loading)
+    // }
+    // newlyCreated.clear();
 
     // Deactivate, unload and remove entities from the collection
     for (auto pEntityToRemove : m_entitiesToRemove)
@@ -141,10 +143,6 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
         }
         else // Remove from loading lists as we might still be loading this entity
         {
-            // With eastl:
-            // m_loadingEntities.erase_first_unsorted(pEntityToRemove->m_ID);
-            // m_entitiesToReload.erase_first_unsorted(pEntityToRemove->m_ID);
-
             // TODO: Removing from vectors is meh. Profile and check if std::list/std::multimap are more efficient for what we do
             auto itLoading = std::find(m_loadingEntities.begin(), m_loadingEntities.end(), pEntityToRemove);
             if (itLoading != m_loadingEntities.end())
@@ -166,6 +164,11 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     m_entitiesToRemove.clear();
 
     // Entity loading
+    if (m_loadingEntities.size() > 0 && m_status == Status::Deactivated)
+    {
+        m_status = Status::EntitiesLoading;
+    }
+
     for (size_t i = m_loadingEntities.size(); i > 0; i--)
     {
         auto pEntity = m_loadingEntities[i - 1];
@@ -231,7 +234,7 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
 
             if (!entity.HasParentEntity())
             {
-                m_entitiesTree.push_back(&entity);
+                m_entitiesTree.push_back(&(it->second));
             }
         }
     }
@@ -240,9 +243,92 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
 
 void EntityMap::Update(const UpdateContext& updateContext)
 {
-    for (auto& [id, pEntity] : Collection())
+    const int num_threads = std::thread::hardware_concurrency();
+    // std::cout << num_threads << " threads available." << std::endl;
+    std::vector<std::thread> threads(num_threads);
+    std::counting_semaphore semaphore(num_threads);
+
+    const int grainsize = Collection().size() / num_threads;
+
+    typedef std::map<UUID, Entity>::iterator iter;
+    auto worker = [&](iter begin, iter end, UpdateContext updateContext)
     {
-        pEntity.UpdateSystems(updateContext);
+        for (auto it = begin; it != end; it++)
+        {
+            // TODO: Customize the context to allow further steps to populate a thread-specific map
+            // TODO: When we join, we need to populate all of the maps
+            it->second.UpdateSystems(updateContext);
+        }
+        std::cout << "Worker done" << std::endl;
+    };
+
+    std::vector<EntityMap> transientMaps;
+    transientMaps.reserve(num_threads);
+
+    auto work_iter = std::begin(Collection());
+    for (auto it = threads.begin(); it != threads.end() - 1; ++it)
+    {
+        EntityMap& transientMap = transientMaps.emplace_back(true);
+        UpdateContext threadContext = updateContext;
+        threadContext.pEntityMap = &transientMap;
+
+        auto end = std::next(work_iter, grainsize);
+        *it = std::thread(worker, work_iter, end, threadContext);
+        work_iter = end;
     }
+
+    // The remaining systems could update in the main thread maybe ?
+    EntityMap& transientMap = transientMaps.emplace_back(true);
+    UpdateContext threadContext = updateContext;
+    threadContext.pEntityMap = &transientMap;
+    threads.back() = std::thread(worker, work_iter, Collection().end(), threadContext);
+
+    for (auto&& thread : threads)
+    {
+        thread.join();
+    }
+    threads.clear();
+
+    // Sync updated entities
+    for (auto& map : transientMaps)
+    {
+        // Gather up newly created entities, add them to the main loading list and move them to the static collection
+        auto& newlyCreated = map.m_createdEntities;
+        for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
+        {
+            // TODO: this is wonky
+            auto [nit, value] = EntityCollection::Collection().insert(std::move(*it));
+            m_loadingEntities.push_back(&(nit->second));
+            // it = newlyCreated.erase(it);
+            // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
+            // (cause all threads could ask for an entity removal, or even loading)
+        }
+        newlyCreated.clear();
+    }
+    transientMaps.clear();
+}
+
+Entity* EntityMap::CreateEntity(std::string name)
+{
+    // TODO: This uses the move constructor so we construct the object twice
+    Entity entity;
+    entity.m_name = name;
+
+    if (m_isTransientMap)
+    {
+        auto [it, value] = m_createdEntities.insert(std::make_pair(entity.GetID(), entity));
+        return &(it->second);
+    }
+    else
+    { // This is happening in the main thread.
+        auto [it, value] = Collection().insert(std::make_pair(entity.GetID(), entity));
+        m_loadingEntities.push_back(&(it->second));
+        return &(it->second);
+    }
+
+    // TODO: Test this in depth, it's kinda black magic
+    // C++17 (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4659.pdf):
+    // All Associative Containers: The erase members shall invalidate only iterators and references to the erased elements [26.2.6/9]
+    // The insert and emplace members shall not affect the validity of iterators and references to the container [26.2.6/9]
 }
 } // namespace aln::entities

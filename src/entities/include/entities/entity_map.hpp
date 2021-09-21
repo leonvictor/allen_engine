@@ -1,5 +1,6 @@
 #pragma once
 
+#include "entity.hpp"
 #include "entity_collection.hpp"
 #include "loading_context.hpp"
 #include "object_model.hpp"
@@ -33,19 +34,19 @@ class EntityMap : private EntityCollection
     std::vector<Entity*> m_entitiesToReload; // TODO
     std::vector<Entity*> m_entitiesToActivate;
     std::vector<Entity*> m_entitiesToDeactivate;
+    std::map<UUID, Entity> m_createdEntities;
 
     // ...
     Status m_status = Status::Deactivated;
     bool m_isTransientMap = false;
 
+    EntityMap() {}
+
     /// @brief Clear this map. If it is the main one, deactivate and unload
     /// all entities in the underlying collection.
     void Clear(const LoadingContext& loadingContext);
 
-    bool IsActivated()
-    {
-        return m_status == Status::Activated;
-    }
+    bool IsActivated() { return m_status == Status::Activated; }
 
     /// @brief Permanently remove an entity from the collection.
     void RemoveEntity(Entity* pEntity);
@@ -66,5 +67,9 @@ class EntityMap : private EntityCollection
 
     /// @brief Activate all entities in the collection.
     void Activate(const LoadingContext& loadingContext);
+
+  public:
+    EntityMap(bool isTransient) : m_isTransientMap(isTransient) {}
+    Entity* CreateEntity(std::string name = "");
 };
 } // namespace aln::entities
