@@ -41,16 +41,15 @@ vk::ShaderModule CreateShaderModule(std::shared_ptr<Device> device, const std::s
 /// @brief Load a shader from a file.
 /// @param filename: shader file path (glsl or spirv)
 /// @return the vulkan createInfo struct to add to a pipeline.
-vk::PipelineShaderStageCreateInfo LoadShader(std::shared_ptr<Device> device, const std::string& filename, const vk::ShaderStageFlagBits stage, const std::string& entryPoint)
+ShaderInfo LoadShader(std::shared_ptr<Device> device, const std::string& filename, const vk::ShaderStageFlagBits stage, std::string entryPoint)
 {
-    auto shaderModule = CreateShaderModule(device, filename);
-    vk::PipelineShaderStageCreateInfo createInfo;
-    createInfo.stage = stage;
-    createInfo.module = shaderModule;
-    createInfo.pName = strdup(entryPoint.c_str());
+    ShaderInfo info;
+    info.module = CreateShaderModule(device, filename);
+    info.stage = stage;
+    info.entryPoint = entryPoint;
     // pSpecializationInfo : We can set values for constants in the shader.
     // Then we can use a single shader module and have its behavior configured at pipeline creation (here)
-    return createInfo;
+    return info;
 }
 
 /// @brief Compiles a shader to a SPIR-V binary.

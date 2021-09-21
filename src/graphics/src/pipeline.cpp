@@ -79,8 +79,13 @@ void Pipeline::Create(std::string cachePath)
     m_layout = m_pDevice->GetVkDevice().createPipelineLayoutUnique(layoutInfo);
 
     // Shader stages
-    m_pipelineCreateInfo.stageCount = m_shaderStages.size();
-    m_pipelineCreateInfo.pStages = m_shaderStages.data();
+    std::vector<vk::PipelineShaderStageCreateInfo> stages;
+    for (auto& info : m_shaderStages)
+    {
+        stages.push_back(info.GetCreateInfo());
+    }
+    m_pipelineCreateInfo.stageCount = stages.size();
+    m_pipelineCreateInfo.pStages = stages.data();
 
     // Fixed-functions states
     m_pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
