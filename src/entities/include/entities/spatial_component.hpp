@@ -88,6 +88,8 @@ class SpatialComponent : public IComponent
     // Cached + write access denied to derived classes
     // TODO: world transform/bounds are calculated on the parent component
 
+    virtual ~SpatialComponent() {}
+
     bool HasSocket(const aln::utils::UUID& socketID);
 
     /// @brief Attach this component to another one.

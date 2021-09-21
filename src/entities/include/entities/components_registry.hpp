@@ -94,7 +94,7 @@ class ComponentsRegistry
     std::map<aln::utils::UUID, std::vector<T*>> m_registry;
 
   public:
-    void AddRecordEntry(const aln::utils::UUID& id, T* pComponent)
+    void AddRecordEntry(const aln::utils::UUID id, T* pComponent)
     {
         // auto record = m_registry.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple());
         auto record = m_registry.try_emplace(id);
@@ -127,10 +127,7 @@ class ComponentsRegistry
         }
     }
 
-    size_t GetNumberOfRegisteredComponents()
-    {
-        return m_numberOfRegisteredComponents;
-    }
+    size_t GetNumberOfRegisteredComponents() { return m_numberOfRegisteredComponents; }
 
     Iterator begin()
     {

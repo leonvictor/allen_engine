@@ -18,10 +18,10 @@ struct UpdatePriorities
     }
 
     /// @brief Returns the priority for the provided stage. Making sure the stage is enabled is the user's responsibility.
-    uint8_t GetPriorityForStage(const UpdateStage& stage)
+    uint8_t GetPriorityForStage(const UpdateStage& stage) const
     {
         assert(IsUpdateStageEnabled(stage));
-        return m_updatePriorityMap[stage];
+        return m_updatePriorityMap.at(stage);
     }
 
     void SetPriorityForStage(const UpdateStage& stage, uint8_t priority)
