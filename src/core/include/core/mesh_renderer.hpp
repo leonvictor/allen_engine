@@ -21,7 +21,7 @@ namespace aln
 namespace vkg
 {
 class Device;
-class UniformBufferObject;
+struct UniformBufferObject;
 } // namespace vkg
 
 /// @brief The MeshRenderer component holds a mesh, its material, and the vulkan objects
