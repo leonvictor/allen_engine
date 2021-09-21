@@ -4,7 +4,7 @@
 
 namespace aln::input
 {
-class ControlStateChangedEvent;
+struct ControlStateChangedEvent;
 
 class IInputDevice
 {

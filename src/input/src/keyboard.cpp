@@ -32,8 +32,11 @@ std::multimap<int, ControlStateChangedEvent> Keyboard::PollControlChangedEvents(
             event.pControl = &iter->second;
         }
     }
+
     // TODO: Not sure that works
-    std::multimap<int, ControlStateChangedEvent> clone = m_statesChanged;
+    std::multimap<int, ControlStateChangedEvent> clone;
+    clone.merge(m_statesChanged);
+
     m_statesChanged.clear();
     return clone;
 }
