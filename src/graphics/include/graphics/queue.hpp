@@ -59,7 +59,6 @@ class Queue
         FamilyIndices(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface)
         {
             // Assign index to queue families that could be found
-            uint32_t queueFamilyCount = 0;
             auto queueFamilies = physicalDevice.getQueueFamilyProperties();
 
             int i = 0;
