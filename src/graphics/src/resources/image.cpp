@@ -547,6 +547,7 @@ Image Image::FromFile(std::shared_ptr<Device> pDevice, std::string path)
     auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
     Image image = FromBuffer(pDevice, stagingBuffer, width, height, mipLevels);
 
+    delete pixels;
     return std::move(image);
 }
 
