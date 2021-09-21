@@ -36,8 +36,6 @@ class ComponentFactory
     template <typename T>
     T* Create()
     {
-        ZoneScoped;
-
         return (T*) Create(T::GetStaticType());
     }
 };

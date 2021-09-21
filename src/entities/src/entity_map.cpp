@@ -7,11 +7,15 @@
 #include <reflection/reflection.hpp>
 
 #include <array>
+#include <execution>
 #include <functional>
 #include <mutex>
 #include <semaphore>
 #include <stdexcept>
 #include <thread>
+
+#include <Tracy.hpp>
+#include <common/TracySystem.hpp>
 
 namespace aln::entities
 {
@@ -241,39 +245,53 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
     m_status = Status::Activated;
 }
 
-void EntityMap::Update(const UpdateContext& updateContext)
+struct UpdateTask
 {
-    const int num_threads = std::thread::hardware_concurrency();
-    // std::cout << num_threads << " threads available." << std::endl;
-    std::vector<std::thread> threads(num_threads);
-    std::counting_semaphore semaphore(num_threads);
-
-    const int grainsize = Collection().size() / num_threads;
 
     typedef std::map<UUID, Entity>::iterator iter;
-    auto worker = [&](iter begin, iter end, UpdateContext updateContext)
+
+    iter m_begin;
+    iter m_end;
+    UpdateContext m_updateContext;
+
+    UpdateTask(iter begin, iter end, UpdateContext updateContext, int i)
+        : m_begin(begin), m_end(end), m_updateContext(updateContext)
     {
-        for (auto it = begin; it != end; it++)
+    }
+
+    void operator()()
+    {
+        // tracy::SetThreadName(("System updates (" + std::to_string(i) + ")").c_str());
+        for (auto it = m_begin; it != m_end; it++)
         {
             // TODO: Customize the context to allow further steps to populate a thread-specific map
             // TODO: When we join, we need to populate all of the maps
-            it->second.UpdateSystems(updateContext);
+            it->second.UpdateSystems(m_updateContext);
         }
-        std::cout << "Worker done" << std::endl;
-    };
+    }
+};
+void EntityMap::Update(const UpdateContext& updateContext)
+{
+    ZoneScoped;
+    const int num_threads = std::thread::hardware_concurrency();
+
+    int grainsize = Collection().size() / num_threads;
+    if (grainsize < 1)
+        grainsize = 1;
 
     std::vector<EntityMap> transientMaps;
     transientMaps.reserve(num_threads);
 
     auto work_iter = std::begin(Collection());
-    for (auto it = threads.begin(); it != threads.end() - 1; ++it)
+    std::vector<UpdateTask> tasks;
+    for (uint8_t i = 0; i != num_threads - 1 && work_iter != Collection().end(); ++i)
     {
         EntityMap& transientMap = transientMaps.emplace_back(true);
         UpdateContext threadContext = updateContext;
         threadContext.pEntityMap = &transientMap;
 
         auto end = std::next(work_iter, grainsize);
-        *it = std::thread(worker, work_iter, end, threadContext);
+        tasks.push_back(UpdateTask(work_iter, end, threadContext, i));
         work_iter = end;
     }
 
@@ -281,31 +299,29 @@ void EntityMap::Update(const UpdateContext& updateContext)
     EntityMap& transientMap = transientMaps.emplace_back(true);
     UpdateContext threadContext = updateContext;
     threadContext.pEntityMap = &transientMap;
-    threads.back() = std::thread(worker, work_iter, Collection().end(), threadContext);
+    tasks.push_back(UpdateTask(work_iter, Collection().end(), threadContext, 8));
 
-    for (auto&& thread : threads)
-    {
-        thread.join();
-    }
-    threads.clear();
+    std::for_each(std::execution::par, tasks.begin(), tasks.end(), [](auto& task)
+        { task(); });
+    tasks.clear();
 
     // Sync updated entities
-    for (auto& map : transientMaps)
-    {
-        // Gather up newly created entities, add them to the main loading list and move them to the static collection
-        auto& newlyCreated = map.m_createdEntities;
-        for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
-        {
-            // TODO: this is wonky
-            auto [nit, value] = EntityCollection::Collection().insert(std::move(*it));
-            m_loadingEntities.push_back(&(nit->second));
-            // it = newlyCreated.erase(it);
-            // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
-            // (cause all threads could ask for an entity removal, or even loading)
-        }
-        newlyCreated.clear();
-    }
-    transientMaps.clear();
+    // for (auto& map : transientMaps)
+    // {
+    //     // Gather up newly created entities, add them to the main loading list and move them to the static collection
+    //     auto& newlyCreated = map.m_createdEntities;
+    //     for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
+    //     {
+    //         // TODO: this is wonky
+    //         auto [nit, value] = EntityCollection::Collection().insert(std::move(*it));
+    //         m_loadingEntities.push_back(&(nit->second));
+    //         // it = newlyCreated.erase(it);
+    //         // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
+    //         // (cause all threads could ask for an entity removal, or even loading)
+    //     }
+    //     newlyCreated.clear();
+    // }
+    // transientMaps.clear();
 }
 
 Entity* EntityMap::CreateEntity(std::string name)

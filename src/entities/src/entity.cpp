@@ -298,7 +298,6 @@ void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const a
 void Entity::UpdateSystems(UpdateContext const& context)
 {
     ZoneScoped;
-
     const UpdateStage updateStage = context.GetUpdateStage();
     // TODO: make sure stages convert nicely to uint8_t
     for (auto pSystem : m_systemUpdateLists[(uint8_t) updateStage])
@@ -400,8 +399,6 @@ void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent*
 
 void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID)
 {
-    ZoneScoped;
-
     assert(pComponent != nullptr && pComponent->GetID().IsValid());
     assert(!pComponent->m_entityID.IsValid() && pComponent->IsUnloaded());
     // TODO: Assert that m_components does NOT contain a component of this type
@@ -672,15 +669,5 @@ void Entity::RefreshEntityAttachments()
             pAttachedEntity->AttachToParent();
         }
     }
-}
-
-Entity* Entity::Create(std::string name)
-{
-    ZoneScoped;
-
-    Entity* pEntity = EntityCollection::Create();
-    pEntity->m_name = name;
-    // TODO: Make sure Id is generated and valid
-    return pEntity;
 }
 } // namespace aln::entities

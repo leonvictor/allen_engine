@@ -158,8 +158,6 @@ class Entity
     template <typename T>
     inline void CreateSystem()
     {
-        ZoneScoped;
-
         static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
         CreateSystem(T::GetStaticType());
@@ -197,11 +195,6 @@ class Entity
     /// @param pComponent: Component to add.
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
     void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID());
-
-    const std::vector<IComponent*>& GetComponents()
-    {
-        return m_components;
-    }
 
     const std::vector<IComponent*>& GetComponents() { return m_components; }
 
