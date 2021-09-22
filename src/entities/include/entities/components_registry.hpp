@@ -25,8 +25,8 @@ class ComponentsRegistry
 
       private:
         ComponentsRegistry<T>* m_pRegistry = nullptr;
-        std::map<aln::utils::UUID, std::vector<T*>>::iterator m_mapIterator;
-        std::vector<T*>::iterator m_vecIterator;
+        typename std::map<aln::utils::UUID, std::vector<T*>>::iterator m_mapIterator;
+        typename std::vector<T*>::iterator m_vecIterator;
 
         Iterator(ComponentsRegistry<T>* pRegistry)
         {

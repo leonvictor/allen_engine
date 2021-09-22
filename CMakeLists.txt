@@ -57,7 +57,6 @@ add_subdirectory(external/fmt)
 # TODO: Disable in prod.
 add_compile_definitions(TRACY_ENABLE)
 add_compile_definitions(TRACY_ON_DEMAND)
-# add_compile_definitions(TRACY_IMPORTS)
 add_compile_definitions(TRACY_CALLSTACK)
 add_subdirectory(external/tracy)
 

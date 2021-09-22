@@ -16,6 +16,7 @@
 
 #include <Tracy.hpp>
 #include <common/TracySystem.hpp>
+#include <fmt/core.h>
 
 namespace aln::entities
 {
@@ -253,15 +254,14 @@ struct UpdateTask
     iter m_begin;
     iter m_end;
     UpdateContext m_updateContext;
+    int m_threadNumber;
 
-    UpdateTask(iter begin, iter end, UpdateContext updateContext, int i)
-        : m_begin(begin), m_end(end), m_updateContext(updateContext)
-    {
-    }
+    UpdateTask(iter begin, iter end, UpdateContext updateContext, int thread_number)
+        : m_begin(begin), m_end(end), m_updateContext(updateContext), m_threadNumber(thread_number) {}
 
     void operator()()
     {
-        // tracy::SetThreadName(("System updates (" + std::to_string(i) + ")").c_str());
+        tracy::SetThreadName(fmt::format("System updates ({})", m_threadNumber).c_str());
         for (auto it = m_begin; it != m_end; it++)
         {
             // TODO: Customize the context to allow further steps to populate a thread-specific map
@@ -284,7 +284,8 @@ void EntityMap::Update(const UpdateContext& updateContext)
 
     auto work_iter = std::begin(Collection());
     std::vector<UpdateTask> tasks;
-    for (uint8_t i = 0; i != num_threads - 1 && work_iter != Collection().end(); ++i)
+    tasks.reserve(num_threads);
+    for (uint8_t i = 0; i != num_threads - 1 && work_iter != Collection().end(); i++)
     {
         EntityMap& transientMap = transientMaps.emplace_back(true);
         UpdateContext threadContext = updateContext;
@@ -299,7 +300,7 @@ void EntityMap::Update(const UpdateContext& updateContext)
     EntityMap& transientMap = transientMaps.emplace_back(true);
     UpdateContext threadContext = updateContext;
     threadContext.pEntityMap = &transientMap;
-    tasks.push_back(UpdateTask(work_iter, Collection().end(), threadContext, 8));
+    tasks.push_back(UpdateTask(work_iter, Collection().end(), threadContext, tasks.size()));
 
     std::for_each(std::execution::par, tasks.begin(), tasks.end(), [](auto& task)
         { task(); });

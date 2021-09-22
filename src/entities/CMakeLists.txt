@@ -28,6 +28,7 @@ target_link_libraries(${LIB_NAME}
     PRIVATE 
         glm
         utils
+        fmt
     PUBLIC
         reflection
         common
