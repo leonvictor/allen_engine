@@ -50,12 +50,16 @@ set(IMGUI_INCLUDE_DIRS
 )
 
 add_executable(main ${SOURCE})
+# fmt
+add_subdirectory(external/fmt)
 
 # Tracy
 # TODO: Disable in prod.
 add_compile_definitions(TRACY_ENABLE)
+add_compile_definitions(TRACY_ON_DEMAND)
+# add_compile_definitions(TRACY_IMPORTS)
+add_compile_definitions(TRACY_CALLSTACK)
 add_subdirectory(external/tracy)
-target_link_libraries(main PUBLIC TracyClient)
 
 # Include ImGui
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
@@ -126,7 +130,20 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 target_compile_features(main PUBLIC cxx_std_20)
 
-target_link_libraries(main PUBLIC common reflection glfw shaderc ${Vulkan_LIBRARIES} imm32 utils input graphics entities core)
+target_link_libraries(main PUBLIC 
+    TracyClient
+    fmt::fmt
+    common 
+    reflection 
+    glfw 
+    shaderc 
+    ${Vulkan_LIBRARIES} 
+    imm32 
+    utils 
+    input 
+    graphics 
+    entities 
+    core)
 
-set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /EHsc /W4 /D_DEBUG /MDd")
+set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
 message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})
