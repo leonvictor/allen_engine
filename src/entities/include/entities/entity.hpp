@@ -115,7 +115,7 @@ class Entity
     bool IsUnloaded() const { return m_status == Status::Unloaded; }
     bool IsActivated() const { return m_status == Status::Activated; }
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
-    const UUID& GetID() const { return m_ID; };
+    const UUID GetID() const { return m_ID; };
     std::string& GetName() { return m_name; }
     bool HasParentEntity() const { return m_pParentSpatialEntity != nullptr; }
     bool HasChildrenEntities() const { return !m_attachedEntities.empty(); }
@@ -181,7 +181,7 @@ class Entity
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context);
 
-    const std::vector<std::shared_ptr<IEntitySystem>> GetSystems() { return m_systems; }
+    const std::vector<std::shared_ptr<IEntitySystem>>& GetSystems() { return m_systems; }
 
     // -------------------------------------------------
     // Components

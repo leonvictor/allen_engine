@@ -43,7 +43,7 @@ void TypeDescriptor_Struct::InEditor(void* obj, const char* fieldName) const
     }
 }
 
-std::vector<TypeDescriptor*>& GetTypesInScope(std::string scopeName)
+std::vector<TypeDescriptor*>& GetTypesInScope(const std::string& scopeName)
 {
     static std::map<std::string, std::vector<TypeDescriptor*>> typeScopes;
     auto it = typeScopes.try_emplace(scopeName);

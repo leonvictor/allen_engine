@@ -103,7 +103,7 @@ bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b);
 
 /// @brief Retrieve a list of all the types registered to a specific scope.
 /// @param: scopeName: The scope to retrieve from.
-std::vector<TypeDescriptor*>& GetTypesInScope(std::string scopeName);
+std::vector<TypeDescriptor*>& GetTypesInScope(const std::string& scopeName);
 
 //--------------------------------------------------------
 // Finding type descriptors

@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <fmt/core.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -58,8 +59,23 @@
 
 #include <Tracy.hpp>
 
+#define TRACY_CALLSTACK 15
+
 using namespace aln::input;
 using namespace aln::entities;
+
+// TODO: Only when tracing memory
+void* operator new(std::size_t count)
+{
+    auto ptr = malloc(count);
+    TracyAlloc(ptr, count);
+    return ptr;
+}
+void operator delete(void* ptr) noexcept
+{
+    TracyFree(ptr);
+    free(ptr);
+}
 
 namespace aln
 {
@@ -205,7 +221,7 @@ class Engine
         for (auto pos : cubePositions)
         {
             // TODO: This api is too verbose
-            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(std::string("cube (") + std::to_string(i) + ")");
+            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
             auto pMesh = m_componentFactory.Create<MeshRenderer>();
             pMesh->ModifyTransform()->position = pos;
             pCube->AddComponent(pMesh);
@@ -265,7 +281,7 @@ class Engine
                 m_worldEntity.Update(context);
             }
 
-            updateSkyboxUBO();
+            // updateSkyboxUBO();
 
             // TODO: Handle picker again
             // if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())
@@ -316,9 +332,9 @@ class Engine
                 {
                     if (ImGui::MenuItem("Lots of boxes"))
                     {
-                        for (int i = 4; i < 300; i++)
+                        for (int i = 4; i < 64; i++)
                         {
-                            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(std::string("cube (") + std::to_string(i) + ")");
+                            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
                             auto pos = glm::vec3(
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f),
@@ -342,11 +358,7 @@ class Engine
             {
                 // Compute current FPS
                 // Use std::format (C++20). Not available in most compilers as of 04/06/2021
-                std::string fps = std::to_string(1.0 / Time::GetDeltaTime());
-                auto clean_fps = fps.substr(0, fps.find("."));
-                clean_fps += " FPS";
-                ImGui::Text(clean_fps.c_str());
-
+                ImGui::Text(fmt::format("{:.0f} FPS", 1.0f / Time::GetDeltaTime()).c_str());
                 ImGui::EndMenuBar();
             }
         }
@@ -381,10 +393,12 @@ class Engine
         {
             if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr))
             {
+                ImGui::PushID(m_pSelectedEntity->GetID().ToString().c_str());
+
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text(ICON_FA_CUBES);
                 ImGui::SameLine();
-                ImGui::InputText(("##" + m_pSelectedEntity->GetID().ToString()).c_str(), &m_pSelectedEntity->GetName());
+                ImGui::InputText("", &m_pSelectedEntity->GetName());
                 ImGui::SameLine(ImGui::GetWindowWidth() - 30);
 
                 if (m_pSelectedEntity->IsActivated())
@@ -448,16 +462,17 @@ class Engine
 
                 for (auto pComponent : m_pSelectedEntity->GetComponents())
                 {
+                    ImGui::PushID(pComponent->GetID().ToString().c_str());
+
                     auto typeDesc = pComponent->GetType();
                     // TODO: This should happen through the partial template specialization for components
-                    auto compId = ICON_FA_CUBE " " + typeDesc->GetPrettyName() + "##" + pComponent->GetID().ToString();
 
-                    if (ImGui::CollapsingHeader(compId.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
+                    if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
                     {
-                        typeDesc->InEditor(pComponent, compId.c_str());
+                        typeDesc->InEditor(pComponent, typeDesc->GetPrettyName().c_str());
                     }
 
-                    if (ImGui::BeginPopupContextItem(("COMPONENT_POPUP_" + pComponent->GetID().ToString()).c_str(), ImGuiPopupFlags_MouseButtonRight))
+                    if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
                     {
                         if (ImGui::MenuItem("Remove Component", "", false, true))
                         {
@@ -465,18 +480,21 @@ class Engine
                         }
                         ImGui::EndPopup();
                     }
+
+                    ImGui::PopID();
                 }
 
                 for (auto pSystem : m_pSelectedEntity->GetSystems())
                 {
                     auto typeDesc = pSystem->GetType();
-                    auto sysId = ICON_FA_COGS " " + typeDesc->GetPrettyName() + "##" + m_pSelectedEntity->GetID().ToString();
-                    if (ImGui::CollapsingHeader(sysId.c_str()))
+
+                    ImGui::PushID(typeDesc->GetPrettyName().c_str());
+                    if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
                     {
                         typeDesc->InEditor(pSystem.get());
                     }
 
-                    if (ImGui::BeginPopupContextItem(("SYSTEM_POPUP_" + pSystem->GetType()->m_ID.ToString()).c_str(), ImGuiPopupFlags_MouseButtonRight))
+                    if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
                     {
                         if (ImGui::MenuItem("Remove System", "", false, true))
                         {
@@ -484,6 +502,8 @@ class Engine
                         }
                         ImGui::EndPopup();
                     }
+
+                    ImGui::PopID();
                 }
 
                 if (ImGui::Button("Add Component"))
@@ -524,6 +544,8 @@ class Engine
                     }
                     ImGui::EndPopup();
                 }
+
+                ImGui::PopID();
             }
             ImGui::End();
         }
@@ -560,10 +582,11 @@ class Engine
 
     void EntityOutlinePopup(Entity* pEntity = nullptr)
     {
-        auto id = pEntity != nullptr ? pEntity->GetID().ToString() : "no_context";
-        if (ImGui::BeginPopupContextItem(("ENTITY_POPUP_" + id).c_str(), ImGuiPopupFlags_MouseButtonRight))
+        if (ImGui::BeginPopupContextItem("entity_outline_popup", ImGuiPopupFlags_MouseButtonRight))
         {
             auto contextEntityAndNotSpatial = (pEntity != nullptr && !pEntity->IsSpatialEntity());
+            if (pEntity != nullptr)
+                ImGui::Text(pEntity->GetID().ToString().c_str());
             if (ImGui::MenuItem("Add Empty Entity", "", false, pEntity == nullptr))
             {
                 auto* pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
@@ -579,6 +602,7 @@ class Engine
 
     void RecurseEntityTree(Entity* pEntity)
     {
+        ImGui::PushID(pEntity->GetID().ToString().c_str());
         static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
         // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
@@ -601,8 +625,7 @@ class Engine
         }
 
         // We add the id to the ImGui hash to differentiate entities with the same name
-        std::string entityLabel = ICON_FA_CUBES " " + pEntity->GetName() + "##" + pEntity->GetID().ToString();
-        bool node_open = ImGui::TreeNodeEx(entityLabel.c_str(), node_flags);
+        bool node_open = ImGui::TreeNodeEx(pEntity->GetName().c_str(), node_flags);
 
         EntityOutlinePopup(pEntity);
 
@@ -630,7 +653,7 @@ class Engine
                     entityPayload->SetParentEntity(pEntity);
 
                     // Set the receiving node as open
-                    ImGui::GetStateStorage()->SetInt(ImGui::GetID(entityLabel.c_str()), 1);
+                    ImGui::GetStateStorage()->SetInt(ImGui::GetID(pEntity->GetName().c_str()), 1);
                 }
             }
             ImGui::EndDragDropTarget();
@@ -650,6 +673,8 @@ class Engine
         {
             ImGui::PopStyleColor();
         }
+
+        ImGui::PopID();
     }
 };
 } // namespace aln
