@@ -19,7 +19,7 @@ class InputAction
     friend class InputContext;
     struct Context
     {
-        const IInputControl* pControl;
+        const IInputControl* pControl = nullptr;
     };
 
   private:

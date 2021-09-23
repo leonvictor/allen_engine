@@ -23,15 +23,15 @@ void EditorCameraController::RegisterComponent(IComponent* pComponent)
     // TODO: Add another level of indirection so that multiple input can trigger the same action
     auto& moveAction = m_inputContext.AddAction(GLFW_MOUSE_BUTTON_MIDDLE);
     moveAction.SetInteraction(Interaction::Type::Hold);
-    moveAction.SetCallback(std::bind(&EditorCameraController::Move, *this, std::placeholders::_1));
+    moveAction.SetCallback(std::bind(&EditorCameraController::Move, this, std::placeholders::_1));
 
     auto& rotateAction = m_inputContext.AddAction(GLFW_MOUSE_BUTTON_RIGHT);
     rotateAction.SetInteraction(Interaction::Type::Hold);
-    rotateAction.SetCallback(std::bind(&EditorCameraController::Rotate, *this, std::placeholders::_1));
+    rotateAction.SetCallback(std::bind(&EditorCameraController::Rotate, this, std::placeholders::_1));
 
     auto& zoomAction = m_inputContext.AddAction(Input::Mouse().TEMPORARY_SCROLL_ID);
     zoomAction.SetInteraction(Interaction::Type::Hold);
-    zoomAction.SetCallback(std::bind(&EditorCameraController::Zoom, *this, std::placeholders::_1));
+    zoomAction.SetCallback(std::bind(&EditorCameraController::Zoom, this, std::placeholders::_1));
 
     // TODO: Registration should happen in the Context constructor
     m_inputContext.Enable();

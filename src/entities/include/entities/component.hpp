@@ -65,6 +65,7 @@ class IComponent
     virtual void Unload() = 0;
 
   public:
+    virtual ~IComponent() {}
     inline bool IsInitialized() const { return m_status == Status::Initialized; }
     inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
     inline bool IsLoading() const { return m_status == Status::Loading; }

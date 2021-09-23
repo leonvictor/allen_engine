@@ -35,14 +35,13 @@ std::multimap<int, ControlStateChangedEvent> InputContext::Map(std::multimap<int
 
 void InputContext::RegisterCallback(int keyCode, std::function<void(CallbackContext)> callback)
 {
-    auto action = m_actions.emplace(std::make_pair(keyCode, InputAction()));
+    auto action = m_actions.try_emplace(keyCode);
     action.first->second.SetCallback(callback);
 }
 
 InputAction& InputContext::AddAction(int keyCode)
 {
-    auto action = m_actions.emplace(std::make_pair(keyCode, InputAction()));
-    return action.first->second;
+    return m_actions.try_emplace(keyCode).first->second;
 }
 
 void InputContext::Enable()

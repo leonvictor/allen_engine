@@ -35,7 +35,7 @@ class IEntitySystem
     UpdatePriorities m_requiredUpdatePriorities;
     std::string m_name;
 
-    virtual void Update(UpdateContext const& context){};
+    virtual void Update(const UpdateContext& context){};
 
     /// @brief Register a component with this system.
     virtual void RegisterComponent(IComponent* pComponent) = 0;
@@ -45,13 +45,14 @@ class IEntitySystem
 
     /// @brief Returns the update priorities for this system.
     /// @todo https://www.youtube.com/watch?v=jjEsB611kxs 1:47:34 . KRG has a static IEntitySystem::PriorityList attribute
-    UpdatePriorities GetRequiredUpdatePriorities() const { return m_requiredUpdatePriorities; }
+    const UpdatePriorities& GetRequiredUpdatePriorities() const { return m_requiredUpdatePriorities; }
 
     // TODO: Explicit Components dependencies (like in "i need a mesh component" to function)
     // -> this should happen in the inherited system classes
     // Optional / Required components
     // Display this to the user
   public:
+    virtual ~IEntitySystem() {}
     std::string GetName() const { return m_name; }
 };
 } // namespace impl

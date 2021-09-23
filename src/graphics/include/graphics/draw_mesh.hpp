@@ -8,7 +8,7 @@
 namespace aln::vkg
 {
 class Device;
-class UniformBufferObject;
+struct UniformBufferObject;
 
 /// @brief Mesh backed by GPU buffers.
 class DrawMesh : public Mesh

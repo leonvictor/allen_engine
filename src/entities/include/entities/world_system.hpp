@@ -6,7 +6,7 @@ namespace aln::entities
 {
 
 class UpdateContext;
-class UpdatePriorities;
+struct UpdatePriorities;
 class Entity;
 class IComponent;
 
@@ -54,5 +54,8 @@ class IWorldSystem
     void Enable();
 
     void Disable();
+
+  public:
+    virtual ~IWorldSystem() {}
 };
 } // namespace aln::entities

@@ -2,6 +2,7 @@
 #include "component.hpp"
 #include "entity.hpp"
 
+#include <Tracy.hpp>
 #include <assert.h>
 
 namespace aln::entities
@@ -31,12 +32,15 @@ void WorldEntity::Cleanup()
     for (auto& [id, system] : m_systems)
     {
         system->Shutdown();
+        system.reset();
     }
+
     m_systems.clear();
 }
 
 void WorldEntity::Update(const UpdateContext& context)
 {
+    ZoneScoped;
     // --------------
     // Loading phase
     // --------------

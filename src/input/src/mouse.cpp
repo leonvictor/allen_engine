@@ -38,7 +38,9 @@ std::multimap<int, ControlStateChangedEvent> Mouse::PollControlChangedEvents()
         }
     }
 
-    std::multimap<int, ControlStateChangedEvent> clone = m_statesChanged;
+    std::multimap<int, ControlStateChangedEvent> clone;
+    clone.insert(m_statesChanged.begin(), m_statesChanged.end());
+
     m_statesChanged.clear();
     return clone;
 }
@@ -72,9 +74,9 @@ void Mouse::UpdateScrollControlState(float xdelta, float ydelta)
 
 Mouse::Mouse()
 {
-    m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_1, ButtonControl(GLFW_MOUSE_BUTTON_1)));
-    m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_2, ButtonControl(GLFW_MOUSE_BUTTON_2)));
-    m_buttons.emplace(std::make_pair(GLFW_MOUSE_BUTTON_3, ButtonControl(GLFW_MOUSE_BUTTON_3)));
+    m_buttons.try_emplace(GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_1);
+    m_buttons.try_emplace(GLFW_MOUSE_BUTTON_2, GLFW_MOUSE_BUTTON_2);
+    m_buttons.try_emplace(GLFW_MOUSE_BUTTON_3, GLFW_MOUSE_BUTTON_3);
 
     // FIXME: ID should be unique
     m_scrollControl = AxisControl(TEMPORARY_SCROLL_ID);
@@ -83,4 +85,4 @@ Mouse::Mouse()
 const glm::vec2& Mouse::GetPosition() const { return m_position; }
 const glm::vec2& Mouse::GetDelta() const { return m_delta; }
 const glm::vec2& Mouse::GetScroll() const { return m_scrollDelta; }
-}
+} // namespace aln::input

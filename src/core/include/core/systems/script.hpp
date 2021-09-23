@@ -4,7 +4,7 @@
 #include <entities/spatial_component.hpp>
 #include <reflection/reflection.hpp>
 
-#include "time_system.hpp"
+#include "../time_system.hpp"
 
 namespace aln
 {

@@ -88,7 +88,7 @@ class Pipeline
     std::shared_ptr<Device> m_pDevice;
     vk::UniquePipelineLayout m_layout;
     vk::GraphicsPipelineCreateInfo m_pipelineCreateInfo;
-    std::vector<vk::PipelineShaderStageCreateInfo> m_shaderStages;
+    std::vector<shaders::ShaderInfo> m_shaderStages;
     std::vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
     std::vector<vk::DynamicState> m_dynamicStates;
     vk::UniquePipeline m_vkPipeline;

@@ -10,6 +10,7 @@ namespace aln::entities
 // fwd
 class Entity;
 class IComponent;
+class EntityMap;
 
 /// @brief Data structure containing info on the current context.
 /// Will be propagated through the object model, entities and systems will act depending on it.
@@ -23,12 +24,10 @@ class UpdateContext
   public:
     uint32_t displayWidth;
     uint32_t displayHeight;
+    EntityMap* pEntityMap;
 
     UpdateContext(UpdateStage stage) : m_updateStage(stage) {}
 
-    UpdateStage GetUpdateStage() const
-    {
-        return m_updateStage;
-    }
+    UpdateStage GetUpdateStage() const { return m_updateStage; }
 };
 } // namespace aln::entities

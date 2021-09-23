@@ -22,24 +22,30 @@ void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc*
 
 class ITypeHelper
 {
+  protected:
+    virtual void* raw_ptr() const = 0;
+
   public:
-    virtual void* CreateType() const = 0;
+    template <typename T>
+    std::unique_ptr<T> CreateType()
+    {
+        return std::move(std::unique_ptr<T>(static_cast<T*>(raw_ptr())));
+    }
 };
 
 struct TypeHelperResolver
 {
     // This version is called if T is constructible:
-    template <typename T,
-        typename std::enable_if<std::is_constructible<T>::value, bool>::type = true>
+    template <typename T, typename std::enable_if<std::is_constructible<T>::value, bool>::type = true>
     static T* CreateType()
     {
         // TODO: Do NOT use new.
-        return new T();
+        T* comp = new T();
+        return std::move(comp);
     }
 
     // This version is called otherwise:
-    template <typename T,
-        typename std::enable_if<!std::is_constructible<T>::value, bool>::type = true>
+    template <typename T, typename std::enable_if<!std::is_constructible<T>::value, bool>::type = true>
     static T* CreateType()
     {
         throw std::runtime_error("Cannot instanciate the reflected type: Not constructible");
@@ -50,7 +56,7 @@ template <typename T>
 struct TypeHelper : public ITypeHelper
 {
     using type = T;
-    void* CreateType() const override { return TypeHelperResolver::CreateType<T>(); }
+    void* raw_ptr() const override { return std::move(TypeHelperResolver::CreateType<T>()); }
 };
 //--------------------------------------------------------
 // Base class of all type descriptors
@@ -97,7 +103,7 @@ bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b);
 
 /// @brief Retrieve a list of all the types registered to a specific scope.
 /// @param: scopeName: The scope to retrieve from.
-std::vector<TypeDescriptor*>& GetTypesInScope(std::string scopeName);
+std::vector<TypeDescriptor*>& GetTypesInScope(const std::string& scopeName);
 
 //--------------------------------------------------------
 // Finding type descriptors

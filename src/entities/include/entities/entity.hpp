@@ -14,6 +14,8 @@
 #include <reflection/reflection.hpp>
 #include <utils/uuid.hpp>
 
+#include <Tracy.hpp>
+
 namespace aln::entities
 {
 
@@ -113,7 +115,7 @@ class Entity
     bool IsUnloaded() const { return m_status == Status::Unloaded; }
     bool IsActivated() const { return m_status == Status::Activated; }
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
-    const UUID& GetID() const { return m_ID; };
+    const UUID GetID() const { return m_ID; };
     std::string& GetName() { return m_name; }
     bool HasParentEntity() const { return m_pParentSpatialEntity != nullptr; }
     bool HasChildrenEntities() const { return !m_attachedEntities.empty(); }
@@ -179,7 +181,7 @@ class Entity
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context);
 
-    const std::vector<std::shared_ptr<IEntitySystem>> GetSystems() { return m_systems; }
+    const std::vector<std::shared_ptr<IEntitySystem>>& GetSystems() { return m_systems; }
 
     // -------------------------------------------------
     // Components
@@ -194,10 +196,7 @@ class Entity
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
     void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID());
 
-    const std::vector<IComponent*>& GetComponents()
-    {
-        return m_components;
-    }
+    const std::vector<IComponent*>& GetComponents() { return m_components; }
 
     SpatialComponent* FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const UUID& socketID) const;
 
@@ -210,10 +209,6 @@ class Entity
 
     /// @brief Add a parent entity.
     void SetParentEntity(Entity* pEntity);
-
-    /// Factory methods
-    // TODO: Is that how we want to generate entities ?
-    static Entity* Create(std::string name);
 
     inline bool operator==(const Entity& other) const { return other.GetID() == GetID(); }
     inline bool operator!=(const Entity& other) const { return !operator==(other); }
