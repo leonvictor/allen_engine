@@ -30,7 +30,7 @@ void EntityMap::Clear(const LoadingContext& loadingContext)
     // then clear the collection.
     if (!m_isTransientMap)
     {
-        for (auto& [id, entity] : EntityCollection::Collection())
+        for (auto& entity : EntityCollection::Collection())
         {
             if (entity.IsActivated())
             {
@@ -229,17 +229,15 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
 
 void EntityMap::Activate(const LoadingContext& loadingContext)
 {
-    auto& collection = Collection();
-    for (auto it = collection.begin(); it != collection.end(); ++it)
+    for (auto& entity : Collection())
     {
-        auto& entity = it->second;
         if (entity.IsLoaded())
         {
             entity.Activate(loadingContext);
 
             if (!entity.HasParentEntity())
             {
-                m_entitiesTree.push_back(&(it->second));
+                m_entitiesTree.push_back(&entity);
             }
         }
     }
@@ -249,7 +247,7 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
 struct UpdateTask
 {
 
-    typedef std::map<UUID, Entity>::iterator iter;
+    typedef std::list<Entity>::iterator iter;
 
     iter m_begin;
     iter m_end;
@@ -261,12 +259,12 @@ struct UpdateTask
 
     void operator()()
     {
-        tracy::SetThreadName(fmt::format("System updates ({})", m_threadNumber).c_str());
+        // tracy::SetThreadName(fmt::format("System updates ({})", m_threadNumber).c_str());
         for (auto it = m_begin; it != m_end; it++)
         {
             // TODO: Customize the context to allow further steps to populate a thread-specific map
             // TODO: When we join, we need to populate all of the maps
-            it->second.UpdateSystems(m_updateContext);
+            it->UpdateSystems(m_updateContext);
         }
     }
 };
@@ -285,6 +283,7 @@ void EntityMap::Update(const UpdateContext& updateContext)
     auto work_iter = std::begin(Collection());
     std::vector<UpdateTask> tasks;
     tasks.reserve(num_threads);
+
     for (uint8_t i = 0; i != num_threads - 1 && work_iter != Collection().end(); i++)
     {
         EntityMap& transientMap = transientMaps.emplace_back(true);
@@ -304,6 +303,7 @@ void EntityMap::Update(const UpdateContext& updateContext)
 
     std::for_each(std::execution::par, tasks.begin(), tasks.end(), [](auto& task)
         { task(); });
+
     tasks.clear();
 
     // Sync updated entities
@@ -327,25 +327,16 @@ void EntityMap::Update(const UpdateContext& updateContext)
 
 Entity* EntityMap::CreateEntity(std::string name)
 {
-    // TODO: This uses the move constructor so we construct the object twice
-    Entity entity;
+    auto& collec = m_isTransientMap ? m_createdEntities : Collection();
+    Entity& entity = collec.emplace_back();
     entity.m_name = name;
 
-    if (m_isTransientMap)
+    if (!m_isTransientMap)
     {
-        auto [it, value] = m_createdEntities.insert(std::make_pair(entity.GetID(), entity));
-        return &(it->second);
-    }
-    else
-    { // This is happening in the main thread.
-        auto [it, value] = Collection().insert(std::make_pair(entity.GetID(), entity));
-        m_loadingEntities.push_back(&(it->second));
-        return &(it->second);
+        // Entity was created in the main thread, immediately start loading it
+        m_loadingEntities.push_back(&entity);
     }
 
-    // TODO: Test this in depth, it's kinda black magic
-    // C++17 (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4659.pdf):
-    // All Associative Containers: The erase members shall invalidate only iterators and references to the erased elements [26.2.6/9]
-    // The insert and emplace members shall not affect the validity of iterators and references to the container [26.2.6/9]
+    return &entity;
 }
 } // namespace aln::entities

@@ -82,9 +82,6 @@ class Entity
     inline static Command EntityStateUpdatedEvent;
     std::vector<EntityInternalStateAction> m_deferredActions;
 
-    // Constructor is private to prevent extending this class
-    Entity(){};
-
     SpatialComponent* GetSpatialComponent(const UUID& spatialComponentID);
 
     /// @brief Create a new system and add it to this Entity.
@@ -110,6 +107,8 @@ class Entity
     void RefreshEntityAttachments();
 
   public:
+    /// @todo: Constructor is private to prevent extending this class
+    Entity(){};
     /// @brief Whether this entity is loaded (some components might still be loading in case of dynamic add)
     bool IsLoaded() const { return m_status == Status::Loaded || m_status == Status::Activated; }
     bool IsUnloaded() const { return m_status == Status::Unloaded; }

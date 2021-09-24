@@ -5,7 +5,7 @@
 #include "loading_context.hpp"
 #include "object_model.hpp"
 
-#include <map>
+#include <list>
 #include <set>
 #include <vector>
 
@@ -34,7 +34,7 @@ class EntityMap : private EntityCollection
     std::vector<Entity*> m_entitiesToReload; // TODO
     std::vector<Entity*> m_entitiesToActivate;
     std::vector<Entity*> m_entitiesToDeactivate;
-    std::map<UUID, Entity> m_createdEntities;
+    std::list<Entity> m_createdEntities; // TODO: test forward_list ?
 
     // ...
     Status m_status = Status::Deactivated;
