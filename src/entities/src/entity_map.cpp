@@ -141,6 +141,15 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     // Deactivate, unload and remove entities from the collection
     for (auto pEntityToRemove : m_entitiesToRemove)
     {
+        // Remove from the tree view
+        if (!pEntityToRemove->HasParentEntity())
+        {
+            auto it = std::find_if(m_entitiesTree.begin(), m_entitiesTree.end(), [&](Entity* pEntity)
+                { return pEntityToRemove->GetID() == pEntity->GetID(); });
+            assert(it != m_entitiesTree.end());
+            m_entitiesTree.erase(it);
+        }
+
         // Deactivate if activated
         if (pEntityToRemove->IsActivated())
         {

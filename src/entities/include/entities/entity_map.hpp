@@ -25,7 +25,9 @@ class EntityMap : private EntityCollection
         Activated        // All entities activated. Some might still be loading in case of dynamic adds
     };
 
-    /// Hierarchy of entities, used to display in the editor. TODO: Maybe disable outside of the editor ?
+    /// Hierarchy of entities, used to display in the editor.
+    /// TODO: Maybe disable outside of the editor ?
+    /// @todo: fuse with another tree for culling etc ?
     std::vector<Entity*> m_entitiesTree;
 
     std::vector<Entity*> m_entitiesToAdd;
@@ -48,9 +50,6 @@ class EntityMap : private EntityCollection
 
     bool IsActivated() { return m_status == Status::Activated; }
 
-    /// @brief Permanently remove an entity from the collection.
-    void RemoveEntity(Entity* pEntity);
-
     void ActivateEntity(Entity* pEntity);
     void DeactivateEntity(Entity* pEntity);
 
@@ -70,6 +69,11 @@ class EntityMap : private EntityCollection
 
   public:
     EntityMap(bool isTransient) : m_isTransientMap(isTransient) {}
+
+    /// @brief Create an entity. The entity will be added to the world during the next loading phase.
     Entity* CreateEntity(std::string name = "");
+
+    /// @brief Permanently remove an entity from the collection.
+    void RemoveEntity(Entity* pEntity);
 };
 } // namespace aln::entities

@@ -59,8 +59,6 @@
 
 #include <Tracy.hpp>
 
-#define TRACY_CALLSTACK 15
-
 using namespace aln::input;
 using namespace aln::entities;
 
@@ -585,8 +583,19 @@ class Engine
         if (ImGui::BeginPopupContextItem("entity_outline_popup", ImGuiPopupFlags_MouseButtonRight))
         {
             auto contextEntityAndNotSpatial = (pEntity != nullptr && !pEntity->IsSpatialEntity());
+
             if (pEntity != nullptr)
+            {
                 ImGui::Text(pEntity->GetID().ToString().c_str());
+                if (ImGui::MenuItem("Remove Entity"))
+                {
+                    if (m_pSelectedEntity == pEntity)
+                    {
+                        m_pSelectedEntity = nullptr;
+                    }
+                    m_worldEntity.m_entityMap.RemoveEntity(pEntity);
+                }
+            }
             if (ImGui::MenuItem("Add Empty Entity", "", false, pEntity == nullptr))
             {
                 auto* pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
