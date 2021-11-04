@@ -97,7 +97,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
 
     vkg::UniformBufferObject ubo;
     Transform t = m_pCameraComponent->GetWorldTransform();
-    ubo.cameraPos = t.position;
+    ubo.cameraPos = t.GetPosition();
     ubo.view = m_pCameraComponent->GetViewMatrix();
     ubo.projection = glm::perspective(
         glm::radians(m_pCameraComponent->fov),
@@ -114,11 +114,9 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
         // Compute this mesh's model matrix
         Transform transform = pMeshRenderer->GetWorldTransform();
         ubo.model = glm::mat4(1.0f);
-        ubo.model = glm::translate(ubo.model, transform.position);
-        ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
-        ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.y), glm::vec3(0, 1, 0));
-        ubo.model = glm::rotate(ubo.model, glm::radians(transform.rotation.z), glm::vec3(0, 0, 1));
-        ubo.model = glm::scale(ubo.model, transform.scale);
+        ubo.model = glm::translate(ubo.model, transform.GetPosition());
+        ubo.model = ubo.model * glm::toMat4(transform.GetRotation());
+        ubo.model = glm::scale(ubo.model, transform.GetScale());
 
         // Update the ubo
         pMeshRenderer->UpdateUniformBuffers(ubo);

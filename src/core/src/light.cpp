@@ -11,7 +11,7 @@ LightUniform Light::GetUniform()
     Transform t = GetWorldTransform();
 
     LightUniform u;
-    u.position = glm::vec4(t.position, (float) type);
+    u.position = glm::vec4(t.GetPosition(), (float) type);
     u.direction = glm::vec4(direction, range);
     u.color = glm::vec4(m_color, intensity);
 

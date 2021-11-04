@@ -156,10 +156,11 @@ class Engine
 
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
 
-    std::array<glm::vec3, 3> cubePositions = {
+    std::array<glm::vec3, 2> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(2.0f, 5.0f, -15.0f),
-        LIGHT_POSITION};
+        glm::vec3(0.0f, 5.0f, 0.0f),
+        // LIGHT_POSITION
+    };
 
     Entity* m_pSelectedEntity = nullptr;
 
@@ -192,8 +193,8 @@ class Engine
             // TODO: Refine how the editor accesses the map
             Entity* pCameraEntity = m_worldEntity.m_entityMap.CreateEntity("MainCamera");
             auto pCameraComponent = m_componentFactory.Create<Camera>();
-            pCameraComponent->ModifyTransform()->position = WORLD_BACKWARD * 2.0f;
-            pCameraComponent->ModifyTransform()->rotation.x = 90.0f;
+            pCameraComponent->SetLocalTransformPosition(glm::vec3(-20.0f, 0.0f, 0.0f));
+            pCameraComponent->SetLocalTransformRotationEuler(glm::vec3(90.0f, 0.0f, 0.0f));
             pCameraEntity->AddComponent(pCameraComponent);
 
             pCameraEntity->CreateSystem<EditorCameraController>();
@@ -204,14 +205,14 @@ class Engine
             Light* pLightComponent = m_componentFactory.Create<Light>();
             pLightComponent->direction = WORLD_RIGHT;
             pLightComponent->type = Light::Type::Directional;
-            auto t = pLightComponent->ModifyTransform()->position = LIGHT_POSITION;
+            pLightComponent->SetLocalTransformPosition(LIGHT_POSITION);
             pLightEntity->AddComponent(pLightComponent);
 
             Entity* pPointLightEntity = m_worldEntity.m_entityMap.CreateEntity("PointLight");
             Light* pPLightComponent = m_componentFactory.Create<Light>();
             pPLightComponent->direction = WORLD_RIGHT;
             pPLightComponent->type = Light::Type::Point;
-            t = pPLightComponent->ModifyTransform()->position = LIGHT_POSITION;
+            pPLightComponent->SetLocalTransformPosition(LIGHT_POSITION);
             pPointLightEntity->AddComponent(pPLightComponent);
         }
 
@@ -221,7 +222,7 @@ class Engine
             // TODO: This api is too verbose
             Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
             auto pMesh = m_componentFactory.Create<MeshRenderer>();
-            pMesh->ModifyTransform()->position = pos;
+            pMesh->SetLocalTransformPosition(pos);
             pCube->AddComponent(pMesh);
             i++;
         }
@@ -338,7 +339,7 @@ class Engine
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f));
                             auto pMesh = m_componentFactory.Create<MeshRenderer>();
-                            pMesh->ModifyTransform()->position = pos;
+                            pMesh->SetLocalTransformPosition(pos);
                             pCube->AddComponent(pMesh);
                             pCube->CreateSystem<ScriptSystem>();
                         }
@@ -428,33 +429,47 @@ class Engine
                 {
                     if (ImGui::CollapsingHeader("Transform"))
                     {
-                        auto transform = m_pSelectedEntity->GetRootSpatialComponent()->ModifyTransform();
                         ImGui::PushItemWidth(60);
 
                         // TODO: vec3 might deserve a helper function to create ui for the 3 components...
                         // Position
+                        bool changed = false;
+                        auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetPosition();
                         ImGui::Text("Position");
-                        ImGui::DragFloat("x##Position", &transform->position.x, 1.0f);
+                        changed |= ImGui::DragFloat("x##Position", &pos.x, 1.0f);
                         ImGui::SameLine();
-                        ImGui::DragFloat("y##Position", &transform->position.y, 1.0f);
+                        changed |= ImGui::DragFloat("y##Position", &pos.y, 1.0f);
                         ImGui::SameLine();
-                        ImGui::DragFloat("z##Position", &transform->position.z, 1.0f);
+                        changed |= ImGui::DragFloat("z##Position", &pos.z, 1.0f);
+
+                        if (changed)
+                            m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformPosition(pos);
 
                         // Rotation
+                        auto euler = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetRotationEuler();
+                        changed = false;
                         ImGui::Text("Rotation");
-                        ImGui::DragFloat("x##Rotation", &transform->rotation.x, 1.0f);
+                        changed |= ImGui::DragFloat("x##Rotation", &euler.x, 1.0f);
                         ImGui::SameLine();
-                        ImGui::DragFloat("y##Rotation", &transform->rotation.y, 1.0f);
+                        changed |= ImGui::DragFloat("y##Rotation", &euler.y, 1.0f);
                         ImGui::SameLine();
-                        ImGui::DragFloat("z##Rotation", &transform->rotation.z, 1.0f);
+                        changed |= ImGui::DragFloat("z##Rotation", &euler.z, 1.0f);
+
+                        if (changed)
+                            m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(euler);
 
                         // Scale
+                        auto scale = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetScale();
+                        changed = false;
                         ImGui::Text("Scale");
-                        ImGui::DragFloat("x##Scale", &transform->scale.x, 1.0f);
+                        changed |= ImGui::DragFloat("x##Scale", &scale.x, 1.0f);
                         ImGui::SameLine();
-                        ImGui::DragFloat("y##Scale", &transform->scale.y, 1.0f);
+                        changed |= ImGui::DragFloat("y##Scale", &scale.y, 1.0f);
                         ImGui::SameLine();
-                        ImGui::DragFloat("z##Scale", &transform->scale.z, 1.0f);
+                        changed |= ImGui::DragFloat("z##Scale", &scale.z, 1.0f);
+
+                        if (changed)
+                            m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformScale(scale);
                     }
                 }
 

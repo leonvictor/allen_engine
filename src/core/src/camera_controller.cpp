@@ -9,6 +9,24 @@ using namespace aln::input;
 
 namespace aln
 {
+
+void EditorCameraController::Update(const entities::UpdateContext&)
+{
+    if (!m_hasChanged)
+        return;
+
+    auto rot = m_pCameraInstance->GetLocalTransform().GetRotation();
+    m_pCameraInstance->forward.x = cos(glm::radians(rot.x)) * cos(glm::radians(rot.y));
+    m_pCameraInstance->forward.y = sin(glm::radians(rot.y));
+    m_pCameraInstance->forward.z = sin(glm::radians(rot.x)) * cos(glm::radians(rot.y));
+    m_pCameraInstance->forward = glm::normalize(m_pCameraInstance->forward);
+
+    m_pCameraInstance->right = glm::normalize(glm::cross(m_pCameraInstance->forward, m_pCameraInstance->world_up));
+    m_pCameraInstance->up = glm::normalize(glm::cross(m_pCameraInstance->right, m_pCameraInstance->forward));
+
+    m_hasChanged = false;
+}
+
 void EditorCameraController::RegisterComponent(IComponent* pComponent)
 {
     // Associate the controlled camera
@@ -51,22 +69,20 @@ void EditorCameraController::UnregisterComponent(IComponent* pComponent)
 void EditorCameraController::Move(CallbackContext context)
 {
     auto delta = Input::Mouse().GetDelta() * m_translationSensitivity;
-    m_pCameraInstance->ModifyTransform()->position += (m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x);
+    m_pCameraInstance->OffsetLocalTransformPosition((m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x));
 }
 
 void EditorCameraController::Rotate(CallbackContext context)
 {
     auto delta = Input::Mouse().GetDelta() * m_rotationSensitivity;
-
-    auto t = m_pCameraInstance->ModifyTransform();
-    t->rotation.x += delta.x;
-    t->rotation.y += delta.y;
+    m_pCameraInstance->OffsetLocalTransformRotation(glm::vec3(delta.x, delta.y, 0));
+    m_hasChanged = true;
 }
 
 void EditorCameraController::Zoom(CallbackContext context)
 {
     auto delta = Input::Mouse().GetScroll();
-    auto t = m_pCameraInstance->ModifyTransform()->position += m_pCameraInstance->forward * delta.y;
+    m_pCameraInstance->OffsetLocalTransformPosition(m_pCameraInstance->forward * delta.y);
 }
 
 ALN_REGISTER_IMPL_BEGIN(SYSTEM, aln::EditorCameraController)
