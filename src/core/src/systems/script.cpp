@@ -4,11 +4,11 @@ namespace aln
 {
 void ScriptSystem::Update(const aln::entities::UpdateContext& ctx)
 {
-    auto rot = m_pRootComponent->GetLocalTransform().GetRotation();
+    auto rot = m_pRootComponent->GetLocalTransform().GetRotationEuler();
     rot.x += m_rotationSpeedX * Time::GetDeltaTime();
     rot.y += m_rotationSpeedY * Time::GetDeltaTime();
     rot.z += m_rotationSpeedZ * Time::GetDeltaTime();
-    m_pRootComponent->SetLocalTransformRotation(rot);
+    m_pRootComponent->SetLocalTransformRotationEuler(rot);
 }
 
 void ScriptSystem::RegisterComponent(aln::entities::IComponent* pComponent)
