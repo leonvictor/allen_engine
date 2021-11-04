@@ -10,3 +10,4 @@
 - Keep entities in a tree
 - Rework spatial components to be standalone, and remove the possibility to organize components
 - Create the Script system for users to overload
+- Transform API is no symmetric and this is BAD >:(

@@ -4,19 +4,20 @@ namespace aln
 {
 Transform& Transform::operator=(const Transform& other)
 {
-    position = other.position;
-    rotation = other.rotation;
-    scale = other.scale;
+    m_position = other.m_position;
+    m_rotation = other.m_rotation;
+    m_scale = other.m_scale;
+    m_rotationEuler = other.m_rotationEuler;
     return *this;
 }
 
-bool operator==(const Transform& a, const Transform& b)
+bool Transform::operator==(const Transform& b)
 {
-    return a.position == b.position && a.rotation == b.rotation && a.scale == b.scale;
+    return m_position == b.m_position && m_rotation == b.m_rotation && m_scale == b.m_scale;
 }
 
-bool operator!=(const Transform& lhs, const Transform& rhs)
+bool Transform::operator!=(const Transform& rhs)
 {
-    return !(lhs == rhs);
+    return !(*this == rhs);
 }
 }
