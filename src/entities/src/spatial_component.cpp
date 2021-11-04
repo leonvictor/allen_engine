@@ -58,12 +58,12 @@ void SpatialComponent::AttachTo(SpatialComponent* pParentComponent, const UUID& 
     m_pSpatialParent = pParentComponent;
     m_parentAttachmentSocketID = socketID; // TODO: actually handle this...
 
-    // TODO: should we calculate world transform everytime a component is attached to another ?
-    // Offset the current local transform so that the object doesn't move when parent is changed
+    // Offset the current local transform so that the world transform stay identical when parent is changed
     auto parentTransform = pParentComponent->GetWorldTransform();
-    m_localTransform.m_position = m_localTransform.m_position - parentTransform.m_position;
-    // m_localTransform.m_rotation = glm::conjugate(parentTransform.m_rotation) * m_localTransform.m_rotation; // TODO: is that the correct order ?
     m_localTransform.m_scale = m_localTransform.m_scale / parentTransform.m_scale;
+    m_localTransform.m_position = (glm::conjugate(parentTransform.m_rotation) * m_localTransform.m_position) - parentTransform.m_position;
+    m_localTransform.m_rotation = glm::conjugate(parentTransform.m_rotation) * m_localTransform.m_rotation; // TODO: is that the correct order ?
+
     CalculateWorldTransform();
 
     // Add to the list of child components on the component to attach to
@@ -84,7 +84,7 @@ void SpatialComponent::Detach()
     m_pSpatialParent = nullptr;
     m_parentAttachmentSocketID = UUID::InvalidID();
 
-    // Fix the world transform to not depend on parent
+    // Offset local transform to account for the old parent's one
     m_localTransform = m_worldTransform;
 }
 

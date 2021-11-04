@@ -24,7 +24,7 @@ class Transform
 
   private:
     glm::vec3 m_position = glm::vec3(0.0f);
-    glm::quat m_rotation = glm::quat();
+    glm::quat m_rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 m_scale = glm::vec3(1.0f);
 
     glm::vec3 m_rotationEuler = glm::vec3(0.0f);
