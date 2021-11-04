@@ -1,6 +1,7 @@
 #pragma once
 
 #include "control_state_event.hpp"
+#include "input_action.hpp"
 
 #include <functional>
 #include <map>
@@ -9,7 +10,6 @@ namespace aln::input
 {
 
 // fwd
-class InputAction;
 struct CallbackContext;
 
 /// @brief Input context hold a group of actions dependant on the same context. They are used to prioritize between them, and to allow easier
