@@ -85,7 +85,11 @@ class IAssetLoader : public AssetLoader
     virtual ~IAssetLoader(){};
 
   protected:
-    virtual AssetHandle<IAsset> Create(AssetGUID id) = 0;
+    virtual AssetHandle<IAsset> Create(AssetGUID id)
+    {
+        return AssetHandle<IAsset>(std::make_shared<T>(id));
+    }
+
     virtual bool Load(const AssetHandle<IAsset>&) = 0;
     virtual void Unload(const AssetHandle<IAsset>&) = 0;
     virtual void Initialize(const AssetHandle<IAsset>&) = 0;

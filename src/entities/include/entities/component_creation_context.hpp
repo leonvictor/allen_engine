@@ -1,5 +1,7 @@
 #pragma once
 
+#include <assets/manager.hpp>
+
 #include <memory>
 #include <string>
 
@@ -15,9 +17,11 @@ namespace entities
 
 struct ComponentCreationContext
 {
+    // Todo: pull out device
     std::shared_ptr<aln::vkg::Device> graphicsDevice;
     std::string defaultTexturePath;
     std::string defaultModelPath;
+    std::shared_ptr<AssetManager> pAssetManager;
 };
 
 } // namespace entities

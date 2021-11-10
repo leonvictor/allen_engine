@@ -112,7 +112,7 @@ vk::DescriptorSet& MeshRenderer::GetDescriptorSet() { return m_vkDescriptorSet.g
 
 void MeshRenderer::Initialize()
 {
-    m_mesh.CreateGraphicResources(m_pDevice);
+    m_pAssetManager->Initialize<Mesh>(m_pMesh);
     CreateUniformBuffer();
     CreateMaterialTexture();
     CreateDescriptorSet();
@@ -129,7 +129,7 @@ void MeshRenderer::Shutdown()
     m_materialBuffer = vkg::resources::Buffer();
 
     m_uniformBuffer = vkg::resources::Buffer();
-    m_mesh.FreeGraphicResources();
+    m_pAssetManager->Shutdown<Mesh>(m_pMesh);
 
     m_pDevice.reset();
 }
@@ -137,7 +137,7 @@ void MeshRenderer::Shutdown()
 bool MeshRenderer::Load()
 {
     // Short circuit
-    if (!m_mesh.Load())
+    if (!m_pAssetManager->Load<Mesh>(m_pMesh))
     {
         std::cout << "Failed to load mesh ressource" << std::endl;
         return false;
@@ -150,12 +150,11 @@ bool MeshRenderer::Load()
     }
 
     return true;
-    // return m_mesh.Load() && m_material.Load();
 }
 
 void MeshRenderer::Unload()
 {
-    m_mesh.Unload();
+    m_pAssetManager->Unload<Mesh>(m_pMesh);
     m_material.Unload();
 }
 } // namespace aln
