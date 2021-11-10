@@ -27,6 +27,9 @@
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
 
+#include <assets/manager.hpp>
+#include <core/asset_loaders/mesh_loader.hpp>
+
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 
@@ -121,12 +124,18 @@ class Engine
         //  - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
 
+        // TODO: Move somewhere else
+        // TODO: What's the scope ? How do we expose the asset manager ?
+        auto pAssetManager = std::make_shared<AssetManager>();
+        // TODO: Get rid of the default model path
+        pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
+
         // Create a default context
         m_componentFactory.context = {
             .graphicsDevice = m_pDevice,
             .defaultTexturePath = TEXTURE_PATH,
             .defaultModelPath = MODEL_PATH,
-        };
+            .pAssetManager = pAssetManager};
 
         CreateWorld();
         ShareImGuiContext();

@@ -124,7 +124,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
         // Bind the mesh buffers
         objectPipeline.BindDescriptorSet(cb, pMeshRenderer->GetDescriptorSet(), 1);
         vk::DeviceSize offset = 0;
-        pMeshRenderer->m_mesh.Bind(cb, offset);
+        pMeshRenderer->m_pMesh->Bind(cb, offset);
     }
 
     m_pRenderer->EndFrame();

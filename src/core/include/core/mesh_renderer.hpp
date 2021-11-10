@@ -6,7 +6,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <graphics/draw_mesh.hpp>
 #include <graphics/resources/buffer.hpp>
 #include <graphics/resources/image.hpp>
 #include <graphics/ubo.hpp>
@@ -15,6 +14,9 @@
 
 #include "component_factory.hpp"
 #include "material.hpp"
+#include "mesh.hpp"
+
+#include <assets/handle.hpp>
 
 namespace aln
 {
@@ -34,8 +36,10 @@ class MeshRenderer : public entities::SpatialComponent
 
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
+    /// @todo Find a good way to expose the asset manager.
+    std::shared_ptr<AssetManager> m_pAssetManager = nullptr;
 
-    vkg::DrawMesh m_mesh;
+    AssetHandle<Mesh> m_pMesh;
     Material m_material;
 
     vk::UniqueDescriptorSet m_vkDescriptorSet;
@@ -55,7 +59,8 @@ class MeshRenderer : public entities::SpatialComponent
     // TODO: Should this be public ?
     void Construct(const entities::ComponentCreationContext& ctx) override
     {
-        m_mesh.m_sourceFile = ctx.defaultModelPath;
+        m_pAssetManager = ctx.pAssetManager;
+        m_pMesh = ctx.pAssetManager->Get<Mesh>(ctx.defaultModelPath);
         m_material.m_texturePath = ctx.defaultTexturePath;
         m_pDevice = ctx.graphicsDevice;
     }
