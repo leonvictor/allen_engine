@@ -21,6 +21,16 @@ class AssetHandle
     mutable size_t* m_pInitializedCount;
 
   public:
+    ~AssetHandle()
+    {
+        if (use_count() <= 1)
+        {
+            delete m_pLoadedCount;
+            delete m_pInitializedCount;
+        }
+        m_pAsset.reset();
+    }
+
     AssetHandle() = default;
 
     /// @brief Create a new handle to a asset, taking ownership of it
