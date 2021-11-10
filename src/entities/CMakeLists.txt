@@ -33,4 +33,5 @@ target_link_libraries(${LIB_NAME}
         reflection
         common
         TracyClient
+        assets
 )

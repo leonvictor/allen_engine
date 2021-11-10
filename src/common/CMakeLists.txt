@@ -1,7 +1,6 @@
 set(LIB_NAME common)
 
 add_library(${LIB_NAME} SHARED
-    src/mesh.cpp
     src/transform.cpp
 )
 

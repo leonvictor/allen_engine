@@ -1,9 +1,13 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
-#include "vertex.hpp"
+#include <assets/asset.hpp>
+#include <common/vertex.hpp>
+#include <graphics/device.hpp>
+#include <graphics/resources/buffer.hpp>
 
 namespace aln
 {
@@ -17,26 +21,35 @@ struct PrimitiveComponent
     uint32_t materialIndex;
 };
 
-/// @brief Mesh resource
-class Mesh
+/// @brief Mesh asset
+class Mesh : public IAsset
 {
-    friend class MeshRenderer;
+    friend class MeshLoader;
 
-  protected:
-    std::string m_sourceFile;
-
+  private:
     std::vector<Vertex> m_vertices;
     std::vector<uint32_t> m_indices;
 
     std::vector<PrimitiveComponent> m_primitives;
 
-  public:
+    vkg::resources::Buffer m_vertexBuffer;
+    vkg::resources::Buffer m_indexBuffer;
+
+    /// @brief Create and fill the vulkan buffers to back the mesh.
+    void CreateGraphicResources(const std::shared_ptr<vkg::Device>&);
+
+    /// @brief Reset the vulkan buffers backing the mesh on GPU.
+    void FreeGraphicResources();
+
     /// @brief Load the mesh from the source file.
-    bool Load();
+    bool Load(std::string path);
 
     /// @brief Free mesh resources.
     void Unload();
 
+  public:
+    Mesh(AssetGUID& guid) : IAsset(guid) {}
+    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset);
     void RevertNormals();
 };
 } // namespace aln
