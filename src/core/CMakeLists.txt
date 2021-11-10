@@ -7,6 +7,7 @@ add_library(${LIB_NAME} SHARED
     src/render_system.cpp
     src/camera_controller.cpp
     src/time_system.cpp
+    src/mesh.cpp
 
     src/systems/script.cpp
 )
@@ -16,7 +17,8 @@ set(LIB_DEPENDENCIES
     TracyClient
 )
 
-set(LIB_LINK_DEPENDENCIES glm utils common entities graphics input)
+set(LIB_LINK_DEPENDENCIES glm utils common entities graphics input
+assets)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

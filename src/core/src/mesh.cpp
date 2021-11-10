@@ -1,22 +1,62 @@
 #include "mesh.hpp"
 
 #include <tiny_obj_loader.h>
+
+#include <graphics/ubo.hpp>
 #include <utils/files.hpp>
 
 namespace aln
 {
 
+void Mesh::CreateGraphicResources(const std::shared_ptr<vkg::Device>& pDevice)
+{
+    assert(IsLoaded());
+
+    // Create vertex buffer
+    vkg::resources::Buffer vertexStagingBuffer(pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_vertices);
+    m_vertexBuffer = vkg::resources::Buffer(pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    // Create index buffer
+    vkg::resources::Buffer indexStagingBuffer(pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_indices);
+    m_indexBuffer = vkg::resources::Buffer(pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
+        {
+            vertexStagingBuffer.CopyTo(cb, m_vertexBuffer);
+            indexStagingBuffer.CopyTo(cb, m_indexBuffer);
+        });
+}
+
+void Mesh::FreeGraphicResources()
+{
+    assert(IsInitialized());
+
+    m_vertexBuffer = vkg::resources::Buffer();
+    m_indexBuffer = vkg::resources::Buffer();
+}
+
+void Mesh::Bind(vk::CommandBuffer& cb, vk::DeviceSize offset)
+{
+    cb.bindVertexBuffers(0, m_vertexBuffer.GetVkBuffer(), offset);
+    cb.bindIndexBuffer(m_indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
+    cb.drawIndexed(m_indices.size(), 1, 0, 0, 0);
+}
+
 void Mesh::Unload()
 {
+    assert(IsLoaded());
+
     m_vertices.clear();
     m_indices.clear();
     m_primitives.clear();
 }
 
-bool Mesh::Load()
+bool Mesh::Load(std::string path)
 {
+    assert(IsUnloaded());
+
     // TODO: Store supported file types as enum
-    std::string fileExtension = utils::getFileExtension(m_sourceFile);
+    std::string fileExtension = utils::getFileExtension(path);
     if (fileExtension.compare("") == 0)
     {
         // throw std::runtime_error("No file extension found in: " + m_sourceFile);
@@ -30,7 +70,7 @@ bool Mesh::Load()
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
 
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, m_sourceFile.c_str()))
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
         {
             return false;
         }
