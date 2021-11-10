@@ -1,11 +1,13 @@
 #pragma once
 
+#include <concepts>
 #include <map>
 #include <memory>
 #include <typeindex>
 #include <typeinfo>
 
 #include "asset.hpp"
+#include "handle.hpp"
 #include "loader.hpp"
 
 namespace aln
@@ -22,38 +24,34 @@ enum class AssetLifetime
 class AssetManager
 {
   private:
-    std::map<std::type_index, std::unique_ptr<IAssetLoader>> m_loaders;
+    std::map<std::type_index, std::unique_ptr<AssetLoader>> m_loaders;
     // TODO: Replace with dedicated per-type cache class
-    std::map<AssetGUID, std::shared_ptr<IAsset>> m_assetCache;
+    std::map<AssetGUID, AssetHandle<IAsset>> m_assetCache;
 
   public:
     /// @brief Register a new loader
     /// @tparam T: Asset type
     /// @tparam TLoader: Loader type
-    template <typename T, typename TLoader, class... Args>
+    template <AssetType T, typename TLoader, class... Args>
     void RegisterAssetLoader(Args... args)
     {
-        static_assert(std::is_base_of_v<IAsset, T>);
-        static_assert(std::is_base_of_v<IAssetLoader, TLoader>);
+        static_assert(std::is_base_of_v<AssetLoader, TLoader>);
 
         auto it = m_loaders.try_emplace(std::type_index(typeid(T)), nullptr);
 
         if (it.second)
         {
-            auto pLoader = std::make_unique<TLoader>(args...);
-            it.first->second = std::move(pLoader);
+            it.first->second = std::make_unique<TLoader>(args...);
         }
     }
 
     /// @brief Return a pointer to the asset corresponding to the given path (todo: key).
-    /// If the asset was previously requested, an handle to the same asset will be returned. Otherwise the asset will be cached.
+    /// If the asset was previously requested, a pointer to the existing instance will be returned. Otherwise the asset will be created and cached.
     /// @todo Probably abstract away the path so that the manager chooses the loading mechanism (and not game code)
     /// @todo Maybe forward arguments to the assets constructors ?
-    template <typename T>
-    std::shared_ptr<T> Get(std::string path)
+    template <AssetType T>
+    AssetHandle<T> Get(std::string path)
     {
-        static_assert(std::is_base_of_v<IAsset, T>);
-
         auto it = m_assetCache.try_emplace(path, nullptr);
         if (it.second)
         {
@@ -63,7 +61,36 @@ class AssetManager
 
             it.first->second = loaderIt->second->Create(path);
         }
-        return std::static_pointer_cast<T>(it.first->second);
+
+        return AssetHandle<T>(it.first->second);
+    }
+
+    template <AssetType T>
+    bool Load(AssetHandle<T> pAsset)
+    {
+        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
+        return pLoader->LoadAsset(AssetHandle<IAsset>(pAsset));
+    }
+
+    template <AssetType T>
+    void Unload(AssetHandle<T> pAsset)
+    {
+        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
+        pLoader->UnloadAsset(AssetHandle<IAsset>(pAsset));
+    }
+
+    template <AssetType T>
+    void Initialize(AssetHandle<T> pAsset)
+    {
+        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
+        pLoader->InitializeAsset(AssetHandle<IAsset>(pAsset));
+    }
+
+    template <AssetType T>
+    void Shutdown(AssetHandle<T> pAsset)
+    {
+        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
+        pLoader->ShutdownAsset(AssetHandle<IAsset>(pAsset));
     }
 };
 } // namespace aln
