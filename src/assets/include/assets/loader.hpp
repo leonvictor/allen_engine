@@ -12,6 +12,9 @@ class AssetLoader
 {
     friend class AssetManager;
 
+  public:
+    virtual ~AssetLoader(){};
+
   private:
     bool LoadAsset(const AssetHandle<IAsset>& pHandle)
     {

@@ -52,7 +52,7 @@ class AssetManager
     template <AssetType T>
     AssetHandle<T> Get(std::string path)
     {
-        auto it = m_assetCache.try_emplace(path, nullptr);
+        auto it = m_assetCache.try_emplace(path);
         if (it.second)
         {
             // Resource has not been created yet
