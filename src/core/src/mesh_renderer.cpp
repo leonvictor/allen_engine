@@ -7,12 +7,6 @@ namespace aln
 
 void MeshRenderer::CreateMaterialTexture()
 {
-    // TODO: Split image loading and vulkan texture creation
-    m_materialTexture = vkg::resources::Image::FromFile(m_pDevice, m_material.m_texturePath);
-    m_materialTexture.AddView();
-    m_materialTexture.AddSampler();
-    m_materialTexture.SetDebugName("Material Texture");
-
     m_materialBuffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
 
     // TMP while materials are poopy
@@ -51,7 +45,7 @@ void MeshRenderer::CreateDescriptorSet()
     writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
     writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
     writeDescriptors[1].descriptorCount = 1;
-    auto textureDescriptor = m_materialTexture.GetDescriptor();
+    auto textureDescriptor = m_pTexture->m_image.GetDescriptor();
     writeDescriptors[1].pImageInfo = &textureDescriptor;
 
     // TODO: Materials presumably don't change so they don't need a binding
@@ -114,6 +108,7 @@ void MeshRenderer::Initialize()
 {
     m_pAssetManager->Initialize<Mesh>(m_pMesh);
     CreateUniformBuffer();
+    m_pAssetManager->Initialize<Texture>(m_pTexture);
     CreateMaterialTexture();
     CreateDescriptorSet();
 }
@@ -122,9 +117,7 @@ void MeshRenderer::Shutdown()
 {
     m_vkDescriptorSet.reset();
 
-    // TODO: Make sure reassignement is good enough.
-    m_materialTexture = vkg::resources::Image();
-    m_materialTexture.SetDebugName("Material Texture");
+    m_pAssetManager->Shutdown<Texture>(m_pTexture);
 
     m_materialBuffer = vkg::resources::Buffer();
 
@@ -143,6 +136,11 @@ bool MeshRenderer::Load()
         return false;
     }
 
+    if (!m_pAssetManager->Load<Texture>(m_pTexture))
+    {
+        return false;
+    }
+
     if (!m_material.Load())
     {
         std::cout << "Failed to load material ressource" << std::endl;
@@ -155,6 +153,7 @@ bool MeshRenderer::Load()
 void MeshRenderer::Unload()
 {
     m_pAssetManager->Unload<Mesh>(m_pMesh);
+    m_pAssetManager->Unload<Texture>(m_pTexture);
     m_material.Unload();
 }
 } // namespace aln

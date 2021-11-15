@@ -50,6 +50,8 @@
 #include <core/systems/script.hpp>
 #include <core/time_system.hpp>
 
+#include <core/asset_loaders/texture_loader.hpp>
+
 #include "IconsFontAwesome4.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -127,8 +129,9 @@ class Engine
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
         auto pAssetManager = std::make_shared<AssetManager>();
-        // TODO: Get rid of the default model path
+        // TODO: Get rid of the default paths
         pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
+        pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);
 
         // Create a default context
         m_componentFactory.context = {

@@ -15,6 +15,7 @@
 #include "component_factory.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
+#include "texture.hpp"
 
 #include <assets/handle.hpp>
 
@@ -40,6 +41,8 @@ class MeshRenderer : public entities::SpatialComponent
     std::shared_ptr<AssetManager> m_pAssetManager = nullptr;
 
     AssetHandle<Mesh> m_pMesh;
+    AssetHandle<Texture> m_pTexture;
+
     Material m_material;
 
     vk::UniqueDescriptorSet m_vkDescriptorSet;
@@ -61,6 +64,7 @@ class MeshRenderer : public entities::SpatialComponent
     {
         m_pAssetManager = ctx.pAssetManager;
         m_pMesh = ctx.pAssetManager->Get<Mesh>(ctx.defaultModelPath);
+        m_pTexture = ctx.pAssetManager->Get<Texture>(ctx.defaultTexturePath);
         m_material.m_texturePath = ctx.defaultTexturePath;
         m_pDevice = ctx.graphicsDevice;
     }
