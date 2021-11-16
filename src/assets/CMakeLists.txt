@@ -26,5 +26,5 @@ target_include_directories(${LIB_NAME}
         $<INSTALL_INTERFACE:include >
 
 )
-
+target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 target_link_libraries(${LIB_NAME} PUBLIC ${LIB_LINK_DEPENDENCIES})

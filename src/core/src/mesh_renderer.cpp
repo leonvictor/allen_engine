@@ -5,17 +5,6 @@
 namespace aln
 {
 
-void MeshRenderer::CreateMaterialTexture()
-{
-    m_materialBuffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
-
-    // TMP while materials are poopy
-    auto material = MaterialBufferObject();
-    m_materialBuffer.Map(0, sizeof(material));
-    m_materialBuffer.Copy(&material, sizeof(material));
-    m_materialBuffer.Unmap();
-}
-
 void MeshRenderer::CreateUniformBuffer()
 {
     m_uniformBuffer = vkg::resources::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -45,7 +34,7 @@ void MeshRenderer::CreateDescriptorSet()
     writeDescriptors[1].dstArrayElement = 0; // Descriptors can be arrays: first index that we want to update
     writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
     writeDescriptors[1].descriptorCount = 1;
-    auto textureDescriptor = m_pTexture->m_image.GetDescriptor();
+    auto textureDescriptor = m_pMaterial->m_albedoMap->m_image.GetDescriptor();
     writeDescriptors[1].pImageInfo = &textureDescriptor;
 
     // TODO: Materials presumably don't change so they don't need a binding
@@ -54,7 +43,7 @@ void MeshRenderer::CreateDescriptorSet()
     writeDescriptors[2].dstArrayElement = 0;
     writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
     writeDescriptors[2].descriptorCount = 1;
-    auto materialDescriptor = m_materialBuffer.GetDescriptor();
+    auto materialDescriptor = m_pMaterial->m_buffer.GetDescriptor();
     writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
 
     m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
@@ -108,8 +97,7 @@ void MeshRenderer::Initialize()
 {
     m_pAssetManager->Initialize<Mesh>(m_pMesh);
     CreateUniformBuffer();
-    m_pAssetManager->Initialize<Texture>(m_pTexture);
-    CreateMaterialTexture();
+    m_pAssetManager->Initialize<Material>(m_pMaterial);
     CreateDescriptorSet();
 }
 
@@ -117,9 +105,7 @@ void MeshRenderer::Shutdown()
 {
     m_vkDescriptorSet.reset();
 
-    m_pAssetManager->Shutdown<Texture>(m_pTexture);
-
-    m_materialBuffer = vkg::resources::Buffer();
+    m_pAssetManager->Shutdown<Material>(m_pMaterial);
 
     m_uniformBuffer = vkg::resources::Buffer();
     m_pAssetManager->Shutdown<Mesh>(m_pMesh);
@@ -136,14 +122,8 @@ bool MeshRenderer::Load()
         return false;
     }
 
-    if (!m_pAssetManager->Load<Texture>(m_pTexture))
+    if (!m_pAssetManager->Load<Material>(m_pMaterial))
     {
-        return false;
-    }
-
-    if (!m_material.Load())
-    {
-        std::cout << "Failed to load material ressource" << std::endl;
         return false;
     }
 
@@ -153,8 +133,7 @@ bool MeshRenderer::Load()
 void MeshRenderer::Unload()
 {
     m_pAssetManager->Unload<Mesh>(m_pMesh);
-    m_pAssetManager->Unload<Texture>(m_pTexture);
-    m_material.Unload();
+    m_pAssetManager->Unload<Material>(m_pMaterial);
 }
 } // namespace aln
 

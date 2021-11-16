@@ -41,20 +41,15 @@ class MeshRenderer : public entities::SpatialComponent
     std::shared_ptr<AssetManager> m_pAssetManager = nullptr;
 
     AssetHandle<Mesh> m_pMesh;
-    AssetHandle<Texture> m_pTexture;
-
-    Material m_material;
+    AssetHandle<Material> m_pMaterial;
 
     vk::UniqueDescriptorSet m_vkDescriptorSet;
     vkg::resources::Buffer m_uniformBuffer;
-    vkg::resources::Buffer m_materialBuffer;
-    vkg::resources::Image m_materialTexture;
 
     // -------------------------------------------------
     // Vulkan resources creation
     // -------------------------------------------------
     void CreateDataBuffers();
-    void CreateMaterialTexture();
     void CreateUniformBuffer();
     void CreateDescriptorSet();
 
@@ -64,8 +59,8 @@ class MeshRenderer : public entities::SpatialComponent
     {
         m_pAssetManager = ctx.pAssetManager;
         m_pMesh = ctx.pAssetManager->Get<Mesh>(ctx.defaultModelPath);
-        m_pTexture = ctx.pAssetManager->Get<Texture>(ctx.defaultTexturePath);
-        m_material.m_texturePath = ctx.defaultTexturePath;
+        m_pMaterial = ctx.pAssetManager->Get<Material>("DefaultMaterial");
+        m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>(ctx.defaultTexturePath));
         m_pDevice = ctx.graphicsDevice;
     }
 
