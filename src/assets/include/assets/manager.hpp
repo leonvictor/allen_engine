@@ -28,6 +28,75 @@ class AssetManager
     // TODO: Replace with dedicated per-type cache class
     std::map<AssetGUID, AssetHandle<IAsset>> m_assetCache;
 
+    AssetHandle<IAsset> GetInternal(const std::type_index& typeIndex, const std::string& path)
+    {
+        auto it = m_assetCache.try_emplace(path);
+        if (it.second)
+        {
+            // Resource has not been created yet
+            auto& pLoader = m_loaders.at(typeIndex);
+            it.first->second = pLoader->Create(path);
+
+            // Create dependencies as well
+            for (auto& dep : it.first->second->m_dependencies)
+            {
+                auto& pDepLoader = m_loaders.at(dep.type);
+                pDepLoader->Create(dep.id);
+            }
+        }
+
+        return it.first->second;
+    }
+
+    bool LoadInternal(const std::type_index& typeIndex, AssetHandle<IAsset> pAsset)
+    {
+        for (auto& dep : pAsset->m_dependencies)
+        {
+            // Also resolve missing dependencies
+            auto pDependencyHandle = GetInternal(dep.type, dep.id);
+            LoadInternal(dep.type, pDependencyHandle);
+        }
+
+        auto& pLoader = m_loaders.at(typeIndex);
+        return pLoader->LoadAsset(pAsset);
+    }
+
+    void UnloadInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
+    {
+        for (auto& dep : pAsset->m_dependencies)
+        {
+            auto& pDependencyHandle = m_assetCache.at(dep.id);
+            UnloadInternal(dep.type, pDependencyHandle);
+        }
+
+        auto& pLoader = m_loaders.at(typeIndex);
+        return pLoader->UnloadAsset(pAsset);
+    }
+
+    void InitializeInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
+    {
+        for (auto& dep : pAsset->m_dependencies)
+        {
+            auto& pDependencyHandle = m_assetCache.at(dep.id);
+            InitializeInternal(dep.type, pDependencyHandle);
+        }
+
+        auto& pLoader = m_loaders.at(typeIndex);
+        pLoader->InitializeAsset(pAsset);
+    }
+
+    void ShutdownInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
+    {
+        for (auto& dep : pAsset->m_dependencies)
+        {
+            auto& pDependencyHandle = m_assetCache.at(dep.id);
+            ShutdownInternal(dep.type, pDependencyHandle);
+        }
+
+        auto& pLoader = m_loaders.at(typeIndex);
+        pLoader->ShutdownAsset(pAsset);
+    }
+
   public:
     /// @brief Register a new loader
     /// @tparam T: Asset type
@@ -52,45 +121,31 @@ class AssetManager
     template <AssetType T>
     AssetHandle<T> Get(std::string path)
     {
-        auto it = m_assetCache.try_emplace(path);
-        if (it.second)
-        {
-            // Resource has not been created yet
-            auto loaderIt = m_loaders.find(std::type_index(typeid(T)));
-            assert(loaderIt != m_loaders.end());
-
-            it.first->second = loaderIt->second->Create(path);
-        }
-
-        return AssetHandle<T>(it.first->second);
+        return AssetHandle<T>(GetInternal(std::type_index(typeid(T)), path));
     }
 
     template <AssetType T>
     bool Load(AssetHandle<T> pAsset)
     {
-        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
-        return pLoader->LoadAsset(AssetHandle<IAsset>(pAsset));
+        return LoadInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
     }
 
     template <AssetType T>
     void Unload(AssetHandle<T> pAsset)
     {
-        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
-        pLoader->UnloadAsset(AssetHandle<IAsset>(pAsset));
+        UnloadInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
     }
 
     template <AssetType T>
     void Initialize(AssetHandle<T> pAsset)
     {
-        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
-        pLoader->InitializeAsset(AssetHandle<IAsset>(pAsset));
+        InitializeInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
     }
 
     template <AssetType T>
     void Shutdown(AssetHandle<T> pAsset)
     {
-        auto& pLoader = m_loaders.at(std::type_index(typeid(T)));
-        pLoader->ShutdownAsset(AssetHandle<IAsset>(pAsset));
+        ShutdownInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
     }
 };
 } // namespace aln

@@ -27,9 +27,6 @@
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
 
-#include <assets/manager.hpp>
-#include <core/asset_loaders/mesh_loader.hpp>
-
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 
@@ -50,6 +47,9 @@
 #include <core/systems/script.hpp>
 #include <core/time_system.hpp>
 
+#include <assets/manager.hpp>
+#include <core/asset_loaders/material_loader.hpp>
+#include <core/asset_loaders/mesh_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
 
 #include "IconsFontAwesome4.h"
@@ -132,6 +132,7 @@ class Engine
         // TODO: Get rid of the default paths
         pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
         pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);
+        pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
 
         // Create a default context
         m_componentFactory.context = {
