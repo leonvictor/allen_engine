@@ -58,5 +58,14 @@ class AssetHandle
     T* operator->() const { return m_pAsset.get(); }
 
     operator bool() const { return static_cast<bool>(m_pAsset); }
+
+    bool operator==(const AssetHandle<T>& other) const
+    {
+        if (m_pAsset && other)
+        {
+            return m_pAsset == other.m_pAsset;
+        }
+        return false;
+    }
 };
 } // namespace aln

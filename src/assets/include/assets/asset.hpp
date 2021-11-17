@@ -65,5 +65,6 @@ class IAsset
     bool IsUnloaded() const { return m_status == Status::Unloaded; }
     bool IsLoaded() const { return m_status == Status::Loaded; }
     bool IsInitialized() const { return m_status == Status::Initialized; }
+    bool operator==(const IAsset& other) const { return m_id == other.m_id; }
 };
 } // namespace aln

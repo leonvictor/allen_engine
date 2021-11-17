@@ -30,6 +30,9 @@ class Material : public IAsset
 
     void SetAlbedoMap(const AssetHandle<Texture>& pTex)
     {
+        if (pTex == m_albedoMap)
+            return;
+
         assert(IAsset::IsUnloaded());
 
         if (m_albedoMap)
