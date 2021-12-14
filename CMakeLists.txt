@@ -3,12 +3,24 @@ cmake_minimum_required(VERSION 3.17)
 project(ALLEN VERSION 0.1)
 
 set(SOURCE 
-    src/main.cpp
+    src/main.cpp)
+
+# Create the tracing configuration
+set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} ReleaseWithTracing)
+set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASE})
+set(CMAKE_C_FLAGS_RELEASEWITHTRACING ${CMAKE_C_FLAGS_RELEASE})
+set(CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_EXE_LINKER_FLAGS_RELEASE})
+set(CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_SHARED_LINKER_FLAGS_RELEASE})
+mark_as_advanced(
+    CMAKE_CXX_FLAGS_RELEASEWITHTRACING
+    CMAKE_C_FLAGS_RELEASEWITHTRACING
+    CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING
+    CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING
 )
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
-# Configure the config file
+# Configure the config files
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 set(DEFAULT_SHADERS_DIR ${PROJECT_SOURCE_DIR}/shaders)
 set(DEFAULT_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
@@ -50,14 +62,18 @@ set(IMGUI_INCLUDE_DIRS
 )
 
 add_executable(main ${SOURCE})
+
 # fmt
 add_subdirectory(external/fmt)
 
 # Tracy
-# TODO: Disable in prod.
-add_compile_definitions(TRACY_ENABLE)
-add_compile_definitions(TRACY_ON_DEMAND)
-add_compile_definitions(TRACY_CALLSTACK)
+target_compile_definitions(main PRIVATE
+    $<$<CONFIG:ReleaseWithTracing>:
+        TRACY_ENABLE
+        TRACY_ON_DEMAND
+        TRACY_CALLSTACK
+        ALN_ENABLE_TRACING>
+)
 add_subdirectory(external/tracy)
 
 # Include ImGui
