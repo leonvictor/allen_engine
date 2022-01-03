@@ -15,12 +15,7 @@ void EditorCameraController::Update(const entities::UpdateContext&)
     if (!m_hasChanged)
         return;
 
-    auto rot = m_pCameraInstance->GetLocalTransform().GetRotation();
-    m_pCameraInstance->forward.x = cos(glm::radians(rot.x)) * cos(glm::radians(rot.y));
-    m_pCameraInstance->forward.y = sin(glm::radians(rot.y));
-    m_pCameraInstance->forward.z = sin(glm::radians(rot.x)) * cos(glm::radians(rot.y));
-    m_pCameraInstance->forward = glm::normalize(m_pCameraInstance->forward);
-
+    m_pCameraInstance->forward = glm::vec3(0.0f, 0.0f, 1.0f) * m_pCameraInstance->GetWorldTransform().GetRotation();
     m_pCameraInstance->right = glm::normalize(glm::cross(m_pCameraInstance->forward, m_pCameraInstance->world_up));
     m_pCameraInstance->up = glm::normalize(glm::cross(m_pCameraInstance->right, m_pCameraInstance->forward));
 
@@ -75,7 +70,7 @@ void EditorCameraController::Move(CallbackContext context)
 void EditorCameraController::Rotate(CallbackContext context)
 {
     auto delta = Input::Mouse().GetDelta() * m_rotationSensitivity;
-    m_pCameraInstance->OffsetLocalTransformRotation(glm::vec3(delta.x, delta.y, 0));
+    m_pCameraInstance->OffsetLocalTransformRotation(glm::quat(glm::radians(glm::vec3(-delta.y, delta.x, 0.0f))));
     m_hasChanged = true;
 }
 

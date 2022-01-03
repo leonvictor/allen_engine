@@ -176,6 +176,7 @@ class Engine
     };
 
     Entity* m_pSelectedEntity = nullptr;
+    glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
@@ -206,8 +207,7 @@ class Engine
             // TODO: Refine how the editor accesses the map
             Entity* pCameraEntity = m_worldEntity.m_entityMap.CreateEntity("MainCamera");
             auto pCameraComponent = m_componentFactory.Create<Camera>();
-            pCameraComponent->SetLocalTransformPosition(glm::vec3(-20.0f, 0.0f, 0.0f));
-            pCameraComponent->SetLocalTransformRotationEuler(glm::vec3(90.0f, 0.0f, 0.0f));
+            pCameraComponent->SetLocalTransformPosition(glm::vec3(0.0f, 0.0f, -20.0f));
             pCameraEntity->AddComponent(pCameraComponent);
 
             pCameraEntity->CreateSystem<EditorCameraController>();
@@ -459,17 +459,16 @@ class Engine
                             m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformPosition(pos);
 
                         // Rotation
-                        auto euler = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetRotationEuler();
                         changed = false;
                         ImGui::Text("Rotation");
-                        changed |= ImGui::DragFloat("x##Rotation", &euler.x, 1.0f);
+                        changed |= ImGui::DragFloat("x##Rotation", &m_currentEulerRotation.x, 1.0f);
                         ImGui::SameLine();
-                        changed |= ImGui::DragFloat("y##Rotation", &euler.y, 1.0f);
+                        changed |= ImGui::DragFloat("y##Rotation", &m_currentEulerRotation.y, 1.0f);
                         ImGui::SameLine();
-                        changed |= ImGui::DragFloat("z##Rotation", &euler.z, 1.0f);
+                        changed |= ImGui::DragFloat("z##Rotation", &m_currentEulerRotation.z, 1.0f);
 
                         if (changed)
-                            m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(euler);
+                            m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(m_currentEulerRotation);
 
                         // Scale
                         auto scale = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetScale();
@@ -667,7 +666,13 @@ class Engine
         EntityOutlinePopup(pEntity);
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+        {
             m_pSelectedEntity = pEntity;
+            if (pEntity->IsSpatialEntity())
+            {
+                m_currentEulerRotation = pEntity->GetRootSpatialComponent()->GetLocalTransform().GetRotationEuler();
+            }
+        }
 
         if (ImGui::BeginDragDropSource())
         {

@@ -120,7 +120,7 @@ void SpatialComponent::OffsetLocalTransformPosition(const glm::vec3 offset)
 
 void SpatialComponent::OffsetLocalTransformRotation(const glm::quat quatOffset)
 {
-    m_localTransform.SetRotation(m_localTransform.GetRotation() + quatOffset);
+    m_localTransform.SetRotation(m_localTransform.GetRotation() * quatOffset);
     CalculateWorldTransform(true);
 }
 } // namespace aln::entities
