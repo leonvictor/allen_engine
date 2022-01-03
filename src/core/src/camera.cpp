@@ -8,7 +8,7 @@ namespace aln
 glm::mat4 Camera::GetViewMatrix() const
 {
     Transform t = GetWorldTransform();
-    return glm::lookAt(t.GetPosition(), t.GetPosition() + forward, up);
+    return glm::lookAt(t.GetTranslation(), t.GetTranslation() + forward, up);
 }
 
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::Camera)

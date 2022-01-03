@@ -447,7 +447,7 @@ class Engine
                         // TODO: vec3 might deserve a helper function to create ui for the 3 components...
                         // Position
                         bool changed = false;
-                        auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetPosition();
+                        auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetTranslation();
                         ImGui::Text("Position");
                         changed |= ImGui::DragFloat("x##Position", &pos.x, 1.0f);
                         ImGui::SameLine();
