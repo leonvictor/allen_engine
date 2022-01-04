@@ -19,3 +19,6 @@
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "external/OpenFBX"]
+	path = external/OpenFBX
+	url = https://github.com/nem0/OpenFBX
