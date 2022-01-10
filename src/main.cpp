@@ -13,11 +13,12 @@
 #include <functional>
 #include <iostream>
 #include <optional>
-#include <set>
 #include <stdexcept>
 #include <string.h>
 #include <unordered_map>
 #include <vector>
+
+#include <reflection/reflection.hpp>
 
 #include <graphics/device.hpp>
 #include <graphics/imgui.hpp>
@@ -26,6 +27,7 @@
 #include <graphics/rendering/swapchain_renderer.hpp>
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
+#include <set>
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
@@ -60,7 +62,8 @@
 #include "imgui_stdlib.h"
 
 #include <config/path.h>
-#include <reflection/reflection.hpp>
+
+#include <editor/editor.hpp>
 
 #include <Tracy.hpp>
 
@@ -161,6 +164,8 @@ class Engine
     vkg::render::OfflineRenderer m_sceneRenderer;
     vkg::ImGUI m_imgui;
 
+    editor::Editor m_editor;
+
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
     const glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
@@ -196,8 +201,8 @@ class Engine
 
         ImGui::GetAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
 
-        reflect::SetImGuiContext(ImGui::GetCurrentContext());
-        reflect::SetImGuiAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
+        editor::SetImGuiContext(ImGui::GetCurrentContext());
+        editor::SetImGuiAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
     }
 
     void CreateWorld()
@@ -496,7 +501,7 @@ class Engine
 
                     if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
                     {
-                        typeDesc->InEditor(pComponent, typeDesc->GetPrettyName().c_str());
+                        m_editor.InInspector(pComponent, "");
                     }
 
                     if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
@@ -518,7 +523,7 @@ class Engine
                     ImGui::PushID(typeDesc->GetPrettyName().c_str());
                     if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
                     {
-                        typeDesc->InEditor(pSystem.get());
+                        m_editor.InInspector(pSystem.get(), "");
                     }
 
                     if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
