@@ -1,7 +1,4 @@
 /// Descriptors for custom color types.
-
-#include "imgui.h"
-#include "misc/cpp/imgui_stdlib.h"
 #include "reflection.hpp"
 
 #include <common/colors.hpp>
@@ -17,23 +14,14 @@ namespace aln::reflect
 //--------------------------------------------------------
 struct TypeDescriptor_AlnRGBAColor : TypeDescriptor
 {
-    TypeDescriptor_AlnRGBAColor() : TypeDescriptor{"aln::RGBAColor", sizeof(aln::RGBAColor)}
+    TypeDescriptor_AlnRGBAColor() : TypeDescriptor{"aln::RGBAColor", sizeof(aln::RGBAColor), std::type_index(typeid(aln::RGBAColor))}
     {
     }
 
     virtual void Dump(const void* obj, int) const override
     {
         glm::vec4* color = (glm::vec4*) obj;
-
         std::cout << "aln::RGBAColor{" << glm::to_string(*color) << "}";
-    }
-
-    virtual void InEditor(void* obj, const char* fieldName = "") const override
-    {
-        aln::RGBAColor* color = (aln::RGBAColor*) obj;
-        ImGui::ColorEdit4("##picker", (float*) color);
-        ImGui::SameLine();
-        ImGui::Text(fieldName);
     }
 };
 
@@ -49,7 +37,7 @@ TypeDescriptor* GetPrimitiveDescriptor<aln::RGBAColor>()
 //--------------------------------------------------------
 struct TypeDescriptor_AlnRGBColor : TypeDescriptor
 {
-    TypeDescriptor_AlnRGBColor() : TypeDescriptor{"aln::RGBColor", sizeof(aln::RGBColor)}
+    TypeDescriptor_AlnRGBColor() : TypeDescriptor{"aln::RGBColor", sizeof(aln::RGBColor), std::type_index(typeid(aln::RGBColor))}
     {
     }
 
@@ -58,14 +46,6 @@ struct TypeDescriptor_AlnRGBColor : TypeDescriptor
         glm::vec4* color = (glm::vec4*) obj;
 
         std::cout << "aln::RGBColor{" << glm::to_string(*color) << "}";
-    }
-
-    virtual void InEditor(void* obj, const char* fieldName = "") const override
-    {
-        aln::RGBColor* color = (aln::RGBColor*) obj;
-        ImGui::ColorEdit3("##picker", (float*) color);
-        ImGui::SameLine();
-        ImGui::Text(fieldName);
     }
 };
 

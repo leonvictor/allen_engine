@@ -1,7 +1,4 @@
 /// Descriptors for primitive types.
-
-#include "imgui.h"
-#include "misc/cpp/imgui_stdlib.h"
 #include "reflection.hpp"
 
 #include <glm/gtx/string_cast.hpp>
@@ -16,17 +13,12 @@ namespace aln::reflect
 //--------------------------------------------------------
 struct TypeDescriptor_Int : TypeDescriptor
 {
-    TypeDescriptor_Int() : TypeDescriptor{"int", sizeof(int)}
+    TypeDescriptor_Int() : TypeDescriptor{"int", sizeof(int), std::type_index(typeid(int))}
     {
     }
     virtual void Dump(const void* obj, int) const override
     {
         std::cout << "int{" << *(const int*) obj << "}";
-    }
-
-    virtual void InEditor(void* obj, const char* fieldName = "") const override
-    {
-        ImGui::InputInt(fieldName, (int*) obj);
     }
 };
 
@@ -42,17 +34,12 @@ TypeDescriptor* GetPrimitiveDescriptor<int>()
 //--------------------------------------------------------
 struct TypeDescriptor_Float : TypeDescriptor
 {
-    TypeDescriptor_Float() : TypeDescriptor{"float", sizeof(float)}
+    TypeDescriptor_Float() : TypeDescriptor{"float", sizeof(float), std::type_index(typeid(float))}
     {
     }
     virtual void Dump(const void* obj, int) const override
     {
         std::cout << "int{" << *(const float*) obj << "}";
-    }
-
-    virtual void InEditor(void* obj, const char* fieldName = "") const override
-    {
-        ImGui::InputFloat(fieldName, (float*) obj);
     }
 };
 
@@ -68,7 +55,7 @@ TypeDescriptor* GetPrimitiveDescriptor<float>()
 //--------------------------------------------------------
 struct TypeDescriptor_Bool : TypeDescriptor
 {
-    TypeDescriptor_Bool() : TypeDescriptor{"Bool", sizeof(bool)}
+    TypeDescriptor_Bool() : TypeDescriptor{"Bool", sizeof(bool), std::type_index(typeid(bool))}
     {
     }
     virtual void Dump(const void* obj, int) const override
@@ -76,10 +63,10 @@ struct TypeDescriptor_Bool : TypeDescriptor
         std::cout << "bool{" << *(const bool*) obj << "}";
     }
 
-    virtual void InEditor(void* obj, const char* fieldName = "") const override
-    {
-        ImGui::Checkbox(fieldName, (bool*) obj);
-    }
+    // virtual void InEditor(void* obj, const char* fieldName = "") const override
+    // {
+    //     ImGui::Checkbox(fieldName, (bool*) obj);
+    // }
 };
 
 template <>

@@ -1,7 +1,5 @@
 /// Descriptors for types from the standard library.
 
-#include "imgui.h"
-#include "misc/cpp/imgui_stdlib.h"
 #include "reflection.hpp"
 
 #include <string>
@@ -14,18 +12,12 @@ namespace aln::reflect
 //--------------------------------------------------------
 struct TypeDescriptor_StdString : TypeDescriptor
 {
-    TypeDescriptor_StdString() : TypeDescriptor{"std::string", sizeof(std::string)}
+    TypeDescriptor_StdString() : TypeDescriptor{"std::string", sizeof(std::string), std::type_index(typeid(std::string))}
     {
     }
     virtual void Dump(const void* obj, int) const override
     {
         std::cout << "std::string{\"" << *(const std::string*) obj << "\"}";
-    }
-
-    virtual void InEditor(void* obj, const char* fieldName = "") const override
-    {
-        auto str = (std::string*) obj;
-        ImGui::InputText(fieldName, str, str->size());
     }
 };
 
