@@ -18,6 +18,7 @@
 #include "texture.hpp"
 
 #include <assets/handle.hpp>
+#include <assets/type_descriptors/handles.hpp>
 
 namespace aln
 {

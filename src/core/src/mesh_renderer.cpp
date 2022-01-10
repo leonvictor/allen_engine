@@ -138,4 +138,6 @@ void MeshRenderer::Unload()
 } // namespace aln
 
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::MeshRenderer)
+ALN_REFLECT_MEMBER(m_pMesh)
+ALN_REFLECT_MEMBER(m_pMaterial)
 ALN_REGISTER_IMPL_END()

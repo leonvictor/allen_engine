@@ -10,6 +10,8 @@ add_library(${LIB_NAME} SHARED
     src/mesh.cpp
 
     src/systems/script.cpp
+
+    src/type_descriptors/assets.cpp
 )
 
 set(LIB_DEPENDENCIES 
@@ -17,8 +19,9 @@ set(LIB_DEPENDENCIES
     TracyClient
 )
 
-set(LIB_LINK_DEPENDENCIES glm utils common entities graphics input
-assets)
+set(LIB_LINK_DEPENDENCIES 
+    glm utils common entities graphics input
+    assets reflection)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE
