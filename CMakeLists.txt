@@ -126,9 +126,6 @@ set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 # json
 set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
 
-# OpenFBX
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/OpenFBX)
-
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})
@@ -163,7 +160,6 @@ target_link_libraries(main PUBLIC
     graphics 
     entities 
     core
-    OpenFBX
     editor)
 
 set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
