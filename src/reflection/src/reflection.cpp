@@ -3,16 +3,6 @@
 
 namespace aln::reflect
 {
-void SetImGuiContext(ImGuiContext* pContext)
-{
-    ImGui::SetCurrentContext(pContext);
-}
-
-void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData)
-{
-    ImGui::SetAllocatorFunctions(*pAllocFunc, *pFreeFunc, *pUserData);
-}
-
 bool operator==(const TypeDescriptor& a, const TypeDescriptor& b)
 {
     return a.m_ID == b.m_ID;
@@ -35,14 +25,6 @@ void TypeDescriptor_Struct::Dump(const void* obj, int indentLevel) const
     std::cout << std::string(4 * indentLevel, ' ') << "}";
 }
 
-void TypeDescriptor_Struct::InEditor(void* obj, const char* fieldName) const
-{
-    for (const Member& member : members)
-    {
-        member.type->InEditor((char*) obj + member.offset, member.GetPrettyName().c_str());
-    }
-}
-
 std::vector<TypeDescriptor*>& GetTypesInScope(const std::string& scopeName)
 {
     static std::map<std::string, std::vector<TypeDescriptor*>> typeScopes;
@@ -50,4 +32,29 @@ std::vector<TypeDescriptor*>& GetTypesInScope(const std::string& scopeName)
     return it.first->second;
 }
 
+std::string TypeDescriptor_Struct::Member::GetPrettyName() const
+{
+    std::string prettyName = std::string(name);
+
+    // Remove member variable prefix m_ if necessary
+    auto prefix = prettyName.substr(0, prettyName.find("_"));
+    if (prefix == "m")
+    {
+        prettyName = prettyName.substr(prettyName.find("_") + 1);
+    }
+
+    // Add spaces before each upper case letter
+    for (int i = 0; i < prettyName.length(); i++)
+    {
+        if (std::isupper(prettyName[i]))
+        {
+            prettyName.insert(i++, " ");
+        }
+    }
+
+    // First letter is uppercase in any way
+    prettyName[0] = std::toupper(prettyName[0]);
+
+    return prettyName;
+}
 } // namespace aln::reflect

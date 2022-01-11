@@ -142,6 +142,7 @@ add_subdirectory(src/entities)
 add_subdirectory(src/graphics)
 add_subdirectory(src/input)
 add_subdirectory(src/assets)
+add_subdirectory(src/editor)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20) 
@@ -162,7 +163,8 @@ target_link_libraries(main PUBLIC
     graphics 
     entities 
     core
-    OpenFBX)
+    OpenFBX
+    editor)
 
 set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
 message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})

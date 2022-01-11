@@ -4,6 +4,8 @@ add_library(${LIB_NAME} SHARED
     src/asset_system/asset_system.cpp
     src/asset_system/texture_asset.cpp
     src/asset_converter/converter.cpp
+
+    src/type_descriptors/handle.cpp
     )
 
 set(LIB_DEPENDENCIES
@@ -11,7 +13,7 @@ set(LIB_DEPENDENCIES
     ${STB_INCLUDE_DIR}
     )
 
-set(LIB_LINK_DEPENDENCIES )
+set(LIB_LINK_DEPENDENCIES reflection)
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 

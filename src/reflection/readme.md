@@ -6,4 +6,3 @@ Based on [this blog post](https://github.com/preshing/FlexibleReflection/tree/a1
 
 # TODO
  - Document usage
- - Separate the editor stuff from the rest to avoid having to include imgui in every lib.

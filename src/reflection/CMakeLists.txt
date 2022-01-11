@@ -6,7 +6,6 @@ add_library(${LIB_NAME} SHARED
     src/type_descriptors/glm.cpp
     src/type_descriptors/colors.cpp
     src/reflection.cpp
-    ${IMGUI_SOURCE}
     )
 
 set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})

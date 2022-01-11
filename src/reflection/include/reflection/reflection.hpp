@@ -2,23 +2,23 @@
 
 #include <cctype>
 #include <cstddef>
-#include <functional>
-#include <iostream>
 #include <memory>
-#include <stdexcept>
 #include <string>
+#include <typeindex>
+#include <typeinfo>
 #include <vector>
-
-#include <imgui.h>
 
 #include <utils/uuid.hpp>
 
 namespace aln::reflect
 {
 
-// ImGui method to set the context and allocator functions in case reflection is in a separate library.
-void SetImGuiContext(ImGuiContext* pContext);
-void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData);
+/// @brief A type that has been manually marked for reflection
+template <typename T>
+concept Reflected = requires(T a)
+{
+    T::Reflection;
+};
 
 class ITypeHelper
 {
@@ -26,6 +26,7 @@ class ITypeHelper
     virtual void* raw_ptr() const = 0;
 
   public:
+    virtual ~ITypeHelper() = default;
     template <typename T>
     std::unique_ptr<T> CreateType()
     {
@@ -39,7 +40,7 @@ struct TypeHelperResolver
     template <typename T, typename std::enable_if<std::is_constructible<T>::value, bool>::type = true>
     static T* CreateType()
     {
-        // TODO: Do NOT use new.
+        // TODO: Do NOT use new. Pass an allocator as template arg
         T* comp = new T();
         return std::move(comp);
     }
@@ -58,19 +59,18 @@ struct TypeHelper : public ITypeHelper
     using type = T;
     void* raw_ptr() const override { return std::move(TypeHelperResolver::CreateType<T>()); }
 };
-//--------------------------------------------------------
-// Base class of all type descriptors
-//--------------------------------------------------------
 
+/// @brief Base class of all type descriptors
 struct TypeDescriptor
 {
     const char* name;
     size_t size;
     const aln::utils::UUID m_ID;
+    std::type_index m_typeIndex;
 
-    std::shared_ptr<ITypeHelper> typeHelper;
+    std::unique_ptr<ITypeHelper> typeHelper; // TODO: should be unique
 
-    TypeDescriptor(const char* name, size_t size) : name{name}, size{size}, m_ID() {}
+    TypeDescriptor(const char* name, size_t size, std::type_index typeIndex) : name{name}, size{size}, m_ID(), m_typeIndex(typeIndex) {}
     virtual ~TypeDescriptor() {}
 
     /// @brief Return the full type name.
@@ -90,12 +90,6 @@ struct TypeDescriptor
 
     /// @brief Print a text representation of an object of the reflected type.
     virtual void Dump(const void* obj, int indentLevel = 0) const = 0;
-
-    /// @brief Display an object of this reflected type in the editor.
-    /// Override to define custom behavior.
-    /// @param obj: The object to display
-    /// @param fieldName: Display name of the object
-    virtual void InEditor(void* obj, const char* fieldName = "") const = 0;
 };
 
 bool operator==(const TypeDescriptor& a, const TypeDescriptor& b);
@@ -116,36 +110,25 @@ TypeDescriptor* GetPrimitiveDescriptor();
 /// @brief A helper class to find TypeDescriptors in different ways.
 struct DefaultResolver
 {
-    template <typename T>
-    static char func(decltype(&T::Reflection));
-    template <typename T>
-    static int func(...);
-    template <typename T>
-    struct IsReflected
-    {
-        enum
-        {
-            value = (sizeof(func<T>(nullptr)) == sizeof(char))
-        };
-    };
-
     // This version is called if T has a static member named "Reflection":
-    template <typename T, typename std::enable_if<IsReflected<T>::value, int>::type = 0>
+    template <Reflected T>
     static TypeDescriptor* get()
     {
         return &T::Reflection;
     }
 
     // This version is called otherwise:
-    template <typename T, typename std::enable_if<!IsReflected<T>::value, int>::type = 0>
+    template <typename T>
     static TypeDescriptor* get()
     {
         return GetPrimitiveDescriptor<T>();
     }
 };
 
-// This is the primary class template for finding all TypeDescriptors:
-template <typename T>
+/// @brief This is the primary class template for finding all TypeDescriptors:
+/// @note: https://www.youtube.com/watch?v=aZNhSOIvv1Q
+// "C++Now 2019: JeanHeyd Meneide “The Plan for Tomorrow: Extension Points in C++ Applications”"
+template <typename T, typename C = void>
 struct TypeResolver
 {
     static TypeDescriptor* get()
@@ -154,10 +137,7 @@ struct TypeResolver
     }
 };
 
-//--------------------------------------------------------
-// Type descriptors for user-defined structs/classes
-//--------------------------------------------------------
-
+/// @brief Type descriptors for user-defined structs/classes
 struct TypeDescriptor_Struct : TypeDescriptor
 {
     struct Member
@@ -166,49 +146,24 @@ struct TypeDescriptor_Struct : TypeDescriptor
         size_t offset;
         TypeDescriptor* type;
 
-        std::string GetPrettyName() const
-        {
-            std::string prettyName = std::string(name);
-
-            // Remove member variable prefix m_ if necessary
-            auto prefix = prettyName.substr(0, prettyName.find("_"));
-            if (prefix == "m")
-            {
-                prettyName = prettyName.substr(prettyName.find("_") + 1);
-            }
-
-            // Add spaces before each upper case letter
-            for (int i = 0; i < prettyName.length(); i++)
-            {
-                if (std::isupper(prettyName[i]))
-                {
-                    prettyName.insert(i++, " ");
-                }
-            }
-
-            // First letter is uppercase in any way
-            prettyName[0] = std::toupper(prettyName[0]);
-
-            return prettyName;
-        }
+        std::string GetPrettyName() const;
     };
 
     std::vector<Member> members;
 
     TypeDescriptor_Struct(void (*init)(TypeDescriptor_Struct*))
-        : TypeDescriptor(nullptr, 0)
+        : TypeDescriptor(nullptr, 0, std::type_index(typeid(nullptr)))
     {
         init(this);
     }
 
     TypeDescriptor_Struct(const char* name, size_t size, const std::initializer_list<Member>& init)
-        : TypeDescriptor(nullptr, 0), members(init) {}
+        : TypeDescriptor(nullptr, 0, std::type_index(typeid(nullptr))), members(init) {}
 
     virtual void Dump(const void* obj, int indentLevel) const override;
-    virtual void InEditor(void* obj, const char* fieldName = "") const override;
 };
 
-/// @brief Register the currect type for class reflection.
+/// @brief Register the current type for class reflection.
 #define ALN_REGISTER_TYPE()                                             \
     friend struct aln::reflect::DefaultResolver;                        \
                                                                         \
@@ -237,7 +192,7 @@ struct TypeDescriptor_Struct : TypeDescriptor
         auto& scopedTypes = aln::reflect::GetTypesInScope(#scope);              \
                                                                                 \
         using T = type;                                                         \
-        typeDesc->typeHelper = std::make_shared<aln::reflect::TypeHelper<T>>(); \
+        typeDesc->typeHelper = std::make_unique<aln::reflect::TypeHelper<T>>(); \
         typeDesc->name = #type;                                                 \
         typeDesc->size = sizeof(T);                                             \
         typeDesc->members = {
@@ -250,5 +205,4 @@ struct TypeDescriptor_Struct : TypeDescriptor
     ;                                \
     scopedTypes.push_back(typeDesc); \
     }
-
 } // namespace aln::reflect
