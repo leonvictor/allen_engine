@@ -489,6 +489,8 @@ class Engine
 
                         if (changed)
                             m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformScale(scale);
+
+                        ImGui::PopItemWidth();
                     }
                 }
 
