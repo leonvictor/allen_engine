@@ -13,21 +13,16 @@
 
 #include <utils/uuid.hpp>
 
-// fwd
-namespace aln
-{
-// TODO: Replace enable_if by concepts
-/// @brief A type that has been manually marked for reflection
-// template <typename T>
-// concept Reflected = requires(T a)
-// {
-//     T::GetStaticType();
-// };
-
-} // namespace aln
-
 namespace aln::reflect
 {
+
+/// @brief A type that has been manually marked for reflection
+template <typename T>
+concept Reflected = requires(T a)
+{
+    T::GetStaticType();
+};
+
 class ITypeHelper
 {
   protected:
@@ -119,30 +114,15 @@ TypeDescriptor* GetPrimitiveDescriptor();
 /// @brief A helper class to find TypeDescriptors in different ways.
 struct DefaultResolver
 {
-    template <typename T>
-    static char func(decltype(&T::Reflection));
-
-    template <typename T>
-    static int func(...);
-
-    template <typename T>
-    struct IsReflected
-    {
-        enum
-        {
-            value = (sizeof(func<T>(nullptr)) == sizeof(char))
-        };
-    };
-
     // This version is called if T has a static member named "Reflection":
-    template <typename T, typename std::enable_if<IsReflected<T>::value, int>::type = 0>
+    template <Reflected T>
     static TypeDescriptor* get()
     {
         return &T::Reflection;
     }
 
     // This version is called otherwise:
-    template <typename T, typename std::enable_if<!IsReflected<T>::value, int>::type = 0>
+    template <typename T>
     static TypeDescriptor* get()
     {
         return GetPrimitiveDescriptor<T>();
