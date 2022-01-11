@@ -7,14 +7,10 @@
 namespace aln::reflect
 {
 
-//--------------------------------------------------------
-// A type descriptor for std::string
-//--------------------------------------------------------
+/// @brief A type descriptor for std::string
 struct TypeDescriptor_StdString : TypeDescriptor
 {
-    TypeDescriptor_StdString() : TypeDescriptor{"std::string", sizeof(std::string), std::type_index(typeid(std::string))}
-    {
-    }
+    TypeDescriptor_StdString() : TypeDescriptor{"std::string", sizeof(std::string), std::type_index(typeid(std::string))} {}
     virtual void Dump(const void* obj, int) const override
     {
         std::cout << "std::string{\"" << *(const std::string*) obj << "\"}";
@@ -28,10 +24,7 @@ TypeDescriptor* GetPrimitiveDescriptor<std::string>()
     return &typeDesc;
 }
 
-//--------------------------------------------------------
-// Type descriptors for std::vector
-//--------------------------------------------------------
-
+/// @brief Type descriptors for std::vector
 struct TypeDescriptor_StdVector : TypeDescriptor
 {
     TypeDescriptor* itemType;

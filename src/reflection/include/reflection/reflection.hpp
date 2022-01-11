@@ -2,10 +2,7 @@
 
 #include <cctype>
 #include <cstddef>
-#include <functional>
-#include <iostream>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
@@ -20,7 +17,7 @@ namespace aln::reflect
 template <typename T>
 concept Reflected = requires(T a)
 {
-    T::GetStaticType();
+    T::Reflection;
 };
 
 class ITypeHelper
@@ -29,6 +26,7 @@ class ITypeHelper
     virtual void* raw_ptr() const = 0;
 
   public:
+    virtual ~ITypeHelper() = default;
     template <typename T>
     std::unique_ptr<T> CreateType()
     {
@@ -61,10 +59,8 @@ struct TypeHelper : public ITypeHelper
     using type = T;
     void* raw_ptr() const override { return std::move(TypeHelperResolver::CreateType<T>()); }
 };
-//--------------------------------------------------------
-// Base class of all type descriptors
-//--------------------------------------------------------
 
+/// @brief Base class of all type descriptors
 struct TypeDescriptor
 {
     const char* name;
@@ -72,7 +68,7 @@ struct TypeDescriptor
     const aln::utils::UUID m_ID;
     std::type_index m_typeIndex;
 
-    std::shared_ptr<ITypeHelper> typeHelper; // TODO: should be unique
+    std::unique_ptr<ITypeHelper> typeHelper; // TODO: should be unique
 
     TypeDescriptor(const char* name, size_t size, std::type_index typeIndex) : name{name}, size{size}, m_ID(), m_typeIndex(typeIndex) {}
     virtual ~TypeDescriptor() {}
@@ -141,10 +137,7 @@ struct TypeResolver
     }
 };
 
-//--------------------------------------------------------
-// Type descriptors for user-defined structs/classes
-//--------------------------------------------------------
-
+/// @brief Type descriptors for user-defined structs/classes
 struct TypeDescriptor_Struct : TypeDescriptor
 {
     struct Member
@@ -199,7 +192,7 @@ struct TypeDescriptor_Struct : TypeDescriptor
         auto& scopedTypes = aln::reflect::GetTypesInScope(#scope);              \
                                                                                 \
         using T = type;                                                         \
-        typeDesc->typeHelper = std::make_shared<aln::reflect::TypeHelper<T>>(); \
+        typeDesc->typeHelper = std::make_unique<aln::reflect::TypeHelper<T>>(); \
         typeDesc->name = #type;                                                 \
         typeDesc->size = sizeof(T);                                             \
         typeDesc->members = {

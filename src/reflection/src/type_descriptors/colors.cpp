@@ -9,15 +9,10 @@
 namespace aln::reflect
 {
 
-//--------------------------------------------------------
-// A type descriptor for RGBAColor
-//--------------------------------------------------------
+/// @brief A type descriptor for RGBAColor
 struct TypeDescriptor_AlnRGBAColor : TypeDescriptor
 {
-    TypeDescriptor_AlnRGBAColor() : TypeDescriptor{"aln::RGBAColor", sizeof(aln::RGBAColor), std::type_index(typeid(aln::RGBAColor))}
-    {
-    }
-
+    TypeDescriptor_AlnRGBAColor() : TypeDescriptor{"aln::RGBAColor", sizeof(aln::RGBAColor), std::type_index(typeid(aln::RGBAColor))} {}
     virtual void Dump(const void* obj, int) const override
     {
         glm::vec4* color = (glm::vec4*) obj;
@@ -32,19 +27,13 @@ TypeDescriptor* GetPrimitiveDescriptor<aln::RGBAColor>()
     return &typeDesc;
 }
 
-//--------------------------------------------------------
-// A type descriptor for RGBAColor
-//--------------------------------------------------------
+/// @brief A type descriptor for RGBAColor
 struct TypeDescriptor_AlnRGBColor : TypeDescriptor
 {
-    TypeDescriptor_AlnRGBColor() : TypeDescriptor{"aln::RGBColor", sizeof(aln::RGBColor), std::type_index(typeid(aln::RGBColor))}
-    {
-    }
-
+    TypeDescriptor_AlnRGBColor() : TypeDescriptor{"aln::RGBColor", sizeof(aln::RGBColor), std::type_index(typeid(aln::RGBColor))} {}
     virtual void Dump(const void* obj, int) const override
     {
         glm::vec4* color = (glm::vec4*) obj;
-
         std::cout << "aln::RGBColor{" << glm::to_string(*color) << "}";
     }
 };
