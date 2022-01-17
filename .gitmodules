@@ -19,3 +19,6 @@
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "external/assimp"]
+	path = external/assimp
+	url = https://github.com/assimp/assimp

@@ -36,8 +36,9 @@ include_directories(CONFIG_INCLUDE_DIRS)
 
 # Put the .exe and .dll in the build directory's root so we can find them.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
+MESSAGE(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
-set(ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 
 # TODO: ?
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -126,6 +127,20 @@ set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 # json
 set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
 
+# assimp
+
+MESSAGE(STATUS "Configuring assimp...")
+set(assimp_DIR "/external/assimp/cmake-modules/")
+MESSAGE(STATUS ${CMAKE_MODULE_PATH})
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_NO_EXPORT ON)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_OBJ_IMPORTER ON)
+set(ASSIMP_BUILD_FBX_IMPORTER ON)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_INSTALL OFF)
+add_subdirectory(external/assimp )
+
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})
@@ -160,7 +175,8 @@ target_link_libraries(main PUBLIC
     graphics 
     entities 
     core
-    editor)
+    editor
+    assimp::assimp)
 
 set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
 message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})
