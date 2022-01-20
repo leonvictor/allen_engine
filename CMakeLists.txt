@@ -19,6 +19,7 @@ mark_as_advanced(
 )
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(ALLEN_EDITOR "Build the editor" ON)
 
 # Configure the config files
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
@@ -36,7 +37,6 @@ include_directories(CONFIG_INCLUDE_DIRS)
 
 # Put the .exe and .dll in the build directory's root so we can find them.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
-MESSAGE(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 
@@ -128,7 +128,6 @@ set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
 
 # assimp
-
 MESSAGE(STATUS "Configuring assimp...")
 set(assimp_DIR "/external/assimp/cmake-modules/")
 MESSAGE(STATUS ${CMAKE_MODULE_PATH})
@@ -140,6 +139,15 @@ set(ASSIMP_BUILD_FBX_IMPORTER ON)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
 set(ASSIMP_INSTALL OFF)
 add_subdirectory(external/assimp )
+MESSAGE(STATUS "Assimp configured.")
+
+# lz4
+set(LZ4_BUNDLED_MODE ON)
+message(STATUS "Configuring LZ4...")
+set(LZ4_BUILD_CLI OFF)
+set(LZ4_BUILD_LEGACY_LZ4C OFF)
+add_subdirectory(external/lz4/build/cmake)
+message(STATUS "LZ4 Configured.")
 
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)

@@ -22,3 +22,6 @@
 [submodule "external/assimp"]
 	path = external/assimp
 	url = https://github.com/assimp/assimp
+[submodule "external/lz4"]
+	path = external/lz4
+	url = https://github.com/lz4/lz4
