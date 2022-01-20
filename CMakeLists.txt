@@ -162,6 +162,7 @@ add_subdirectory(src/entities)
 add_subdirectory(src/graphics)
 add_subdirectory(src/input)
 add_subdirectory(src/assets)
+add_subdirectory(src/asset_converter)
 add_subdirectory(src/editor)
 
 # Set C++ standard
