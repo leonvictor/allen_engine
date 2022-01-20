@@ -116,9 +116,6 @@ target_include_directories(glm SYSTEM INTERFACE ${_inc})
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
 target_include_directories(main PUBLIC ${STB_INCLUDE_DIR})
 
-# tinyobjloader
-add_subdirectory(external/tinyobjloader)
-
 # stduuids
 set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 # add_compile_definitions(UUID_SYSTEM_GENERATOR)

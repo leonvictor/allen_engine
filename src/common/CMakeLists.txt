@@ -4,7 +4,7 @@ add_library(${LIB_NAME} SHARED
     src/transform.cpp
 )
 
-set(LIB_LINK_DEPENDENCIES glm utils tinyobjloader)
+set(LIB_LINK_DEPENDENCIES glm utils)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE
