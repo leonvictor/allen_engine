@@ -1,11 +1,14 @@
 #include "asset_system/texture_asset.hpp"
 
 #include <json/json.hpp>
+#include <lz4.h>
 
-using namespace assets;
+namespace aln::assets
+{
+
 using json = nlohmann::json;
 
-TextureFormat assets::ParseFormat(std::string formatString)
+TextureFormat ParseFormat(std::string formatString)
 {
     if (formatString == "RGBA8")
     {
@@ -17,11 +20,11 @@ TextureFormat assets::ParseFormat(std::string formatString)
     }
 };
 
-TextureInfo assets::ReadTextureInfo(AssetFile* file)
+TextureInfo ReadTextureInfo(AssetFile* file)
 {
     TextureInfo info;
 
-    json metadata = json::parse(file->json);
+    json metadata = json::parse(file->metadata);
 
     info.format = ParseFormat(metadata["format"]);
     info.compressionMode = ParseCompressionMode(metadata["compression"]);
@@ -34,22 +37,36 @@ TextureInfo assets::ReadTextureInfo(AssetFile* file)
     return info;
 }
 
-void assets::UnpackTexture(TextureInfo* info, const char* sourceBuffer, size_t sourceSize, char* destination)
+void UnpackTexture(const TextureInfo* info, const std::vector<std::byte>& sourceBuffer, std::vector<std::byte>& destinationBuffer)
 {
-    if (info->compressionMode == CompressionMode::None)
+    switch (info->compressionMode)
     {
-        memcpy(destination, sourceBuffer, sourceSize);
+    case CompressionMode::None:
+        destinationBuffer = sourceBuffer;
+        break;
+
+    case CompressionMode::LZ4:
+    {
+        destinationBuffer.resize(info->size);
+        LZ4_decompress_safe(
+            reinterpret_cast<const char*>(sourceBuffer.data()),
+            reinterpret_cast<char*>(destinationBuffer.data()),
+            static_cast<int>(sourceBuffer.size()),
+            static_cast<int>(destinationBuffer.size()));
+        break;
     }
-    // TODO: Decompress here
+
+    default:
+        break;
+    }
 }
 
-// void UnpackTexture(TextureInfo* info, std::vector<char>& sourceBuffer, char* destination)
-// {
-//     return UnpackTexture(info, sourceBuffer.data(), sourceBuffer.size(), destination);
-// }
-
-AssetFile assets::PackTexture(TextureInfo* info, void* pixelData)
+AssetFile PackTexture(TextureInfo* info, void* pixelData)
 {
+    AssetFile file;
+    file.type = EAssetType::Texture;
+    file.version = 1;
+
     json metadata;
     metadata["format"] = "RGBA8";
     metadata["width"] = info->pixelSize[0];
@@ -57,21 +74,21 @@ AssetFile assets::PackTexture(TextureInfo* info, void* pixelData)
     metadata["buffer_size"] = info->size;
     metadata["original_file"] = info->originalFile;
 
-    AssetFile file;
-    file.type[0] = 'T';
-    file.type[1] = 'E';
-    file.type[2] = 'X';
-    file.type[3] = 'I';
-    file.version = 1;
+    auto maxCompressedSize = LZ4_compressBound(info->size);
+    file.binary.resize(maxCompressedSize);
 
-    // TODO: Compress here
-    file.binaryBlob.resize(info->size);
-    memcpy(file.binaryBlob.data(), pixelData, info->size);
+    auto compressedSize = LZ4_compress_default(
+        reinterpret_cast<const char*>(pixelData),
+        reinterpret_cast<char*>(file.binary.data()),
+        static_cast<int>(info->size),
+        static_cast<int>(maxCompressedSize));
 
-    metadata["compression"] = "none";
+    file.binary.resize(compressedSize);
 
-    auto stringified = metadata.dump();
-    file.json = stringified;
+    metadata["compression"] = "LZ4";
+
+    file.metadata = metadata.dump();
 
     return file;
 }
+} // namespace aln::assets

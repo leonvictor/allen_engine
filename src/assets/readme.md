@@ -1,0 +1,1 @@
+Mostly based on [this](https://vkguide.dev/docs/extra-chapter/asset_system/)
