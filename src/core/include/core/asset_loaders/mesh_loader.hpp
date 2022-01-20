@@ -1,5 +1,7 @@
 #pragma once
 
+#include <assets/asset_system/asset_system.hpp>
+#include <assets/asset_system/mesh_asset.hpp>
 #include <assets/loader.hpp>
 
 #include "../mesh.hpp"
@@ -26,15 +28,32 @@ class MeshLoader : public IAssetLoader<Mesh>
     {
         assert(pAsset->IsUnloaded());
         auto pMesh = AssetHandle<Mesh>(pAsset);
-        // TODO: Allow various loading modes...
-        return pMesh->Load(pMesh->GetID());
+
+        assets::AssetFile file;
+        auto loaded = assets::LoadBinaryFile(pMesh->GetID(), file);
+        if (!loaded)
+        {
+            return false;
+        }
+
+        assert(file.type == assets::EAssetType::Mesh);
+
+        auto info = assets::ReadMeshInfo(&file);
+        pMesh->m_indices.resize(info.indexBufferSize);
+        pMesh->m_vertices.resize(info.vertexBufferSize);
+        assets::UnpackMesh(&info, file.binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data());
+
+        return true;
     }
 
     void Unload(const AssetHandle<IAsset>& pAsset) override
     {
         assert(pAsset->IsLoaded());
+
         auto pMesh = AssetHandle<Mesh>(pAsset);
-        pMesh->Unload();
+        pMesh->m_vertices.clear();
+        pMesh->m_indices.clear();
+        pMesh->m_primitives.clear();
     }
 
     void Initialize(const AssetHandle<IAsset>& pAsset) override

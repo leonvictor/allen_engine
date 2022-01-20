@@ -41,12 +41,6 @@ class Mesh : public IAsset
     /// @brief Reset the vulkan buffers backing the mesh on GPU.
     void FreeGraphicResources();
 
-    /// @brief Load the mesh from the source file.
-    bool Load(std::string path);
-
-    /// @brief Free mesh resources.
-    void Unload();
-
   public:
     Mesh(AssetGUID& guid) : IAsset(guid) {}
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset);

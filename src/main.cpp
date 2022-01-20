@@ -88,8 +88,8 @@ void operator delete(void* ptr) noexcept
 namespace aln
 {
 
-const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.obj";
-const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.png";
+const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.mesh";
+const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
 const int MAX_MODELS = 50;
 
 class Engine
