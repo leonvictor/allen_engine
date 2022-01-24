@@ -6,6 +6,7 @@ add_library(${LIB_NAME}
     src/asset_system/mesh_asset.cpp
     src/asset_system/material_asset.cpp
     src/asset_system/prefab_asset.cpp
+    src/asset_system/animation_clip_asset.cpp
     
     src/type_descriptors/handle.cpp
     )

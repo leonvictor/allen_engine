@@ -32,11 +32,9 @@ MeshInfo ReadMeshInfo(AssetFile* file)
 
     info.vertexBufferSize = metadata["vertex_buffer_size"];
     info.indexBufferSize = metadata["index_buffer_size"];
-    info.indexSize = (uint8_t) metadata["index_size"];
+    info.indexTypeSize = (uint8_t) metadata["index_type_size"];
     info.originalFile = metadata["original_file"];
-
-    std::string compressionString = metadata["compression"];
-    info.compressionMode = ParseCompressionMode(compressionString.c_str());
+    info.compressionMode = ParseCompressionMode(metadata["compression"]);
 
     std::vector<float> boundsData;
     boundsData.reserve(7);
@@ -57,7 +55,7 @@ MeshInfo ReadMeshInfo(AssetFile* file)
     return info;
 }
 
-void UnpackMesh(const MeshInfo* info, const std::vector<std::byte>& sourcebuffer, std::byte* vertexBuffer, std::byte* indexBuffer)
+void UnpackMesh(const MeshInfo* info, const std::vector<std::byte>& sourceBuffer, std::byte* vertexBuffer, std::byte* indexBuffer)
 {
     // Decompressing into tmp vector.
     // TODO: Skip this step and decompress directly on the buffers
@@ -65,9 +63,9 @@ void UnpackMesh(const MeshInfo* info, const std::vector<std::byte>& sourcebuffer
     decompressedBuffer.resize(info->vertexBufferSize + info->indexBufferSize);
 
     LZ4_decompress_safe(
-        reinterpret_cast<const char*>(sourcebuffer.data()),
+        reinterpret_cast<const char*>(sourceBuffer.data()),
         reinterpret_cast<char*>(decompressedBuffer.data()),
-        static_cast<int>(sourcebuffer.size()),
+        static_cast<int>(sourceBuffer.size()),
         static_cast<int>(decompressedBuffer.size()));
 
     // Copy vertex buffer
@@ -83,20 +81,7 @@ AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
     file.type = EAssetType::Mesh;
     file.version = 1;
 
-    json metadata;
-    // if (info->vertexFormat == VertexFormat::P32N8C8V16)
-    // {
-    //     metadata["vertex_format"] = "P32N8C8V16";
-    // }
-    // else if (info->vertexFormat == VertexFormat::PNCV_F32)
-    // {
-    //     metadata["vertex_format"] = "PNCV_F32";
-    // }
-    metadata["vertex_buffer_size"] = info->vertexBufferSize;
-    metadata["index_buffer_size"] = info->indexBufferSize;
-    metadata["index_size"] = info->indexSize;
-    metadata["original_file"] = info->originalFile;
-
+    // Pack bounds info
     std::vector<float> boundsData;
     boundsData.resize(7);
 
@@ -110,10 +95,8 @@ AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
     boundsData[5] = info->bounds.extents[1];
     boundsData[6] = info->bounds.extents[2];
 
-    metadata["bounds"] = boundsData;
-
-    size_t fullsize = info->vertexBufferSize + info->indexBufferSize;
-    std::vector<std::byte> mergedBuffer(fullsize);
+    size_t fullSize = info->vertexBufferSize + info->indexBufferSize;
+    std::vector<std::byte> mergedBuffer(fullSize);
 
     // Copy vertex buffer
     memcpy(mergedBuffer.data(), vertexData, info->vertexBufferSize);
@@ -122,7 +105,7 @@ AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
     memcpy(mergedBuffer.data() + info->vertexBufferSize, indexData, info->indexBufferSize);
 
     // Find the worst-case compressed size
-    size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(fullsize));
+    size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(fullSize));
     file.binary.resize(maxCompressedSize);
 
     // Compress buffer and copy it into the file struct
@@ -135,7 +118,21 @@ AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
     // Resize back to the actual compressed size
     file.binary.resize(compressedSize);
 
+    json metadata;
+    metadata["vertex_buffer_size"] = info->vertexBufferSize;
+    metadata["index_buffer_size"] = info->indexBufferSize;
+    metadata["index_type_size"] = info->indexTypeSize;
+    metadata["bounds"] = boundsData;
+    metadata["original_file"] = info->originalFile;
     metadata["compression"] = "LZ4";
+    // if (info->vertexFormat == VertexFormat::P32N8C8V16)
+    // {
+    //     metadata["vertex_format"] = "P32N8C8V16";
+    // }
+    // else if (info->vertexFormat == VertexFormat::PNCV_F32)
+    // {
+    //     metadata["vertex_format"] = "PNCV_F32";
+    // }
 
     file.metadata = metadata.dump();
 

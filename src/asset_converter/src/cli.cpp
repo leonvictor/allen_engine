@@ -93,8 +93,8 @@ int main(int argc, char* argv[])
 
             ExtractAssimpMaterials(pScene, file.path(), folder, config);
             ExtractAssimpMeshes(pScene, file.path(), folder, config);
+            ExtractAssimpAnimation(pScene, file.path(), folder, config);
             ExtractAssimpNodes(pScene, file.path(), folder, config);
-
             // std::vector<aiMaterial*> materials;
             // std::vector<std::string> materialNames;
             // materials.reserve(pScene->mNumMaterials);

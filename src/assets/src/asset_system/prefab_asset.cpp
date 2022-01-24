@@ -32,7 +32,7 @@ PrefabInfo ReadPrefabInfo(AssetFile* file)
 
     for (auto pair : meshnodes)
     {
-        assets::PrefabInfo::NodeMesh node;
+        assets::PrefabInfo::NodeMeshInfo node;
 
         node.meshPath = pair.second["mesh_path"];
         node.materialPath = pair.second["material_path"];

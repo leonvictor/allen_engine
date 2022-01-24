@@ -44,7 +44,8 @@ struct MeshInfo
     uint64_t indexBufferSize;
     MeshBounds bounds;
     // VertexFormat vertexFormat; // TODO: that's a good idea
-    char indexSize;
+
+    uint8_t indexTypeSize; // In-memory size of an index (in bytes)
     CompressionMode compressionMode;
     std::string originalFile;
 };

@@ -5,17 +5,26 @@
 
 #include <glm/vec3.hpp>
 
+#include <assets/asset_system/animation_clip_asset.hpp>
 #include <assets/asset_system/asset_system.hpp>
 #include <assets/asset_system/material_asset.hpp>
 #include <assets/asset_system/mesh_asset.hpp>
 #include <assets/asset_system/prefab_asset.hpp>
 #include <assets/asset_system/texture_asset.hpp>
 
+#include <algorithm>
 #include <iostream>
+#include <map>
 
 namespace aln::assets::converter
 {
 namespace fs = std::filesystem;
+
+std::string SanitizePath(std::string path)
+{
+    std::replace(path.begin(), path.end(), '|', '_');
+    return path;
+}
 
 fs::path ConverterConfig::RelativeToOutput(const fs::path& path) const
 {
@@ -150,8 +159,15 @@ void ExtractAssimpMeshes(const aiScene* pScene, const fs::path& input, const fs:
 {
     for (int meshindex = 0; meshindex < pScene->mNumMeshes; meshindex++)
     {
-
         auto pMesh = pScene->mMeshes[meshindex];
+
+        // TODO: Extract Skeleton
+        // std::cout << pMesh->mNumBones << std::endl;
+        for (size_t boneIndex = 0; boneIndex < pMesh->mNumBones; ++boneIndex)
+        {
+            auto pBone = pMesh->mBones[boneIndex];
+            // std::cout << pBone->mName.C_Str() << std::endl;
+        }
 
         // using VertexFormat = assets::Vertex_f32_PNCV;
         // auto VertexFormatEnum = assets::VertexFormat::PNCV_F32;
@@ -207,9 +223,6 @@ void ExtractAssimpMeshes(const aiScene* pScene, const fs::path& input, const fs:
             indices.push_back(faceIndices[0]);
             indices.push_back(faceIndices[1]);
             indices.push_back(faceIndices[2]);
-            // indices[f * 3 + 0] = pMesh->mFaces[f].mIndices[0];
-            // indices[f * 3 + 1] = pMesh->mFaces[f].mIndices[1];
-            // indices[f * 3 + 2] = pMesh->mFaces[f].mIndices[2];
 
             // TODO: test this
             //assimp fbx creates bad normals, just regen them
@@ -233,17 +246,16 @@ void ExtractAssimpMeshes(const aiScene* pScene, const fs::path& input, const fs:
         // meshinfo.vertexFormat = VertexFormatEnum;
         meshinfo.vertexBufferSize = vertices.size() * sizeof(Vertex);
         meshinfo.indexBufferSize = indices.size() * sizeof(uint32_t);
-        meshinfo.indexSize = sizeof(uint32_t);
+        meshinfo.indexTypeSize = sizeof(uint32_t);
         meshinfo.originalFile = input.string();
+        meshinfo.bounds = CalculateBounds(vertices.data(), vertices.size());
 
-        meshinfo.bounds = assets::CalculateBounds(vertices.data(), vertices.size());
-
-        assets::AssetFile newFile = assets::PackMesh(&meshinfo, (char*) vertices.data(), (char*) indices.data());
+        AssetFile file = PackMesh(&meshinfo, (char*) vertices.data(), (char*) indices.data());
 
         fs::path meshpath = output / (meshName + ".mesh");
 
         // Save to disk
-        SaveBinaryFile(meshpath.string().c_str(), newFile);
+        SaveBinaryFile(meshpath.string(), file);
     }
 }
 
@@ -260,9 +272,91 @@ void ExtractAssimpMatrix(aiMatrix4x4& in, std::array<float, 16>& out)
     memcpy(&matrix, &out, sizeof(glm::mat4));
 }
 
+void ExtractAssimpAnimation(const aiScene* pScene, const fs::path input, const fs::path& outputFolder, const ConverterConfig& config)
+{
+    for (size_t animIndex = 0; animIndex < pScene->mNumAnimations; ++animIndex)
+    {
+        aiAnimation* pAnim = pScene->mAnimations[animIndex];
+
+        AnimationClipInfo animInfo;
+        animInfo.originalFile = input.string();
+        animInfo.name = pAnim->mName.C_Str();
+        animInfo.duration = pAnim->mDuration;
+        animInfo.framesPerSecond = pAnim->mTicksPerSecond;
+
+        // TODO: Handle Assimp MeshChannels
+        // TODO: Handle Assimp MorphChannels
+
+        std::vector<float> animData;
+        animInfo.tracks.reserve(pAnim->mNumChannels);
+        for (size_t channelIndex = 0; channelIndex < pAnim->mNumChannels; ++channelIndex)
+        {
+            auto pChannel = pAnim->mChannels[channelIndex];
+
+            // Assume keys are synchronized
+            // TODO: don't
+            auto numKeys = pChannel->mNumRotationKeys;
+            assert(numKeys == pChannel->mNumPositionKeys &&
+                   numKeys == pChannel->mNumScalingKeys
+                //    &&numKeys == pAnim->mDuration
+            );
+
+            TrackInfo trackInfo;
+            trackInfo.boneName = pChannel->mNodeName.C_Str();
+            trackInfo.numKeys = numKeys;
+
+            // BoneTrack track;
+            // track.boneName = pChannel->mNodeName.C_Str();
+            // track.frames.reserve(numKeys);
+
+            animData.reserve(animData.size() + (numKeys * (1 + 4 + 3 + 3)));
+            for (size_t keyIndex = 0; keyIndex < numKeys; keyIndex++)
+            {
+                // TODO: Key time might vary by channel
+                animData.push_back((float) pChannel->mPositionKeys[keyIndex].mTime);
+
+                auto translation = pChannel->mPositionKeys[keyIndex].mValue;
+                animData.push_back((float) translation.x);
+                animData.push_back((float) translation.y);
+                animData.push_back((float) translation.z);
+
+                auto rotation = pChannel->mRotationKeys[keyIndex].mValue;
+                animData.push_back((float) rotation.w);
+                animData.push_back((float) rotation.x);
+                animData.push_back((float) rotation.y);
+                animData.push_back((float) rotation.z);
+
+                auto scale = pChannel->mScalingKeys[keyIndex].mValue;
+                animData.push_back((float) scale.x);
+                animData.push_back((float) scale.y);
+                animData.push_back((float) scale.z);
+
+                // TODO: Handle Assimp pre and post state
+            }
+            animInfo.tracks.push_back(trackInfo);
+        }
+
+        AssetFile file = PackAnimationClip(&animInfo, animData);
+        fs::path path = outputFolder / (std::string(pAnim->mName.C_Str()) + ".anim");
+        SaveBinaryFile(SanitizePath(path.string()), file);
+    }
+}
 void ExtractAssimpNodes(const aiScene* pScene, const fs::path& input, const fs::path& outputFolder, const ConverterConfig& config)
 {
     PrefabInfo prefabInfo;
+
+    // TODO: Extract the meshes's skeletons
+    std::map<aiNode*, bool> skeletonNecessaryNodes;
+    std::function<void(aiNode*)> populateNodeMap = [&](aiNode* pNode)
+    {
+        skeletonNecessaryNodes[pNode] = false;
+        for (size_t childIndex = 0; childIndex < pNode->mNumChildren; ++childIndex)
+        {
+            populateNodeMap(pNode->mChildren[childIndex]);
+        }
+    };
+
+    populateNodeMap(pScene->mRootNode);
 
     std::array<float, 16> identityMatrix;
     {
@@ -307,14 +401,14 @@ void ExtractAssimpNodes(const aiScene* pScene, const fs::path& input, const fs::
             fs::path materialpath = outputFolder / (materialName + ".mat");
             fs::path meshpath = outputFolder / (meshName + ".mesh");
 
-            PrefabInfo::NodeMesh nodeMesh;
+            PrefabInfo::NodeMeshInfo nodeMesh;
             nodeMesh.meshPath = config.RelativeToOutput(meshpath).string();
             nodeMesh.materialPath = config.RelativeToOutput(materialpath).string();
 
             prefabInfo.nodeMeshes[lastNode] = nodeMesh;
             prefabInfo.nodeParents[lastNode] = nodeindex;
-
             prefabInfo.nodeTransforms[lastNode] = prefabInfo.transforms.size();
+
             prefabInfo.transforms.push_back(identityMatrix);
 
             lastNode++;
