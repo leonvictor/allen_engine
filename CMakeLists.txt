@@ -161,6 +161,7 @@ add_subdirectory(src/input)
 add_subdirectory(src/assets)
 add_subdirectory(src/asset_converter)
 add_subdirectory(src/editor)
+add_subdirectory(src/anim)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20) 

@@ -1,0 +1,10 @@
+Based on https://www.youtube.com/watch?v=Jkv0pbp0ckQ&t=2559s
+- Import anim data
+    - pick a first file format (fbx, gltf ?)
+- Compress the data (see "An idiot's guide to animation compression")
+- Sample the anim data based on current game framerate
+- Blending
+- Root Motion + Blending root motion
+- Animation events, sampling them
+- Sync tracks, to sync animations
+- Warping
