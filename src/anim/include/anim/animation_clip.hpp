@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bone_track.hpp"
 #include "pose.hpp"
+#include "track.hpp"
 
 #include <assets/asset.hpp>
 
@@ -13,7 +13,11 @@ namespace aln
 /// @todo : Clarify difference between animation & animationClip
 class AnimationClip : public IAsset
 {
+    friend class AnimationLoader;
+
   public:
+    AnimationClip(AssetGUID& guid) : IAsset(guid) {}
+
     /// @brief Sample the clip at a specific time
     /// @param time: Time to sample at
     /// @param pOutPose: Buffer to populate with the sampled pose
@@ -25,9 +29,9 @@ class AnimationClip : public IAsset
         {
             // TODO: how do we map bone->track ?
             //
-            const auto& track = m_tracks[bone.handle];
+            const auto& track = m_tracks[bone->m_handle];
             // auto transform = Sample(track, time); // TODO
-            pOutPose->SetTransform(bone.handle, track.Sample(time));
+            pOutPose->SetTransform(bone->m_handle, track.Sample(time));
         }
         // TODO
     }

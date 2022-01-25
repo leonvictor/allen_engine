@@ -5,6 +5,11 @@
 
 #include "track_key.hpp"
 
+#include <common/transform.hpp>
+
+#include <glm/ext/quaternion_common.hpp>
+#include <glm/gtx/compatibility.hpp>
+
 namespace aln
 {
 // struct QuantizationRange
@@ -41,23 +46,34 @@ namespace aln
 /// @todo Track contains **compressed** data
 class Track
 {
+    friend class AnimationLoader;
+
   public:
     size_t GetNumKeys() const { return m_keys.size(); }
+
     Transform Sample(float time) const
     {
-        TrackKey* before;
         auto it = m_keys.begin();
-        while (it->m_time() <= time)
+        while (it->m_time <= time)
         {
-            before = *it;
             ++it;
         }
-        TrackKey* after = *(++it);
+        const TrackKey& before = *it;
+        const TrackKey& after = *(++it);
+
+        // TODO: Sample
+        auto t = time / (after.m_time - before.m_time); // TODO !!
+        auto& beforeTransform = before.m_component;
+        auto& afterTransform = after.m_component;
+
+        Transform result;
+        result.SetTranslation(glm::lerp(beforeTransform.GetTranslation(), afterTransform.GetTranslation(), t));
+        result.SetScale(glm::lerp(beforeTransform.GetScale(), afterTransform.GetScale(), t));
+        result.SetRotation(glm::slerp(beforeTransform.GetRotation(), afterTransform.GetRotation(), t));
 
         // TODO: Handle loop behavior
-        // TODO: Sample
 
-        return before->m_component;
+        return result;
 
     } // TODO
 
