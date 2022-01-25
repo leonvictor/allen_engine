@@ -40,10 +40,10 @@
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
-#include <core/animation_component.hpp>
 #include <core/camera.hpp>
 #include <core/camera_controller.hpp>
 #include <core/component_factory.hpp>
+#include <core/components/animation_graph.hpp>
 #include <core/light.hpp>
 #include <core/mesh_renderer.hpp>
 #include <core/render_system.hpp>
@@ -248,7 +248,7 @@ class Engine
             auto pMesh = m_componentFactory.Create<MeshRenderer>();
             pMesh->SetLocalTransformPosition(pos);
             pCube->AddComponent(pMesh);
-            auto pAnim = m_componentFactory.Create<AnimationComponent>();
+            auto pAnim = m_componentFactory.Create<AnimationGraphComponent>();
             pCube->AddComponent(pAnim);
             i++;
         }

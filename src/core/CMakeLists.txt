@@ -8,7 +8,9 @@ add_library(${LIB_NAME} SHARED
     src/camera_controller.cpp
     src/time_system.cpp
     src/mesh.cpp
-    src/animation_component.cpp
+
+    src/components/animation_graph.cpp
+    src/components/skeletal_mesh.cpp
 
     src/systems/script.cpp
 
