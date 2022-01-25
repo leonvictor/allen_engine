@@ -70,7 +70,8 @@ AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data)
     // Resize back to the actual compressed size
     file.binary.resize(compressedSize);
 
-    std::vector<json> tracksMetadata(info->tracks.size());
+    std::vector<json> tracksMetadata;
+    tracksMetadata.reserve(info->tracks.size());
     for (auto& trackInfo : info->tracks)
     {
         json track;
