@@ -134,11 +134,11 @@ class Engine
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
         auto pAssetManager = std::make_shared<AssetManager>();
-        // TODO: Get rid of the default paths
-        pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
-        pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);
+        pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice);
+        pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
 
+        // TODO: Get rid of the default paths
         // Create a default context
         m_componentFactory.context = {
             .graphicsDevice = m_pDevice,

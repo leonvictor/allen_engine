@@ -29,13 +29,11 @@ class TextureLoader : public IAssetLoader<Texture>
 {
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
-    std::string m_defaultTexturePath;
 
   public:
-    TextureLoader(std::shared_ptr<vkg::Device> pDevice, std::string defaultTexturePath)
+    TextureLoader(std::shared_ptr<vkg::Device> pDevice)
     {
         m_pDevice = pDevice;
-        m_defaultTexturePath = defaultTexturePath;
     }
 
     bool Load(const AssetHandle<IAsset>& pAsset) override
