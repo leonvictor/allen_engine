@@ -8,6 +8,8 @@
 #include <core/mesh.hpp>
 #include <core/texture.hpp>
 
+#include <anim/animation_clip.hpp>
+
 #include <entities/entity_system.hpp>
 
 #include <glm/vec3.hpp>
@@ -100,6 +102,17 @@ void Editor::Display<AssetHandle<Mesh>>(void* pHandle, const char* label)
 }
 
 template <>
+void Editor::Display<AssetHandle<AnimationClip>>(void* pHandle, const char* label)
+{
+    auto& anim = ((AssetHandle<AnimationClip>*) pHandle)->get();
+    if (ImGui::CollapsingHeader("AnimationClip"))
+    {
+        // TODO: Edition
+        ImGui::Text(anim.GetID().c_str());
+    }
+}
+
+template <>
 void Editor::Display<AssetHandle<Material>>(void* pHandle, const char* label)
 {
     auto& material = ((AssetHandle<Material>*) pHandle)->get();
@@ -158,6 +171,7 @@ Editor::Editor()
     RegisterType<bool>();
     RegisterType<AssetHandle<Mesh>>();
     RegisterType<AssetHandle<Material>>();
+    RegisterType<AssetHandle<AnimationClip>>();
     RegisterType<RGBColor>();
     RegisterType<RGBAColor>();
     RegisterType<glm::vec3>();
