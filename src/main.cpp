@@ -40,6 +40,7 @@
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
+#include <core/animation_component.hpp>
 #include <core/camera.hpp>
 #include <core/camera_controller.hpp>
 #include <core/component_factory.hpp>
@@ -50,9 +51,12 @@
 #include <core/time_system.hpp>
 
 #include <assets/manager.hpp>
+#include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
+
+#include <anim/animation_clip.hpp>
 
 #include "IconsFontAwesome4.h"
 #include "imgui.h"
@@ -137,7 +141,7 @@ class Engine
         pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
-
+        pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
         // TODO: Get rid of the default paths
         // Create a default context
         m_componentFactory.context = {
@@ -244,6 +248,8 @@ class Engine
             auto pMesh = m_componentFactory.Create<MeshRenderer>();
             pMesh->SetLocalTransformPosition(pos);
             pCube->AddComponent(pMesh);
+            auto pAnim = m_componentFactory.Create<AnimationComponent>();
+            pCube->AddComponent(pAnim);
             i++;
         }
     }

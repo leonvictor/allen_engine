@@ -8,6 +8,7 @@ add_library(${LIB_NAME} SHARED
     src/camera_controller.cpp
     src/time_system.cpp
     src/mesh.cpp
+    src/animation_component.cpp
 
     src/systems/script.cpp
 
@@ -20,7 +21,7 @@ set(LIB_DEPENDENCIES
 )
 
 set(LIB_LINK_DEPENDENCIES 
-    glm utils common entities graphics input
+    glm utils common entities graphics input anim
     assets reflection)
 
 target_include_directories(${LIB_NAME} 

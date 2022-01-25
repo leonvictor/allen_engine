@@ -183,6 +183,7 @@ target_link_libraries(main PUBLIC
     entities 
     core
     editor
+    anim
     assimp::assimp)
 
 set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
