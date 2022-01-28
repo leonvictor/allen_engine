@@ -21,11 +21,20 @@ class Skeleton : public IAsset
 {
   private:
     Bone m_rootBone;
-
     // TODO: Default poses (bind for the rendering skeleton, reference for the anim one)
+
   public:
-    uint32_t GetNumBones() const;
+    uint32_t GetNumBones() const
+    {
+        // TODO
+        return 0;
+    }
+
     /// @brief Get a flattened list of this skeleton's bones
-    std::vector<const Bone*> GetBones() const;
+    std::vector<const Bone*> GetBones() const
+    {
+        // TODO
+        return std::vector<const Bone*>();
+    }
 };
 } // namespace aln

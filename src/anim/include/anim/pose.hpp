@@ -13,15 +13,17 @@ namespace aln
 /// @brief Container for the transforms of all bones in a skeleton
 class Pose
 {
+    friend class Blender;
+
   public:
-    enum class InitialState
+    enum class InitialState : uint8_t
     {
         None,
         ReferencePose,
         ZeroPose,
     };
 
-    enum class State
+    enum class State : uint8_t
     {
         Unset,
         Pose,

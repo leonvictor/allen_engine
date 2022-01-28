@@ -14,17 +14,14 @@ namespace aln
 class TaskSystem
 {
   private:
-    // TODO: Tasks will request, free and transfer pose buffers from the pool
-    std::vector<PoseBuffer> m_poseBufferPool;
-    // TODO: Pool dynamically grow if more poses are requested
+    // TODO:
+    // PoseBufferPool m_poseBufferPool;
 
     std::vector<Task> m_registeredTasks;
 
   public:
     TaskSystem()
     {
-        // avg size = ~5 poses per pool
-        m_poseBufferPool.resize(5);
     }
 
     TaskIndex RegisterTask()

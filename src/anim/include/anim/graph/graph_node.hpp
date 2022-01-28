@@ -33,15 +33,23 @@ struct InitOptions
 class GraphNode
 {
   public:
-    class Runtime
+    struct Runtime
     {
- // TODO: Pointer to the runtime graph DEFINITION, which holds the settings values
+        // TODO: Pointer to the runtime graph DEFINITION, which holds the settings values
+        template <typename T>
+        T::Settings* GetSettings() const
+        {
+            // TODO: Runtime nodes do not contain data, and instead point to the memory where the "graph definition" lies
+            // return static_cast<T::Settings*>(m_settings);
+            return new T::Settings();
+        }
     };
+
     class Settings
     {
       protected:
         /// @brief Create a node, add it to the list and return a pointer to it
-        /// @param nodePtrs: Pre-allocated node memory chunk
+        /// @param nodePtrs: Pointers to the allocated node memory, by index
         /// @param options: TODO
         template <typename T>
         T::Runtime* CreateNode(const std::vector<GraphNode*>& nodePtrs, InitOptions options) const
@@ -50,10 +58,14 @@ class GraphNode
             // TODO: The vector is pre-allocated. Placement-new a node of type T in there !
             // TODO: Does emplace_back(new T(...)) use placement-new ?
 
+            // TODO: Maybe something like
+            // (*nodePtrs[myIndex]) = T::Runtime(options);
+            // ?
+
             // TODO: nodePtrs is const. How do we insert in it ?
             // GraphNode* ptr = nodePtrs.emplace_back(new T);
-            T* ptr;
-            return static_cast<T*>(ptr);
+            // return static_cast<T::Runtime*>(ptr);
+            return new T::Runtime();
         }
 
         /// @brief Set a node based on a given index, only if the index was set
@@ -62,8 +74,7 @@ class GraphNode
             if (nodeIndex == InvalidIndex)
                 return;
 
-            assert(nodeIndex < nodePtrs.size());
-            pNode = nodePtrs[InvalidIndex];
+            pNode = nodePtrs[nodeIndex];
         }
 
       public:
@@ -81,15 +92,10 @@ class GraphNode
     virtual NodeValueType GetValueType() const { return NodeValueType::Unknown; }; // ?
 
   private:
-    GraphNode::Settings* m_settings; // TODO
+    NodeIndex m_index = InvalidIndex;
 
   public:
-    template <typename T>
-    T::Settings* GetSettings() const
-    {
-        // TODO: Runtime nodes do not contain data, and instead point to the memory where the "graph definition" lies
-        return static_cast<T::Settings*>(m_settings);
-    }
+    NodeIndex GetIndex() const { return m_index; }
 };
 
 } // namespace aln

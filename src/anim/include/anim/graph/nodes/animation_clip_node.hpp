@@ -13,7 +13,7 @@ namespace aln
 class AnimationClipNode : public PoseNode
 {
   public:
-    struct Runtime : public PoseNode
+    struct Runtime : public GraphNode::Runtime
     {
         Task* m_pTask;
         ValueNode* m_pPlayInReverseValueNode = nullptr; // TODO: Actually a boolNode
