@@ -11,7 +11,7 @@
 namespace aln
 {
 
-class MeshRenderer;
+class StaticMeshComponent;
 class Light;
 class Camera;
 
@@ -30,7 +30,7 @@ class GraphicsSystem : public entities::IWorldSystem
 {
     vkg::render::IRenderer* m_pRenderer = nullptr;
 
-    aln::entities::ComponentsRegistry<MeshRenderer> m_meshComponents;
+    aln::entities::ComponentsRegistry<StaticMeshComponent> m_meshComponents;
     aln::entities::ComponentsRegistry<Light> m_lightComponents;
 
     Camera* m_pCameraComponent = nullptr;

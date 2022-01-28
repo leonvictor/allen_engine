@@ -44,8 +44,8 @@
 #include <core/camera_controller.hpp>
 #include <core/component_factory.hpp>
 #include <core/components/animation_graph.hpp>
+#include <core/components/static_mesh.hpp>
 #include <core/light.hpp>
-#include <core/mesh_renderer.hpp>
 #include <core/render_system.hpp>
 #include <core/systems/script.hpp>
 #include <core/time_system.hpp>
@@ -245,7 +245,7 @@ class Engine
         {
             // TODO: This api is too verbose
             Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
-            auto pMesh = m_componentFactory.Create<MeshRenderer>();
+            auto pMesh = m_componentFactory.Create<StaticMeshComponent>();
             pMesh->SetLocalTransformPosition(pos);
             pCube->AddComponent(pMesh);
             auto pAnim = m_componentFactory.Create<AnimationGraphComponent>();
@@ -364,7 +364,7 @@ class Engine
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f));
-                            auto pMesh = m_componentFactory.Create<MeshRenderer>();
+                            auto pMesh = m_componentFactory.Create<StaticMeshComponent>();
                             pMesh->SetLocalTransformPosition(pos);
                             pCube->AddComponent(pMesh);
                             pCube->CreateSystem<ScriptSystem>();

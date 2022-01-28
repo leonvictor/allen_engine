@@ -19,7 +19,7 @@ namespace aln
 {
 
 // fwd
-class MeshRenderer;
+class StaticMeshComponent;
 class Light;
 
 namespace vkg::render
@@ -180,7 +180,7 @@ class IRenderer
         // TODO: Get rid of the hard-coded descriptor layout registration.
         // We could discover them from the cache ? Or they could be associated with pipelines when they're created ?
         pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
-        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::MeshRenderer>());
+        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::StaticMeshComponent>());
         pipelines.objects.Create("objects_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(pipelines.objects.GetVkPipeline(), "Objects Pipeline");
 
@@ -193,7 +193,7 @@ class IRenderer
         // pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
         // pipelines.skybox.SetDepthTestWriteEnable(true, false);
         // pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
-        // // pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<MeshRenderer>());
+        // // pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<StaticMeshComponent>());
         // pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
         // m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
     }

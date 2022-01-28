@@ -12,10 +12,10 @@
 
 #include <entities/spatial_component.hpp>
 
-#include "component_factory.hpp"
-#include "material.hpp"
-#include "mesh.hpp"
-#include "texture.hpp"
+#include "../component_factory.hpp"
+#include "../material.hpp"
+#include "../mesh.hpp"
+#include "../texture.hpp"
 
 #include <assets/handle.hpp>
 #include <assets/type_descriptors/handles.hpp>
@@ -28,9 +28,9 @@ class Device;
 struct UniformBufferObject;
 } // namespace vkg
 
-/// @brief The MeshRenderer component holds a mesh, its material, and the vulkan objects
+/// @brief The StaticMeshComponent component holds a mesh, its material, and the vulkan objects
 // representing them on the GPU.
-class MeshRenderer : public entities::SpatialComponent
+class StaticMeshComponent : public entities::SpatialComponent
 {
     ALN_REGISTER_TYPE();
 

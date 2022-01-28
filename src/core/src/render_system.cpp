@@ -3,8 +3,8 @@
 #include <graphics/rendering/renderer.hpp>
 
 #include "camera.hpp"
+#include "components/static_mesh.hpp"
 #include "light.hpp"
-#include "mesh_renderer.hpp"
 
 #include <entities/entity.hpp>
 #include <entities/object_model.hpp>
@@ -144,7 +144,7 @@ void GraphicsSystem::RegisterComponent(const entities::Entity* pEntity, entities
         return;
     }
 
-    auto pMeshRenderer = dynamic_cast<MeshRenderer*>(pComponent);
+    auto pMeshRenderer = dynamic_cast<StaticMeshComponent*>(pComponent);
     if (pMeshRenderer != nullptr)
     {
         m_meshComponents.AddRecordEntry(pEntity->GetID(), pMeshRenderer);
@@ -173,7 +173,7 @@ void GraphicsSystem::UnregisterComponent(const entities::Entity* pEntity, entiti
         return;
     }
 
-    auto pMeshRenderer = dynamic_cast<MeshRenderer*>(pComponent);
+    auto pMeshRenderer = dynamic_cast<StaticMeshComponent*>(pComponent);
     if (pMeshRenderer != nullptr)
     {
         m_meshComponents.RemoveRecordEntry(pEntity->GetID(), pMeshRenderer);
