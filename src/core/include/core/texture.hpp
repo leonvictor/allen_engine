@@ -10,7 +10,7 @@ class Texture : public IAsset
 {
     // TODO: friends shouldn't be necessary
     friend class TextureLoader;
-    friend class MeshRenderer;
+    friend class StaticMeshComponent;
 
   private:
     vkg::resources::Image m_image;
