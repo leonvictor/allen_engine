@@ -93,34 +93,34 @@ void Editor::RegisterType()
 template <>
 void Editor::Display<AssetHandle<Mesh>>(void* pHandle, const char* label)
 {
-    auto& mesh = ((AssetHandle<Mesh>*) pHandle)->get();
+    auto pMesh = ((AssetHandle<Mesh>*) pHandle)->get();
     if (ImGui::CollapsingHeader("Mesh"))
     {
         // TODO: Edition
-        ImGui::Text(mesh.GetID().c_str());
+        ImGui::Text(pMesh->GetID().c_str());
     }
 }
 
 template <>
 void Editor::Display<AssetHandle<AnimationClip>>(void* pHandle, const char* label)
 {
-    auto& anim = ((AssetHandle<AnimationClip>*) pHandle)->get();
+    auto pAnim = ((AssetHandle<AnimationClip>*) pHandle)->get();
     if (ImGui::CollapsingHeader("AnimationClip"))
     {
         // TODO: Edition
-        ImGui::Text(anim.GetID().c_str());
+        ImGui::Text(pAnim->GetID().c_str());
     }
 }
 
 template <>
 void Editor::Display<AssetHandle<Material>>(void* pHandle, const char* label)
 {
-    auto& material = ((AssetHandle<Material>*) pHandle)->get();
+    auto pMaterial = ((AssetHandle<Material>*) pHandle)->get();
 
     if (ImGui::CollapsingHeader("Material"))
     {
         // TODO: Edition
-        ImGui::Text(material.GetID().c_str());
+        ImGui::Text(pMaterial->GetID().c_str());
     }
 }
 

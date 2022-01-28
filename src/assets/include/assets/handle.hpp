@@ -23,7 +23,7 @@ class AssetHandle
   public:
     ~AssetHandle()
     {
-        if (use_count() <= 1)
+        if (use_count() == 1)
         {
             delete m_pLoadedCount;
             delete m_pInitializedCount;
@@ -33,7 +33,7 @@ class AssetHandle
 
     AssetHandle() = default;
 
-    /// @brief Create a new handle to a asset, taking ownership of it
+    /// @brief Create a new handle to an asset, taking ownership of it
     AssetHandle(std::shared_ptr<T> pAsset) : m_pAsset(std::move(pAsset)), m_pInitializedCount(new size_t(0)), m_pLoadedCount(new size_t(0)) {}
 
     /// @brief Copy constructs a handled asset, sharing ownership
@@ -53,7 +53,8 @@ class AssetHandle
     size_t load_count() const { return *m_pLoadedCount; }
     size_t initialized_count() const { return *m_pInitializedCount; }
 
-    T& get() const { return *m_pAsset; }
+    // Non-const access to the underlying asset
+    T* get() const { return m_pAsset.get(); }
     T& operator*() const { return *m_pAsset.get(); }
     T* operator->() const { return m_pAsset.get(); }
 

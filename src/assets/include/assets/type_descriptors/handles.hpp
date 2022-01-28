@@ -20,10 +20,8 @@ struct TypeDescriptor_AssetHandle : TypeDescriptor
     TypeDescriptor_AssetHandle(T*) : TypeDescriptor{"AssetHandle", sizeof(AssetHandle<T>), std::type_index(typeid(AssetHandle<T>))},
                                      assetType{TypeResolver<T>::get()}
     {
-        getAsset = [](void* ptr) -> void*
-        {
-            AssetHandle<T>& assetHandle = *(AssetHandle<T>*) ptr;
-            return &assetHandle.get();
+        getAsset = [](void* ptr) -> void* {
+            return ((AssetHandle<T>*) ptr)->get();
         };
     }
 
