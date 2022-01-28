@@ -1,7 +1,5 @@
 #include "mesh.hpp"
 
-#include <tiny_obj_loader.h>
-
 #include <graphics/ubo.hpp>
 #include <utils/files.hpp>
 
