@@ -2,6 +2,7 @@
 
 #include "../graph_context.hpp"
 #include "../passthrough_node.hpp"
+#include "../value_node.hpp"
 
 #include <common/math.hpp>
 
@@ -13,11 +14,14 @@ class SpeedScaleNode : public PassthroughNode
     float m_blendWeight = 1.0f;
     ValueNode* m_pScaleValueNode = nullptr;
 
-    // TODO
-    float GetSpeedScale(GraphContext& context);
+    float GetSpeedScale(GraphContext& context)
+    {
+        assert(m_pScaleValueNode != nullptr);
+        return m_pScaleValueNode->GetValue<float>();
+    }
 
   public:
-    struct Settings : public PassthroughNode
+    struct Settings : public GraphNode::Settings
     {
         float m_blendTime;
     };
@@ -44,6 +48,8 @@ class SpeedScaleNode : public PassthroughNode
                     speedScale = Math::Lerp(1.0f, speedScale, m_blendWeight);
                 }
 
+                // Direct access to the context time delta is not safe enough
+                // TODO: Build a safer mechanism, such as a guard value
                 context.m_deltaTime *= speedScale;
                 m_duration = m_pChildNode->GetDuration() / speedScale;
             }

@@ -5,6 +5,8 @@
 
 #include <common/transform.hpp>
 
+#include "types.hpp"
+
 #include "../event.hpp"
 #include "../sync_track.hpp"
 #include "graph_node.hpp"
@@ -12,13 +14,6 @@
 
 namespace aln
 {
-using Seconds = float;
-using Percentage = float;
-
-struct PoseTask
-{
-    std::vector<TaskIndex> m_dependencies;
-};
 
 struct SampledEventRange
 {
@@ -26,18 +21,15 @@ struct SampledEventRange
 
 struct PoseNodeResult
 {
-    uint32_t m_taskIdx; // todo
-
-  public:
-    inline bool HasRegisteredTasks() const { return m_taskIdx != InvalidIndex; }
-
     TaskIndex m_taskIndex = InvalidIndex;
-    Transform m_rootMotionDelta = Transform::Identity;
-    SampledEventRange m_sampledEventRange;
+    Transform m_rootMotionDelta = Transform::Identity; // Delta that was sampled at that node
+    SampledEventRange m_sampledEventRange;             // Event range sampled by that node
+
+    inline bool HasRegisteredTasks() const { return m_taskIndex != InvalidIndex; }
 };
 
 /// @brief Animation graph node responsible for managing time. Contains the logic needed to calculate the final pose.
-/// Tracka and update time per node
+/// Track and update time per node
 /// Synchronization
 /// Register pose generation tasks
 /// Sampling and modifying root motion deltas
@@ -45,10 +37,6 @@ struct PoseNodeResult
 class PoseNode : public GraphNode
 {
   protected:
-    class Settings : public GraphNode::Settings
-    {
-    };
-
     uint32_t m_loopCount = 0;
     Seconds m_duration = 0.0f;
     Percentage m_currentTime = 0.0f;  // Clamped percentage over the duration
@@ -71,10 +59,12 @@ class PoseNode : public GraphNode
     void Initialize(GraphContext& context, const SyncTrackTime& InitialTime = SyncTrackTime());
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime);
 
-    // Unsynchronized update
+    /// @brief Unsynchronized update
+    /// @note Use the time delta for the current step
     virtual PoseNodeResult Update(GraphContext& context) = 0;
 
-    // Synchronized update
+    /// @brief Synchronized update
+    /// @note Use the time range given as argument
     virtual PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) = 0;
 
     // Deactivate a previous active branch, this is needed when triggering transitions

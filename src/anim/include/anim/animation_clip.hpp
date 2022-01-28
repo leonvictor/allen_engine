@@ -30,7 +30,6 @@ class AnimationClip : public IAsset
             // TODO: how do we map bone->track ?
             //
             const auto& track = m_tracks[bone->m_handle];
-            // auto transform = Sample(track, time); // TODO
             pOutPose->SetTransform(bone->m_handle, track.Sample(time));
         }
         // TODO

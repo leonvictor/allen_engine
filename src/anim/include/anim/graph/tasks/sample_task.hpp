@@ -17,7 +17,7 @@ class SampleTask : public Task
         assert(m_pAnimation != nullptr);
     }
 
-    void Execute(const TaskContext& context)
+    void Execute(const TaskContext& context) override
     {
         assert(m_pAnimation != nullptr);
 

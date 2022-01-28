@@ -31,7 +31,7 @@ class Pose
     };
 
   private:
-    const Skeleton* m_pSkeleton;
+    const Skeleton* m_pSkeleton = nullptr;
     std::vector<Transform> m_localTransforms;  // Parent-space transforms
     std::vector<Transform> m_globalTransforms; // Character-space transforms
     State m_state = State::Unset;
@@ -63,11 +63,11 @@ class Pose
     inline void ClearGlobalTransforms() { m_globalTransforms.clear(); }
     inline const std::vector<Transform>& GetGlobalTransforms() const { return m_globalTransforms; }
     void CalculateGlobalTransforms();
-    Transform GetGlobalTransforms(uint32_t boneIndex) const;
+    Transform GetGlobalTransforms(uint32_t boneIdx) const;
 
     // Getters
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton; }
-    size_t GetNumBones() { return m_localTransforms.size(); };
+    size_t GetNumBones() const { return m_localTransforms.size(); };
 
     // Local Transforms
     Transform GetTransform(uint32_t boneIdx);

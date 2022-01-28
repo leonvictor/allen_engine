@@ -7,6 +7,7 @@
 
 #include <common/transform.hpp>
 
+#include "../bone_mask.hpp"
 #include "../sync_track.hpp"
 #include "graph_node.hpp"
 

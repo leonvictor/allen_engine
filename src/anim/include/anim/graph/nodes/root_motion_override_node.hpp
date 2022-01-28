@@ -43,7 +43,7 @@ struct OverrideFlagsSet
 class RootMotionOverrideNode : public PassthroughNode
 {
   public:
-    struct Settings : public PassthroughNode::Settings
+    struct Settings : public GraphNode::Settings
     {
         OverrideFlagsSet m_overrideFlags;
         float m_maxLinearVelocity;

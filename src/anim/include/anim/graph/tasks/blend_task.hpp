@@ -30,8 +30,8 @@ class BlendTask : public Task
     BitFlags<PoseBlend> m_blendOptions;
 
   public:
-    BlendTask(NodeIndex sourceNodeIdx, TaskIndex sourceTaskIndex, TaskIndex targetTeskIndex, float const blendWeight, BitFlags<PoseBlend> blendOptions, const BoneMask* pBoneMask)
-        : Task(sourceNodeIdx, UpdateStage::Any, {sourceTaskIndex, targetTeskIndex}),
+    BlendTask(NodeIndex sourceNodeIdx, TaskIndex sourceTaskIndex, TaskIndex targetTaskIndex, float const blendWeight, BitFlags<PoseBlend> blendOptions, const BoneMask* pBoneMask)
+        : Task(sourceNodeIdx, UpdateStage::Any, {sourceTaskIndex, targetTaskIndex}),
           m_blendWeight(blendWeight),
           m_pBoneMask(pBoneMask),
           m_blendOptions(blendOptions)

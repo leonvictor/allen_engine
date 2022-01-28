@@ -8,24 +8,48 @@ namespace aln
 // TODO
 class PassthroughNode : public PoseNode
 {
+  private:
+    std::vector<PoseNode*> m_pChildNodes; // todo
+
   protected:
-    struct Settings : public PoseNode::Settings
-    {
-    };
-
-    PoseNode* m_pChildNode; // todo
-
     PoseNodeResult Update(GraphContext& context) override
     {
-        return m_pChildNode->Update(context);
+        // TODO: Where does task registration happen ?
+        // TODO: We should provide dependencies on children here ?
+        PoseNodeResult result;
+        std::vector<TaskIndex> wouldBeTaskDependencies;
+        for (auto& pChild : m_pChildNodes)
+        {
+            // TODO: Populate dependencies
+            auto res = pChild->Update(context);
+            if (res.HasRegisteredTasks())
+            {
+                wouldBeTaskDependencies.push_back(res.m_taskIndex);
+            }
+        }
+
+        return result;
     }
 
     PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) override
     {
-        return m_pChildNode->Update(context, updateRange);
+        PoseNodeResult result;
+        for (auto& pChild : m_pChildNodes)
+        {
+            pChild->Update(context, updateRange);
+        }
+        return result;
     }
 
   public:
-    bool IsChildValid() const; // todo
+    virtual const SyncTrack& GetSyncTrack() override const {
+        // TODO: Abstract method impl ?
+    };
+
+    bool IsChildValid(const size_t index = 0) const
+    {
+        assert(index < m_pChildNodes.size());
+        return m_pChildNodes[index]->IsValid();
+    }
 };
 } // namespace aln

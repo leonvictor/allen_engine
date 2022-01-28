@@ -28,6 +28,8 @@ class Transform
     Transform& operator=(const Transform& other);
     bool operator==(const Transform& b);
     bool operator!=(const Transform& b);
+
+    const static Transform Identity;
 };
 
 } // namespace aln

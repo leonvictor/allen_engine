@@ -2,7 +2,9 @@
 
 #include <vector>
 
+#include "../pose.hpp"
 #include "../skeleton.hpp"
+#include "task_system.hpp"
 
 #include <common/transform.hpp>
 
@@ -10,57 +12,44 @@ namespace aln
 {
 
 // TODO: Where ?
-enum class BranchState
+enum class BranchState : uint8_t
 {
     Inactive,
     Active,
 };
 
-// TODO
-struct PoseBuffer
-{
-    Pose m_pose;
-};
-
-// TODO
-struct TaskSystem
-{
-    std::vector<PoseBuffer> m_poseBufferPool;
-    // TODO: Tasks will request, free and transfer pose buffers from the pool
-    // Pool dynamically grow if more poses are requested
-    // avg size = ~5 poses per pool
-};
-
 struct SampledEventsBuffer
 {
+    // TODO
 };
 
 struct BoneMasksPool
 {
+    // TODO
 };
 
 struct GraphLayerContext
 {
+    // TODO
 };
+
 struct RootMotionActionRecorder
 {
+    // TODO
 };
 
-using NodeIndex = uint32_t;
-using Seconds = float;
-
+/// @brief Contains all the necessary data for a graph instance to execute
+/// Gets passed trough and used by each node.
 class GraphContext
 {
   public:
-    static const NodeIndex InvalidIndex = UINT32_MAX;
-
-    const TaskSystem* m_pTaskSystem = nullptr;
+    const TaskSystem* m_pTaskSystem = nullptr; // Task system to register to
     const Skeleton const* m_pSkeleton = nullptr;
-    const Pose const* m_pPreviousPose = nullptr;
+    const Pose const* m_pPreviousPose = nullptr; // Pose from last frame
     Seconds m_deltaTime = 0.0f;
-    Transform m_worldTransform = Transform::Identity;
-    Transform m_worldTransformInverse = Transform::Identity;
-    SampledEventsBuffer m_sampledEvents;
+    Transform m_worldTransform = Transform::Identity;        // World transform of the considered character this frame
+    Transform m_worldTransformInverse = Transform::Identity; // Inverse world transform of the character this frame
+    SampledEventsBuffer m_sampledEvents;                     // Event buffer to fill with sampled events
     uint32_t m_updateId = 0;
     BranchState m_branchState = BranchState::Active;
 
