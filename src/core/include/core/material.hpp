@@ -16,7 +16,7 @@ namespace aln
 class Material : public IAsset
 {
     friend class MaterialLoader;
-    friend class StaticMeshComponent;
+    friend class MeshComponent;
 
   private:
     // TODO: Other maps
