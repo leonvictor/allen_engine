@@ -2,7 +2,6 @@ set(LIB_NAME core)
 
 add_library(${LIB_NAME} SHARED
     src/camera.cpp
-    src/mesh_renderer.cpp
     src/light.cpp
     src/render_system.cpp
     src/camera_controller.cpp
@@ -10,6 +9,8 @@ add_library(${LIB_NAME} SHARED
     src/mesh.cpp
 
     src/components/animation_graph.cpp
+    src/components/mesh.cpp
+    src/components/static_mesh.cpp
     src/components/skeletal_mesh.cpp
 
     src/systems/script.cpp

@@ -1,11 +1,11 @@
-#include "components/static_mesh.hpp"
+#include "components/mesh.hpp"
 
 #include <graphics/device.hpp>
 
 namespace aln
 {
 
-void StaticMeshComponent::CreateUniformBuffer()
+void MeshComponent::CreateUniformBuffer()
 {
     m_uniformBuffer = vkg::resources::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
@@ -14,10 +14,10 @@ void StaticMeshComponent::CreateUniformBuffer()
 // We could extract this part and use a method where each objects requests a descriptor from the pool ?
 // Each descriptable Component should register its descriptor to its parent object
 // *before* creation
-void StaticMeshComponent::CreateDescriptorSet()
+void MeshComponent::CreateDescriptorSet()
 {
-    m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<StaticMeshComponent>();
-    m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), "StaticMeshComponent Descriptor Set");
+    m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<MeshComponent>();
+    m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), "MeshComponent Descriptor Set");
 
     std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
 
@@ -49,7 +49,7 @@ void StaticMeshComponent::CreateDescriptorSet()
     m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
 }
 
-std::vector<vk::DescriptorSetLayoutBinding> StaticMeshComponent::GetDescriptorSetLayoutBindings()
+std::vector<vk::DescriptorSetLayoutBinding> MeshComponent::GetDescriptorSetLayoutBindings()
 {
     std::vector<vk::DescriptorSetLayoutBinding> bindings{
         {
@@ -80,20 +80,20 @@ std::vector<vk::DescriptorSetLayoutBinding> StaticMeshComponent::GetDescriptorSe
     return bindings;
 }
 
-void StaticMeshComponent::UpdateUniformBuffers(vkg::UniformBufferObject& ubo)
+void MeshComponent::UpdateUniformBuffers(vkg::UniformBufferObject& ubo)
 {
     m_uniformBuffer.Map(0, sizeof(ubo));
     m_uniformBuffer.Copy(&ubo, sizeof(ubo));
     m_uniformBuffer.Unmap();
 }
 
-vk::DescriptorSet& StaticMeshComponent::GetDescriptorSet() { return m_vkDescriptorSet.get(); }
+vk::DescriptorSet& MeshComponent::GetDescriptorSet() { return m_vkDescriptorSet.get(); }
 
 // -------------------------------------------------
 // Components Methods
 // -------------------------------------------------
 
-void StaticMeshComponent::Initialize()
+void MeshComponent::Initialize()
 {
     m_pAssetManager->Initialize<Mesh>(m_pMesh);
     CreateUniformBuffer();
@@ -101,7 +101,7 @@ void StaticMeshComponent::Initialize()
     CreateDescriptorSet();
 }
 
-void StaticMeshComponent::Shutdown()
+void MeshComponent::Shutdown()
 {
     m_vkDescriptorSet.reset();
 
@@ -113,7 +113,7 @@ void StaticMeshComponent::Shutdown()
     m_pDevice.reset();
 }
 
-bool StaticMeshComponent::Load()
+bool MeshComponent::Load()
 {
     // Short circuit
     if (!m_pAssetManager->Load<Mesh>(m_pMesh))
@@ -130,14 +130,9 @@ bool StaticMeshComponent::Load()
     return true;
 }
 
-void StaticMeshComponent::Unload()
+void MeshComponent::Unload()
 {
     m_pAssetManager->Unload<Mesh>(m_pMesh);
     m_pAssetManager->Unload<Material>(m_pMaterial);
 }
 } // namespace aln
-
-ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::StaticMeshComponent)
-ALN_REFLECT_MEMBER(m_pMesh)
-ALN_REFLECT_MEMBER(m_pMaterial)
-ALN_REGISTER_IMPL_END()
