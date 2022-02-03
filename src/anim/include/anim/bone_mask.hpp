@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types.hpp"
+
 #include <vector>
 
 namespace aln
@@ -13,7 +15,7 @@ class BoneMask
     // Based on animation skeleton
 
   public:
-    uint32_t GetNumWeights() const { return boneWeights.size(); }
-    float GetBoneWeight(uint32_t boneIdx) const { return boneWeights.at(boneIdx); }
+    size_t GetNumWeights() const { return boneWeights.size(); }
+    float GetBoneWeight(BoneIndex boneIdx) const { return boneWeights.at(boneIdx); }
 };
 } // namespace aln

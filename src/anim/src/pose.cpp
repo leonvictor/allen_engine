@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pose.hpp"
+#include "skeleton.hpp"
 
 namespace aln
 {
@@ -8,6 +9,7 @@ namespace aln
 Pose::Pose(const Skeleton* pSkeleton, InitialState initialState)
     : m_pSkeleton(pSkeleton)
 {
+    assert(pSkeleton != nullptr);
     Reset(initialState, false);
 }
 
@@ -45,13 +47,18 @@ void Pose::Reset(InitialState initState, bool calcGlobalPose)
     {
         m_globalTransforms.clear();
         m_localTransforms.clear();
-        m_localTransforms.resize(m_pSkeleton->GetNumBones());
+        // TODO:
+        // m_localTransforms.resize(m_pSkeleton->GetNumBones());
         m_state = State::Unset;
     }
     break;
     case InitialState::ReferencePose:
     {
         // TODO: Set all transforms to the bone's reference
+        // TODO: Copy here or condition in getters ? (if m_state == State::ReferencePose) {...}
+        const auto ref = m_pSkeleton->GetReferencePose();
+        m_localTransforms = ref->m_localTransforms;
+        m_globalTransforms = ref->m_globalTransforms;
         m_state = State::ReferencePose;
     }
     break;
@@ -69,7 +76,8 @@ void Pose::Reset(InitialState initState, bool calcGlobalPose)
     }
     else
     {
-        m_globalTransforms.reserve(m_pSkeleton->GetNumBones());
+        // TODO:
+        // m_globalTransforms.reserve(m_pSkeleton->GetNumBones());
     }
 }
 
@@ -78,39 +86,39 @@ void Pose::CalculateGlobalTransforms()
     // TODO
 }
 
-Transform Pose::GetGlobalTransforms(uint32_t boneIdx) const
+Transform Pose::GetGlobalTransform(BoneIndex boneIdx) const
 {
     assert(boneIdx < m_pSkeleton->GetNumBones());
     assert(boneIdx < m_globalTransforms.size());
     return m_globalTransforms[boneIdx];
 }
 
-Transform Pose::GetTransform(uint32_t boneIdx)
+Transform Pose::GetTransform(BoneIndex boneIdx)
 {
     assert(boneIdx < m_pSkeleton->GetNumBones());
     assert(boneIdx < m_localTransforms.size());
     return m_localTransforms[boneIdx];
 }
 
-void Pose::SetTransform(uint32_t boneIdx, const Transform& transform)
+void Pose::SetTransform(BoneIndex boneIdx, const Transform& transform)
 {
     assert(boneIdx < m_localTransforms.size());
     m_localTransforms[boneIdx] = transform;
 }
 
-void Pose::SetTranslation(uint8_t boneIdx, const glm::vec3& translation)
+void Pose::SetTranslation(BoneIndex boneIdx, const glm::vec3& translation)
 {
     assert(boneIdx < m_localTransforms.size());
     m_localTransforms[boneIdx].SetTranslation(translation);
 }
 
-void Pose::SetScale(uint8_t boneIdx, const glm::vec3& scale)
+void Pose::SetScale(BoneIndex boneIdx, const glm::vec3& scale)
 {
     assert(boneIdx < m_localTransforms.size());
     m_localTransforms[boneIdx].SetScale(scale);
 }
 
-void Pose::SetRotation(uint8_t boneIdx, const glm::quat& rotation)
+void Pose::SetRotation(BoneIndex boneIdx, const glm::quat& rotation)
 {
     assert(boneIdx < m_localTransforms.size());
     m_localTransforms[boneIdx].SetRotation(rotation);

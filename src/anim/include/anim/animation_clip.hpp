@@ -1,6 +1,8 @@
 #pragma once
 
+#include "bone.hpp"
 #include "pose.hpp"
+#include "skeleton.hpp"
 #include "track.hpp"
 
 #include <assets/asset.hpp>
@@ -25,12 +27,15 @@ class AnimationClip : public IAsset
     {
         // TODO: Only sample tracks related to the pose's skeleton
         const auto pSkeleton = pOutPose->GetSkeleton();
-        for (auto bone : pSkeleton->GetBones())
+        const auto size = pSkeleton->GetNumBones();
+        for (size_t i = 0; i < size; ++i)
         {
+            auto pBone = pSkeleton->GetBone(i);
             // TODO: how do we map bone->track ?
             //
-            const auto& track = m_tracks[bone->m_handle];
-            pOutPose->SetTransform(bone->m_handle, track.Sample(time));
+            const auto boneIdx = pBone->GetIndex();
+            const auto& track = m_tracks[boneIdx];
+            pOutPose->SetTransform(boneIdx, track.Sample(time));
         }
         // TODO
     }

@@ -9,7 +9,7 @@ namespace aln
 /// @todo We will probably need to split them per-component later on...
 struct TrackKey
 {
-    float m_time;
+    float m_time; // TODO: Quantize
     Transform m_component;
 };
 } // namespace aln

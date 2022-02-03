@@ -2,39 +2,41 @@
 
 #include <assets/asset.hpp>
 
+#include "bone.hpp"
+#include "pose.hpp"
+
+#include <string>
+
 namespace aln
 {
-
-struct Bone
-{
-    uint16_t m_handle;
-    std::string m_name;
-
-    Bone* pParent;
-    std::vector<Bone> children;
-};
 
 /// TODO: On a mesh component, flag the skeleton that is to be used. Generate a mapping between the two. When setting a pose, transfer thoses bones that exist.
 /// TODO: core bones (= modified by animators) vs deformation bones (= procedural, used by rendering, i.e. clothes). A skeleton can be made of both ?
 /// @brief
 class Skeleton : public IAsset
 {
+    friend class SkeletonLoader;
+
   private:
-    Bone m_rootBone;
-    // TODO: Default poses (bind for the rendering skeleton, reference for the anim one)
+    Bone* m_rootBone = nullptr;
+    std::vector<Bone> m_bones;
+    Pose m_referencePose;
+
+    // Default poses (bind for the rendering skeleton, reference for the anim one)
 
   public:
-    uint32_t GetNumBones() const
-    {
-        // TODO
-        return 0;
-    }
+    Skeleton(AssetGUID& guid) : IAsset(guid), m_referencePose(this, Pose::InitialState::ReferencePose) {}
+
+    inline size_t GetNumBones() const { return m_bones.size(); }
+    inline const Bone* GetBone(BoneIndex index) const { return &m_bones[index]; }
+    inline const Pose* GetReferencePose() const { return &m_referencePose; }
 
     /// @brief Get a flattened list of this skeleton's bones
-    std::vector<const Bone*> GetBones() const
-    {
-        // TODO
-        return std::vector<const Bone*>();
-    }
+    /// TODO: Use GetNumBones() + for loop instead
+    // std::vector<const Bone*> GetBones() const
+    // {
+    //     // TODO
+    //     return std::vector<const Bone*>();
+    // }
 };
 } // namespace aln

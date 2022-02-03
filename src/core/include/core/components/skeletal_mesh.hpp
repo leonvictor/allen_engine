@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../skeletal_mesh.hpp"
+#include "mesh.hpp"
+
 #include <anim/animation_clip.hpp>
 #include <anim/skeleton.hpp>
 
@@ -8,49 +11,67 @@
 #include <assets/handle.hpp>
 #include <assets/type_descriptors/handles.hpp>
 
+#include <glm/mat4x4.hpp>
+
 #include <memory>
+#include <vector>
 
 namespace aln
 {
-class SkeletalMeshComponent : public entities::SpatialComponent
+class SkeletalMeshComponent : public MeshComponent
 {
     ALN_REGISTER_TYPE();
 
-  private:
-    std::shared_ptr<AssetManager> m_pAssetManager = nullptr;
-    AssetHandle<Skeleton> m_pSkeleton; // Animation skeleton
-                                       // TODO: Skeletal Mesh + Materials
-                                       // TODO: Skeletal Mesh Bone Matrices
-                                       // TODO: Procedural Bones Solver
-                                       // TODO: AnimationGraphInstance
+    //   private:
+    //     AssetHandle<Skeleton> m_pSkeleton; // Rendering skeleton
 
-  public:
-    // TODO: Should this be public ?
-    void Construct(const entities::ComponentCreationContext& ctx) override
-    {
-        m_pAssetManager = ctx.pAssetManager;
-        // TODO:
-    }
+    //     // TODO: Skeletal Mesh + Materials
+    //     AssetHandle<SkeletalMesh> m_pSkeletalMesh; // TODO
 
-    void Initialize() override
-    {
-        // TODO:
-    }
+    //     // TODO: Runtime state:
+    //     // Bone mapping table between anim skeleton and mesh skeleton
+    //     std::map<BoneIndex, BoneIndex> m_boneMapTable;
 
-    void Shutdown() override
-    {
-        // TODO:
-    }
+    //     // TODO: Skeletal Mesh Bone Matrices
+    //     std::vector<glm::mat4> m_boneMatrices;
 
-    bool Load() override
-    {
-        // TODO:
-        return true;
-    }
+    //     // TODO: Procedural Bones Solver
 
-    void Unload() override
-    {
-        // TODO:
-    }
+    //   public:
+    //     // TODO: Should this be public ?
+    //     void Construct(const entities::ComponentCreationContext& ctx) override
+    //     {
+    //         m_pAssetManager = ctx.pAssetManager;
+    //         m_pSkeleton = ctx.pAssetManager->Get<Skeleton>(""); // TODO
+
+    //         // TODO:
+    //     }
+
+    //     void Initialize() override
+    //     {
+    //         m_pAssetManager->Initialize<Skeleton>(m_pSkeleton);
+
+    //         // TODO:
+    //     }
+
+    //     void Shutdown() override
+    //     {
+    //         // TODO:
+    //         m_pAssetManager->Shutdown<Skeleton>(m_pSkeleton);
+    //     }
+
+    //     bool Load() override
+    //     {
+    //         // TODO:
+    //         m_pAssetManager->Load<Skeleton>(m_pSkeleton);
+
+    //         return true;
+    //     }
+
+    //     void Unload() override
+    //     {
+    //         // TODO:
+    //         m_pAssetManager->Unload<Skeleton>(m_pSkeleton);
+    //     }
 };
 } // namespace aln

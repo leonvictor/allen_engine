@@ -40,20 +40,21 @@
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
-#include <core/camera.hpp>
-#include <core/camera_controller.hpp>
 #include <core/component_factory.hpp>
 #include <core/components/animation_graph.hpp>
+#include <core/components/camera.hpp>
+#include <core/components/light.hpp>
 #include <core/components/static_mesh.hpp>
-#include <core/light.hpp>
-#include <core/render_system.hpp>
-#include <core/systems/script.hpp>
+#include <core/entity_systems/camera_controller.hpp>
+#include <core/entity_systems/script.hpp>
 #include <core/time_system.hpp>
+#include <core/world_systems/render_system.hpp>
 
 #include <assets/manager.hpp>
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
+#include <core/asset_loaders/skeleton_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
 
 #include <anim/animation_clip.hpp>
@@ -70,6 +71,15 @@
 #include <editor/editor.hpp>
 
 #include <Tracy.hpp>
+
+// Test anim graph
+#include <anim/graph/graph.hpp>
+#include <anim/graph/nodes/animation_clip_node.hpp>
+// #include <anim/graph/nodes/root_motion_override_node.hpp>
+// #include <anim/graph/nodes/speed_scale_node.hpp>
+
+#include <core/asset_loaders/prefab_loader.hpp>
+#include <core/components/prefab_component.hpp>
 
 using namespace aln::input;
 using namespace aln::entities;
@@ -142,6 +152,9 @@ class Engine
         pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
+        pAssetManager->RegisterAssetLoader<Skeleton, SkeletonLoader>();
+        pAssetManager->RegisterAssetLoader<Prefab, PrefabLoader>();
+
         // TODO: Get rid of the default paths
         // Create a default context
         m_componentFactory.context = {
@@ -223,6 +236,13 @@ class Engine
 
             pCameraEntity->CreateSystem<EditorCameraController>();
         }
+
+        Entity* pPrefabEntity = m_worldEntity.m_entityMap.CreateEntity("Prefab");
+        auto prefabHandle = m_componentFactory.context.pAssetManager->Get<Prefab>("path_to_prefab.prefab");
+
+        // auto pPrefabComponent = m_componentFactory.Create<PrefabComponent>();
+        // pPrefabEntity->AddComponent(pPrefabComponent);
+        // pPrefabComponent->Instanciate(pPrefabEntity);
 
         {
             Entity* pLightEntity = m_worldEntity.m_entityMap.CreateEntity("DirectionalLight");

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../pose.hpp"
+#include "../types.hpp"
 #include "pose_buffer_pool.hpp"
 #include "task.hpp"
-#include "types.hpp"
 
 #include <vector>
 

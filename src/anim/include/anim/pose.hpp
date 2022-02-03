@@ -2,12 +2,14 @@
 
 #include <vector>
 
-#include <common/transform.hpp>
+#include "bone.hpp"
 
-#include "skeleton.hpp"
+#include <common/transform.hpp>
 
 namespace aln
 {
+
+class Skeleton;
 
 /// @brief Shamelessly taken from https://www.youtube.com/watch?v=Jkv0pbp0ckQ&t=1697s
 /// @brief Container for the transforms of all bones in a skeleton
@@ -65,18 +67,18 @@ class Pose
     inline void ClearGlobalTransforms() { m_globalTransforms.clear(); }
     inline const std::vector<Transform>& GetGlobalTransforms() const { return m_globalTransforms; }
     void CalculateGlobalTransforms();
-    Transform GetGlobalTransforms(uint32_t boneIdx) const;
+    Transform GetGlobalTransform(BoneIndex boneIdx) const;
 
     // Getters
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton; }
     size_t GetNumBones() const { return m_localTransforms.size(); };
 
     // Local Transforms
-    Transform GetTransform(uint32_t boneIdx);
+    Transform GetTransform(BoneIndex boneIdx);
 
-    void SetTransform(uint32_t boneIdx, const Transform& transform);
-    void SetTranslation(uint8_t boneIdx, const glm::vec3& translation);
-    void SetScale(uint8_t boneIdx, const glm::vec3& scale);
-    void SetRotation(uint8_t boneIdx, const glm::quat& rotation);
+    void SetTransform(BoneIndex boneIdx, const Transform& transform);
+    void SetTranslation(BoneIndex boneIdx, const glm::vec3& translation);
+    void SetScale(BoneIndex boneIdx, const glm::vec3& scale);
+    void SetRotation(BoneIndex boneIdx, const glm::quat& rotation);
 };
 } // namespace aln

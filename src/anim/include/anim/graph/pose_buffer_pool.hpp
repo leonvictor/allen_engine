@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../pose.hpp"
-#include "types.hpp"
+#include "../types.hpp"
 
 #include <vector>
 

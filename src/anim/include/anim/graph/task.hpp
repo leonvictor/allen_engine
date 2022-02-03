@@ -4,11 +4,13 @@
 #include <vector>
 
 #include "../pose.hpp"
+#include "../types.hpp"
+#include "graph_node.hpp"
 #include "pose_buffer_pool.hpp"
-#include "types.hpp"
 
 namespace aln
 {
+
 struct TaskContext
 {
     PoseBufferPool* m_pPoseBufferPool;

@@ -5,10 +5,9 @@
 
 #include <common/transform.hpp>
 
-#include "types.hpp"
-
 #include "../event.hpp"
 #include "../sync_track.hpp"
+#include "../types.hpp"
 #include "graph_node.hpp"
 #include "task.hpp"
 
@@ -21,7 +20,7 @@ struct SampledEventRange
 
 struct PoseNodeResult
 {
-    TaskIndex m_taskIndex = InvalidIndex;
+    TaskIndex m_taskIndex = InvalidIndex;              // Registered task index
     Transform m_rootMotionDelta = Transform::Identity; // Delta that was sampled at that node
     SampledEventRange m_sampledEventRange;             // Event range sampled by that node
 
