@@ -1,19 +1,20 @@
 set(LIB_NAME core)
 
 add_library(${LIB_NAME} SHARED
-    src/camera.cpp
-    src/light.cpp
-    src/render_system.cpp
-    src/camera_controller.cpp
+    src/world_systems/render_system.cpp
+
     src/time_system.cpp
     src/mesh.cpp
-
+    
     src/components/animation_graph.cpp
     src/components/mesh.cpp
     src/components/static_mesh.cpp
     src/components/skeletal_mesh.cpp
-
-    src/systems/script.cpp
+    src/components/camera.cpp
+    src/components/light.cpp
+    
+    src/entity_systems/script.cpp
+    src/entity_systems/camera_controller.cpp
 
     src/type_descriptors/assets.cpp
 )

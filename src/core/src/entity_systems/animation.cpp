@@ -4,9 +4,10 @@ namespace aln
 {
 void AnimationSystem::Update(const aln::entities::UpdateContext& ctx)
 {
-    // TODO: Update animation Component (get a pose)
-    // TODO: Transfer pose to skeletal mesh
-    // TODO: Update procedural bones
+    // TODO:
+    // - Update anim component (generate a pose)
+    // - Transfer pose (anim -> mesh)
+    // - Update all remaining bones (procedural etc)
 }
 
 void AnimationSystem::RegisterComponent(aln::entities::IComponent* pComponent)

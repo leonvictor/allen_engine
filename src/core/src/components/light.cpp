@@ -1,4 +1,4 @@
-#include "light.hpp"
+#include "components/light.hpp"
 
 #include <common/transform.hpp>
 #include <glm/vec4.hpp>

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "camera.hpp"
+#include "../components/camera.hpp"
+
 #include <entities/entity_system.hpp>
 
 #include <input/callback_context.hpp>

@@ -1,10 +1,10 @@
-#include "render_system.hpp"
+#include "world_systems/render_system.hpp"
 
 #include <graphics/rendering/renderer.hpp>
 
-#include "camera.hpp"
+#include "components/camera.hpp"
+#include "components/light.hpp"
 #include "components/static_mesh.hpp"
-#include "light.hpp"
 
 #include <entities/entity.hpp>
 #include <entities/object_model.hpp>
