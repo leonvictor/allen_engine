@@ -6,20 +6,6 @@
 namespace aln::assets
 {
 
-CompressionMode ParseCompressionMode(const std::string& compressionMode)
-{
-    if (compressionMode == "none")
-    {
-        return CompressionMode::None;
-    }
-    else if (compressionMode == "LZ4")
-    {
-        return CompressionMode::LZ4;
-    }
-
-    return CompressionMode::None;
-}
-
 bool SaveBinaryFile(const std::string& path, const AssetFile& file)
 {
     uint32_t metadataSize = file.metadata.size();

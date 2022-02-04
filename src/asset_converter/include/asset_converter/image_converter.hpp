@@ -23,15 +23,6 @@ struct ConverterConfig
     fs::path RelativeToOutput(const fs::path& path) const;
 };
 
-// Assimp methods
-std::string GetAssimpMaterialName(const aiScene* pScene, int materialIndex);
-std::string GetAssimpMeshName(const aiScene* pScene, int meshIndex);
-void ExtractAssimpMaterials(const aiScene* pScene, const fs::path& input, const fs::path& outputFolder, const ConverterConfig& config);
-void ExtractAssimpMeshes(const aiScene* pScene, const fs::path& input, const fs::path& output, const ConverterConfig& config);
-void ExtractAssimpMatrix(aiMatrix4x4& in, std::array<float, 16>& out);
-void ExtractAssimpNodes(const aiScene* pScene, const fs::path& input, const fs::path& outputFolder, const ConverterConfig& config);
-void ExtractAssimpAnimation(const aiScene* pScene, const fs::path input, const fs::path& outputFolder, const ConverterConfig& config);
-
 /// @brief Convert an image into a texture asset.
 /// @param input: Input path of the image.
 /// @param output: Output path of the generated texture.

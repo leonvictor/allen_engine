@@ -16,7 +16,7 @@ AnimationClipInfo ReadAnimationClipInfo(AssetFile* file)
     info.name = metadata["name"];
     info.duration = metadata["duration"];
     info.framesPerSecond = metadata["fps"];
-    info.binaryCompressionMode = ParseCompressionMode(metadata["binary_compression"]);
+    info.binaryCompressionMode = metadata["binary_compression"];
     info.originalFile = metadata["original_file"];
     info.bufferSize = metadata["buffer_size"];
 
@@ -86,7 +86,7 @@ AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data)
     metadata["duration"] = info->duration;
     metadata["fps"] = info->framesPerSecond;
     metadata["tracks"] = tracksMetadata;
-    metadata["binary_compression"] = "LZ4";
+    metadata["binary_compression"] = CompressionMode::LZ4;
     metadata["buffer_size"] = data.size();
     metadata["original_file"] = info->originalFile;
 

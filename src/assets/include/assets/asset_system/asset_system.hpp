@@ -29,8 +29,6 @@ enum class CompressionMode : uint8_t
     LZ4
 };
 
-CompressionMode ParseCompressionMode(const std::string& compressionMode);
-
 /// @brief Save an asset in binary format.
 /// @param path: File to save to
 /// @param file: Asset file to save

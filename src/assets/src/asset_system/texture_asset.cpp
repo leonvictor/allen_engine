@@ -8,27 +8,13 @@ namespace aln::assets
 
 using json = nlohmann::json;
 
-TextureFormat ParseFormat(std::string formatString)
-{
-    if (formatString == "RGBA8")
-    {
-        return TextureFormat::RGBA8;
-    }
-    else
-    {
-        return TextureFormat::Unknown;
-    }
-};
-
 TextureInfo ReadTextureInfo(AssetFile* file)
 {
-    TextureInfo info;
-
     json metadata = json::parse(file->metadata);
 
-    info.format = ParseFormat(metadata["format"]);
-    info.compressionMode = ParseCompressionMode(metadata["compression"]);
-
+    TextureInfo info;
+    info.format = metadata["format"];
+    info.compressionMode = metadata["compression"];
     info.pixelSize[0] = metadata["width"];
     info.pixelSize[1] = metadata["height"];
     info.size = metadata["buffer_size"];
@@ -68,7 +54,7 @@ AssetFile PackTexture(TextureInfo* info, void* pixelData)
     file.version = 1;
 
     json metadata;
-    metadata["format"] = "RGBA8";
+    metadata["format"] = info->format;
     metadata["width"] = info->pixelSize[0];
     metadata["height"] = info->pixelSize[1];
     metadata["buffer_size"] = info->size;
@@ -85,7 +71,7 @@ AssetFile PackTexture(TextureInfo* info, void* pixelData)
 
     file.binary.resize(compressedSize);
 
-    metadata["compression"] = "LZ4";
+    metadata["compression"] = CompressionMode::LZ4;
 
     file.metadata = metadata.dump();
 

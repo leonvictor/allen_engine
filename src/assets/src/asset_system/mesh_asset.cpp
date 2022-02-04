@@ -34,7 +34,7 @@ MeshInfo ReadMeshInfo(AssetFile* file)
     info.indexBufferSize = metadata["index_buffer_size"];
     info.indexTypeSize = (uint8_t) metadata["index_type_size"];
     info.originalFile = metadata["original_file"];
-    info.compressionMode = ParseCompressionMode(metadata["compression"]);
+    info.compressionMode = metadata["compression"];
 
     std::vector<float> boundsData;
     boundsData.reserve(7);
@@ -124,7 +124,7 @@ AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
     metadata["index_type_size"] = info->indexTypeSize;
     metadata["bounds"] = boundsData;
     metadata["original_file"] = info->originalFile;
-    metadata["compression"] = "LZ4";
+    metadata["compression"] = CompressionMode::LZ4;
     // if (info->vertexFormat == VertexFormat::P32N8C8V16)
     // {
     //     metadata["vertex_format"] = "P32N8C8V16";

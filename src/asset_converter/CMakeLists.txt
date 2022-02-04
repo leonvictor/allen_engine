@@ -2,13 +2,19 @@ option(ASSET_CONVERTER_LIBRARY "Build the asset converter as library to link to 
 
 message(STATUS "Building Asset Converter as a library (to be used in editor mode): ${ASSET_CONVERTER_LIBRARY}")
 
+set(ASSET_CONVERT_LIB_SOURCE
+    src/image_converter.cpp)
+
+set(ASSET_CONVERTER_CLI_SOURCE
+    src/cli.cpp)
+
 if(ASSET_CONVERTER_LIBRARY)
     add_library(asset_converter 
-        src/converter.cpp)
+        ${ASSET_CONVERT_LIB_SOURCE})
 else()
     add_executable(asset_converter
-        src/converter.cpp
-        src/cli.cpp)
+        ${ASSET_CONVERT_LIB_SOURCE}
+        ${ASSET_CONVERTER_CLI_SOURCE})
 endif()
 
 target_compile_features(asset_converter PUBLIC cxx_std_20)
