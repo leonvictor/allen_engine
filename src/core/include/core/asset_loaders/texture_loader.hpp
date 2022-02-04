@@ -20,6 +20,8 @@ vk::Format MapAssetFormatToVulkan(assets::TextureFormat& format)
     {
     case assets::TextureFormat::RGBA8:
         return vk::Format::eR8G8B8A8Srgb;
+    case assets::TextureFormat::RGB8:
+        return vk::Format::eR8G8B8Srgb;
     default:
         throw; // TODO
     }
@@ -74,7 +76,7 @@ class TextureLoader : public IAssetLoader<Texture>
         vkg::resources::Buffer stagingBuffer(m_pDevice, (vk::DeviceSize) info.size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data.data());
         data.clear();
 
-        pTex->m_image = vkg::resources::Image::FromBuffer(m_pDevice, stagingBuffer, info.pixelSize[0], info.pixelSize[1], mipLevels);
+        pTex->m_image = vkg::resources::Image::FromBuffer(m_pDevice, stagingBuffer, info.pixelSize[0], info.pixelSize[1], mipLevels, format);
 
         // TODO: Abstract io to another lib
         // TODO: Split image loading and vulkan texture creation
