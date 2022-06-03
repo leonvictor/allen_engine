@@ -77,7 +77,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     objectPipeline.Bind(cb);
 
     // Update the lights buffer
-    int nLights = m_lightComponents.GetNumberOfRegisteredComponents();
+    int nLights = m_lightComponents.GetRegisterComponentsCount();
     m_lightsBuffer.Map(0, sizeof(int)); // TODO: Respect spec alignment for int
     m_lightsBuffer.Copy(&nLights, sizeof(int));
     m_lightsBuffer.Unmap();
