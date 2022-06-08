@@ -15,17 +15,18 @@ namespace aln
 /// @brief
 class Skeleton : public IAsset
 {
+    ALN_REGISTER_ASSET_TYPE("skel");
+
     friend class SkeletonLoader;
 
   private:
     Bone* m_rootBone = nullptr;
     std::vector<Bone> m_bones;
+    /// @brief Default poses (bind for the rendering skeleton, reference for the anim one)
     Pose m_referencePose;
 
-    // Default poses (bind for the rendering skeleton, reference for the anim one)
-
   public:
-    Skeleton(AssetGUID& guid) : IAsset(guid), m_referencePose(this, Pose::InitialState::ReferencePose) {}
+    Skeleton(AssetID& id) : IAsset(id), m_referencePose(this, Pose::InitialState::ReferencePose) {}
 
     inline size_t GetNumBones() const { return m_bones.size(); }
     inline const Bone* GetBone(BoneIndex index) const { return &m_bones[index]; }

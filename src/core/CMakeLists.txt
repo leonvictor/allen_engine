@@ -7,9 +7,9 @@ add_library(${LIB_NAME} SHARED
     src/mesh.cpp
     
     src/components/animation_graph.cpp
-    src/components/mesh.cpp
-    src/components/static_mesh.cpp
-    src/components/skeletal_mesh.cpp
+    src/components/mesh_component.cpp
+    src/components/static_mesh_component.cpp
+    src/components/skeletal_mesh_component.cpp
     src/components/camera.cpp
     src/components/light.cpp
     

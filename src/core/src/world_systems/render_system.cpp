@@ -4,7 +4,9 @@
 
 #include "components/camera.hpp"
 #include "components/light.hpp"
-#include "components/static_mesh.hpp"
+#include "components/mesh_component.hpp"
+#include "components/skeletal_mesh_component.hpp"
+#include "components/static_mesh_component.hpp"
 
 #include <entities/entity.hpp>
 #include <entities/object_model.hpp>
@@ -108,23 +110,31 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     // GLM is designed for OpenGL which uses inverted y coordinates
     ubo.projection[1][1] *= -1;
 
-    // Loop over the registered components
-    for (auto pMeshRenderer : m_meshComponents)
+    // Loop over the registered static meshes
+    for (const auto& pStaticMesh : m_staticMeshComponents)
     {
         // Compute this mesh's model matrix
-        Transform transform = pMeshRenderer->GetWorldTransform();
-        ubo.model = glm::mat4(1.0f);
-        ubo.model = glm::translate(ubo.model, transform.GetTranslation());
-        ubo.model = ubo.model * glm::toMat4(transform.GetRotation());
-        ubo.model = glm::scale(ubo.model, transform.GetScale());
+        ubo.model = pStaticMesh->GetWorldTransform().ToMatrix();
 
         // Update the ubo
-        pMeshRenderer->UpdateUniformBuffers(ubo);
+        pStaticMesh->UpdateUniformBuffers(ubo);
 
         // Bind the mesh buffers
-        objectPipeline.BindDescriptorSet(cb, pMeshRenderer->GetDescriptorSet(), 1);
+        objectPipeline.BindDescriptorSet(cb, pStaticMesh->GetDescriptorSet(), 1);
         vk::DeviceSize offset = 0;
-        pMeshRenderer->m_pMesh->Bind(cb, offset);
+        pStaticMesh->GetMesh()->Bind(cb, offset);
+    }
+
+    m_pRenderer->GetSkeletalMeshesPipeline().Bind(cb);
+    for (const auto& pSkeletalMesh : m_skeletalMeshComponents)
+    {
+        pSkeletalMesh->UpdateSkinningBuffer();
+
+        ubo.model = pSkeletalMesh->GetWorldTransform().ToMatrix();
+        pSkeletalMesh->UpdateUniformBuffers(ubo);
+
+        m_pRenderer->GetSkeletalMeshesPipeline().BindDescriptorSet(cb, pSkeletalMesh->GetDescriptorSet(), 1);
+        pSkeletalMesh->GetMesh()->Bind(cb, 0);
     }
 
     m_pRenderer->EndFrame();
@@ -144,10 +154,17 @@ void GraphicsSystem::RegisterComponent(const entities::Entity* pEntity, entities
         return;
     }
 
-    auto pMeshRenderer = dynamic_cast<StaticMeshComponent*>(pComponent);
-    if (pMeshRenderer != nullptr)
+    auto pStaticMesh = dynamic_cast<StaticMeshComponent*>(pComponent);
+    if (pStaticMesh != nullptr)
     {
-        m_meshComponents.AddRecordEntry(pEntity->GetID(), pMeshRenderer);
+        m_staticMeshComponents.AddRecordEntry(pEntity->GetID(), pStaticMesh);
+        return;
+    }
+
+    auto pSkeletalMesh = dynamic_cast<SkeletalMeshComponent*>(pComponent);
+    if (pSkeletalMesh != nullptr)
+    {
+        m_skeletalMeshComponents.AddRecordEntry(pEntity->GetID(), pSkeletalMesh);
         return;
     }
 
@@ -173,10 +190,17 @@ void GraphicsSystem::UnregisterComponent(const entities::Entity* pEntity, entiti
         return;
     }
 
-    auto pMeshRenderer = dynamic_cast<StaticMeshComponent*>(pComponent);
-    if (pMeshRenderer != nullptr)
+    auto pStaticMesh = dynamic_cast<StaticMeshComponent*>(pComponent);
+    if (pStaticMesh != nullptr)
     {
-        m_meshComponents.RemoveRecordEntry(pEntity->GetID(), pMeshRenderer);
+        m_staticMeshComponents.RemoveRecordEntry(pEntity->GetID(), pStaticMesh);
+        return;
+    }
+
+    auto pSkeletalMesh = dynamic_cast<SkeletalMeshComponent*>(pComponent);
+    if (pSkeletalMesh != nullptr)
+    {
+        m_skeletalMeshComponents.RemoveRecordEntry(pEntity->GetID(), pSkeletalMesh);
         return;
     }
 

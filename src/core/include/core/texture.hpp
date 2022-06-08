@@ -19,5 +19,6 @@ class Texture : public IAsset
 
   public:
     Texture(AssetID& id) : IAsset(id) {}
+    inline const vk::DescriptorImageInfo GetDescriptor() const { return m_image.GetDescriptor(); }
 };
 } // namespace aln

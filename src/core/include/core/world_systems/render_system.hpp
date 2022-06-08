@@ -12,6 +12,7 @@ namespace aln
 {
 
 class StaticMeshComponent;
+class SkeletalMeshComponent;
 class Light;
 class Camera;
 
@@ -30,7 +31,8 @@ class GraphicsSystem : public entities::IWorldSystem
 {
     vkg::render::IRenderer* m_pRenderer = nullptr;
 
-    aln::entities::ComponentsRegistry<StaticMeshComponent> m_meshComponents;
+    aln::entities::ComponentsRegistry<StaticMeshComponent> m_staticMeshComponents;
+    aln::entities::ComponentsRegistry<SkeletalMeshComponent> m_skeletalMeshComponents;
     aln::entities::ComponentsRegistry<Light> m_lightComponents;
 
     Camera* m_pCameraComponent = nullptr;
@@ -50,6 +52,9 @@ class GraphicsSystem : public entities::IWorldSystem
     void RegisterComponent(const entities::Entity* pEntity, entities::IComponent* pComponent) override;
     void UnregisterComponent(const entities::Entity* pEntity, entities::IComponent* pComponent) override;
     const entities::UpdatePriorities& GetUpdatePriorities() override;
+
+    // Rendering calls
+    void RenderSkeletalMeshes();
 
   public:
     GraphicsSystem(vkg::render::IRenderer* pRenderer);

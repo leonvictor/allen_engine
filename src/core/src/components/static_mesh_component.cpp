@@ -1,4 +1,4 @@
-#include "components/static_mesh.hpp"
+#include "components/static_mesh_component.hpp"
 
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::StaticMeshComponent)
 // TODO: Reflect base class members

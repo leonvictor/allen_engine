@@ -6,6 +6,7 @@
 #include "track.hpp"
 
 #include <assets/asset.hpp>
+#include <common/types.hpp>
 
 #include <vector>
 
@@ -15,10 +16,12 @@ namespace aln
 /// @todo : Clarify difference between animation & animationClip
 class AnimationClip : public IAsset
 {
+    ALN_REGISTER_ASSET_TYPE("anim");
+
     friend class AnimationLoader;
 
   public:
-    AnimationClip(AssetGUID& guid) : IAsset(guid) {}
+    AnimationClip(AssetID& id) : IAsset(id) {}
 
     /// @brief Sample the clip at a specific time
     /// @param time: Time to sample at
@@ -40,9 +43,12 @@ class AnimationClip : public IAsset
         // TODO
     }
 
+    inline Seconds GetDuration() const { return m_duration; }
+
   private:
     std::vector<Track> m_tracks;
     uint8_t m_frameRate; // Key frames per second
+    Seconds m_duration = 0.0f;
     // TODO
 };
 } // namespace aln

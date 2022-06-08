@@ -34,12 +34,11 @@ class MeshComponent : public entities::SpatialComponent
 {
     friend class GraphicsSystem;
 
-  private:
+  protected:
     std::shared_ptr<vkg::Device> m_pDevice;
     /// @todo Find a good way to expose the asset manager.
     std::shared_ptr<AssetManager> m_pAssetManager = nullptr;
 
-    AssetHandle<Mesh> m_pMesh;
     AssetHandle<Material> m_pMaterial;
 
     vk::UniqueDescriptorSet m_vkDescriptorSet;
@@ -50,22 +49,19 @@ class MeshComponent : public entities::SpatialComponent
     // -------------------------------------------------
     void CreateDataBuffers();
     void CreateUniformBuffer();
-    void CreateDescriptorSet();
+    virtual void CreateDescriptorSet() = 0;
 
   public:
     // TODO: Should this be public ?
-    void Construct(const entities::ComponentCreationContext& ctx) override
+    virtual void Construct(const entities::ComponentCreationContext& ctx) override
     {
         m_pAssetManager = ctx.pAssetManager;
-        m_pMesh = ctx.pAssetManager->Get<Mesh>(ctx.defaultModelPath);
         m_pMaterial = ctx.pAssetManager->Get<Material>("DefaultMaterial");
         m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>(ctx.defaultTexturePath));
         m_pDevice = ctx.graphicsDevice;
     }
 
-    /// @brief Returns the vulkan bindings representing a scene object.
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
-    vk::DescriptorSet& GetDescriptorSet();
+    virtual vk::DescriptorSet& GetDescriptorSet();
 
     void UpdateUniformBuffers(vkg::UniformBufferObject& ubo);
 

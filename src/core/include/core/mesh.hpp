@@ -30,7 +30,7 @@ class Mesh : public IAsset
     friend class MeshLoader;
 
   private:
-    std::vector<Vertex> m_vertices;
+    std::vector<std::byte> m_vertices;
     std::vector<uint32_t> m_indices;
 
     std::vector<PrimitiveComponent> m_primitives;
@@ -38,15 +38,16 @@ class Mesh : public IAsset
     vkg::resources::Buffer m_vertexBuffer;
     vkg::resources::Buffer m_indexBuffer;
 
+  protected:
     /// @brief Create and fill the vulkan buffers to back the mesh.
-    void CreateGraphicResources(const std::shared_ptr<vkg::Device>&);
+    virtual void CreateGraphicResources(const std::shared_ptr<vkg::Device>&);
 
     /// @brief Reset the vulkan buffers backing the mesh on GPU.
     void FreeGraphicResources();
 
   public:
     Mesh(AssetID& id) : IAsset(id) {}
-    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset);
-    void RevertNormals();
+
+    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
 };
 } // namespace aln
