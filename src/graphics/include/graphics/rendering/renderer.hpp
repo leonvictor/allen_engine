@@ -19,7 +19,8 @@ namespace aln
 {
 
 // fwd
-class MeshComponent;
+class StaticMeshComponent;
+class SkeletalMeshComponent;
 class Light;
 
 namespace vkg::render
@@ -45,7 +46,7 @@ struct RenderContext
 /// We also need to keep frame buffering in the process.
 ///
 /// How would that look like ? Pull out swapchain, and provide the image to render to as arguments ?
-/// Or various subclasses with similar APIs (OfflineRenderer, SwapchainRenderer) ?
+/// Or various subclasses with similar APIs (OfflineRenderer, SwapchainRenderer) ? Maybe GameRender, EditorRenderer ?
 
 /// @brief Renderer instance used to draw the scenes and the UI.
 class IRenderer
@@ -86,11 +87,9 @@ class IRenderer
     RenderPass m_renderpass;
     uint32_t m_width, m_height;
 
-    struct
-    {
-        Pipeline objects;
-        Pipeline skybox;
-    } pipelines;
+    Pipeline m_staticMeshesPipeline;
+    Pipeline m_skeletalMeshesPipeline;
+    Pipeline m_skyboxPipeline;
 
     IRenderer() {}
 
@@ -168,34 +167,53 @@ class IRenderer
 
     void CreatePipelines()
     {
-        // Create the object rendering pipeline
-        pipelines.objects = Pipeline(m_pDevice);
-        pipelines.objects.SetRenderPass(m_renderpass.GetVkRenderPass());
-        pipelines.objects.SetExtent({m_width, m_height});
+        // ---------------
+        // Static Meshes Pipeline
+        // ---------------
+        m_staticMeshesPipeline = Pipeline(m_pDevice);
+        m_staticMeshesPipeline.SetVertexType<Vertex>();
+        m_staticMeshesPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
+        m_staticMeshesPipeline.SetExtent({m_width, m_height});
         // TODO: Handle default shader dir in case of separate projects
         // How do we bundle them ?
-        pipelines.objects.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
-        pipelines.objects.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
+        m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
+        m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
 
         // TODO: Get rid of the hard-coded descriptor layout registration.
         // We could discover them from the cache ? Or they could be associated with pipelines when they're created ?
-        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
-        pipelines.objects.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::MeshComponent>());
-        pipelines.objects.Create("objects_pipeline_cache_data.bin");
-        m_pDevice->SetDebugUtilsObjectName(pipelines.objects.GetVkPipeline(), "Objects Pipeline");
+        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
+        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::StaticMeshComponent>());
+        m_staticMeshesPipeline.Create("pipeline_cache_data.bin");
+        m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Static Meshes Pipeline");
 
-        // Skybox pipeline
+        // ---------------
+        // Skeletal Meshes Pipeline
+        // ---------------
+        m_skeletalMeshesPipeline = Pipeline(m_pDevice);
+        m_skeletalMeshesPipeline.SetVertexType<SkinnedVertex>();
+        m_skeletalMeshesPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
+        m_skeletalMeshesPipeline.SetExtent({m_width, m_height});
+        m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/skeletal_mesh.vert", vk::ShaderStageFlagBits::eVertex);
+        m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
+        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
+        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::SkeletalMeshComponent>());
+        m_skeletalMeshesPipeline.Create("pipeline_cache_data.bin");
+        m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Skeletal Meshes Pipeline");
+
+        // ---------------
+        // Skybox Pipeline
+        // ---------------
         // TODO: !! Put back skybox
-        // pipelines.skybox = Pipeline(m_pDevice);
-        // pipelines.skybox.SetRenderPass(m_renderpass.GetVkRenderPass());
-        // pipelines.skybox.SetExtent({m_width, m_height});
-        // pipelines.skybox.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
-        // pipelines.skybox.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
-        // pipelines.skybox.SetDepthTestWriteEnable(true, false);
-        // pipelines.skybox.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
-        // // pipelines.skybox.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<StaticMeshComponent>());
-        // pipelines.skybox.Create("skybox_pipeline_cache_data.bin");
-        // m_pDevice->SetDebugUtilsObjectName(pipelines.skybox.GetVkPipeline(), "Skybox Pipeline");
+        // m_skyboxPipeline = Pipeline(m_pDevice);
+        // m_skyboxPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
+        // m_skyboxPipeline.SetExtent({m_width, m_height});
+        // m_skyboxPipeline.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
+        // m_skyboxPipeline.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
+        // m_skyboxPipeline.SetDepthTestWriteEnable(true, false);
+        // m_skyboxPipeline.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
+        // // m_skyboxPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<StaticMeshComponent>());
+        // m_skyboxPipeline.Create("skybox_pipeline_cache_data.bin");
+        // m_pDevice->SetDebugUtilsObjectName(m_skyboxPipeline.GetVkPipeline(), "Skybox Pipeline");
     }
 
     /// @brief Configure and create the render pass. Override this function in derived renderer if necessary.
@@ -290,9 +308,9 @@ class IRenderer
     // {
     //     auto cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
     //     // Skybox
-    //     pipelines.skybox.Bind(cb);
+    //     m_skyboxPipeline.Bind(cb);
     //     skybox->mesh.Bind(cb);
-    //     pipelines.skybox.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
+    //     m_skyboxPipeline.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
     //     cb.drawIndexed(skybox->mesh.indices.size(), 1, 0, 0, 0);
     // }
 
@@ -330,7 +348,12 @@ class IRenderer
     // i.e we should be able to register new pipelines according to the users shaders etc
     Pipeline& GetObjectsPipeline()
     {
-        return pipelines.objects;
+        return m_staticMeshesPipeline;
+    }
+
+    Pipeline& GetSkeletalMeshesPipeline()
+    {
+        return m_skeletalMeshesPipeline;
     }
 };
 } // namespace vkg::render

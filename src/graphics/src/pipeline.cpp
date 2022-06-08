@@ -1,5 +1,4 @@
 #include "pipeline.hpp"
-#include "vertex_descriptors.hpp"
 
 #include <fstream>
 
@@ -22,14 +21,11 @@ void Pipeline::Create(std::string cachePath)
 {
     assert(m_status == State::Uninitialized);
 
-    auto vertextAttributeDescriptions = VertexDescriptor<Vertex>::GetAttributeDescription();
-    auto vertexBindingDescription = VertexDescriptor<Vertex>::GetBindingDescription();
-
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {
         .vertexBindingDescriptionCount = 1,
-        .pVertexBindingDescriptions = &vertexBindingDescription,
-        .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertextAttributeDescriptions.size()),
-        .pVertexAttributeDescriptions = vertextAttributeDescriptions.data(),
+        .pVertexBindingDescriptions = &m_vertexBindingDescription,
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vertextAttributeDescriptions.size()),
+        .pVertexAttributeDescriptions = m_vertextAttributeDescriptions.data(),
     };
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {

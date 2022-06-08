@@ -2,6 +2,7 @@
 
 #include "device.hpp"
 #include "shaders.hpp"
+#include "vertex_descriptors.hpp"
 
 #include <iomanip>
 #include <utils/uuid.hpp>
@@ -74,6 +75,13 @@ class Pipeline
 
     void SetBindPoint(vk::PipelineBindPoint bindPoint);
 
+    template <typename T>
+    void SetVertexType()
+    {
+        m_vertextAttributeDescriptions = VertexDescriptor<T>::GetAttributeDescription();
+        m_vertexBindingDescription = VertexDescriptor<T>::GetBindingDescription();
+    }
+
     void Bind(vk::CommandBuffer& cb);
 
     /// @brief Bind a descriptor set to this pipeline.
@@ -93,6 +101,10 @@ class Pipeline
     std::vector<vk::DynamicState> m_dynamicStates;
     vk::UniquePipeline m_vkPipeline;
     vk::PipelineBindPoint m_bindPoint;
+
+    // Vertex description
+    vk::VertexInputBindingDescription m_vertexBindingDescription;
+    std::vector<vk::VertexInputAttributeDescription> m_vertextAttributeDescriptions;
 
     State m_status = State::Uninitialized;
 

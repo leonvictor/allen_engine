@@ -19,10 +19,9 @@ struct VertexDescriptor
 template <>
 struct VertexDescriptor<aln::Vertex>
 {
-    // TODO: Find a good way to get the correct binding descriptions in derived Vertex classes (eg SkinnedVertex)
     static vk::VertexInputBindingDescription GetBindingDescription()
     {
-        vk::VertexInputBindingDescription bindingDescription = {};
+        vk::VertexInputBindingDescription bindingDescription;
         bindingDescription.binding = 0;
         bindingDescription.stride = sizeof(Vertex); // We would only need to modify this if the method wasn't static
         bindingDescription.inputRate = vk::VertexInputRate::eVertex;
@@ -52,6 +51,34 @@ struct VertexDescriptor<aln::Vertex>
         attributeDescription[3].location = 3;
         attributeDescription[3].format = vk::Format::eR32G32B32Sfloat;
         attributeDescription[3].offset = offsetof(Vertex, normal);
+
+        return attributeDescription;
+    }
+};
+
+template <>
+struct VertexDescriptor<SkinnedVertex>
+{
+    static vk::VertexInputBindingDescription GetBindingDescription()
+    {
+        vk::VertexInputBindingDescription bindingDescription;
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(SkinnedVertex);
+        bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+        return bindingDescription;
+    }
+
+    static std::vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
+    {
+        std::vector<vk::VertexInputAttributeDescription> attributeDescription =
+            {
+                {0, 0, vk::Format::eR32G32B32Sfloat, offsetof(SkinnedVertex, pos)},
+                {1, 0, vk::Format::eR32G32B32Sfloat, offsetof(SkinnedVertex, color)},
+                {2, 0, vk::Format::eR32G32Sfloat, offsetof(SkinnedVertex, texCoord)},
+                {3, 0, vk::Format::eR32G32B32Sfloat, offsetof(SkinnedVertex, normal)},
+                {4, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(SkinnedVertex, weights)},
+                {5, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(SkinnedVertex, boneIndices)},
+            };
 
         return attributeDescription;
     }
