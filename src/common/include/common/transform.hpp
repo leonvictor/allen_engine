@@ -1,7 +1,7 @@
 #pragma once
 
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
 namespace aln
@@ -15,21 +15,33 @@ class Transform
     glm::vec3 m_scale = glm::vec3(1.0f);
 
   public:
-    glm::vec3 GetTranslation() const { return m_translation; }
-    glm::quat GetRotation() const { return m_rotation; }
-    glm::vec3 GetScale() const { return m_scale; }
-    glm::vec3 GetRotationEuler() const { return glm::degrees(glm::eulerAngles(m_rotation)); }
+    Transform() = default;
+    Transform(const glm::mat4x4& matrix);
 
-    void SetTranslation(const glm::vec3 translation) { m_translation = translation; }
-    void SetRotation(const glm::quat rotation) { m_rotation = rotation; }
-    void SetRotationEuler(const glm::vec3 eulerAngles) { m_rotation = glm::quat(glm::radians(eulerAngles)); }
-    void SetScale(const glm::vec3 scale) { m_scale = scale; }
+    inline glm::vec3 GetTranslation() const { return m_translation; }
+    inline glm::quat GetRotation() const { return m_rotation; }
+    inline glm::vec3 GetScale() const { return m_scale; }
+    inline glm::vec3 GetRotationEuler() const { return glm::degrees(glm::eulerAngles(m_rotation)); }
+
+    inline void SetTranslation(const glm::vec3 translation) { m_translation = translation; }
+    inline void SetRotation(const glm::quat rotation) { m_rotation = rotation; }
+    inline void SetRotationEuler(const glm::vec3 eulerAngles) { m_rotation = glm::quat(glm::radians(eulerAngles)); }
+    inline void SetScale(const glm::vec3 scale) { m_scale = scale; }
+
+    glm::mat4x4 ToMatrix() const;
+
+    Transform GetInverse() const;
 
     Transform& operator=(const Transform& other);
-    bool operator==(const Transform& b);
-    bool operator!=(const Transform& b);
+    bool operator==(const Transform& b) const;
+    bool operator!=(const Transform& b) const;
+
+    void operator*=(const Transform& b);
+    Transform operator*(const Transform& b) const;
 
     const static Transform Identity;
+
+    static constexpr float Epsilon = 0.000001;
 };
 
 } // namespace aln
