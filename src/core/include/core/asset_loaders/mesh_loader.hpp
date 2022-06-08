@@ -25,7 +25,7 @@ class MeshLoader : public IAssetLoader<Mesh>
         auto pMesh = AssetHandle<Mesh>(pAsset);
 
         assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pMesh->GetID(), file);
+        auto loaded = assets::LoadBinaryFile(pAsset->GetID().GetAssetPath(), file);
         if (!loaded)
         {
             return false;

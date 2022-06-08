@@ -53,7 +53,7 @@ class TextureLoader : public IAssetLoader<Texture>
         assert(pTex->IsLoaded());
 
         assets::AssetFile file;
-        bool loaded = assets::LoadBinaryFile(pTex->GetID(), file);
+        bool loaded = assets::LoadBinaryFile(pTex->GetID().GetAssetPath(), file);
 
         if (!loaded)
         {

@@ -26,9 +26,9 @@ class AssetManager
   private:
     std::map<std::type_index, std::unique_ptr<AssetLoader>> m_loaders;
     // TODO: Replace with dedicated per-type cache class
-    std::map<AssetGUID, AssetHandle<IAsset>> m_assetCache;
+    std::map<AssetID, AssetHandle<IAsset>> m_assetCache;
 
-    AssetHandle<IAsset> GetInternal(const std::type_index& typeIndex, const std::string& path)
+    AssetHandle<IAsset> GetInternal(const std::type_index& typeIndex, const AssetID& path)
     {
         auto it = m_assetCache.try_emplace(path);
         if (it.second)
@@ -112,6 +112,12 @@ class AssetManager
         {
             it.first->second = std::make_unique<TLoader>(args...);
         }
+    }
+
+    template <AssetType T>
+    const IAssetLoader<T>* GetLoader()
+    {
+        return static_pointer_cast<AssetLoader<T>>(&m_loaders[std::type_index(typeid(T))]);
     }
 
     /// @brief Return a pointer to the asset corresponding to the given path (todo: key).

@@ -70,7 +70,7 @@ class AssetLoader
     }
 
   protected:
-    virtual AssetHandle<IAsset> Create(AssetGUID id) = 0;
+    virtual AssetHandle<IAsset> Create(AssetID id) = 0;
     virtual bool Load(const AssetHandle<IAsset>&) = 0;
     virtual void Unload(const AssetHandle<IAsset>&) = 0;
     virtual void Initialize(const AssetHandle<IAsset>&) = 0;
@@ -83,17 +83,17 @@ template <AssetType T>
 class IAssetLoader : public AssetLoader
 {
   public:
-    virtual ~IAssetLoader(){};
+    virtual ~IAssetLoader() override{};
 
   protected:
-    virtual AssetHandle<IAsset> Create(AssetGUID id)
+    virtual AssetHandle<IAsset> Create(AssetID id)
     {
         return AssetHandle<IAsset>(std::make_shared<T>(id));
     }
 
-    virtual bool Load(const AssetHandle<IAsset>&) = 0;
-    virtual void Unload(const AssetHandle<IAsset>&) = 0;
-    virtual void Initialize(const AssetHandle<IAsset>&) = 0;
-    virtual void Shutdown(const AssetHandle<IAsset>&) = 0;
+    virtual bool Load(const AssetHandle<IAsset>&) override = 0;
+    virtual void Unload(const AssetHandle<IAsset>&) override = 0;
+    virtual void Initialize(const AssetHandle<IAsset>&) override = 0;
+    virtual void Shutdown(const AssetHandle<IAsset>&) override = 0;
 };
 } // namespace aln

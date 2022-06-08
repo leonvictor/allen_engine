@@ -97,7 +97,7 @@ void Editor::Display<AssetHandle<Mesh>>(void* pHandle, const char* label)
     if (ImGui::CollapsingHeader("Mesh"))
     {
         // TODO: Edition
-        ImGui::Text(pMesh->GetID().c_str());
+        ImGui::Text(pMesh->GetID().GetAssetPath().c_str());
     }
 }
 
@@ -108,7 +108,7 @@ void Editor::Display<AssetHandle<AnimationClip>>(void* pHandle, const char* labe
     if (ImGui::CollapsingHeader("AnimationClip"))
     {
         // TODO: Edition
-        ImGui::Text(pAnim->GetID().c_str());
+        ImGui::Text(pAnim->GetID().GetAssetPath().c_str());
     }
 }
 
@@ -120,14 +120,14 @@ void Editor::Display<AssetHandle<Material>>(void* pHandle, const char* label)
     if (ImGui::CollapsingHeader("Material"))
     {
         // TODO: Edition
-        ImGui::Text(pMaterial->GetID().c_str());
+        ImGui::Text(pMaterial->GetID().GetAssetPath().c_str());
     }
 }
 
 template <>
 void Editor::Display<Texture>(void* pTexture, const char* label)
 {
-    ImGui::Text(((Texture*) pTexture)->GetID().c_str());
+    ImGui::Text(((Texture*) pTexture)->GetID().GetAssetPath().c_str());
 }
 
 template <>

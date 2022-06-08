@@ -29,7 +29,7 @@ class AnimationLoader : public IAssetLoader<AnimationClip>
         auto pAnim = AssetHandle<AnimationClip>(pAsset);
 
         assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pAnim->GetID(), file);
+        auto loaded = assets::LoadBinaryFile(pAnim->GetID().GetAssetPath(), file);
         if (!loaded)
         {
             return false;

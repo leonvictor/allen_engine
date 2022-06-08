@@ -8,6 +8,8 @@ namespace aln
 /// @brief Temporary asset for textures
 class Texture : public IAsset
 {
+    ALN_REGISTER_ASSET_TYPE("text");
+
     // TODO: friends shouldn't be necessary
     friend class TextureLoader;
     friend class MeshComponent;
@@ -16,6 +18,6 @@ class Texture : public IAsset
     vkg::resources::Image m_image;
 
   public:
-    Texture(AssetGUID& guid) : IAsset(guid) {}
+    Texture(AssetID& id) : IAsset(id) {}
 };
 } // namespace aln

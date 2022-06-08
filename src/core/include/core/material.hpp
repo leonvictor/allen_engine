@@ -15,6 +15,8 @@ namespace aln
 {
 class Material : public IAsset
 {
+    ALN_REGISTER_ASSET_TYPE("mtrl");
+
     friend class MaterialLoader;
     friend class MeshComponent;
 
@@ -26,7 +28,7 @@ class Material : public IAsset
     vkg::resources::Buffer m_buffer;
 
   public:
-    Material(AssetGUID& guid) : IAsset(guid) {}
+    Material(AssetID& guid) : IAsset(guid) {}
 
     void SetAlbedoMap(const AssetHandle<Texture>& pTex)
     {

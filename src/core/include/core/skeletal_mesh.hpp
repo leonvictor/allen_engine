@@ -17,6 +17,8 @@ class SkeletalMesh : public Mesh
     std::vector<Transform> m_inverseBindPose;
 
   public:
+    SkeletalMesh(AssetID& id) : Mesh(id) {}
+
     const std::vector<Transform>& GetBindPose() { return m_bindPose; }
     const std::vector<Transform>& GetInverseBindPose() { return m_inverseBindPose; }
 };

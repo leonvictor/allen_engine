@@ -24,6 +24,9 @@ struct PrimitiveComponent
 /// @brief Mesh asset
 class Mesh : public IAsset
 {
+    // TODO: Mesh are virtual and can't be used as is. How do we reflect that in the asset system ?
+    ALN_REGISTER_ASSET_TYPE("mesh");
+
     friend class MeshLoader;
 
   private:
@@ -42,7 +45,7 @@ class Mesh : public IAsset
     void FreeGraphicResources();
 
   public:
-    Mesh(AssetGUID& guid) : IAsset(guid) {}
+    Mesh(AssetID& id) : IAsset(id) {}
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset);
     void RevertNormals();
 };

@@ -21,7 +21,7 @@ class SkeletonLoader : public IAssetLoader<Skeleton>
         auto pSkeleton = AssetHandle<Skeleton>(pAsset);
 
         assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pSkeleton->GetID(), file);
+        auto loaded = assets::LoadBinaryFile(pSkeleton->GetID().GetAssetPath(), file);
         if (!loaded)
         {
             // TODO: Actually handle

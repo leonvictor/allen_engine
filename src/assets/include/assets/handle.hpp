@@ -15,10 +15,10 @@ class AssetHandle
     friend class AssetLoader;
 
   private:
-    std::shared_ptr<T> m_pAsset;
+    std::shared_ptr<T> m_pAsset = nullptr;
 
-    mutable size_t* m_pLoadedCount;
-    mutable size_t* m_pInitializedCount;
+    mutable size_t* m_pLoadedCount = nullptr;
+    mutable size_t* m_pInitializedCount = nullptr;
 
   public:
     ~AssetHandle()

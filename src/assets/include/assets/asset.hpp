@@ -5,10 +5,66 @@
 #include <typeindex>
 #include <typeinfo>
 
+#include <array>
+#include <assert.h>
+#include <cstring>
+#include <filesystem>
+#include <string>
+
 namespace aln
 {
-// TODO: change to a hash
-using AssetGUID = std::string;
+
+/// @brief Identifies asset types as a four character string.
+/// This unique name is also used as the extension for asset files.
+struct AssetTypeID
+{
+
+  private:
+    std::array<char, 4> m_id;
+
+  public:
+    AssetTypeID() = default;
+
+    AssetTypeID(const std::string& str)
+    {
+        assert(str.size() == 4);
+        std::copy(str.begin(), str.end(), m_id.data());
+    }
+
+    AssetTypeID(const char* str)
+    {
+        assert(strlen(str) == 4);
+        m_id[0] = str[0];
+        m_id[1] = str[1];
+        m_id[2] = str[2];
+        m_id[3] = str[3];
+    }
+
+    bool operator==(const AssetTypeID& other) { return m_id == other.m_id; }
+    bool operator!=(const AssetTypeID& other) { return m_id != other.m_id; }
+};
+
+class AssetID
+{
+  private:
+    // TODO: change to a hash
+    std::string m_path;
+    AssetTypeID m_typeID;
+
+  public:
+    // Infer asset type from file extension
+    AssetID(std::string assetPath) : m_path(assetPath),
+                                     m_typeID(assetPath.substr(assetPath.size() - 4)) {}
+
+    AssetID(const AssetID& other): m_path(other.m_path), m_typeID(other.m_typeID){}
+    
+    inline const AssetTypeID& GetAssetTypeID()  const { return m_typeID; }
+    inline const std::string& GetAssetPath() const  { return m_path; }
+
+    bool operator==(const AssetID& other) const { return m_path == other.m_path; }
+    bool operator!=(const AssetID& other) const { return m_path != other.m_path; }
+    bool operator<(const AssetID& other) const { return m_path < other.m_path; }
+};
 
 class IAsset;
 
@@ -22,7 +78,7 @@ class IAsset
     friend class AssetManager;
 
   private:
-    AssetGUID m_id;
+    AssetID m_id;
 
   protected:
     enum class Status
@@ -35,7 +91,7 @@ class IAsset
     struct Dependency
     {
         std::type_index type;
-        AssetGUID id;
+        AssetID id;
 
         bool operator<(const Dependency& other) const
         {
@@ -46,25 +102,34 @@ class IAsset
     Status m_status = Status::Unloaded;
     std::set<Dependency> m_dependencies;
 
-    IAsset(AssetGUID& guid) : m_id(guid) {}
+    IAsset(AssetID& guid) : m_id(guid) {}
 
     template <AssetType T>
-    void AddDependency(const AssetGUID& guid)
+    void AddDependency(const AssetID& guid)
     {
         m_dependencies.emplace(std::type_index(typeid(T)), guid);
     }
 
-    void RemoveDependency(const AssetGUID& guid)
+    void RemoveDependency(const AssetID& guid)
     {
         std::erase_if(m_dependencies, [&](auto& dep)
             { return dep.id == guid; });
     }
 
   public:
-    const AssetGUID& GetID() const { return m_id; }
-    bool IsUnloaded() const { return m_status == Status::Unloaded; }
-    bool IsLoaded() const { return m_status == Status::Loaded; }
-    bool IsInitialized() const { return m_status == Status::Initialized; }
-    bool operator==(const IAsset& other) const { return m_id == other.m_id; }
+    inline const AssetID& GetID() const { return m_id; }
+    inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
+    inline bool IsLoaded() const { return m_status == Status::Loaded; }
+    inline bool IsInitialized() const { return m_status == Status::Initialized; }
+    inline bool operator==(const IAsset& other) const { return m_id == other.m_id; }
+
+    virtual AssetTypeID GetAssetTypeID() const = 0;
 };
 } // namespace aln
+
+#define ALN_REGISTER_ASSET_TYPE(assetTypeExtension)                                                 \
+  public:                                                                                           \
+    static AssetTypeID GetStaticAssetTypeID() { return AssetTypeID(assetTypeExtension); }           \
+    virtual AssetTypeID GetAssetTypeID() const override { return AssetTypeID(assetTypeExtension); } \
+                                                                                                    \
+  private:
