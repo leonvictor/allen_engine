@@ -2,21 +2,30 @@ cmake_minimum_required(VERSION 3.17)
 
 project(ALLEN VERSION 0.1)
 
+
 set(SOURCE 
     src/main.cpp)
 
 # Create the tracing configuration
 set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} ReleaseWithTracing)
-set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASE})
-set(CMAKE_C_FLAGS_RELEASEWITHTRACING ${CMAKE_C_FLAGS_RELEASE})
-set(CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_EXE_LINKER_FLAGS_RELEASE})
-set(CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_SHARED_LINKER_FLAGS_RELEASE})
+# Default compile flags to those of the Release config
+set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "")
+set(CMAKE_C_FLAGS_RELEASEWITHTRACING ${CMAKE_C_FLAGS_RELEASE} CACHE STRING "")
+set(CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_EXE_LINKER_FLAGS_RELEASE} CACHE STRING "")
+set(CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_SHARED_LINKER_FLAGS_RELEASE} CACHE STRING "")
 mark_as_advanced(
     CMAKE_CXX_FLAGS_RELEASEWITHTRACING
     CMAKE_C_FLAGS_RELEASEWITHTRACING
     CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING
     CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING
 )
+
+# set the MSVC runtime libary to dynamic
+# should work but doesn't for some reason
+# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /MDd")
+set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} " /MD")
+set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASEWITHTRACING} " /MD")
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
@@ -75,6 +84,13 @@ target_compile_definitions(main PRIVATE
         ALN_ENABLE_TRACING>
 )
 add_subdirectory(external/tracy)
+set_target_properties(TracyClient
+    PROPERTIES
+        EXCLUDE_FROM_DEFAULT_BUILD_RELEASE TRUE
+        # EXCLUDE_FROM_DEFAULT_BUILD_DEBUG TRUE
+        # EXCLUDE_FROM_DEFAULT_BUILD_MIN_SIZE_REL TRUE
+        # EXCLUDE_FROM_DEFAULT_BUILD_REL_WITH_DEB_INFO TRUE
+    )
 
 # Include ImGui
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
@@ -101,10 +117,12 @@ set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
 add_subdirectory(external/glfw)
 
 # GLM
-add_compile_definitions(GLM_FORCE_RADIANS)
-add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
-add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
-add_compile_definitions(GLM_GTX_hash)
+target_compile_definitions(main PUBLIC
+    GLM_FORCE_RADIANS
+    GLM_ENABLE_EXPERIMENTAL
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_GTX_hash
+    )
 add_subdirectory(external/glm)
 
 # Hack: set glm's include dir as system to ignore warnings (not our code)
@@ -145,8 +163,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 target_compile_features(main PUBLIC cxx_std_20)
 
+# target_include_directories(main PUBLIC TracyClient)
 target_link_libraries(main PUBLIC 
-    TracyClient
+    # $<$<CONFIG:ReleaseWithTracing>:TracyClient>
     fmt::fmt
     common 
     reflection 
@@ -159,6 +178,3 @@ target_link_libraries(main PUBLIC
     graphics 
     entities 
     core)
-
-set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
-message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})

@@ -27,10 +27,12 @@
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
 
+#ifdef ALN_DEBUG
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 
 #include <crtdbg.h>
+#endif
 
 #include <input/input_system.hpp>
 
@@ -720,8 +722,9 @@ class Engine
 
 int main()
 {
+#ifdef ALN_DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
+#endif
     std::unique_ptr<aln::Engine> app = std::make_unique<aln::Engine>();
 
     try
