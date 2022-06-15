@@ -140,6 +140,8 @@ class ComponentsRegistry
         it.ToEnd();
         return it;
     }
+
+    inline bool empty() const { return m_registry.empty(); }
 };
 
 } // namespace aln::entities

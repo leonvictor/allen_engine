@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <typeindex>
 #include <typeinfo>
 
@@ -21,12 +23,34 @@ enum class AssetLifetime
     Global,  // Unloaded on game exit
 };
 
+struct AssetRequest
+{
+    enum class Type : uint8_t
+    {
+        Load,
+        Unload,
+        Invalid,
+    };
+
+    AssetHandle<IAsset> m_pAsset;
+    GUID m_requesterEntityID;
+    AssetLoader* m_pLoader = nullptr;
+
+    Type m_type = Type::Invalid;
+};
+
 class AssetManager
 {
+    friend class Engine;
+
   private:
     std::map<std::type_index, std::unique_ptr<AssetLoader>> m_loaders;
     // TODO: Replace with dedicated per-type cache class
     std::map<AssetGUID, AssetHandle<IAsset>> m_assetCache;
+
+    std::recursive_mutex m_mutex;
+    std::vector<AssetRequest> m_pendingRequests;
+    std::vector<AssetRequest> m_activeRequests;
 
     AssetHandle<IAsset> GetInternal(const std::type_index& typeIndex, const std::string& path)
     {
@@ -48,8 +72,85 @@ class AssetManager
         return it.first->second;
     }
 
-    bool LoadInternal(const std::type_index& typeIndex, AssetHandle<IAsset> pAsset)
+    AssetRequest* FindActiveRequest(const AssetGUID id)
     {
+        std::lock_guard lock(m_mutex);
+
+        // TODO: Use InvalidIndex
+        AssetRequest* pRequest = nullptr;
+        for (auto idx = 0; idx < m_activeRequests.size() && pRequest == nullptr; ++idx)
+        {
+            if (m_activeRequests[idx].m_pAsset->GetID() == id)
+            {
+                pRequest = &m_activeRequests[idx];
+            }
+        }
+        return pRequest;
+    }
+
+    /// @brief Handle pending requests
+    void Update()
+    {
+        std::lock_guard lock(m_mutex);
+
+        for (auto& pendingRequest : m_pendingRequests)
+        {
+            auto pActiveRequest = FindActiveRequest(pendingRequest.m_pAsset->GetID());
+            if (pActiveRequest != nullptr)
+            {
+                // A request for this asset is already active
+                if (pActiveRequest->m_type == pendingRequest.m_type)
+                {
+                }
+                else
+                {
+                    // TODO: Mismatching requests types
+                }
+            }
+            else
+            {
+                // Add the request
+                m_activeRequests.push_back(std::move(pendingRequest));
+            }
+        }
+
+        m_pendingRequests.clear();
+
+        // Handle active requests
+        // TODO: Async
+        HandleActiveRequests();
+    }
+
+    void HandleActiveRequests()
+    {
+        int32_t requestCount = (int32_t) m_activeRequests.size() - 1;
+        for (auto idx = requestCount; idx >= 0; idx--)
+        {
+            bool requestComplete = false;
+            auto pRequest = &m_activeRequests[idx];
+            if (pRequest->m_type == AssetRequest::Type::Load)
+            {
+                requestComplete = pRequest->m_pLoader->LoadAsset(pRequest->m_pAsset);
+
+                if (requestComplete)
+                {
+                    // Remove completed requests
+                    m_activeRequests.erase(m_activeRequests.begin() + idx);
+                }
+            }
+            else
+            {
+                pRequest->m_pLoader->UnloadAsset(pRequest->m_pAsset);
+                m_activeRequests.erase(m_activeRequests.begin() + idx);
+            }
+        }
+    }
+
+    void LoadInternal(const std::type_index& typeIndex, AssetHandle<IAsset> pAsset)
+    {
+        std::lock_guard lock(m_mutex);
+
+        // TODO: Dependencies could be found during loading (in cases where they were saved in the asset)
         for (auto& dep : pAsset->m_dependencies)
         {
             // Also resolve missing dependencies
@@ -57,47 +158,47 @@ class AssetManager
             LoadInternal(dep.type, pDependencyHandle);
         }
 
+        // TODO: Delegate find the loader to when we mark the requests as active (they can still be discarded in between)
         auto& pLoader = m_loaders.at(typeIndex);
-        return pLoader->LoadAsset(pAsset);
+        AssetRequest& request = m_pendingRequests.emplace_back();
+        request.m_type = AssetRequest::Type::Load;
+        request.m_pAsset = pAsset; // TODO: The manager class coud handle the load counts (pass IAsset*)
+        request.m_pLoader = pLoader.get();
+        // request.m_requesterEntityID // TODO
     }
 
     void UnloadInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
     {
+        std::lock_guard lock(m_mutex);
+
         for (auto& dep : pAsset->m_dependencies)
         {
-            auto& pDependencyHandle = m_assetCache.at(dep.id);
+            auto pDependencyHandle = GetInternal(dep.type, dep.id);
             UnloadInternal(dep.type, pDependencyHandle);
         }
 
         auto& pLoader = m_loaders.at(typeIndex);
-        return pLoader->UnloadAsset(pAsset);
+        AssetRequest& request = m_pendingRequests.emplace_back();
+        request.m_type = AssetRequest::Type::Unload;
+        request.m_pAsset = pAsset;
+        request.m_pLoader = pLoader.get();
+        // return pLoader->UnloadAsset(pAsset);
     }
 
-    void InitializeInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
+    bool IsIdle() const
     {
-        for (auto& dep : pAsset->m_dependencies)
-        {
-            auto& pDependencyHandle = m_assetCache.at(dep.id);
-            InitializeInternal(dep.type, pDependencyHandle);
-        }
-
-        auto& pLoader = m_loaders.at(typeIndex);
-        pLoader->InitializeAsset(pAsset);
-    }
-
-    void ShutdownInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
-    {
-        for (auto& dep : pAsset->m_dependencies)
-        {
-            auto& pDependencyHandle = m_assetCache.at(dep.id);
-            ShutdownInternal(dep.type, pDependencyHandle);
-        }
-
-        auto& pLoader = m_loaders.at(typeIndex);
-        pLoader->ShutdownAsset(pAsset);
+        return m_pendingRequests.empty() && m_activeRequests.empty();
     }
 
   public:
+    ~AssetManager()
+    {
+        while (IsIdle())
+        {
+            Update();
+        }
+    }
+
     /// @brief Register a new loader
     /// @tparam T: Asset type
     /// @tparam TLoader: Loader type
@@ -124,28 +225,17 @@ class AssetManager
         return AssetHandle<T>(GetInternal(std::type_index(typeid(T)), path));
     }
 
+    // TODO: We can get rid of the templatization since Asset know their types (in AssetID)
     template <AssetType T>
-    bool Load(AssetHandle<T> pAsset)
+    void Load(AssetHandle<T> pAsset)
     {
-        return LoadInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
+        LoadInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
     }
 
     template <AssetType T>
     void Unload(AssetHandle<T> pAsset)
     {
         UnloadInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
-    }
-
-    template <AssetType T>
-    void Initialize(AssetHandle<T> pAsset)
-    {
-        InitializeInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
-    }
-
-    template <AssetType T>
-    void Shutdown(AssetHandle<T> pAsset)
-    {
-        ShutdownInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
     }
 };
 } // namespace aln

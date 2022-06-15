@@ -24,21 +24,38 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
 
     for (auto pComponent : m_components)
     {
-        if (pComponent->IsUnloaded() || pComponent->IsLoading())
+        if (pComponent->IsUnloaded())
         {
-            if (!pComponent->LoadComponentAsync())
+            pComponent->LoadComponent();
+        }
+        if (pComponent->IsLoading())
+        {
+            if (!pComponent->UpdateLoadingStatus())
             {
-                allLoaded = false;
+                return false;
+            }
+            else
+            {
+                pComponent->InitializeComponent();
+
+                // Register each component with all local systems...
+                for (auto pSystem : m_systems)
+                {
+                    pSystem->RegisterComponent(pComponent);
+                }
+
+                // ... and all global systems
+                // This is the non-parallelizable part
+                loadingContext.m_registerWithWorldSystems(this, pComponent);
             }
         }
+
+        // For now ! We should register components with systems as they become loaded
+        assert(!IsActivated());
     }
 
-    if (allLoaded)
-    {
-        m_status = Status::Loaded;
-    }
-
-    return allLoaded;
+    m_status = Status::Loaded;
+    return true;
 }
 
 void Entity::LoadComponents(const LoadingContext& loadingContext)

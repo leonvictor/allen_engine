@@ -18,7 +18,7 @@ class AssetLoader
   private:
     bool LoadAsset(const AssetHandle<IAsset>& pHandle)
     {
-        if (pHandle->IsLoaded() || pHandle->IsInitialized())
+        if (pHandle->IsLoaded())
         {
             (*pHandle.m_pLoadedCount)++;
             return true;
@@ -46,34 +46,10 @@ class AssetLoader
         (*handle.m_pLoadedCount)--;
     }
 
-    void InitializeAsset(const AssetHandle<IAsset>& handle)
-    {
-        if (!handle->IsInitialized())
-        {
-            assert(handle.initialized_count() == 0);
-            Initialize(handle);
-            handle->m_status = IAsset::Status::Initialized;
-        }
-        (*handle.m_pInitializedCount)++;
-    }
-
-    void ShutdownAsset(const AssetHandle<IAsset>& handle)
-    {
-        if (handle.initialized_count() == 1)
-        {
-            assert(handle->IsInitialized());
-            Shutdown(handle);
-            handle->m_status = IAsset::Status::Loaded;
-        }
-        (*handle.m_pInitializedCount)--;
-    }
-
   protected:
     virtual AssetHandle<IAsset> Create(AssetGUID id) = 0;
     virtual bool Load(const AssetHandle<IAsset>&) = 0;
     virtual void Unload(const AssetHandle<IAsset>&) = 0;
-    virtual void Initialize(const AssetHandle<IAsset>&) = 0;
-    virtual void Shutdown(const AssetHandle<IAsset>&) = 0;
 };
 
 /// @brief Base class for all asset loaders.
@@ -92,7 +68,5 @@ class IAssetLoader : public AssetLoader
 
     virtual bool Load(const AssetHandle<IAsset>&) = 0;
     virtual void Unload(const AssetHandle<IAsset>&) = 0;
-    virtual void Initialize(const AssetHandle<IAsset>&) = 0;
-    virtual void Shutdown(const AssetHandle<IAsset>&) = 0;
 };
 } // namespace aln

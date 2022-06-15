@@ -25,15 +25,6 @@ class TextureLoader : public IAssetLoader<Texture>
 
     bool Load(const AssetHandle<IAsset>& pAsset) override
     {
-        return true;
-    }
-
-    void Unload(const AssetHandle<IAsset>& pAsset) override
-    {
-    }
-
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
         // TODO: Abstract io to another lib
         // TODO: Allow loading to fail
         // TODO: Split image loading and vulkan texture creation
@@ -45,9 +36,10 @@ class TextureLoader : public IAssetLoader<Texture>
         pTex->m_image.AddView();
         pTex->m_image.AddSampler();
         pTex->m_image.SetDebugName("Material Texture"); // todo: add id name
+        return true;
     }
 
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
+    void Unload(const AssetHandle<IAsset>& pAsset) override
     {
         auto pTex = AssetHandle<Texture>(pAsset);
         // TODO: Make sure reassignement is good enough.

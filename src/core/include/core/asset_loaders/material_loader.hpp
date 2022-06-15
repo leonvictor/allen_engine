@@ -23,15 +23,6 @@ class MaterialLoader : public IAssetLoader<Material>
 
     bool Load(const AssetHandle<IAsset>& pAsset) override
     {
-        return true;
-    }
-
-    void Unload(const AssetHandle<IAsset>& pAsset) override
-    {
-    }
-
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
         auto pMat = AssetHandle<Material>(pAsset);
         pMat->m_buffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
 
@@ -40,9 +31,11 @@ class MaterialLoader : public IAssetLoader<Material>
         pMat->m_buffer.Map(0, sizeof(material));
         pMat->m_buffer.Copy(&material, sizeof(material));
         pMat->m_buffer.Unmap();
+
+        return true;
     }
 
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
+    void Unload(const AssetHandle<IAsset>& pAsset) override
     {
         auto pMat = AssetHandle<Material>(pAsset);
         pMat->m_buffer = vkg::resources::Buffer();

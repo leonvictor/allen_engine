@@ -57,8 +57,8 @@ std::vector<vk::DescriptorSetLayoutBinding> MeshRenderer::GetDescriptorSetLayout
             .binding = 0, // The binding used in the shader
             .descriptorType = vk::DescriptorType::eUniformBuffer,
             .descriptorCount = 1, // Number of values in the array
-            // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
-            // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)
+                                  // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
+                                  // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)
             .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
             .pImmutableSamplers = nullptr, // Image sampling related stuff.
         },
@@ -67,7 +67,7 @@ std::vector<vk::DescriptorSetLayoutBinding> MeshRenderer::GetDescriptorSetLayout
             .binding = 1,
             .descriptorType = vk::DescriptorType::eCombinedImageSampler,
             .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eFragment, //It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
+            .stageFlags = vk::ShaderStageFlagBits::eFragment, // It's possible to use texture sampling in the vertex shader as well, for example to dynamically deform a grid of vertices by a heightmap
             .pImmutableSamplers = nullptr,
         },
         {
@@ -95,39 +95,22 @@ vk::DescriptorSet& MeshRenderer::GetDescriptorSet() { return m_vkDescriptorSet.g
 
 void MeshRenderer::Initialize()
 {
-    m_pAssetManager->Initialize<Mesh>(m_pMesh);
     CreateUniformBuffer();
-    m_pAssetManager->Initialize<Material>(m_pMaterial);
     CreateDescriptorSet();
 }
 
 void MeshRenderer::Shutdown()
 {
     m_vkDescriptorSet.reset();
-
-    m_pAssetManager->Shutdown<Material>(m_pMaterial);
-
     m_uniformBuffer = vkg::resources::Buffer();
-    m_pAssetManager->Shutdown<Mesh>(m_pMesh);
-
     m_pDevice.reset();
 }
 
-bool MeshRenderer::Load()
+void MeshRenderer::Load()
 {
     // Short circuit
-    if (!m_pAssetManager->Load<Mesh>(m_pMesh))
-    {
-        std::cout << "Failed to load mesh ressource" << std::endl;
-        return false;
-    }
-
-    if (!m_pAssetManager->Load<Material>(m_pMaterial))
-    {
-        return false;
-    }
-
-    return true;
+    m_pAssetManager->Load<Mesh>(m_pMesh);
+    m_pAssetManager->Load<Material>(m_pMaterial);
 }
 
 void MeshRenderer::Unload()

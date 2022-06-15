@@ -26,29 +26,20 @@ class MeshLoader : public IAssetLoader<Mesh>
     {
         assert(pAsset->IsUnloaded());
         auto pMesh = AssetHandle<Mesh>(pAsset);
-        // TODO: Allow various loading modes...
-        return pMesh->Load(pMesh->GetID());
+
+        // TODO: ?
+        pMesh->Load(pMesh->GetID());
+        pMesh->CreateGraphicResources(m_pDevice);
+
+        return true;
     }
 
     void Unload(const AssetHandle<IAsset>& pAsset) override
     {
         assert(pAsset->IsLoaded());
         auto pMesh = AssetHandle<Mesh>(pAsset);
-        pMesh->Unload();
-    }
-
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsLoaded());
-        auto pMesh = AssetHandle<Mesh>(pAsset);
-        pMesh->CreateGraphicResources(m_pDevice);
-    }
-
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsInitialized());
-        auto pMesh = AssetHandle<Mesh>(pAsset);
         pMesh->FreeGraphicResources();
+        pMesh->Unload();
     }
 };
 

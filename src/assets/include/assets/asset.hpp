@@ -27,9 +27,8 @@ class IAsset
   protected:
     enum class Status
     {
-        Unloaded,   // Object created and attributes set
-        Loaded,     // Asset loaded in memory
-        Initialized // Asset loaded and initialization step done
+        Unloaded, // Object created and attributes set
+        Loaded,   // Asset loaded in memory
     };
 
     struct Dependency
@@ -64,7 +63,6 @@ class IAsset
     const AssetGUID& GetID() const { return m_id; }
     bool IsUnloaded() const { return m_status == Status::Unloaded; }
     bool IsLoaded() const { return m_status == Status::Loaded; }
-    bool IsInitialized() const { return m_status == Status::Initialized; }
     bool operator==(const IAsset& other) const { return m_id == other.m_id; }
 };
 } // namespace aln

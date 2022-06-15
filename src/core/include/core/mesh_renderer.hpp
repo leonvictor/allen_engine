@@ -38,7 +38,7 @@ class MeshRenderer : public entities::SpatialComponent
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
     /// @todo Find a good way to expose the asset manager.
-    std::shared_ptr<AssetManager> m_pAssetManager = nullptr;
+    AssetManager* m_pAssetManager = nullptr;
 
     AssetHandle<Mesh> m_pMesh;
     AssetHandle<Material> m_pMaterial;
@@ -76,7 +76,17 @@ class MeshRenderer : public entities::SpatialComponent
 
     void Initialize() override;
     void Shutdown() override;
-    bool Load() override;
+    void Load() override;
     void Unload() override;
+
+    bool UpdateLoadingStatus() override
+    {
+        if (m_pMesh->IsLoaded() && m_pMaterial->IsLoaded())
+        {
+            m_status = Status::Loaded;
+        }
+
+        return IsLoaded();
+    }
 };
 } // namespace aln

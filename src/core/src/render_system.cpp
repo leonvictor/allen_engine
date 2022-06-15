@@ -109,22 +109,25 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     ubo.projection[1][1] *= -1;
 
     // Loop over the registered components
-    for (auto pMeshRenderer : m_meshComponents)
+    if (!m_meshComponents.empty())
     {
-        // Compute this mesh's model matrix
-        Transform transform = pMeshRenderer->GetWorldTransform();
-        ubo.model = glm::mat4(1.0f);
-        ubo.model = glm::translate(ubo.model, transform.GetPosition());
-        ubo.model = ubo.model * glm::toMat4(transform.GetRotation());
-        ubo.model = glm::scale(ubo.model, transform.GetScale());
+        for (auto pMeshRenderer : m_meshComponents)
+        {
+            // Compute this mesh's model matrix
+            Transform transform = pMeshRenderer->GetWorldTransform();
+            ubo.model = glm::mat4(1.0f);
+            ubo.model = glm::translate(ubo.model, transform.GetPosition());
+            ubo.model = ubo.model * glm::toMat4(transform.GetRotation());
+            ubo.model = glm::scale(ubo.model, transform.GetScale());
 
-        // Update the ubo
-        pMeshRenderer->UpdateUniformBuffers(ubo);
+            // Update the ubo
+            pMeshRenderer->UpdateUniformBuffers(ubo);
 
-        // Bind the mesh buffers
-        objectPipeline.BindDescriptorSet(cb, pMeshRenderer->GetDescriptorSet(), 1);
-        vk::DeviceSize offset = 0;
-        pMeshRenderer->m_pMesh->Bind(cb, offset);
+            // Bind the mesh buffers
+            objectPipeline.BindDescriptorSet(cb, pMeshRenderer->GetDescriptorSet(), 1);
+            vk::DeviceSize offset = 0;
+            pMeshRenderer->m_pMesh->Bind(cb, offset);
+        }
     }
 
     m_pRenderer->EndFrame();

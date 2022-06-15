@@ -6,6 +6,7 @@
 #include "object_model.hpp"
 
 #include <list>
+#include <mutex>
 #include <set>
 #include <vector>
 
@@ -13,7 +14,7 @@ namespace aln::entities
 {
 class Entity;
 
-class EntityMap : private EntityCollection
+class EntityMap
 {
     friend class WorldEntity;
 
@@ -30,14 +31,19 @@ class EntityMap : private EntityCollection
     /// @todo: fuse with another tree for culling etc ?
     std::vector<Entity*> m_entitiesTree;
 
+    // TODO: List is not optimal, an inlined vector would be better ?
+    // Think about how entities are created, and where they are stored
+    std::list<Entity> m_entities;
+
     std::vector<Entity*> m_entitiesToAdd;
     std::vector<Entity*> m_entitiesToRemove;
     std::vector<Entity*> m_loadingEntities;
     std::vector<Entity*> m_entitiesToReload; // TODO
     std::vector<Entity*> m_entitiesToActivate;
     std::vector<Entity*> m_entitiesToDeactivate;
-    std::list<Entity> m_createdEntities; // TODO: test forward_list ?
+    // std::list<Entity> m_createdEntities; // TODO: test forward_list ?
 
+    std::recursive_mutex m_mutex;
     // ...
     Status m_status = Status::Deactivated;
     bool m_isTransientMap = false;

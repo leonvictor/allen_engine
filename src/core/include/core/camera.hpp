@@ -44,7 +44,7 @@ class Camera : public entities::SpatialComponent
 
     void Initialize() override {}
     void Shutdown() override {}
-    bool Load() override { return true; }
+    void Load() override {}
     void Unload() override {}
 };
 } // namespace aln

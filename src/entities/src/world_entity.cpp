@@ -4,6 +4,8 @@
 
 #include <Tracy.hpp>
 #include <assert.h>
+#include <execution>
+#include <functional>
 
 namespace aln::entities
 {
@@ -32,7 +34,6 @@ void WorldEntity::Cleanup()
     for (auto& [id, system] : m_systems)
     {
         system->Shutdown();
-        system.reset();
     }
 
     m_systems.clear();
@@ -40,6 +41,31 @@ void WorldEntity::Cleanup()
 
 void WorldEntity::Update(const UpdateContext& context)
 {
+    struct UpdateTask
+    {
+
+        typedef std::list<Entity>::iterator iter;
+
+        iter m_begin;
+        iter m_end;
+        UpdateContext m_updateContext;
+        int m_threadNumber;
+
+        UpdateTask(iter begin, iter end, UpdateContext updateContext, int thread_number)
+            : m_begin(begin), m_end(end), m_updateContext(updateContext), m_threadNumber(thread_number) {}
+
+        void operator()()
+        {
+            // tracy::SetThreadName(fmt::format("System updates ({})", m_threadNumber).c_str());
+            for (auto it = m_begin; it != m_end; it++)
+            {
+                // TODO: Customize the context to allow further steps to populate a thread-specific map
+                // TODO: When we join, we need to populate all of the maps
+                it->UpdateSystems(m_updateContext);
+            }
+        }
+    };
+
     ZoneScoped;
     // --------------
     // Loading phase
@@ -65,7 +91,33 @@ void WorldEntity::Update(const UpdateContext& context)
 
     // Update all systems for each entity
     // TODO: Refine/parallelize
-    m_entityMap.Update(context);
+
+    const int num_threads = std::thread::hardware_concurrency();
+
+    int grainsize = m_entityMap.m_entities.size() / num_threads;
+    if (grainsize < 1)
+        grainsize = 1;
+
+    auto work_iter = std::begin(m_entityMap.m_entities);
+    std::vector<UpdateTask> tasks;
+    tasks.reserve(num_threads);
+
+    for (uint8_t i = 0; i != num_threads - 1 && work_iter != m_entityMap.m_entities.end(); i++)
+    {
+        UpdateContext threadContext = context;
+
+        auto end = std::next(work_iter, grainsize);
+        tasks.push_back(UpdateTask(work_iter, end, threadContext, i));
+        work_iter = end;
+    }
+
+    // The remaining systems could update in the main thread maybe ?
+    tasks.push_back(UpdateTask(work_iter, m_entityMap.m_entities.end(), context, tasks.size()));
+
+    std::for_each(std::execution::par, tasks.begin(), tasks.end(), [](auto& task)
+        { task(); });
+
+    tasks.clear();
 
     // TODO: Refine. For now a world update simply means updating all systems
     for (auto& [id, system] : m_systems)

@@ -132,18 +132,18 @@ class Engine
 
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
-        auto pAssetManager = std::make_shared<AssetManager>();
+        m_pAssetManager = std::make_unique<AssetManager>();
         // TODO: Get rid of the default paths
-        pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
-        pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);
-        pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
+        m_pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
+        m_pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);
+        m_pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
 
         // Create a default context
         m_componentFactory.context = {
             .graphicsDevice = m_pDevice,
             .defaultTexturePath = TEXTURE_PATH,
             .defaultModelPath = MODEL_PATH,
-            .pAssetManager = pAssetManager};
+            .pAssetManager = m_pAssetManager.get()};
 
         CreateWorld();
         ShareImGuiContext();
@@ -162,6 +162,8 @@ class Engine
     vkg::render::SwapchainRenderer m_renderer;
     vkg::render::OfflineRenderer m_sceneRenderer;
     vkg::ImGUI m_imgui;
+
+    std::unique_ptr<AssetManager> m_pAssetManager;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -281,6 +283,8 @@ class Engine
 
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
+
+            m_pAssetManager->Update();
 
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?
@@ -586,6 +590,7 @@ class Engine
             auto& tree = m_worldEntity.GetEntityTree();
             for (Entity* node : tree)
             {
+                // TODO: Do not use the tree, rather check skip entities which have a parent
                 RecurseEntityTree(node);
             }
 

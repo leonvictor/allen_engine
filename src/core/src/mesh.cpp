@@ -10,8 +10,6 @@ namespace aln
 
 void Mesh::CreateGraphicResources(const std::shared_ptr<vkg::Device>& pDevice)
 {
-    assert(IsLoaded());
-
     // Create vertex buffer
     vkg::resources::Buffer vertexStagingBuffer(pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_vertices);
     m_vertexBuffer = vkg::resources::Buffer(pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
@@ -23,14 +21,11 @@ void Mesh::CreateGraphicResources(const std::shared_ptr<vkg::Device>& pDevice)
     pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
         {
             vertexStagingBuffer.CopyTo(cb, m_vertexBuffer);
-            indexStagingBuffer.CopyTo(cb, m_indexBuffer);
-        });
+            indexStagingBuffer.CopyTo(cb, m_indexBuffer); });
 }
 
 void Mesh::FreeGraphicResources()
 {
-    assert(IsInitialized());
-
     m_vertexBuffer = vkg::resources::Buffer();
     m_indexBuffer = vkg::resources::Buffer();
 }
