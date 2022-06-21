@@ -54,6 +54,7 @@
 #include <core/asset_loaders/mesh_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
 
+#include <common/memory.hpp>
 #include "IconsFontAwesome4.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -68,21 +69,6 @@
 
 using namespace aln::input;
 using namespace aln::entities;
-
-// TODO: Only when tracing memory
-#ifdef ALN_ENABLE_TRACING
-void* operator new(std::size_t count)
-{
-    auto ptr = malloc(count);
-    TracyAlloc(ptr, count);
-    return ptr;
-}
-void operator delete(void* ptr) noexcept
-{
-    TracyFree(ptr);
-    free(ptr);
-}
-#endif
 
 namespace aln
 {

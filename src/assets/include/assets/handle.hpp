@@ -2,6 +2,7 @@
 
 #include "asset.hpp"
 
+#include <common/memory.hpp>
 #include <memory>
 
 namespace aln
@@ -34,7 +35,7 @@ class AssetHandle
     AssetHandle() = default;
 
     /// @brief Create a new handle to a asset, taking ownership of it
-    AssetHandle(std::shared_ptr<T> pAsset) : m_pAsset(std::move(pAsset)), m_pInitializedCount(new size_t(0)), m_pLoadedCount(new size_t(0)) {}
+    AssetHandle(std::shared_ptr<T> pAsset) : m_pAsset(std::move(pAsset)), m_pInitializedCount(aln::New<size_t>(0)), m_pLoadedCount(aln::New<size_t>(0)) {}
 
     /// @brief Copy constructs a handled asset, sharing ownership
     /// @todo Only enable for this type, a derived one, or ??? the base IAsset class ???

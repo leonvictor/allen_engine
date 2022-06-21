@@ -11,6 +11,7 @@
 
 #include <imgui.h>
 
+#include <common/memory.hpp>
 #include <utils/uuid.hpp>
 
 namespace aln::reflect
@@ -39,8 +40,7 @@ struct TypeHelperResolver
     template <typename T, typename std::enable_if<std::is_constructible<T>::value, bool>::type = true>
     static T* CreateType()
     {
-        // TODO: Do NOT use new.
-        T* comp = new T();
+        T* comp = aln::New<T>();
         return std::move(comp);
     }
 
