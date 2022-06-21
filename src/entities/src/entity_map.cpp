@@ -6,6 +6,7 @@
 
 #include <reflection/reflection.hpp>
 
+#include <algorithm>
 #include <array>
 #include <execution>
 #include <functional>
@@ -30,13 +31,13 @@ void EntityMap::Clear(const LoadingContext& loadingContext)
     // then clear the collection.
     if (!m_isTransientMap)
     {
-        for (auto& entity : m_entities)
+        for (auto& pEntity : m_entities)
         {
-            if (entity.IsActivated())
+            if (pEntity->IsActivated())
             {
-                entity.Deactivate(loadingContext);
+                pEntity->Deactivate(loadingContext);
             }
-            entity.UnloadComponents(loadingContext);
+            pEntity->UnloadComponents(loadingContext);
         }
         m_entities.clear();
     }
@@ -121,23 +122,6 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     }
     Entity::EntityStateUpdatedEvent.m_updatedEntities.clear();
 
-    ///////////////
-    // Sync the newly created entities
-    ///////////////
-
-    // // Gather up newly created entities, add them to the loading list and move them to the static collection
-    // auto& newlyCreated = EntityCollection::NewlyCreatedEntities();
-    // for (auto it = newlyCreated.begin(); it != newlyCreated.end();)
-    // {
-    //     // TODO: this is wonky
-    //     auto [nit, value] = EntityCollection::Collection().insert(std::move(*it));
-    //     m_loadingEntities.push_back(&(nit->second));
-    //     it = newlyCreated.erase(it);
-    //     // TODO: Actually probably all the lists in the map should be in all threads and synced for the update
-    //     // (cause all threads could ask for an entity removal, or even loading)
-    // }
-    // newlyCreated.clear();
-
     // Deactivate, unload and remove entities from the collection
     for (auto pEntityToRemove : m_entitiesToRemove)
     {
@@ -173,9 +157,10 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
 
         // Unload components and remove from collection
         pEntityToRemove->UnloadComponents(loadingContext);
-        m_entities.remove_if([&](Entity& entity)
-            { return entity.GetID() == pEntityToRemove->m_ID; });
+        std::remove_if(m_entities.begin(), m_entities.end(), [&](Entity* pEntity)
+            { return pEntity->GetID() == pEntityToRemove->m_ID; });
     }
+
     m_entitiesToRemove.clear();
 
     // Entity loading
@@ -244,15 +229,15 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
         /// ...
     };
 
-    for (auto& entity : m_entities)
+    for (auto pEntity : m_entities)
     {
-        if (entity.IsLoaded())
+        if (pEntity->IsLoaded())
         {
-            entity.Activate(loadingContext);
+            pEntity->Activate(loadingContext);
 
-            if (!entity.HasParentEntity())
+            if (!pEntity->HasParentEntity())
             {
-                m_entitiesTree.push_back(&entity);
+                m_entitiesTree.push_back(pEntity);
             }
         }
     }
@@ -263,13 +248,13 @@ Entity* EntityMap::CreateEntity(std::string name)
 {
     std::lock_guard lock(m_mutex);
 
-    auto& entity = m_entities.emplace_back();
-    entity.m_name = name;
-
+    auto pEntity = aln::New<Entity>();
+    pEntity->m_name = name;
+    m_entities.push_back(pEntity);
     // TODO: What's the condition ?
     // if (IsActivated())
-    m_loadingEntities.push_back(&entity);
+    m_loadingEntities.push_back(pEntity);
 
-    return &entity;
+    return pEntity;
 }
 } // namespace aln::entities

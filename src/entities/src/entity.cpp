@@ -312,7 +312,7 @@ void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const a
     }
 }
 
-void Entity::UpdateSystems(UpdateContext const& context)
+void Entity::UpdateSystems(UpdateContext const& context) const
 {
     ZoneScoped;
     const UpdateStage updateStage = context.GetUpdateStage();

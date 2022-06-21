@@ -178,7 +178,7 @@ class Entity
     void DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
 
     /// @brief Update all systems attached to this entity.
-    void UpdateSystems(const UpdateContext& context);
+    void UpdateSystems(const UpdateContext& context) const;
 
     const std::vector<std::shared_ptr<IEntitySystem>>& GetSystems() { return m_systems; }
 
