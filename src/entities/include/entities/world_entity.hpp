@@ -12,6 +12,7 @@
 
 namespace aln
 {
+class TaskService;
 class Engine;
 
 namespace entities
@@ -24,6 +25,8 @@ class WorldEntity
   private:
     EntityMap m_entityMap;
     std::map<std::type_index, std::unique_ptr<IWorldSystem>> m_systems;
+
+    TaskService* m_pTaskService = nullptr;
 
     /// @brief Build the loading context by registering callbacks to this world entity.
     LoadingContext GetLoadingContext();
@@ -45,6 +48,8 @@ class WorldEntity
 
   public:
     ~WorldEntity();
+
+    void Initialize(TaskService* pTaskService);
 
     /// @brief 2 phases: loading and updating.
     /// @todo: better explanations (when it's donezo)

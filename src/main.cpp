@@ -55,6 +55,8 @@
 #include <core/asset_loaders/texture_loader.hpp>
 
 #include <common/memory.hpp>
+#include <common/threading/task_service.hpp>
+
 #include "IconsFontAwesome4.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -151,6 +153,10 @@ class Engine
 
     std::unique_ptr<AssetManager> m_pAssetManager;
 
+    // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
+    // TODO: Regroup services in a ServiceProvider class and pass it around to those who need it
+    TaskService m_taskService;
+
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
     const glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
@@ -191,6 +197,7 @@ class Engine
 
     void CreateWorld()
     {
+        m_worldEntity.Initialize(&m_taskService);
         m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
 
         // Create some entities
