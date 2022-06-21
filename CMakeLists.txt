@@ -75,6 +75,13 @@ add_executable(main ${SOURCE})
 # fmt
 add_subdirectory(external/fmt)
 
+# enkiTS
+set(ENKITS_BUILD_C_INTERFACE OFF)
+set(ENKITS_BUILD_EXAMPLES OFF)
+set(ENKITS_BUILD_SHARED ON)
+set(ENKITS_INSTALL OFF)
+add_subdirectory(external/enkiTS)
+
 # Tracy
 target_compile_definitions(main PRIVATE
     $<$<CONFIG:ReleaseWithTracing>:
@@ -167,6 +174,7 @@ target_compile_features(main PUBLIC cxx_std_20)
 target_link_libraries(main PUBLIC 
     # $<$<CONFIG:ReleaseWithTracing>:TracyClient>
     fmt::fmt
+    enkiTS
     common 
     reflection 
     glfw 

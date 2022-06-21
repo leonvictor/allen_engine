@@ -19,3 +19,6 @@
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "external/enkiTS"]
+	path = external/enkiTS
+	url = https://github.com/dougbinks/enkiTS.git
