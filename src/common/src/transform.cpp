@@ -69,4 +69,7 @@ Transform Transform::operator*(const Transform& b) const
     res *= b;
     return res;
 }
+
+const Transform Transform::Identity = Transform();
+
 } // namespace aln

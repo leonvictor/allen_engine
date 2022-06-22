@@ -4,10 +4,12 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
+#include <aln_common_export.h>
+
 namespace aln
 {
 
-class Transform
+class ALN_COMMON_EXPORT Transform
 {
   private:
     glm::vec3 m_translation = glm::vec3(0.0f);
@@ -39,7 +41,7 @@ class Transform
     void operator*=(const Transform& b);
     Transform operator*(const Transform& b) const;
 
-    const static Transform Identity;
+    static const Transform Identity;
 
     static constexpr float Epsilon = 0.000001;
 };
