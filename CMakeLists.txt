@@ -5,6 +5,8 @@ project(ALLEN VERSION 0.1)
 set(SOURCE 
     src/main.cpp)
 
+enable_testing()
+
 # Create the tracing configuration
 set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} ReleaseWithTracing)
 set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASE})
