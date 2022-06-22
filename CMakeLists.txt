@@ -104,7 +104,6 @@ set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
 add_subdirectory(external/glfw)
 
 # GLM
-add_compile_definitions(GLM_FORCE_RADIANS)
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
 add_compile_definitions(GLM_GTX_hash)

@@ -8,11 +8,13 @@
 
 namespace aln
 {
+
 Transform::Transform(const glm::mat4x4& matrix)
 {
     glm::vec3 skew;
     glm::vec4 perspective;
     glm::decompose(matrix, m_scale, m_rotation, m_translation, skew, perspective);
+    m_rotation = glm::normalize(m_rotation);
 }
 
 glm::mat4x4 Transform::ToMatrix() const
@@ -57,9 +59,8 @@ bool Transform::operator!=(const Transform& rhs) const
 
 void Transform::operator*=(const Transform& b)
 {
-    m_rotation = m_rotation * b.m_rotation;
-    m_rotation = glm::normalize(m_rotation);
-    m_translation = glm::rotate(b.m_rotation, m_translation * b.m_scale) + b.m_translation;
+    m_translation = glm::rotate(m_rotation, b.m_translation * m_scale) + m_translation;
+    m_rotation = glm::normalize(b.m_rotation * m_rotation);
     m_scale = m_scale * b.m_scale;
 }
 
