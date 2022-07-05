@@ -26,11 +26,6 @@ class EntityMap
         Activated        // All entities activated. Some might still be loading in case of dynamic adds
     };
 
-    /// Hierarchy of entities, used to display in the editor.
-    /// TODO: Maybe disable outside of the editor ?
-    /// @todo: fuse with another tree for culling etc ?
-    std::vector<Entity*> m_entitiesTree;
-
     /// @todo: Entities live on the heap. Profile !
     std::vector<Entity*> m_entities;
 

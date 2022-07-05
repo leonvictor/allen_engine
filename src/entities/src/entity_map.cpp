@@ -71,21 +71,7 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
             {
             case EntityInternalStateAction::Type::ParentChanged:
             {
-                auto it = std::find(m_entitiesTree.begin(), m_entitiesTree.end(), pEntity);
-                if (pEntity->HasParentEntity()) // It shouldn't be at the tree root
-                {
-                    if (it != m_entitiesTree.end())
-                    {
-                        m_entitiesTree.erase(it);
-                    }
-                }
-                else
-                {
-                    if (it == m_entitiesTree.end()) // Add it to the tree root if it previously had a parent
-                    {
-                        m_entitiesTree.push_back(pEntity);
-                    } // Otherwise it's already in the right place
-                }
+                // TODO: No longer necessary
                 break;
             }
 
@@ -125,15 +111,6 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     // Deactivate, unload and remove entities from the collection
     for (auto pEntityToRemove : m_entitiesToRemove)
     {
-        // Remove from the tree view
-        if (!pEntityToRemove->HasParentEntity())
-        {
-            auto it = std::find_if(m_entitiesTree.begin(), m_entitiesTree.end(), [&](Entity* pEntity)
-                { return pEntityToRemove->GetID() == pEntity->GetID(); });
-            assert(it != m_entitiesTree.end());
-            m_entitiesTree.erase(it);
-        }
-
         // Deactivate if activated
         if (pEntityToRemove->IsActivated())
         {
@@ -178,11 +155,6 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
             if (IsActivated() && !pEntity->IsActivated())
             {
                 pEntity->Activate(loadingContext);
-
-                if (!pEntity->HasParentEntity())
-                {
-                    m_entitiesTree.push_back(pEntity);
-                }
             }
         }
         else // Entity is still loading
@@ -234,11 +206,6 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
         if (pEntity->IsLoaded())
         {
             pEntity->Activate(loadingContext);
-
-            if (!pEntity->HasParentEntity())
-            {
-                m_entitiesTree.push_back(pEntity);
-            }
         }
     }
     m_status = Status::Activated;

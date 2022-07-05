@@ -580,11 +580,13 @@ class Engine
         // Outline panel
         if (ImGui::Begin(ICON_FA_LIST " Outline"))
         {
-            auto& tree = m_worldEntity.GetEntityTree();
-            for (Entity* node : tree)
+            auto& entities = m_worldEntity.GetEntities();
+            for (auto pEntity : entities)
             {
-                // TODO: Do not use the tree, rather check skip entities which have a parent
-                RecurseEntityTree(node);
+                if (!pEntity->HasParentEntity())
+                {
+                    RecurseEntityTree(pEntity);
+                }
             }
 
             // Add a dummy panel to the rest of the outline pane
