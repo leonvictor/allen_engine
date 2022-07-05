@@ -4,6 +4,7 @@
 #include "loading_context.hpp"
 #include "object_model.hpp"
 
+#include <common/threading/task_service.hpp>
 #include <reflection/reflection.hpp>
 
 #include <algorithm>
@@ -195,19 +196,30 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
 
 void EntityMap::Activate(const LoadingContext& loadingContext)
 {
-    // TODO: Parallel
-    struct ActivationTask
+    struct ActivationTask : public ITaskSet
     {
-        /// ...
+        const std::vector<Entity*> m_entities;
+        const LoadingContext& m_loadingContext;
+
+        ActivationTask(const std::vector<Entity*>& entities, const LoadingContext& loadingContext)
+            : m_entities(entities), m_loadingContext(loadingContext) {}
+
+        virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) final override
+        {
+            for (auto i = range.start; i < range.end; ++i)
+            {
+                const auto pEntity = m_entities[i];
+                if (pEntity->IsLoaded())
+                {
+                    pEntity->Activate(m_loadingContext);
+                }
+            }
+        }
     };
 
-    for (auto pEntity : m_entities)
-    {
-        if (pEntity->IsLoaded())
-        {
-            pEntity->Activate(loadingContext);
-        }
-    }
+    auto activationTask = ActivationTask(m_entities, loadingContext);
+    loadingContext.m_pTaskService->ExecuteTask(&activationTask);
+
     m_status = Status::Activated;
 }
 

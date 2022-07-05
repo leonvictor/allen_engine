@@ -24,7 +24,6 @@ class UpdateContext
   public:
     uint32_t displayWidth;
     uint32_t displayHeight;
-    EntityMap* pEntityMap;
 
     UpdateContext(UpdateStage stage) : m_updateStage(stage) {}
 

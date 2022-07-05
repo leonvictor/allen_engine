@@ -64,6 +64,7 @@ class EntityMap
     void Update(const UpdateContext& updateContext);
 
     /// @brief Activate all entities in the collection.
+    /// @todo split activation/loading contexts
     void Activate(const LoadingContext& loadingContext);
 
   public:
