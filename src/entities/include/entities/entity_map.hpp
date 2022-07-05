@@ -1,7 +1,6 @@
 #pragma once
 
 #include "entity.hpp"
-#include "entity_collection.hpp"
 #include "loading_context.hpp"
 #include "update_context.hpp"
 

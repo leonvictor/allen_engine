@@ -50,7 +50,6 @@ class Entity
 
     friend Command;
     friend class EntityMap;
-    friend class EntityCollection;
     friend class std::set<Entity>;
 
     enum class Status

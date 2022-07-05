@@ -4,7 +4,6 @@ add_library(
 
     src/entity.cpp
     src/component.cpp
-    src/entity_collection.cpp
     src/entity_map.cpp
     src/spatial_component.cpp
     src/command.cpp

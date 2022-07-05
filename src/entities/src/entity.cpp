@@ -1,6 +1,5 @@
 #include "entity.hpp"
 
-#include "entity_collection.hpp"
 #include "entity_system.hpp"
 
 #include "component.hpp"
