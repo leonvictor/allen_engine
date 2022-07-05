@@ -3,7 +3,7 @@
 #include "command.hpp"
 #include "entity_system.hpp"
 #include "loading_context.hpp"
-#include "object_model.hpp"
+#include "update_context.hpp"
 
 #include <assert.h>
 #include <set>

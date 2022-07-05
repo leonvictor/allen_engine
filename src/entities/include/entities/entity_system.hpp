@@ -4,7 +4,7 @@
 
 #include "../update_stages.hpp"
 
-#include "object_model.hpp"
+#include "update_context.hpp"
 #include "world_update.hpp"
 
 #include <map>
@@ -15,7 +15,7 @@
 
 namespace aln::entities
 {
-//fwd
+// fwd
 class Entity;
 class IComponent;
 

@@ -3,7 +3,7 @@
 #include <graphics/resources/buffer.hpp>
 
 #include <entities/components_registry.hpp>
-#include <entities/object_model.hpp>
+#include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
 
 #include <map>

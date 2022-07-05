@@ -2,7 +2,7 @@
 
 #include "entity.hpp"
 #include "loading_context.hpp"
-#include "object_model.hpp"
+#include "update_context.hpp"
 
 #include <common/threading/task_service.hpp>
 #include <reflection/reflection.hpp>

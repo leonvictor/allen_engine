@@ -7,7 +7,7 @@
 #include "mesh_renderer.hpp"
 
 #include <entities/entity.hpp>
-#include <entities/object_model.hpp>
+#include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
 
 #include <glm/ext/matrix_transform.hpp>

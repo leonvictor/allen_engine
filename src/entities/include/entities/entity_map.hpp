@@ -3,7 +3,7 @@
 #include "entity.hpp"
 #include "entity_collection.hpp"
 #include "loading_context.hpp"
-#include "object_model.hpp"
+#include "update_context.hpp"
 
 #include <list>
 #include <mutex>
