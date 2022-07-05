@@ -120,7 +120,7 @@ class Engine
 
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
-        m_pAssetManager = std::make_unique<AssetManager>();
+        m_pAssetManager = std::make_unique<AssetManager>(m_serviceProvider.GetTaskService());
         // TODO: Get rid of the default paths
         m_pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
         m_pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);

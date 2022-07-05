@@ -6,6 +6,7 @@
 namespace aln
 {
 
+using TaskSet = enki::TaskSet;
 using ITaskSet = enki::ITaskSet;
 using TaskSetPartition = enki::TaskSetPartition;
 

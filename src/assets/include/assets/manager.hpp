@@ -8,6 +8,8 @@
 #include <typeindex>
 #include <typeinfo>
 
+#include <common/threading/task_service.hpp>
+
 #include "asset.hpp"
 #include "handle.hpp"
 #include "loader.hpp"
@@ -52,6 +54,10 @@ class AssetManager
     std::vector<AssetRequest> m_pendingRequests;
     std::vector<AssetRequest> m_activeRequests;
 
+    TaskService* m_pTaskService = nullptr;
+    TaskSet m_loadingTask;
+    bool m_isLoadingTaskRunning = false;
+
     AssetHandle<IAsset> GetInternal(const std::type_index& typeIndex, const std::string& path)
     {
         auto it = m_assetCache.try_emplace(path);
@@ -91,6 +97,13 @@ class AssetManager
     /// @brief Handle pending requests
     void Update()
     {
+        if (m_isLoadingTaskRunning && !m_loadingTask.GetIsComplete())
+        {
+            return;
+        }
+
+        m_isLoadingTaskRunning = false;
+
         std::lock_guard lock(m_mutex);
 
         for (auto& pendingRequest : m_pendingRequests)
@@ -117,11 +130,14 @@ class AssetManager
         m_pendingRequests.clear();
 
         // Handle active requests
-        // TODO: Async
-        HandleActiveRequests();
+        if (!m_activeRequests.empty())
+        {
+            m_pTaskService->ScheduleTask(&m_loadingTask);
+            m_isLoadingTaskRunning = true;
+        }
     }
 
-    void HandleActiveRequests()
+    void HandleActiveRequests(TaskSetPartition range, uint32_t threadnum)
     {
         int32_t requestCount = (int32_t) m_activeRequests.size() - 1;
         for (auto idx = requestCount; idx >= 0; idx--)
@@ -191,6 +207,10 @@ class AssetManager
     }
 
   public:
+    AssetManager(TaskService* pTaskService)
+        : m_pTaskService(pTaskService),
+          m_loadingTask(std::bind(&AssetManager::HandleActiveRequests, this, std::placeholders::_1, std::placeholders::_2)) {}
+
     ~AssetManager()
     {
         while (IsIdle())

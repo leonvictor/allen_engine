@@ -9,6 +9,7 @@ add_library(${LIB_NAME} SHARED
 set(LIB_DEPENDENCIES
     ${JSON_INCLUDE_DIRS}
     ${STB_INCLUDE_DIR}
+    common
     )
 
 set(LIB_LINK_DEPENDENCIES )
