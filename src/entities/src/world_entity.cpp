@@ -2,6 +2,7 @@
 #include "component.hpp"
 #include "entity.hpp"
 
+#include <common/services/service_provider.hpp>
 #include <common/threading/task_service.hpp>
 
 #include <Tracy.hpp>
@@ -12,22 +13,20 @@
 namespace aln::entities
 {
 
-void WorldEntity::Initialize(TaskService* pTaskService)
+void WorldEntity::Initialize(ServiceProvider& serviceProvider)
 {
-    assert(pTaskService != nullptr);
-    m_pTaskService = pTaskService;
-}
+    m_pTaskService = serviceProvider.GetTaskService();
+    assert(m_pTaskService != nullptr);
 
-LoadingContext WorldEntity::GetLoadingContext()
-{
+    m_loadingContext = LoadingContext(m_pTaskService);
+
     // Register callbacks to propagate component registrations to world systems
-    LoadingContext loadingContext;
-    loadingContext.m_registerWithWorldSystems = std::bind(&WorldEntity::RegisterComponent, this, std::placeholders::_1, std::placeholders::_2);
-    loadingContext.m_unregisterWithWorldSystems = std::bind(&WorldEntity::UnregisterComponent, this, std::placeholders::_1, std::placeholders::_2);
-    loadingContext.m_registerEntityUpdate = std::bind(&WorldEntity::RegisterEntityUpdate, this, std::placeholders::_1);
-    loadingContext.m_unregisterEntityUpdate = std::bind(&WorldEntity::UnregisterEntityUpdate, this, std::placeholders::_1);
-    // TODO: In order to paralellize, the entity registering functions could be bound from transient instances of the entity map.
-    return loadingContext;
+    m_loadingContext.m_registerWithWorldSystems = std::bind(&WorldEntity::RegisterComponent, this, std::placeholders::_1, std::placeholders::_2);
+    m_loadingContext.m_unregisterWithWorldSystems = std::bind(&WorldEntity::UnregisterComponent, this, std::placeholders::_1, std::placeholders::_2);
+    m_loadingContext.m_registerEntityUpdate = std::bind(&WorldEntity::RegisterEntityUpdate, this, std::placeholders::_1);
+    m_loadingContext.m_unregisterEntityUpdate = std::bind(&WorldEntity::UnregisterEntityUpdate, this, std::placeholders::_1);
+
+    assert(m_loadingContext.IsInitialized());
 }
 
 WorldEntity::~WorldEntity()
@@ -37,8 +36,7 @@ WorldEntity::~WorldEntity()
 
 void WorldEntity::Cleanup()
 {
-    auto loadingContext = GetLoadingContext();
-    m_entityMap.Clear(loadingContext);
+    m_entityMap.Clear(m_loadingContext);
 
     for (auto& [id, system] : m_systems)
     {
@@ -74,9 +72,8 @@ void WorldEntity::Update(const UpdateContext& context)
     // Loading phase
     // --------------
 
-    auto loadingContext = GetLoadingContext();
-
-    if (!m_entityMap.Load(loadingContext))
+    assert(m_loadingContext.IsInitialized());
+    if (!m_entityMap.Load(m_loadingContext))
     {
         return; // Not all entities are loaded yet, return.
     }
@@ -85,7 +82,7 @@ void WorldEntity::Update(const UpdateContext& context)
 
     if (!m_entityMap.IsActivated())
     {
-        m_entityMap.Activate(loadingContext);
+        m_entityMap.Activate(m_loadingContext);
     }
 
     // --------------
@@ -93,8 +90,6 @@ void WorldEntity::Update(const UpdateContext& context)
     // --------------
 
     // Update all systems for each entity
-    // TODO: Refine/parallelize
-
     auto updateTask = UpdateTask(m_entityMap.m_entities, context);
     m_pTaskService->ExecuteTask(&updateTask);
 

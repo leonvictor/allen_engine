@@ -8,11 +8,12 @@
 #include <typeindex>
 #include <typeinfo>
 
+#include <common/services/service_provider.hpp>
 #include <utils/uuid.hpp>
 
 namespace aln
 {
-class TaskService;
+class TaskProvider;
 class Engine;
 
 namespace entities
@@ -28,8 +29,7 @@ class WorldEntity
 
     TaskService* m_pTaskService = nullptr;
 
-    /// @brief Build the loading context by registering callbacks to this world entity.
-    LoadingContext GetLoadingContext();
+    LoadingContext m_loadingContext;
 
     /// @brief Remove all entities and system from this world.
     void Cleanup();
@@ -49,7 +49,7 @@ class WorldEntity
   public:
     ~WorldEntity();
 
-    void Initialize(TaskService* pTaskService);
+    void Initialize(ServiceProvider& serviceProvider);
 
     /// @brief 2 phases: loading and updating.
     /// @todo: better explanations (when it's donezo)
