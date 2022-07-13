@@ -108,7 +108,6 @@ void MeshRenderer::Shutdown()
 
 void MeshRenderer::Load()
 {
-    // Short circuit
     m_pAssetManager->Load<Mesh>(m_pMesh);
     m_pAssetManager->Load<Material>(m_pMaterial);
 }

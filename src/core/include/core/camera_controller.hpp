@@ -33,7 +33,7 @@ class EditorCameraController : aln::entities::IEntitySystem
 
     float m_rotationSensitivity = 0.1f;
     float m_translationSensitivity = 0.006f;
-    Camera* m_pCameraInstance;
+    Camera* m_pCameraInstance = nullptr;
 
     bool m_hasChanged = true; // default to true to trigger camera alignment on startup
 

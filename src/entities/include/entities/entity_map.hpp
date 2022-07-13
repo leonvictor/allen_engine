@@ -4,9 +4,7 @@
 #include "loading_context.hpp"
 #include "update_context.hpp"
 
-#include <list>
 #include <mutex>
-#include <set>
 #include <vector>
 
 namespace aln::entities
@@ -35,8 +33,9 @@ class EntityMap
     std::vector<Entity*> m_entitiesToActivate;
     std::vector<Entity*> m_entitiesToDeactivate;
 
+    // Mutex guarding the main entity collection
     std::recursive_mutex m_mutex;
-    // ...
+
     Status m_status = Status::Deactivated;
     bool m_isTransientMap = false;
 

@@ -8,6 +8,7 @@ namespace aln
 
 using TaskSet = enki::TaskSet;
 using ITaskSet = enki::ITaskSet;
+using TaskSetFunction = enki::TaskSetFunction;
 using TaskSetPartition = enki::TaskSetPartition;
 
 class TaskService

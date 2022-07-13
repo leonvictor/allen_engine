@@ -109,17 +109,20 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     }
     Entity::EntityStateUpdatedEvent.m_updatedEntities.clear();
 
-    // Deactivate, unload and remove entities from the collection
+    // ------------------
+    // Remove entities marked for removal
+    // ------------------
     for (auto pEntityToRemove : m_entitiesToRemove)
     {
-        // Deactivate if activated
+        // Deactivate
         if (pEntityToRemove->IsActivated())
         {
             pEntityToRemove->Deactivate(loadingContext);
         }
-        else // Remove from loading lists as we might still be loading this entity
+        else
         {
-            // TODO: Removing from vectors is meh. Profile and check if std::list/std::multimap are more efficient for what we do
+            // Remove from loading lists as we might still be loading this entity
+            // @todo: does vector::erase work ?
             auto itLoading = std::find(m_loadingEntities.begin(), m_loadingEntities.end(), pEntityToRemove);
             if (itLoading != m_loadingEntities.end())
             {
@@ -133,10 +136,16 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
             }
         }
 
-        // Unload components and remove from collection
+        // Unload entity components
         pEntityToRemove->UnloadComponents(loadingContext);
-        std::remove_if(m_entities.begin(), m_entities.end(), [&](Entity* pEntity)
-            { return pEntity->GetID() == pEntityToRemove->m_ID; });
+
+        // Remove from collection
+        auto itEntity = std::find(m_entities.begin(), m_entities.end(), pEntityToRemove);
+        assert(itEntity != m_entities.end());
+        m_entities.erase(itEntity);
+
+        // Release memory
+        aln::Delete(pEntityToRemove);
     }
 
     m_entitiesToRemove.clear();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <cstdlib>
 #include <memory>
 
@@ -21,7 +22,7 @@ T* New(ConstructorParameters&&... params)
 template <typename T>
 void Delete(T*& ptr) noexcept
 {
-    assert(T != nullptr);
+    assert(ptr != nullptr);
 
 #ifdef ALN_ENABLE_TRACING
     TracyFree(ptr);

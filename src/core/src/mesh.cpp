@@ -30,7 +30,7 @@ void Mesh::FreeGraphicResources()
     m_indexBuffer = vkg::resources::Buffer();
 }
 
-void Mesh::Bind(vk::CommandBuffer& cb, vk::DeviceSize offset)
+void Mesh::Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const
 {
     cb.bindVertexBuffers(0, m_vertexBuffer.GetVkBuffer(), offset);
     cb.bindIndexBuffer(m_indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);

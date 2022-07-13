@@ -60,7 +60,11 @@ class MeshRenderer : public entities::SpatialComponent
         m_pAssetManager = ctx.pAssetManager;
         m_pMesh = ctx.pAssetManager->Get<Mesh>(ctx.defaultModelPath);
         m_pMaterial = ctx.pAssetManager->Get<Material>("DefaultMaterial");
-        m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>(ctx.defaultTexturePath));
+
+        /// @todo TMP while we need to manually change materials
+        auto pMatAsset = const_cast<Material*>(m_pMaterial.get());
+        pMatAsset->SetAlbedoMap(m_pAssetManager->Get<Texture>(ctx.defaultTexturePath));
+
         m_pDevice = ctx.graphicsDevice;
     }
 

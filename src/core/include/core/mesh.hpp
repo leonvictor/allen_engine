@@ -49,7 +49,7 @@ class Mesh : public IAsset
 
   public:
     Mesh(AssetGUID& guid) : IAsset(guid) {}
-    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset);
+    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
     void RevertNormals();
 };
 } // namespace aln

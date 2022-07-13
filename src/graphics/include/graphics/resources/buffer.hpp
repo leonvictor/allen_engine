@@ -38,7 +38,7 @@ class Buffer : public Allocation
         return vk::DescriptorBufferInfo(m_vkBuffer.get(), 0, m_size);
     }
 
-    inline vk::Buffer& GetVkBuffer() { return m_vkBuffer.get(); }
+    inline const vk::Buffer& GetVkBuffer() const { return m_vkBuffer.get(); }
 
   private:
     vk::UniqueBuffer m_vkBuffer;

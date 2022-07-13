@@ -28,6 +28,7 @@ class Material : public IAsset
   public:
     Material(AssetGUID& guid) : IAsset(guid) {}
 
+    /// @todo Remove. Asset can't be modified
     void SetAlbedoMap(const AssetHandle<Texture>& pTex)
     {
         if (pTex == m_albedoMap)

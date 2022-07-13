@@ -102,17 +102,13 @@ class ComponentsRegistry
         m_numberOfRegisteredComponents++;
     }
 
-    void RemoveRecordEntry(const aln::utils::UUID& id, T* pComponent)
+    void RemoveRecordEntry(const aln::utils::UUID& entityID, T* pComponent)
     {
-        auto recordIt = m_registry.find(id);
+        auto recordIt = m_registry.find(entityID);
         if (recordIt != m_registry.end())
         {
             auto& entries = recordIt->second;
-            auto entryIt = std::find_if(entries.begin(), entries.end(),
-                [&](T* pRegisteredComponent)
-                {
-                    return pRegisteredComponent == pComponent;
-                });
+            auto entryIt = std::find(entries.begin(), entries.end(), pComponent);
 
             if (entryIt != entries.end())
             {
