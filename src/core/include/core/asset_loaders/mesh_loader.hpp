@@ -22,10 +22,10 @@ class MeshLoader : public IAssetLoader<Mesh>
         m_defaultMeshPath = defaultMeshPath;
     }
 
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord) override
     {
-        assert(pAsset->IsUnloaded());
-        auto pMesh = AssetHandle<Mesh>(pAsset);
+        auto pMesh = pRecord->GetAsset<Mesh>();
+        assert(pMesh->IsUnloaded());
 
         // TODO: ?
         pMesh->Load(pMesh->GetID());
@@ -34,10 +34,11 @@ class MeshLoader : public IAssetLoader<Mesh>
         return true;
     }
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        assert(pAsset->IsLoaded());
-        auto pMesh = AssetHandle<Mesh>(pAsset);
+
+        auto pMesh = pRecord->GetAsset<Mesh>();
+        assert(pMesh->IsLoaded());
         pMesh->FreeGraphicResources();
         pMesh->Unload();
     }

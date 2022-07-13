@@ -14,59 +14,32 @@ class AssetHandle
     friend class AssetHandle;
 
     friend class AssetLoader;
+    friend class AssetManager;
 
   private:
-    std::shared_ptr<T> m_pAsset;
-
-    mutable size_t* m_pLoadedCount;
-    mutable size_t* m_pInitializedCount;
+    const T* m_pAsset = nullptr;
 
   public:
-    ~AssetHandle()
-    {
-        if (use_count() <= 1)
-        {
-            delete m_pLoadedCount;
-            delete m_pInitializedCount;
-        }
-        m_pAsset.reset();
-    }
-
     AssetHandle() = default;
-
-    /// @brief Create a new handle to a asset, taking ownership of it
-    AssetHandle(std::shared_ptr<T> pAsset) : m_pAsset(std::move(pAsset)), m_pInitializedCount(aln::New<size_t>(0)), m_pLoadedCount(aln::New<size_t>(0)) {}
+    AssetHandle(T* pAsset) : m_pAsset(pAsset) {}
 
     /// @brief Copy constructs a handled asset, sharing ownership
     /// @todo Only enable for this type, a derived one, or ??? the base IAsset class ???
     template <AssetType Other>
-    AssetHandle(const AssetHandle<Other>& handle) : m_pAsset(std::static_pointer_cast<T>(handle.m_pAsset)),
-                                                    m_pInitializedCount(handle.m_pInitializedCount),
-                                                    m_pLoadedCount(handle.m_pLoadedCount) {}
+    AssetHandle(const AssetHandle<Other>& handle) : m_pAsset(std::static_pointer_cast<T>(handle.m_pAsset)) {}
 
     /// @brief Move constructor
     template <AssetType Other>
-    AssetHandle(AssetHandle<Other>&& handle) : m_pAsset(std::move(std::static_pointer_cast<T>(handle.m_pAsset))),
-                                               m_pInitializedCount(std::move(handle.m_pInitializedCount)),
-                                               m_pLoadedCount(std::move(handle.m_pLoadedCount)) {}
+    AssetHandle(AssetHandle<Other>&& handle) : m_pAsset(std::move(std::static_pointer_cast<T>(handle.m_pAsset))) {}
 
-    size_t use_count() const { return m_pAsset.use_count(); }
-    size_t load_count() const { return *m_pLoadedCount; }
-    size_t initialized_count() const { return *m_pInitializedCount; }
-
-    T& get() const { return *m_pAsset; }
-    T& operator*() const { return *m_pAsset.get(); }
-    T* operator->() const { return m_pAsset.get(); }
+    const T* get() const { return m_pAsset; }
+    const T* operator->() const { return m_pAsset; }
 
     operator bool() const { return static_cast<bool>(m_pAsset); }
 
     bool operator==(const AssetHandle<T>& other) const
     {
-        if (m_pAsset && other)
-        {
-            return m_pAsset == other.m_pAsset;
-        }
-        return false;
+        return m_pAsset != nullptr && other.m_pAsset != nullptr && m_pAsset == other.m_pAsset;
     }
 };
 } // namespace aln

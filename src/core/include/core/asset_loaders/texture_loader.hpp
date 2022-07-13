@@ -23,7 +23,7 @@ class TextureLoader : public IAssetLoader<Texture>
         m_defaultTexturePath = defaultTexturePath;
     }
 
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord) override
     {
         // TODO: Abstract io to another lib
         // TODO: Allow loading to fail
@@ -31,7 +31,7 @@ class TextureLoader : public IAssetLoader<Texture>
         // TODO: Handle 2D/3D Textures here
 
         // Vulkan objects loading happens during initialization as we do not handle threaded creation yet
-        auto pTex = AssetHandle<Texture>(pAsset);
+        auto pTex = pRecord->GetAsset<Texture>();
         pTex->m_image = vkg::resources::Image::FromFile(m_pDevice, pTex->GetID());
         pTex->m_image.AddView();
         pTex->m_image.AddSampler();
@@ -39,9 +39,9 @@ class TextureLoader : public IAssetLoader<Texture>
         return true;
     }
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        auto pTex = AssetHandle<Texture>(pAsset);
+        auto pTex = pRecord->GetAsset<Texture>();
         // TODO: Make sure reassignement is good enough.
         pTex->m_image = vkg::resources::Image();
     }

@@ -4,6 +4,7 @@
 
 #include "asset.hpp"
 #include "handle.hpp"
+#include "record.hpp"
 
 namespace aln
 {
@@ -15,41 +16,10 @@ class AssetLoader
   public:
     virtual ~AssetLoader(){};
 
-  private:
-    bool LoadAsset(const AssetHandle<IAsset>& pHandle)
-    {
-        if (pHandle->IsLoaded())
-        {
-            (*pHandle.m_pLoadedCount)++;
-            return true;
-        }
-
-        if (Load(pHandle))
-        {
-            /// TODO: Status setting could happen in the base Asset class (same way as here)
-            pHandle->m_status = IAsset::Status::Loaded;
-            (*pHandle.m_pLoadedCount)++;
-            return true;
-        }
-
-        return false;
-    }
-
-    void UnloadAsset(const AssetHandle<IAsset>& handle)
-    {
-        if (handle.load_count() == 1) // Only unload if this is the last one
-        {
-            assert(handle->IsLoaded());
-            Unload(handle);
-            handle->m_status = IAsset::Status::Unloaded;
-        }
-        (*handle.m_pLoadedCount)--;
-    }
-
   protected:
-    virtual AssetHandle<IAsset> Create(AssetGUID id) = 0;
-    virtual bool Load(const AssetHandle<IAsset>&) = 0;
-    virtual void Unload(const AssetHandle<IAsset>&) = 0;
+    virtual IAsset* Create(AssetGUID id) = 0;
+    virtual bool Load(AssetRecord* pAsset) = 0;
+    virtual void Unload(AssetRecord* pAsset) = 0;
 };
 
 /// @brief Base class for all asset loaders.
@@ -61,12 +31,9 @@ class IAssetLoader : public AssetLoader
     virtual ~IAssetLoader(){};
 
   protected:
-    virtual AssetHandle<IAsset> Create(AssetGUID id)
-    {
-        return AssetHandle<IAsset>(std::make_shared<T>(id));
-    }
-
-    virtual bool Load(const AssetHandle<IAsset>&) = 0;
-    virtual void Unload(const AssetHandle<IAsset>&) = 0;
+    /// @todo Creation can be delayed until the asset is loaded for the first time
+    IAsset* Create(AssetGUID id) final override { return aln::New<T>(id); }
+    virtual bool Load(AssetRecord* pRecord) = 0;
+    virtual void Unload(AssetRecord* pRecord) = 0;
 };
 } // namespace aln

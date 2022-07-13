@@ -21,9 +21,9 @@ class MaterialLoader : public IAssetLoader<Material>
         m_pDevice = pDevice;
     }
 
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord) override
     {
-        auto pMat = AssetHandle<Material>(pAsset);
+        auto pMat = pRecord->GetAsset<Material>();
         pMat->m_buffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
 
         // TMP while materials are poopy
@@ -35,9 +35,9 @@ class MaterialLoader : public IAssetLoader<Material>
         return true;
     }
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        auto pMat = AssetHandle<Material>(pAsset);
+        auto pMat = pRecord->GetAsset<Material>();
         pMat->m_buffer = vkg::resources::Buffer();
     }
 };
