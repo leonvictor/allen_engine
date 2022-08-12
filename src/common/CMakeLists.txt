@@ -2,6 +2,7 @@ set(LIB_NAME common)
 
 add_library(${LIB_NAME} SHARED
     src/transform.cpp
+    src/colors.cpp
 )
 
 include(GenerateExportHeader)
