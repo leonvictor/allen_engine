@@ -8,6 +8,8 @@ namespace aln::assets
 
 bool SaveBinaryFile(const std::string& path, const AssetFile& file)
 {
+    std::cout << "Saving to: " << path << std::endl;
+
     uint32_t metadataSize = file.metadata.size();
     uint32_t binarySize = file.binary.size();
 

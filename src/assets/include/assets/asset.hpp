@@ -56,10 +56,10 @@ class AssetID
     AssetID(std::string assetPath) : m_path(assetPath),
                                      m_typeID(assetPath.substr(assetPath.size() - 4)) {}
 
-    AssetID(const AssetID& other): m_path(other.m_path), m_typeID(other.m_typeID){}
-    
-    inline const AssetTypeID& GetAssetTypeID()  const { return m_typeID; }
-    inline const std::string& GetAssetPath() const  { return m_path; }
+    AssetID(const AssetID& other) : m_path(other.m_path), m_typeID(other.m_typeID) {}
+
+    inline const AssetTypeID& GetAssetTypeID() const { return m_typeID; }
+    inline const std::string& GetAssetPath() const { return m_path; }
 
     bool operator==(const AssetID& other) const { return m_path == other.m_path; }
     bool operator!=(const AssetID& other) const { return m_path != other.m_path; }
@@ -90,6 +90,7 @@ class IAsset
 
     struct Dependency
     {
+        // TODO: type_index should no longer be necessary since AssetID contains an AssetTypeID
         std::type_index type;
         AssetID id;
 

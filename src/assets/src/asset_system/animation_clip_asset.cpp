@@ -16,15 +16,20 @@ AnimationClipInfo ReadAnimationClipInfo(AssetFile* file)
     info.name = metadata["name"];
     info.duration = metadata["duration"];
     info.framesPerSecond = metadata["fps"];
+    info.skeletonID = metadata["skeleton_id"];
+    info.framesPerSecond = metadata["fps"];
     info.binaryCompressionMode = metadata["binary_compression"];
     info.originalFile = metadata["original_file"];
-    info.bufferSize = metadata["buffer_size"];
+    info.binaryBufferSize = metadata["buffer_size"];
 
     for (auto& [key, value] : metadata["tracks"].items())
     {
         TrackInfo trackInfo;
         trackInfo.boneName = value["bone_name"];
-        trackInfo.numKeys = value["num_keys"];
+        trackInfo.numTranslationKeys = value["num_translation_keys"];
+        trackInfo.numRotationKeys = value["num_rotation_keys"];
+        trackInfo.numScaleKeys = value["num_scale_keys"];
+        trackInfo.indexInBuffer = value["index_in_buffer"];
 
         info.tracks.push_back(trackInfo);
     }
@@ -36,14 +41,14 @@ void UnpackAnimationClip(const AnimationClipInfo* info, const std::vector<std::b
 {
     // TODO: Decompress to Engine AnimationClip data class directly
     // Where should this happen ?
-    destinationBuffer.resize(info->bufferSize);
+    destinationBuffer.resize(info->binaryBufferSize);
     if (info->binaryCompressionMode == CompressionMode::LZ4)
     {
         LZ4_decompress_safe(
             reinterpret_cast<const char*>(sourceBuffer.data()),
             reinterpret_cast<char*>(destinationBuffer.data()),
             static_cast<int>(sourceBuffer.size()),
-            static_cast<int>(destinationBuffer.size()));
+            static_cast<int>(destinationBuffer.size() * sizeof(float)));
     }
 }
 
@@ -53,18 +58,17 @@ AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data)
     file.type = EAssetType::Animation;
     file.version = 1;
 
-    // TODO: Compress anim
-
     // Compress binary
     // Find the worst-case compressed size
-    size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(data.size()));
+    size_t dataBinarySize = data.size() * sizeof(float);
+    size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(dataBinarySize));
     file.binary.resize(maxCompressedSize);
 
     // Compress buffer and copy it into the file struct
     int compressedSize = LZ4_compress_default(
         reinterpret_cast<char*>(data.data()),
         reinterpret_cast<char*>(file.binary.data()),
-        static_cast<int>(data.size()),
+        static_cast<int>(dataBinarySize),
         static_cast<int>(maxCompressedSize));
 
     // Resize back to the actual compressed size
@@ -76,7 +80,10 @@ AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data)
     {
         json track;
         track["bone_name"] = trackInfo.boneName;
-        track["num_keys"] = trackInfo.numKeys;
+        track["num_translation_keys"] = trackInfo.numTranslationKeys;
+        track["num_rotation_keys"] = trackInfo.numRotationKeys;
+        track["num_scale_keys"] = trackInfo.numScaleKeys;
+        track["index_in_buffer"] = trackInfo.indexInBuffer;
 
         tracksMetadata.push_back(track);
     }
@@ -85,6 +92,7 @@ AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data)
     metadata["name"] = info->name;
     metadata["duration"] = info->duration;
     metadata["fps"] = info->framesPerSecond;
+    metadata["skeleton_id"] = info->skeletonID;
     metadata["tracks"] = tracksMetadata;
     metadata["binary_compression"] = CompressionMode::LZ4;
     metadata["buffer_size"] = data.size();

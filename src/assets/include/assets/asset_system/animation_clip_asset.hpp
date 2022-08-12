@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/vec3.hpp>
+
 #include <string>
 
 #include "asset_system.hpp"
@@ -16,8 +19,25 @@ enum class AnimCompressionMode : uint8_t
 
 struct TrackInfo
 {
-    std::string boneName;
-    uint32_t numKeys;
+    std::string boneName = "";
+
+    uint64_t indexInBuffer = 0;
+
+    uint32_t numTranslationKeys = 0;
+    uint32_t numRotationKeys = 0;
+    uint32_t numScaleKeys = 0;
+
+    uint64_t GetTranslationBinaryBufferOffset() { return indexInBuffer; }
+    uint64_t GetTranslationBinaryBufferSize() { return numTranslationKeys * 4 * sizeof(float); }
+
+    uint64_t GetRotationBinaryBufferOffset() { return indexInBuffer + GetTranslationBinaryBufferSize(); }
+    uint64_t GetRotationBinaryBufferSize() { return numRotationKeys * 5 * sizeof(float); }
+
+    uint64_t GetScaleBinaryBufferOffset() { return indexInBuffer + GetTranslationBinaryBufferOffset() + GetRotationBinaryBufferOffset(); }
+    uint64_t GetScaleBinaryBufferSize() { return numScaleKeys * 4 * sizeof(float); }
+
+    /// @brief Return the number of float values used by this track
+    uint64_t GetBufferValuesCount() { return (numTranslationKeys * 4) + (numRotationKeys * 5) + (numScaleKeys * 4); }
 };
 
 struct AnimationClipInfo
@@ -26,10 +46,12 @@ struct AnimationClipInfo
     uint32_t duration;        // Clip duration (in frames)
     uint16_t framesPerSecond; // Source clip FPS
 
-    // uint32_t numTracks;       // Number of animation tracks
+    // Associated skeleton asset ID
+    std::string skeletonID;
+
     std::vector<TrackInfo> tracks;
 
-    size_t bufferSize;                     // Uncompressed buffer size
+    size_t binaryBufferSize;               // Uncompressed buffer size
     CompressionMode binaryCompressionMode; // Compression mode of the binary blob
     // AnimCompressionMode animCompressionMode; // Compression mdoe of the data
     std::string originalFile;
