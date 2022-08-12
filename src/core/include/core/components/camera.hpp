@@ -41,6 +41,9 @@ class Camera : public entities::SpatialComponent
     RGBAColor m_backgroundColor = {0.0f, 0.0f, 0.0f, 1.0f};
 
     glm::mat4 GetViewMatrix() const;
+    // TODO: aspectRatio could be kept in a similar class representing a camera view
+    glm::mat4 GetProjectionMatrix(float aspectRatio) const;
+    glm::mat4 GetViewProjectionMatrix(float aspectRatio) const;
 
     void Initialize() override {}
     void Shutdown() override {}

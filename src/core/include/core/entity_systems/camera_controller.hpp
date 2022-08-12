@@ -25,8 +25,8 @@ class EditorCameraController : aln::entities::IEntitySystem
         m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::FrameStart, 1);
     }
 
-    void RegisterComponent(aln::entities::IComponent* pComponent);
-    void UnregisterComponent(aln::entities::IComponent* pComponent);
+    void RegisterComponent(aln::entities::IComponent* pComponent) override;
+    void UnregisterComponent(aln::entities::IComponent* pComponent) override;
     void Update(const aln::entities::UpdateContext& context) override;
 
   private:
