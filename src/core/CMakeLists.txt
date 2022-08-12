@@ -12,9 +12,11 @@ add_library(${LIB_NAME} SHARED
     src/components/skeletal_mesh_component.cpp
     src/components/camera.cpp
     src/components/light.cpp
+    src/components/animation_player_component.cpp
     
     src/entity_systems/script.cpp
     src/entity_systems/camera_controller.cpp
+    src/entity_systems/animation_system.cpp
 
     src/type_descriptors/assets.cpp
 )

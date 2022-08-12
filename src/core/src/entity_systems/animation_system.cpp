@@ -1,17 +1,29 @@
-#include "systems/animation.hpp"
+#include "entity_systems/animation_system.hpp"
 
 namespace aln
 {
 void AnimationSystem::Update(const aln::entities::UpdateContext& ctx)
 {
+    if (m_pAnimationGraphComponent == nullptr && m_pSkeletalMeshComponent == nullptr)
+        return;
+
+    m_pAnimationPlayerComponent->Update(ctx.GetDeltaTime());
+    m_pSkeletalMeshComponent->SetPose(m_pAnimationPlayerComponent->GetPose());
+    // m_pSkeletalMeshComponent->ResetPoseSkeleton();
+    // m_pSkeletalMeshComponent->ResetPose();
     // TODO:
-    // - Update anim component (generate a pose)
-    // - Transfer pose (anim -> mesh)
     // - Update all remaining bones (procedural etc)
 }
 
 void AnimationSystem::RegisterComponent(aln::entities::IComponent* pComponent)
 {
+    auto pAnimationPlayerComponent = dynamic_cast<AnimationPlayerComponent*>(pComponent);
+    if (pAnimationPlayerComponent != nullptr)
+    {
+        m_pAnimationPlayerComponent = pAnimationPlayerComponent;
+        return;
+    }
+
     auto pAnimationGraphComponent = dynamic_cast<AnimationGraphComponent*>(pComponent);
     if (pAnimationGraphComponent != nullptr)
     {
@@ -36,6 +48,10 @@ void AnimationSystem::UnregisterComponent(aln::entities::IComponent* pComponent)
     else if (pComponent == m_pAnimationGraphComponent)
     {
         m_pAnimationGraphComponent = nullptr;
+    }
+    else if (pComponent == m_pAnimationPlayerComponent)
+    {
+        m_pAnimationPlayerComponent = nullptr;
     }
 }
 

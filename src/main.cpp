@@ -40,13 +40,21 @@
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
+#include <core/skeletal_mesh.hpp>
+#include <core/static_mesh.hpp>
+
 #include <core/component_factory.hpp>
 #include <core/components/animation_graph.hpp>
+#include <core/components/animation_player_component.hpp>
 #include <core/components/camera.hpp>
 #include <core/components/light.hpp>
-#include <core/components/static_mesh.hpp>
+#include <core/components/skeletal_mesh_component.hpp>
+#include <core/components/static_mesh_component.hpp>
+
+#include <core/entity_systems/animation_system.hpp>
 #include <core/entity_systems/camera_controller.hpp>
 #include <core/entity_systems/script.hpp>
+
 #include <core/time_system.hpp>
 #include <core/world_systems/render_system.hpp>
 
@@ -75,16 +83,10 @@
 // Test anim graph
 #include <anim/graph/graph.hpp>
 #include <anim/graph/nodes/animation_clip_node.hpp>
-// #include <anim/graph/nodes/root_motion_override_node.hpp>
-// #include <anim/graph/nodes/speed_scale_node.hpp>
-
-#include <core/asset_loaders/prefab_loader.hpp>
-#include <core/components/prefab_component.hpp>
 
 using namespace aln::input;
 using namespace aln::entities;
 
-// TODO: Only when tracing memory
 #ifdef ALN_ENABLE_TRACING
 void* operator new(std::size_t count)
 {
@@ -102,8 +104,25 @@ void operator delete(void* ptr) noexcept
 namespace aln
 {
 
-const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.mesh";
-const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
+// Mike
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/Cube.010.smsh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike_Texture.text";
+// const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/RobotArmature.skel";
+
+// Cesium man
+const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan/Cesium_Man.smsh";
+const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan_img0.text";
+const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan/Armature.skel";
+
+// // Kenney
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/characterMedium/characterMedium_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
+
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet/defaultobject_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet.tx";
+
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/cube/cube_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
 const int MAX_MODELS = 50;
 
 class Engine
@@ -148,12 +167,14 @@ class Engine
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
         auto pAssetManager = std::make_shared<AssetManager>();
-        pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice);
+        // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
+        // then register each of them with a single function.
+        pAssetManager->RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
+        pAssetManager->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
         pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
         pAssetManager->RegisterAssetLoader<Skeleton, SkeletonLoader>();
-        pAssetManager->RegisterAssetLoader<Prefab, PrefabLoader>();
 
         // TODO: Get rid of the default paths
         // Create a default context
@@ -161,13 +182,15 @@ class Engine
             .graphicsDevice = m_pDevice,
             .defaultTexturePath = TEXTURE_PATH,
             .defaultModelPath = MODEL_PATH,
+            .defaultSkeletonPath = TEST_SKELETON_PATH,
             .pAssetManager = pAssetManager};
 
         CreateWorld();
         ShareImGuiContext();
     }
 
-    void run()
+    void
+    run()
     {
         mainLoop();
     }
@@ -193,10 +216,8 @@ class Engine
 
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
 
-    std::array<glm::vec3, 2> cubePositions = {
+    std::array<glm::vec3, 1> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 5.0f, 0.0f),
-        // LIGHT_POSITION
     };
 
     Entity* m_pSelectedEntity = nullptr;
@@ -208,6 +229,8 @@ class Engine
     // Object model
     ComponentFactory m_componentFactory;
     WorldEntity m_worldEntity;
+
+    UpdateContext m_updateContext;
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
@@ -237,13 +260,6 @@ class Engine
             pCameraEntity->CreateSystem<EditorCameraController>();
         }
 
-        Entity* pPrefabEntity = m_worldEntity.m_entityMap.CreateEntity("Prefab");
-        auto prefabHandle = m_componentFactory.context.pAssetManager->Get<Prefab>("path_to_prefab.prefab");
-
-        // auto pPrefabComponent = m_componentFactory.Create<PrefabComponent>();
-        // pPrefabEntity->AddComponent(pPrefabComponent);
-        // pPrefabComponent->Instanciate(pPrefabEntity);
-
         {
             Entity* pLightEntity = m_worldEntity.m_entityMap.CreateEntity("DirectionalLight");
             Light* pLightComponent = m_componentFactory.Create<Light>();
@@ -261,17 +277,12 @@ class Engine
         }
 
         int i = 1;
-        for (auto pos : cubePositions)
-        {
-            // TODO: This api is too verbose
-            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
-            auto pMesh = m_componentFactory.Create<StaticMeshComponent>();
-            pMesh->SetLocalTransformPosition(pos);
-            pCube->AddComponent(pMesh);
-            auto pAnim = m_componentFactory.Create<AnimationGraphComponent>();
-            pCube->AddComponent(pAnim);
-            i++;
-        }
+        Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
+        auto pMesh = m_componentFactory.Create<SkeletalMeshComponent>();
+        pCube->AddComponent(pMesh);
+        auto pAnim = m_componentFactory.Create<AnimationPlayerComponent>();
+        pCube->AddComponent(pAnim);
+        pCube->CreateSystem<AnimationSystem>();
     }
 
     void setupSkyBox()
@@ -299,6 +310,7 @@ class Engine
             // std::this_thread::sleep_for(std::chrono::seconds(1));
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             Time::Update();
+            m_updateContext.m_deltaTime = Time::GetDeltaTime();
 
             // TODO: Group glfw accesses in a window.NewFrame() method
             // Map GLFW events to the Input system
@@ -311,19 +323,20 @@ class Engine
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
+            m_updateContext.m_displayWidth = m_scenePreviewWidth;
+            m_updateContext.m_displayHeight = m_scenePreviewHeight;
+
+            // When out of editor
+            // context.displayWidth = m_window.GetWidth();
+            // context.displayHeight = m_window.GetHeight();
+
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?
             for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
             {
-                aln::entities::UpdateContext context = aln::entities::UpdateContext(static_cast<UpdateStage>(stage));
-                // When out of editor
-                // context.displayWidth = m_window.GetWidth();
-                // context.displayHeight = m_window.GetHeight();
+                m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
 
-                context.displayWidth = m_scenePreviewWidth;
-                context.displayHeight = m_scenePreviewHeight;
-
-                m_worldEntity.Update(context);
+                m_worldEntity.Update(m_updateContext);
             }
 
             // updateSkyboxUBO();
@@ -771,6 +784,7 @@ int main()
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
+
     app.reset();
     return EXIT_SUCCESS;
 };

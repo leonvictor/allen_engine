@@ -21,7 +21,8 @@ class StaticMeshComponent : public MeshComponent
     virtual void Construct(const entities::ComponentCreationContext& ctx) override
     {
         MeshComponent::Construct(ctx);
-        m_pMesh = ctx.pAssetManager->Get<StaticMesh>(ctx.defaultModelPath);
+        m_pMesh = ctx.pAssetManager->Get<StaticMesh>("D:/Dev/allen_engine/assets/models/assets_export/cube/cube.mesh");
+        m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>("D:/Dev/allen_engine/assets/models/assets_export/cube/chalet.text"));
     }
 
     // TODO: Descriptor allocation and update is managed by the swapchain.

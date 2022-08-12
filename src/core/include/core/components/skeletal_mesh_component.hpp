@@ -1,7 +1,10 @@
 #pragma once
 
+#include "../drawing_context.hpp"
 #include "../skeletal_mesh.hpp"
 #include "mesh_component.hpp"
+
+#include <common/transform.hpp>
 
 #include <anim/animation_clip.hpp>
 #include <anim/skeleton.hpp>
@@ -12,6 +15,7 @@
 #include <assets/type_descriptors/handles.hpp>
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 #include <memory>
 #include <vector>
@@ -27,27 +31,46 @@ class SkeletalMeshComponent : public MeshComponent
   private:
     vk::UniqueDescriptorSet m_vkSkinDescriptorSet;
     AssetHandle<SkeletalMesh> m_pMesh;
+    AssetHandle<Skeleton> m_pSkeleton; // Animation Skeleton
 
     std::vector<glm::mat4x4> m_skinningTransforms;
+    std::vector<Transform> m_boneTransforms; // Bone transforms, in global character space
 
     // AssetHandle<Skeleton> m_pSkeleton; // Rendering skeleton
 
     // // TODO: Runtime state:
-    // // Bone mapping table between anim skeleton and mesh skeleton
-    // std::map<BoneIndex, BoneIndex> m_boneMapTable;
-
-    // // TODO: Skeletal Mesh Bone Matrices
-    // std::vector<glm::mat4> m_boneMatrices;
+    // Bone mapping between animation and render skeletons
+    std::vector<BoneIndex> m_animToRenderBonesMap;
 
     // TODO: Procedural Bones Solver
 
   public:
     inline const SkeletalMesh* GetMesh() const { return m_pMesh.get(); }
+    inline const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
+
+    void SetPose(const Pose* pPose)
+    {
+        assert(pPose != nullptr);
+        // Map from animation to render bones
+        auto animBoneCount = pPose->GetBonesCount();
+        for (BoneIndex animBoneIdx = 0; animBoneIdx < animBoneCount; ++animBoneIdx)
+        {
+            auto renderBoneIdx = m_animToRenderBonesMap[animBoneIdx];
+            m_boneTransforms[renderBoneIdx] = pPose->GetGlobalTransform(animBoneIdx);
+        }
+    }
+
+    /// @brief Reset the pose to the reference one
+    void ResetPose()
+    {
+        m_boneTransforms = m_pMesh->GetBindPose();
+    }
 
     void Construct(const entities::ComponentCreationContext& ctx) override
     {
         MeshComponent::Construct(ctx);
         m_pMesh = ctx.pAssetManager->Get<SkeletalMesh>(ctx.defaultModelPath);
+        m_pSkeleton = ctx.pAssetManager->Get<Skeleton>(ctx.defaultSkeletonPath);
         m_pMaterial = ctx.pAssetManager->Get<Material>("DefaultMaterial");
         m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>(ctx.defaultTexturePath));
         m_pDevice = ctx.graphicsDevice;
@@ -136,28 +159,25 @@ class SkeletalMeshComponent : public MeshComponent
     }
 
   private:
-    void UpdateSkinningBuffer()
-    {
-        // Update the transform matrices of skinning matrices
-        for (auto i = 0; i < m_pMesh->m_bindPose.size(); ++i)
-        {
-            // TODO: For now we always use the bind pose...
-            const Transform transform = m_pMesh->GetInverseBindPose()[i] * m_pMesh->GetBindPose()[i];
-            m_skinningTransforms[i] = transform.ToMatrix();
-        }
-
-        // Upload the new data to gpu
-        // TODO: the buffer is host visible for now, which is not optimal
-        m_pMesh->m_skinningBuffer.Map(0, sizeof(glm::mat4x4) * m_skinningTransforms.size());
-        m_pMesh->m_skinningBuffer.Copy(m_skinningTransforms);
-        m_pMesh->m_skinningBuffer.Unmap();
-    }
+    void UpdateSkinningBuffer();
 
     void Initialize() override
     {
         // TODO:
         // m_pAssetManager->Initialize<Skeleton>(m_pSkeleton);
         m_pAssetManager->Initialize<SkeletalMesh>(m_pMesh);
+
+        // Initialize the bone mapping
+        const auto boneCount = m_pSkeleton->GetBonesCount();
+        m_animToRenderBonesMap.resize(boneCount, InvalidIndex);
+        for (auto boneIdx = 0; boneIdx < boneCount; ++boneIdx)
+        {
+            auto animBoneIdx = m_pSkeleton->GetBone(boneIdx)->GetIndex();
+            m_animToRenderBonesMap[boneIdx] = animBoneIdx; // TODO !!
+        }
+
+        // TODO: Set to bind pose
+        m_boneTransforms = m_pSkeleton->GetGlobalReferencePose();
         MeshComponent::Initialize();
     }
 
@@ -165,6 +185,9 @@ class SkeletalMeshComponent : public MeshComponent
     {
         // TODO:
         // m_pAssetManager->Shutdown<Skeleton>(m_pSkeleton);
+        m_animToRenderBonesMap.clear();
+        m_skinningTransforms.clear();
+        m_boneTransforms.clear();
         m_pAssetManager->Shutdown<SkeletalMesh>(m_pMesh);
         MeshComponent::Shutdown();
     }
@@ -180,6 +203,8 @@ class SkeletalMeshComponent : public MeshComponent
             return false;
         }
 
+        m_pAssetManager->Load<Skeleton>(m_pSkeleton);
+
         m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
 
         return MeshComponent::Load();
@@ -192,6 +217,50 @@ class SkeletalMeshComponent : public MeshComponent
         m_skinningTransforms.clear();
         m_pAssetManager->Unload<SkeletalMesh>(m_pMesh);
         MeshComponent::Unload();
+    }
+
+    /// @brief Draw this skeletal mesh's skeleton
+    void DrawPose(DrawingContext& drawingContext)
+    {
+        const Transform& worldTransform = GetWorldTransform();
+        Transform boneWorldTransform = worldTransform * m_boneTransforms[0];
+
+        /// @todo: Draw axis ?
+
+        auto boneCount = m_boneTransforms.size();
+        for (BoneIndex boneIndex = 1; boneIndex < boneCount; boneIndex++)
+        {
+            boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
+
+            const auto parentBoneIndex = m_pSkeleton->GetBone(boneIndex)->GetParentIndex();
+            const Transform parentWorldTransform = worldTransform * m_boneTransforms[parentBoneIndex];
+
+            drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
+        }
+    }
+
+    /// @brief Draw the bind pose
+    void DrawBindPose(DrawingContext& drawingContext)
+    {
+        // Debug: Draw a single line from 0 to somewhere
+        drawingContext.DrawCoordinateAxis(Transform::Identity);
+
+        const auto& bindPose = m_pMesh->GetBindPose();
+        const Transform& worldTransform = GetWorldTransform();
+        Transform boneWorldTransform = worldTransform * bindPose[0];
+        /// @todo: Draw root
+
+        auto boneCount = bindPose.size();
+        for (BoneIndex boneIndex = 1; boneIndex < boneCount; boneIndex++)
+        {
+            boneWorldTransform = worldTransform * bindPose[boneIndex];
+
+            const auto parentBoneIndex = m_pSkeleton->GetBone(boneIndex)->GetParentIndex();
+            const Transform parentWorldTransform = worldTransform * bindPose[parentBoneIndex];
+
+            drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
+            /// @todo: Draw axis ?
+        }
     }
 };
 } // namespace aln
