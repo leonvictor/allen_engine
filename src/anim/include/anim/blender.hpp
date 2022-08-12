@@ -79,10 +79,10 @@ void BlenderLocal(const Pose* pSourcePose, const Pose* pTargetPose, const float 
 
     if (pBoneMask != nullptr)
     {
-        assert(pBoneMask->GetNumWeights() == pSourcePose->GetSkeleton()->GetNumBones());
+        assert(pBoneMask->GetNumWeights() == pSourcePose->GetSkeleton()->GetBonesCount());
     }
 
-    const uint32_t numBones = pResultPose->GetNumBones();
+    const uint32_t numBones = pResultPose->GetBonesCount();
     for (uint32_t boneIdx = 0; boneIdx < numBones; boneIdx++)
     {
         // If the bone has been masked out

@@ -23,7 +23,7 @@ struct PlaceHolderAnimationGraphInstance
 
     PlaceHolderAnimationGraphInstance(const Skeleton* pSkeleton) : m_pose(pSkeleton, Pose::InitialState::None) {}
 
-    Pose* GetPose(float time)
+    const Pose* GetPose(float time)
     {
         m_pAnimationClip->GetPose(time, &m_pose);
         return &m_pose;
@@ -50,11 +50,11 @@ class AnimationGraphComponent : public entities::IComponent
     void Construct(const entities::ComponentCreationContext& ctx) override
     {
         m_pAssetManager = ctx.pAssetManager;
-        m_pSkeleton = ctx.pAssetManager->Get<Skeleton>(""); // TODO
+        m_pSkeleton = ctx.pAssetManager->Get<Skeleton>("tmp.anim"); // TODO
 
         // TODO:
         m_pGraphInstance = new PlaceHolderAnimationGraphInstance(m_pSkeleton.get());
-        m_pGraphInstance->m_pAnimationClip = ctx.pAssetManager->Get<AnimationClip>("assets/models/assets_export/robot/RobotArmature_Robot_Dance.anim");
+        m_pGraphInstance->m_pAnimationClip = ctx.pAssetManager->Get<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
     }
 
     void Initialize() override

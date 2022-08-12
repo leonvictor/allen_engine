@@ -12,6 +12,7 @@ void MeshComponent::CreateUniformBuffer()
 
 void MeshComponent::UpdateUniformBuffers(vkg::UniformBufferObject& ubo)
 {
+    // TODO: We should only map once and unmap right before deletion
     m_uniformBuffer.Map(0, sizeof(ubo));
     m_uniformBuffer.Copy(&ubo, sizeof(ubo));
     m_uniformBuffer.Unmap();

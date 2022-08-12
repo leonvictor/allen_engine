@@ -21,8 +21,7 @@ void Mesh::CreateGraphicResources(const std::shared_ptr<vkg::Device>& pDevice)
     pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
         {
             vertexStagingBuffer.CopyTo(cb, m_vertexBuffer);
-            indexStagingBuffer.CopyTo(cb, m_indexBuffer);
-        });
+            indexStagingBuffer.CopyTo(cb, m_indexBuffer); });
 }
 
 void Mesh::FreeGraphicResources()
@@ -33,18 +32,10 @@ void Mesh::FreeGraphicResources()
     m_indexBuffer = vkg::resources::Buffer();
 }
 
-void Mesh::Bind(vk::CommandBuffer& cb, vk::DeviceSize offset)
+void Mesh::Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const
 {
     cb.bindVertexBuffers(0, m_vertexBuffer.GetVkBuffer(), offset);
     cb.bindIndexBuffer(m_indexBuffer.GetVkBuffer(), offset, vk::IndexType::eUint32);
     cb.drawIndexed(m_indices.size(), 1, 0, 0, 0);
-}
-
-void Mesh::RevertNormals()
-{
-    for (Vertex v : m_vertices)
-    {
-        v.normal = -v.normal;
-    }
 }
 } // namespace aln
