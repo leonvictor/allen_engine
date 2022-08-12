@@ -47,8 +47,10 @@ void Pose::Reset(InitialState initState, bool calcGlobalPose)
     {
         m_globalTransforms.clear();
         m_localTransforms.clear();
-        // TODO:
-        // m_localTransforms.resize(m_pSkeleton->GetNumBones());
+
+        m_globalTransforms.resize(m_pSkeleton->GetBonesCount());
+        m_localTransforms.resize(m_pSkeleton->GetBonesCount());
+
         m_state = State::Unset;
     }
     break;
@@ -56,9 +58,8 @@ void Pose::Reset(InitialState initState, bool calcGlobalPose)
     {
         // TODO: Set all transforms to the bone's reference
         // TODO: Copy here or condition in getters ? (if m_state == State::ReferencePose) {...}
-        const auto ref = m_pSkeleton->GetReferencePose();
-        m_localTransforms = ref->m_localTransforms;
-        m_globalTransforms = ref->m_globalTransforms;
+        m_localTransforms = m_pSkeleton->GetLocalReferencePose();
+        m_globalTransforms = m_pSkeleton->GetGlobalReferencePose();
         m_state = State::ReferencePose;
     }
     break;
@@ -77,26 +78,36 @@ void Pose::Reset(InitialState initState, bool calcGlobalPose)
     else
     {
         // TODO:
-        // m_globalTransforms.reserve(m_pSkeleton->GetNumBones());
+        // m_globalTransforms.reserve(m_pSkeleton->GetBonesCount());
     }
 }
 
 void Pose::CalculateGlobalTransforms()
 {
-    // TODO
+    const auto boneCount = m_pSkeleton->GetBonesCount();
+    m_globalTransforms.resize(boneCount);
+
+    m_globalTransforms[0] = m_localTransforms[0];
+    for (auto boneIdx = 1; boneIdx < boneCount; boneIdx++)
+    {
+        const auto pBone = m_pSkeleton->GetBone(boneIdx);
+        const auto parentIdx = pBone->GetParentIndex();
+
+        assert(parentIdx < boneIdx);
+
+        m_globalTransforms[boneIdx] = m_globalTransforms[parentIdx] * m_localTransforms[boneIdx];
+    }
 }
 
 Transform Pose::GetGlobalTransform(BoneIndex boneIdx) const
 {
-    assert(boneIdx < m_pSkeleton->GetNumBones());
-    assert(boneIdx < m_globalTransforms.size());
+    assert(boneIdx < m_pSkeleton->GetBonesCount() && boneIdx < m_globalTransforms.size());
     return m_globalTransforms[boneIdx];
 }
 
 Transform Pose::GetTransform(BoneIndex boneIdx)
 {
-    assert(boneIdx < m_pSkeleton->GetNumBones());
-    assert(boneIdx < m_localTransforms.size());
+    assert(boneIdx < m_pSkeleton->GetBonesCount() && boneIdx < m_localTransforms.size());
     return m_localTransforms[boneIdx];
 }
 

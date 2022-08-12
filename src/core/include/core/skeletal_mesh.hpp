@@ -15,13 +15,12 @@ class SkeletalMesh : public Mesh
     ALN_REGISTER_ASSET_TYPE("smsh")
 
   private:
-    std::vector<BoneIndex> m_boneIndices;
-    std::vector<Transform> m_bindPose;
-    std::vector<Transform> m_inverseBindPose;
+    // Bind pose in global space
+    std::vector<Transform> m_bindPose;        // Mesh space -> Bone space
+    std::vector<Transform> m_inverseBindPose; // Bone space -> Mesh space
 
     // todo: move to component
     vkg::resources::Buffer m_skinningBuffer;
-    std::vector<glm::mat4x4> m_skinningTransforms;
 
     /// @brief Create the vulkan buffers to back the mesh.
     virtual void CreateGraphicResources(const std::shared_ptr<vkg::Device>& pDevice) override

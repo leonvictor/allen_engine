@@ -6,9 +6,7 @@
 #include "track_key.hpp"
 
 #include <common/transform.hpp>
-
-#include <glm/ext/quaternion_common.hpp>
-#include <glm/gtx/compatibility.hpp>
+#include <common/types.hpp>
 
 namespace aln
 {
@@ -49,39 +47,33 @@ class Track
     friend class AnimationLoader;
 
   public:
-    size_t GetNumKeys() const { return m_keys.size(); }
+    const std::string& GetBoneName() const { return m_boneName; }
 
-    Transform Sample(float time) const
-    {
-        auto it = m_keys.begin();
-        while (it->m_time <= time)
-        {
-            ++it;
-        }
-        const TrackKey& before = *it;
-        const TrackKey& after = *(++it);
-
-        // TODO: Sample
-        auto t = time / (after.m_time - before.m_time); // TODO !!
-        auto& beforeTransform = before.m_component;
-        auto& afterTransform = after.m_component;
-
-        Transform result;
-        result.SetTranslation(glm::lerp(beforeTransform.GetTranslation(), afterTransform.GetTranslation(), t));
-        result.SetScale(glm::lerp(beforeTransform.GetScale(), afterTransform.GetScale(), t));
-        result.SetRotation(glm::slerp(beforeTransform.GetRotation(), afterTransform.GetRotation(), t));
-
-        // TODO: Handle loop behavior
-
-        return result;
-
-    } // TODO
+    Transform Sample(float time) const;
 
   private:
     std::string m_boneName;
-    std::vector<TrackKey> m_keys;
+
+    std::vector<TrackKey<glm::vec3>> m_translationKeys;
+    std::vector<TrackKey<glm::quat>> m_rotationKeys;
+    std::vector<TrackKey<glm::vec3>> m_scaleKeys;
 
     // TODO: Compress !!
     // TrackCompressionSettings m_compressionSettings;
+
+    /// @brief Find the next frame after a specified time in a track.
+    /// If the time is before the first key, return 0, if it is after the last, return InvalidIndex
+    template <typename T>
+    uint32_t FindNextFrameIndex(const std::vector<TrackKey<T>>& track, float time) const
+    {
+        for (uint64_t i = 0; i < track.size() - 1; i++)
+        {
+            if (time < track[i + 1].m_time)
+            {
+                return i;
+            }
+        }
+        assert(0);
+    }
 };
 } // namespace aln

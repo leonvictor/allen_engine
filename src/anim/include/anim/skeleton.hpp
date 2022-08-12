@@ -23,21 +23,19 @@ class Skeleton : public IAsset
     Bone* m_rootBone = nullptr;
     std::vector<Bone> m_bones;
     /// @brief Default poses (bind for the rendering skeleton, reference for the anim one)
-    Pose m_referencePose;
+    std::vector<Transform> m_localReferencePose;
+    std::vector<Transform> m_globalReferencePose;
 
   public:
-    Skeleton(AssetID& id) : IAsset(id), m_referencePose(this, Pose::InitialState::ReferencePose) {}
+    Skeleton(AssetID& id) : IAsset(id) {}
 
-    inline size_t GetNumBones() const { return m_bones.size(); }
+    inline size_t GetBonesCount() const { return m_bones.size(); }
     inline const Bone* GetBone(BoneIndex index) const { return &m_bones[index]; }
-    inline const Pose* GetReferencePose() const { return &m_referencePose; }
 
-    /// @brief Get a flattened list of this skeleton's bones
-    /// TODO: Use GetNumBones() + for loop instead
-    // std::vector<const Bone*> GetBones() const
-    // {
-    //     // TODO
-    //     return std::vector<const Bone*>();
-    // }
+    /// @brief Get the bone transforms in local (bone) space
+    inline const std::vector<Transform>& GetLocalReferencePose() const { return m_localReferencePose; }
+
+    /// @brief Get the bone transforms in global (character) space
+    inline const std::vector<Transform>& GetGlobalReferencePose() const { return m_globalReferencePose; }
 };
 } // namespace aln

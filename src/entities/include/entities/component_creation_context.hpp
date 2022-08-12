@@ -21,6 +21,7 @@ struct ComponentCreationContext
     std::shared_ptr<aln::vkg::Device> graphicsDevice;
     std::string defaultTexturePath;
     std::string defaultModelPath;
+    std::string defaultSkeletonPath;
     std::shared_ptr<AssetManager> pAssetManager;
 };
 

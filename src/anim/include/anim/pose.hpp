@@ -71,7 +71,7 @@ class Pose
 
     // Getters
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton; }
-    size_t GetNumBones() const { return m_localTransforms.size(); };
+    size_t GetBonesCount() const { return m_localTransforms.size(); };
 
     // Local Transforms
     Transform GetTransform(BoneIndex boneIdx);

@@ -1,10 +1,12 @@
 #pragma once
 
 #include <assets/asset_system/asset_system.hpp>
-// #include <assets/asset_system/skeleton_asset.hpp>
+#include <assets/asset_system/skeleton_asset.hpp>
 #include <assets/loader.hpp>
 
 #include <anim/skeleton.hpp>
+
+#include <common/types.hpp>
 
 #include <memory>
 #include <vector>
@@ -24,31 +26,44 @@ class SkeletonLoader : public IAssetLoader<Skeleton>
         auto loaded = assets::LoadBinaryFile(pSkeleton->GetID().GetAssetPath(), file);
         if (!loaded)
         {
-            // TODO: Actually handle
-            // return false;
-            return true;
+            return false;
         }
 
-        // assert(file.type == assets::EAssetType::Skeleton);
+        assert(file.type == assets::EAssetType::Skeleton);
 
-        // auto info = assets::ReadSkeletonInfo(&file);
+        auto info = assets::SkeletonConverter::ReadInfo(&file);
 
-        // TODO: Stream directly to the tracks
-        // std::vector<float> buffer;
-        // buffer.resize(info.bufferSize);
-        // assets::UnpackSkeleton(&info, file.binary, buffer);
+        auto boneCount = info.boneNames.size();
+        pSkeleton->m_bones.resize(boneCount);
+        for (BoneIndex idx = 0; idx < boneCount; ++idx)
+        {
+            auto& bone = pSkeleton->m_bones[idx];
+            bone.m_index = idx;
+            bone.m_parentIndex = (BoneIndex) info.boneParentIndices[idx];
+            bone.m_name = info.boneNames[idx];
 
-        // size_t index = 0;
-        // for (auto& trackInfo : info.tracks)
-        // {
-        //     auto& track = pAnim->m_tracks.emplace_back();
-        //     track.m_boneName = trackInfo.boneName;
+            // TODO: Fix root bone not found because of mismatching types
+            if (bone.m_parentIndex == InvalidIndex)
+            {
+                pSkeleton->m_rootBone = &bone;
+            }
+        }
 
-        //     track.m_keys.resize(trackInfo.numKeys);
-        //     memcpy(track.m_keys.data(), buffer.data() + index, sizeof(TrackKey) * trackInfo.numKeys);
+        pSkeleton->m_localReferencePose.resize(boneCount);
+        assets::SkeletonConverter::Unpack(&info, file.binary, (std::byte*) pSkeleton->m_localReferencePose.data());
 
-        //     index += trackInfo.numKeys * (1 + 4 + 3 + 3);
-        // }
+        // Calculate global pose
+        pSkeleton->m_globalReferencePose.resize(boneCount);
+        pSkeleton->m_globalReferencePose[0] = pSkeleton->m_localReferencePose[0];
+        for (BoneIndex boneIdx = 1; boneIdx < boneCount; boneIdx++)
+        {
+            const auto pBone = pSkeleton->GetBone(boneIdx);
+            const auto parentIdx = pBone->GetParentIndex();
+
+            assert(parentIdx < boneIdx);
+
+            pSkeleton->m_globalReferencePose[boneIdx] = pSkeleton->m_globalReferencePose[parentIdx] * pSkeleton->m_localReferencePose[boneIdx];
+        }
 
         return true;
     }

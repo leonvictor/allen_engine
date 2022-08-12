@@ -33,7 +33,7 @@ struct SkinnedVertex : public Vertex
     alignas(16) glm::vec2 texCoord;
     alignas(16) glm::vec3 normal;
     alignas(16) glm::vec4 weights;
-    alignas(16) glm::vec4 boneIndices;
+    alignas(16) glm::vec<4, uint32_t> boneIndices;
 };
 
 struct DebugVertex

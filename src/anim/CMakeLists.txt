@@ -2,6 +2,7 @@ set(LIB_NAME anim)
 
 add_library(${LIB_NAME} SHARED
     src/pose.cpp
+    src/track.cpp
 )
 
 set(LIB_DEPENDENCIES  )
