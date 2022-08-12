@@ -35,6 +35,13 @@ struct SkinnedVertex : public Vertex
     alignas(16) glm::vec4 weights;
     alignas(16) glm::vec4 boneIndices;
 };
+
+struct DebugVertex
+{
+    alignas(16) glm::vec3 pos;
+    alignas(16) glm::vec3 color;
+};
+
 } // namespace aln
 
 namespace std

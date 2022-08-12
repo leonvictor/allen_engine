@@ -1,10 +1,15 @@
 #pragma once
 
+#include "../debug_render_states.hpp"
+#include "../drawing_context.hpp"
+
 #include <graphics/resources/buffer.hpp>
 
 #include <entities/components_registry.hpp>
 #include <entities/object_model.hpp>
 #include <entities/world_system.hpp>
+
+#include <common/vertex.hpp>
 
 #include <map>
 
@@ -37,11 +42,20 @@ class GraphicsSystem : public entities::IWorldSystem
 
     Camera* m_pCameraComponent = nullptr;
 
+    // Viewport info
+    /// @todo: Move to a specific Viewport class that get passed around
+    float m_aspectRatio = 1.0f;
+
     // Lights use a shared buffer and descriptorSet, so it's held in the system
+    /// @todo: Bundle in a specific class
     vkg::resources::Buffer m_lightsBuffer;
     vk::UniqueDescriptorSet m_lightsVkDescriptorSet;
 
+    // Debuging render state(s)
+    LinesRenderState m_linesRenderState;
+
     void CreateLightsDescriptorSet();
+    void CreateLinesRenderContext();
 
     // -------------------------------------------------
     // System Methods
@@ -55,6 +69,7 @@ class GraphicsSystem : public entities::IWorldSystem
 
     // Rendering calls
     void RenderSkeletalMeshes();
+    void RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext);
 
   public:
     GraphicsSystem(vkg::render::IRenderer* pRenderer);

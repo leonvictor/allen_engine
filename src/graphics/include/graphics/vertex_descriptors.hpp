@@ -77,7 +77,31 @@ struct VertexDescriptor<SkinnedVertex>
                 {2, 0, vk::Format::eR32G32Sfloat, offsetof(SkinnedVertex, texCoord)},
                 {3, 0, vk::Format::eR32G32B32Sfloat, offsetof(SkinnedVertex, normal)},
                 {4, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(SkinnedVertex, weights)},
-                {5, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(SkinnedVertex, boneIndices)},
+                {5, 0, vk::Format::eR32G32B32A32Uint, offsetof(SkinnedVertex, boneIndices)},
+            };
+
+        return attributeDescription;
+    }
+};
+
+template <>
+struct VertexDescriptor<DebugVertex>
+{
+    static vk::VertexInputBindingDescription GetBindingDescription()
+    {
+        vk::VertexInputBindingDescription bindingDescription;
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(DebugVertex);
+        bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+        return bindingDescription;
+    }
+
+    static std::vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
+    {
+        std::vector<vk::VertexInputAttributeDescription> attributeDescription =
+            {
+                {0, 0, vk::Format::eR32G32B32Sfloat, offsetof(DebugVertex, pos)},
+                {1, 0, vk::Format::eR32G32B32Sfloat, offsetof(DebugVertex, color)},
             };
 
         return attributeDescription;

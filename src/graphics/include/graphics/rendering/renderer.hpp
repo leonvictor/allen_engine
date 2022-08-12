@@ -198,7 +198,7 @@ class IRenderer
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::SkeletalMeshComponent>());
         m_skeletalMeshesPipeline.Create("pipeline_cache_data.bin");
-        m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Skeletal Meshes Pipeline");
+        m_pDevice->SetDebugUtilsObjectName(m_skeletalMeshesPipeline.GetVkPipeline(), "Skeletal Meshes Pipeline");
 
         // ---------------
         // Skybox Pipeline
@@ -304,16 +304,6 @@ class IRenderer
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    // void Draw(std::shared_ptr<Skybox> skybox)
-    // {
-    //     auto cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
-    //     // Skybox
-    //     m_skyboxPipeline.Bind(cb);
-    //     skybox->mesh.Bind(cb);
-    //     m_skyboxPipeline.BindDescriptorSet(cb, skybox->GetDescriptorSet(), 0);
-    //     cb.drawIndexed(skybox->mesh.indices.size(), 1, 0, 0, 0);
-    // }
-
     std::shared_ptr<Device> GetDevice()
     {
         // TODO: Get rid of all the references.
@@ -327,6 +317,8 @@ class IRenderer
         std::cout << "Warning: accessing renderpass outside of renderer context." << std::endl;
         return m_renderpass;
     }
+
+    vk::Extent2D GetExtent() const { return {m_width, m_height}; }
 
     uint32_t GetNumberOfImages()
     {
@@ -346,15 +338,8 @@ class IRenderer
 
     // TODO: Make the pipeline system more modular.
     // i.e we should be able to register new pipelines according to the users shaders etc
-    Pipeline& GetObjectsPipeline()
-    {
-        return m_staticMeshesPipeline;
-    }
-
-    Pipeline& GetSkeletalMeshesPipeline()
-    {
-        return m_skeletalMeshesPipeline;
-    }
+    Pipeline& GetStaticMeshesPipeline() { return m_staticMeshesPipeline; }
+    Pipeline& GetSkeletalMeshesPipeline() { return m_skeletalMeshesPipeline; }
 };
 } // namespace vkg::render
 } // namespace aln

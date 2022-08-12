@@ -44,6 +44,42 @@ void GraphicsSystem::CreateLightsDescriptorSet()
     m_pRenderer->GetDevice()->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
 }
 
+void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext)
+{
+    const auto& vertexBuffer = drawingContext.m_vertices;
+    auto vertexCount = vertexBuffer.size();
+
+    // todo: Aggregate line data coming from multiple threads
+
+    // TODO: Profile with a staging buffer
+    // but vk buffer copy is not allowed inside a render pass
+    // vkg::resources::Buffer stagingBuffer(m_pRenderer->GetDevice(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertexBuffer);
+    // m_linesRenderState.m_stagingBuffer.Map();
+    // m_linesRenderState.m_stagingBuffer.Copy(vertexBuffer);
+    // m_linesRenderState.m_stagingBuffer.Unmap();
+
+    // m_linesRenderState.m_stagingBuffer.CopyTo(cb, m_linesRenderState.m_vertexBuffer);
+
+    // Update UBO
+    LinesRenderState::UBO ubo;
+    ubo.m_viewProjectionMatrix = m_pCameraComponent->GetViewProjectionMatrix(m_aspectRatio);
+    m_linesRenderState.m_viewProjectionUBO.Copy(&ubo, sizeof(ubo));
+
+    // Update vertex buffer
+    m_linesRenderState.m_vertexBuffer.Copy(vertexBuffer);
+
+    // TODO: Handle a max number of lines per draw call
+    // Split the buffer accordingly and draw each part sequentially
+
+    auto& pipeline = m_linesRenderState.m_pipeline;
+    pipeline.Bind(cb);
+
+    vk::DeviceSize offset = 0;
+    pipeline.BindDescriptorSet(cb, m_linesRenderState.m_descriptorSet.get(), 0);
+    cb.bindVertexBuffers(0, m_linesRenderState.m_vertexBuffer.GetVkBuffer(), offset);
+    cb.draw(vertexBuffer.size(), 1, 0, 0);
+}
+
 void GraphicsSystem::Shutdown()
 {
     m_lightsVkDescriptorSet.reset();
@@ -54,6 +90,8 @@ void GraphicsSystem::Initialize()
 {
     m_lightsBuffer = vkg::resources::Buffer(m_pRenderer->GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     CreateLightsDescriptorSet();
+
+    m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
 }
 
 void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
@@ -67,16 +105,19 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     if (!m_pCameraComponent->IsInitialized())
         return; // Camera is the only necessary component, return if it's not loaded yet
 
+    // Update viewport info
+    m_aspectRatio = context.GetDisplayWidth() / context.GetDisplayHeight();
+
     aln::vkg::render::RenderContext ctx =
         {.backgroundColor = m_pCameraComponent->m_backgroundColor};
     m_pRenderer->BeginFrame(ctx);
 
     // Get the active command buffer
     auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();
-    auto& objectPipeline = m_pRenderer->GetObjectsPipeline();
+    auto& staticMeshesPipeline = m_pRenderer->GetStaticMeshesPipeline();
 
     // Bind the pipeline
-    objectPipeline.Bind(cb);
+    staticMeshesPipeline.Bind(cb);
 
     // Update the lights buffer
     int nLights = m_lightComponents.GetRegisterComponentsCount();
@@ -93,9 +134,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
         m_lightsBuffer.Unmap();
     }
 
-    objectPipeline.BindDescriptorSet(cb, m_lightsVkDescriptorSet.get(), 0);
-
-    float aspectRatio = context.displayWidth / (float) context.displayHeight;
+    staticMeshesPipeline.BindDescriptorSet(cb, m_lightsVkDescriptorSet.get(), 0);
 
     vkg::UniformBufferObject ubo;
     Transform t = m_pCameraComponent->GetWorldTransform();
@@ -103,7 +142,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     ubo.view = m_pCameraComponent->GetViewMatrix();
     ubo.projection = glm::perspective(
         glm::radians(m_pCameraComponent->fov),
-        aspectRatio,
+        m_aspectRatio,
         m_pCameraComponent->nearPlane,
         m_pCameraComponent->farPlane);
 
@@ -120,7 +159,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
         pStaticMesh->UpdateUniformBuffers(ubo);
 
         // Bind the mesh buffers
-        objectPipeline.BindDescriptorSet(cb, pStaticMesh->GetDescriptorSet(), 1);
+        staticMeshesPipeline.BindDescriptorSet(cb, pStaticMesh->GetDescriptorSet(), 1);
         vk::DeviceSize offset = 0;
         pStaticMesh->GetMesh()->Bind(cb, offset);
     }
@@ -136,6 +175,16 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
         m_pRenderer->GetSkeletalMeshesPipeline().BindDescriptorSet(cb, pSkeletalMesh->GetDescriptorSet(), 1);
         pSkeletalMesh->GetMesh()->Bind(cb, 0);
     }
+
+    // Debug drawing
+    DrawingContext drawingContext;
+    for (const auto& pSkeletalMeshComponent : m_skeletalMeshComponents)
+    {
+        pSkeletalMeshComponent->DrawPose(drawingContext);
+        // pSkeletalMeshComponent->DrawBindPose(drawingContext);
+    }
+
+    RenderDebugLines(cb, drawingContext);
 
     m_pRenderer->EndFrame();
 }

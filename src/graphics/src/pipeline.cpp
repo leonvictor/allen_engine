@@ -29,7 +29,7 @@ void Pipeline::Create(std::string cachePath)
     };
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {
-        .topology = vk::PrimitiveTopology::eTriangleList,
+        .topology = m_primitiveTopology,
         .primitiveRestartEnable = VK_FALSE,
     };
 
@@ -89,6 +89,7 @@ void Pipeline::Create(std::string cachePath)
     m_pipelineCreateInfo.pViewportState = &viewportStateInfo;
     // m_pipelineCreateInfo.pMultisampleState = &multisampleInfo;
     m_pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
+    m_pipelineCreateInfo.pDepthStencilState = &m_depthStencil;
 
     vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {
         .dynamicStateCount = static_cast<uint32_t>(m_dynamicStates.size()),
@@ -168,6 +169,7 @@ void Pipeline::ClearShaders()
 
 void Pipeline::RegisterDescriptorLayout(vk::DescriptorSetLayout& descriptorSetLayout)
 {
+    assert(!IsInitialized());
     m_descriptorSetLayouts.push_back(descriptorSetLayout);
 }
 
@@ -177,11 +179,20 @@ void Pipeline::AddDynamicState(vk::DynamicState state)
     m_dynamicStates.push_back(state);
 }
 
-void Pipeline::SetDepthTestWriteEnable(bool testEnable, bool writeEnable)
+void Pipeline::SetDepthTestWriteEnable(bool testEnable, bool writeEnable, vk::CompareOp compareOp)
 {
     assert(!IsInitialized());
     m_depthStencil.depthTestEnable = testEnable ? VK_TRUE : VK_FALSE;
     m_depthStencil.depthWriteEnable = writeEnable ? VK_TRUE : VK_FALSE;
+    m_depthStencil.depthCompareOp = compareOp;
+}
+
+void Pipeline::SetDepthBoundsTestEnable(bool enable, float minDepthBounds, float maxDepthBounds)
+{
+    assert(!IsInitialized());
+    m_depthStencil.depthBoundsTestEnable = enable;
+    m_depthStencil.minDepthBounds = minDepthBounds;
+    m_depthStencil.maxDepthBounds = maxDepthBounds;
 }
 
 void Pipeline::SetRasterizerCullMode(vk::CullModeFlagBits cullMode)
@@ -256,10 +267,10 @@ void Pipeline::InitializeInternal()
     m_pipelineCreateInfo = {
         .pRasterizationState = &m_rasterizer,
         .pMultisampleState = &m_multisample,
-        .pDepthStencilState = &m_depthStencil,
     };
 
     m_bindPoint = vk::PipelineBindPoint::eGraphics;
+    m_primitiveTopology = vk::PrimitiveTopology::eTriangleList;
 }
 
 vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
