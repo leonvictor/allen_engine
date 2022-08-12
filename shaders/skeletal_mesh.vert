@@ -7,7 +7,7 @@ layout (location = 1) in vec3 in_color;
 layout (location = 2) in vec2 in_texcoord;
 layout (location = 3) in vec3 in_normal;
 layout (location = 4) in vec4 in_weights;
-layout (location = 5) in vec4 in_bone_indices;
+layout (location = 5) in uvec4 in_bone_indices;
 
 layout (set = 1, binding = 0) uniform UBOScene
 {
