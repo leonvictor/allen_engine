@@ -37,15 +37,16 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
             {
                 pComponent->InitializeComponent();
 
-                // Register each component with all local systems...
-                for (auto pSystem : m_systems)
-                {
-                    pSystem->RegisterComponent(pComponent);
-                }
+                // Registering with systems happen during activation
+                // // Register each component with all local systems...
+                // for (auto pSystem : m_systems)
+                // {
+                //     pSystem->RegisterComponent(pComponent);
+                // }
 
-                // ... and all global systems
-                // This is the non-parallelizable part
-                loadingContext.m_registerWithWorldSystems(this, pComponent);
+                // // ... and all global systems
+                // // This is the non-parallelizable part
+                // loadingContext.m_registerWithWorldSystems(this, pComponent);
             }
         }
 
