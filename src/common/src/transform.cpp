@@ -57,11 +57,12 @@ bool Transform::operator!=(const Transform& rhs) const
     return !(*this == rhs);
 }
 
-void Transform::operator*=(const Transform& b)
+Transform& Transform::operator*=(const Transform& b)
 {
-    m_translation = glm::rotate(m_rotation, b.m_translation * m_scale) + m_translation;
-    m_rotation = glm::normalize(b.m_rotation * m_rotation);
+    m_translation = m_translation + glm::rotate(m_rotation, b.m_translation * m_scale);
+    m_rotation = glm::normalize(m_rotation * b.m_rotation); // glm quaternion multiplication is the same as matrices
     m_scale = m_scale * b.m_scale;
+    return *this;
 }
 
 Transform Transform::operator*(const Transform& b) const

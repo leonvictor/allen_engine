@@ -64,10 +64,23 @@ class ALN_COMMON_EXPORT Transform
     bool operator!=(const Transform& b) const;
 
     /// @brief Transform composition (right-to-left)
-    void operator*=(const Transform& b);
+    Transform& operator*=(const Transform& b);
 
     /// @brief Transform composition (right-to-left)
     Transform operator*(const Transform& b) const;
+
+    glm::vec3 TransformPoint(const glm::vec3& point) const
+    {
+        glm::vec3 out = m_rotation * (m_scale * point);
+        out = out + m_translation;
+        return out;
+    }
+
+    glm::vec3 TransformVector(const glm::vec3& vector) const
+    {
+        glm::vec3 out = m_rotation * (m_scale * vector);
+        return out;
+    }
 
     static const Transform Identity;
 
