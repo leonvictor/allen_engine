@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
+include(FetchContent)
+
 project(ALLEN VERSION 0.1)
 
 
@@ -80,7 +82,14 @@ set(ENKITS_BUILD_C_INTERFACE OFF)
 set(ENKITS_BUILD_EXAMPLES OFF)
 set(ENKITS_BUILD_SHARED ON)
 set(ENKITS_INSTALL OFF)
-add_subdirectory(external/enkiTS)
+
+# TODO: Use the official release when/if my PR is accepted (https://github.com/dougbinks/enkiTS/pull/76)
+FetchContent_Declare(
+  enkiTS
+  GIT_REPOSITORY https://github.com/leonvictor/enkiTS
+)
+
+FetchContent_MakeAvailable(enkiTS)
 
 # Tracy
 target_compile_definitions(main PRIVATE
