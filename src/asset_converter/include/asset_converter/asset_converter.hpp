@@ -1,61 +1,63 @@
 #pragma once
 
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 #include <glm/vec3.hpp>
 
-#include <assets/asset_system/animation_clip_asset.hpp>
 #include <assets/asset_system/asset_system.hpp>
 #include <assets/asset_system/material_asset.hpp>
 #include <assets/asset_system/mesh_asset.hpp>
-#include <assets/asset_system/prefab_asset.hpp>
-#include <assets/asset_system/texture_asset.hpp>
+
+#include "assimp_animation.hpp"
+#include "assimp_scene_context.hpp"
 
 #include <filesystem>
 #include <iostream>
 
 namespace aln::assets::converter
 {
+
 // TODO: Only in cpp
 namespace fs = std::filesystem;
 /// @brief TODO
 class AssetConverter
 {
   private:
-    Assimp::Importer m_importer;
-
-    const aiScene* m_pScene;
-    std::filesystem::path m_inputFile;
-    std::filesystem::path m_outputDirectory;
+    AssimpSceneContext m_sceneContext;
 
     AssetConverter(std::filesystem::path inputFile, std::filesystem::path outputDirectory, int postProcessFlags)
-        : m_inputFile(inputFile),
-          m_outputDirectory(outputDirectory),
-          m_pScene(m_importer.ReadFile(inputFile.string(), postProcessFlags))
+        : m_sceneContext(inputFile, outputDirectory)
     {
         fs::create_directory(outputDirectory);
 
         ExtractMaterials();
-        ExtractMeshes();
-        ExtractAnimations();
+        // ExtractMeshes();
         ExtractNodes();
 
-        std::cout << m_importer.GetErrorString();
+        for (auto animIndex = 0; animIndex < m_sceneContext.GetScene()->mNumAnimations; ++animIndex)
+        {
+            auto pAnimation = m_sceneContext.GetScene()->mAnimations[animIndex];
+            const AssimpSkeleton* pSkeleton = AssimpSkeletonReader::ReadSkeleton(m_sceneContext, pAnimation);
+            AssimpAnimationReader::ReadAnimation(m_sceneContext, pAnimation, pSkeleton);
+        }
     }
 
     fs::path GetPathRelativeToOutput(const fs::path& path) const
     {
-        return path.lexically_proximate(m_outputDirectory);
+        return path.lexically_proximate(m_sceneContext.GetOutputDirectory());
     }
 
     /// @brief Extract materials from a assimp scene and save them in asset binary format
     void ExtractMaterials()
     {
-        for (int materialIndex = 0; materialIndex < m_pScene->mNumMaterials; materialIndex++)
+        if (!m_sceneContext.GetScene()->HasMaterials())
         {
-            aiMaterial* pMaterial = m_pScene->mMaterials[materialIndex];
+            return;
+        }
+
+        for (int materialIndex = 0; materialIndex < m_sceneContext.GetScene()->mNumMaterials; materialIndex++)
+        {
+            aiMaterial* pMaterial = m_sceneContext.GetScene()->mMaterials[materialIndex];
 
             MaterialInfo materialInfo;
             materialInfo.baseEffect = "defaultPBR";
@@ -120,8 +122,8 @@ class AssetConverter
                 texPath = "Default";
             }
 
-            fs::path baseColorPath = m_outputDirectory.parent_path() / texPath;
-            baseColorPath.replace_extension(".tx");
+            fs::path baseColorPath = m_sceneContext.GetOutputDirectory().parent_path() / texPath;
+            baseColorPath.replace_extension(".text");
             baseColorPath = GetPathRelativeToOutput(baseColorPath);
             materialInfo.textures["baseColor"] = baseColorPath.string();
 
@@ -129,28 +131,34 @@ class AssetConverter
 
             // Save to disk
             std::string materialName = std::string(pMaterial->GetName().C_Str()) + "_" + std::to_string(materialIndex);
-            fs::path materialPath = m_outputDirectory / (materialName + ".mat");
+            fs::path materialPath = m_sceneContext.GetOutputDirectory() / (materialName + ".mat");
             SaveBinaryFile(materialPath.string(), newFile);
         }
     }
 
     fs::path GetMaterialAssetPath(uint32_t materialIndex)
     {
-        auto pMaterial = m_pScene->mMaterials[materialIndex];
+        auto pMaterial = m_sceneContext.GetScene()->mMaterials[materialIndex];
         std::string materialName = std::string(pMaterial->GetName().C_Str()) + "_" + std::to_string(materialIndex);
-        fs::path materialPath = m_outputDirectory / (materialName + ".mat");
+        fs::path materialPath = m_sceneContext.GetOutputDirectory() / (materialName + ".mat");
         return materialPath;
     }
 
     fs::path GetMeshAssetPath(uint32_t meshIndex)
     {
-        auto pMesh = m_pScene->mMeshes[meshIndex];
+        auto pMesh = m_sceneContext.GetScene()->mMeshes[meshIndex];
         std::string meshName = std::string(pMesh->mName.C_Str()) + "_" + std::to_string(meshIndex);
-        fs::path meshPath = m_outputDirectory / (meshName + ".mesh");
+        fs::path meshPath = m_sceneContext.GetOutputDirectory() / (meshName + ".mesh");
         return meshPath;
     }
 
-    void ProcessMesh(const aiMesh* pMesh, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+    // -----------------
+    // Mesh stuff. @todo: Move to AssimpMesh like the rest, factorize static/skeletal
+    // Do that when we use actual serialization
+    // -----------------
+
+    /// @brief Process a mesh in assimp format and store processed data in vertex/index buffers
+    void ProcessStaticMesh(const aiMesh* pMesh, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
     {
         vertices.reserve(pMesh->mNumVertices);
         for (int vertexIndex = 0; vertexIndex < pMesh->mNumVertices; vertexIndex++)
@@ -164,6 +172,73 @@ class AssetConverter
             vert.normal[0] = pMesh->mNormals[vertexIndex].x;
             vert.normal[1] = pMesh->mNormals[vertexIndex].y;
             vert.normal[2] = pMesh->mNormals[vertexIndex].z;
+
+            if (pMesh->GetNumUVChannels() >= 1)
+            {
+                vert.texCoord[0] = pMesh->mTextureCoords[0][vertexIndex].x;
+                vert.texCoord[1] = pMesh->mTextureCoords[0][vertexIndex].y;
+            }
+            else
+            {
+                vert.texCoord = {0, 0};
+            }
+
+            if (pMesh->HasVertexColors(0))
+            {
+                vert.color[0] = pMesh->mColors[0][vertexIndex].r;
+                vert.color[1] = pMesh->mColors[0][vertexIndex].g;
+                vert.color[2] = pMesh->mColors[0][vertexIndex].b;
+            }
+            else
+            {
+                vert.color = {1, 1, 1};
+            }
+
+            vertices.push_back(vert);
+        }
+
+        indices.reserve(pMesh->mNumFaces * 3);
+        for (int faceIndex = 0; faceIndex < pMesh->mNumFaces; faceIndex++)
+        {
+            auto& faceIndices = pMesh->mFaces[faceIndex].mIndices;
+            indices.push_back(faceIndices[0]);
+            indices.push_back(faceIndices[1]);
+            indices.push_back(faceIndices[2]);
+
+            // TODO: test this
+            // assimp fbx creates bad normals, just regen them
+            if (true)
+            {
+                int v0 = indices[faceIndex * 3 + 0];
+                int v1 = indices[faceIndex * 3 + 1];
+                int v2 = indices[faceIndex * 3 + 2];
+
+                glm::vec3 normal = glm::normalize(glm::cross(
+                    vertices[v2].pos - vertices[v0].pos,
+                    vertices[v1].pos - vertices[v0].pos));
+
+                memcpy(&vertices[v0].normal, &normal, sizeof(float) * 3);
+                memcpy(&vertices[v1].normal, &normal, sizeof(float) * 3);
+                memcpy(&vertices[v2].normal, &normal, sizeof(float) * 3);
+            }
+        }
+    }
+
+    /// @brief Process a mesh in assimp format and store processed data in vertex/index buffers
+    void ProcessSkeletalMesh(const aiMesh* pMesh, std::vector<SkinnedVertex>& vertices, std::vector<uint32_t>& indices)
+    {
+        vertices.reserve(pMesh->mNumVertices);
+        for (int vertexIndex = 0; vertexIndex < pMesh->mNumVertices; vertexIndex++)
+        {
+            SkinnedVertex vert;
+
+            auto pos = m_sceneContext.ToGLM(pMesh->mVertices[vertexIndex]);
+            // vert.pos = m_sceneContext.RevertSceneTransform(pos);
+            vert.pos = pos;
+
+            auto normal = m_sceneContext.ToGLM(pMesh->mNormals[vertexIndex]);
+            // vert.normal = m_sceneContext.RevertSceneTransform(normal);
+            vert.normal = normal;
 
             if (pMesh->GetNumUVChannels() >= 1)
             {
@@ -189,7 +264,8 @@ class AssetConverter
                 vert.color[2] = 1;
             }
 
-            // vertices[vertexIndex] = vert;
+            vert.boneIndices = {0, 0, 0, 0};
+            vert.weights = {0, 0, 0, 0};
             vertices.push_back(vert);
         }
 
@@ -202,219 +278,138 @@ class AssetConverter
             indices.push_back(faceIndices[2]);
 
             // TODO: test this
-            //assimp fbx creates bad normals, just regen them
-            if (true)
-            {
-                int v0 = indices[faceIndex * 3 + 0];
-                int v1 = indices[faceIndex * 3 + 1];
-                int v2 = indices[faceIndex * 3 + 2];
+            // assimp fbx creates bad normals, just regen them
+            // if (true)
+            // {
+            //     int v0 = indices[faceIndex * 3 + 0];
+            //     int v1 = indices[faceIndex * 3 + 1];
+            //     int v2 = indices[faceIndex * 3 + 2];
 
-                glm::vec3 normal = glm::normalize(glm::cross(
-                    vertices[v2].pos - vertices[v0].pos,
-                    vertices[v1].pos - vertices[v0].pos));
+            //     glm::vec3 normal = glm::normalize(glm::cross(
+            //         vertices[v2].pos - vertices[v0].pos,
+            //         vertices[v1].pos - vertices[v0].pos));
 
-                memcpy(&vertices[v0].normal, &normal, sizeof(float) * 3);
-                memcpy(&vertices[v1].normal, &normal, sizeof(float) * 3);
-                memcpy(&vertices[v2].normal, &normal, sizeof(float) * 3);
-            }
+            //     memcpy(&vertices[v0].normal, &normal, sizeof(float) * 3);
+            //     memcpy(&vertices[v1].normal, &normal, sizeof(float) * 3);
+            //     memcpy(&vertices[v2].normal, &normal, sizeof(float) * 3);
+            // }
         }
     }
 
-    void ExtractMeshes()
+    void AddBoneData(SkinnedVertex& vertex, uint32_t boneIndex, float weight)
     {
-        // TODO: Put all submeshes from the same node in the same file
-        for (int meshIndex = 0; meshIndex < m_pScene->mNumMeshes; ++meshIndex)
+        for (uint8_t idx = 0; idx < 4; ++idx)
         {
-            auto pMesh = m_pScene->mMeshes[meshIndex];
-
-            // TODO: Extract Skeleton
-            std::cout << pMesh->mNumBones << std::endl;
-            if (pMesh->mNumBones > 0)
+            if (vertex.weights[idx] == 0)
             {
-                std::cout << std::endl;
-                std::cout << "Mesh w/ " << pMesh->mNumBones << " bones" << std::endl;
-                auto pArmature = pMesh->mBones[0]->mArmature;
+                vertex.boneIndices[idx] = boneIndex;
+                vertex.weights[idx] = weight;
+                return;
             }
-            for (size_t boneIndex = 0; boneIndex < pMesh->mNumBones; ++boneIndex)
-            {
-                auto pBone = pMesh->mBones[boneIndex];
-                auto pArmature = pBone->mArmature;
-                // std::cout << pBone->mName.C_Str() << std::endl;
-            }
-
-            // using VertexFormat = assets::Vertex_f32_PNCV;
-            // auto VertexFormatEnum = assets::VertexFormat::PNCV_F32;
-
-            // std::string meshName = GetAssimpMeshName(m_pScene, meshIndex);
-
-            std::vector<Vertex> vertices;
-            std::vector<uint32_t> indices;
-            ProcessMesh(pMesh, vertices, indices);
-
-            MeshInfo meshinfo;
-            // meshinfo.vertexFormat = VertexFormatEnum;
-            meshinfo.vertexBufferSize = vertices.size() * sizeof(Vertex);
-            meshinfo.indexBufferSize = indices.size() * sizeof(uint32_t);
-            meshinfo.indexTypeSize = sizeof(uint32_t);
-            meshinfo.originalFile = m_inputFile.string();
-            meshinfo.bounds = CalculateBounds(vertices.data(), vertices.size());
-
-            AssetFile file = PackMesh(&meshinfo, (char*) vertices.data(), (char*) indices.data());
-
-            std::string meshName = std::string(pMesh->mName.C_Str()) + "_" + std::to_string(meshIndex);
-            fs::path meshpath = m_outputDirectory / (meshName + ".mesh");
-
-            // Save to disk
-            SaveBinaryFile(meshpath.string(), file);
         }
+
+        // Too many weights for a single vertex
+        assert(false);
     }
 
-    void ExtractAnimations()
+    void ExtractMesh(aiMesh* pMesh)
     {
-        for (size_t animIndex = 0; animIndex < m_pScene->mNumAnimations; ++animIndex)
+        Transform transformBuffer;
+        AssetFile file;
+        std::vector<uint32_t> indices;
+
+        // TODO: Output naming
+        // std::string meshName = std::string(pMesh->mName.C_Str()) + "_" + std::to_string(meshIndex);
+        std::string meshName = std::string(pMesh->mName.C_Str());
+        fs::path meshPath = m_sceneContext.GetOutputDirectory() / (meshName);
+
+        if (pMesh->HasBones())
         {
-            aiAnimation* pAnim = m_pScene->mAnimations[animIndex];
+            // Read Skeleton asset
+            const auto* pSkeleton = AssimpSkeletonReader::ReadSkeleton(m_sceneContext, pMesh);
 
-            AnimationClipInfo animInfo;
-            animInfo.originalFile = m_inputFile.string();
-            animInfo.name = pAnim->mName.C_Str();
-            animInfo.duration = pAnim->mDuration;
-            animInfo.framesPerSecond = pAnim->mTicksPerSecond;
+            std::vector<SkinnedVertex> vertices;
+            ProcessSkeletalMesh(pMesh, vertices, indices);
 
-            // TODO: Handle Assimp MeshChannels
-            // TODO: Handle Assimp MorphChannels
+            std::vector<Transform> inverseBindPose;
+            inverseBindPose.resize(pSkeleton->GetBoneCount(), Transform::Identity);
 
-            std::vector<float> animData;
-            animInfo.tracks.reserve(pAnim->mNumChannels);
-            for (size_t channelIndex = 0; channelIndex < pAnim->mNumChannels; ++channelIndex)
+            for (size_t meshBoneIndex = 0; meshBoneIndex < pMesh->mNumBones; ++meshBoneIndex)
             {
-                auto pChannel = pAnim->mChannels[channelIndex];
+                auto pBone = pMesh->mBones[meshBoneIndex];
+                auto skeletonBoneIndex = pSkeleton->GetBoneIndex(std::string(pBone->mName.C_Str()));
+                assert(skeletonBoneIndex != InvalidIndex);
 
-                // Assume keys are synchronized
-                // TODO: don't
-                auto numKeys = pChannel->mNumRotationKeys;
-                assert(numKeys == pChannel->mNumPositionKeys &&
-                       numKeys == pChannel->mNumScalingKeys
-                    //    &&numKeys == pAnim->mDuration
-                );
+                // Save the inverse bind pose matrix
+                inverseBindPose[skeletonBoneIndex] = m_sceneContext.DecomposeMatrix(pBone->mOffsetMatrix);
 
-                TrackInfo trackInfo;
-                trackInfo.boneName = pChannel->mNodeName.C_Str();
-                trackInfo.numKeys = numKeys;
-
-                // BoneTrack track;
-                // track.boneName = pChannel->mNodeName.C_Str();
-                // track.frames.reserve(numKeys);
-
-                animData.reserve(animData.size() + (numKeys * (1 + 4 + 3 + 3)));
-                for (size_t keyIndex = 0; keyIndex < numKeys; keyIndex++)
+                // Update influenced vertices
+                for (size_t weightIndex = 0; weightIndex < pBone->mNumWeights; ++weightIndex)
                 {
-                    // TODO: Key time might vary by channel
-                    animData.push_back((float) pChannel->mPositionKeys[keyIndex].mTime);
-
-                    auto translation = pChannel->mPositionKeys[keyIndex].mValue;
-                    animData.push_back((float) translation.x);
-                    animData.push_back((float) translation.y);
-                    animData.push_back((float) translation.z);
-
-                    auto rotation = pChannel->mRotationKeys[keyIndex].mValue;
-                    animData.push_back((float) rotation.w);
-                    animData.push_back((float) rotation.x);
-                    animData.push_back((float) rotation.y);
-                    animData.push_back((float) rotation.z);
-
-                    auto scale = pChannel->mScalingKeys[keyIndex].mValue;
-                    animData.push_back((float) scale.x);
-                    animData.push_back((float) scale.y);
-                    animData.push_back((float) scale.z);
-
-                    // TODO: Handle Assimp pre and post state
+                    const auto& weight = pBone->mWeights[weightIndex];
+                    auto& influencedVertex = vertices[weight.mVertexId];
+                    AddBoneData(influencedVertex, skeletonBoneIndex, weight.mWeight);
                 }
-                animInfo.tracks.push_back(trackInfo);
             }
 
-            AssetFile file = PackAnimationClip(&animInfo, animData);
+            // Save skeletal mesh asset
+            meshPath += ".smsh";
 
-            std::string animName = pAnim->mName.C_Str();
-            std::replace(animName.begin(), animName.end(), '|', '_');
-            auto path = (m_outputDirectory / animName);
-            path.replace_extension(".anim");
-
-            SaveBinaryFile(path.string(), file);
+            SkeletalMeshInfo meshInfo;
+            meshInfo.originalFile = m_sceneContext.GetSourceFile().string();
+            meshInfo.indexTypeSize = sizeof(uint32_t);
+            meshInfo.vertexBufferSize = vertices.size() * sizeof(SkinnedVertex);
+            meshInfo.indexBufferSize = indices.size() * sizeof(uint32_t);
+            meshInfo.bounds = SkeletalMeshConverter::CalculateBounds(vertices.data(), vertices.size());
+            meshInfo.inverseBindPoseSize = inverseBindPose.size() * sizeof(Transform);
+            file = SkeletalMeshConverter::Pack(&meshInfo, (char*) vertices.data(), (char*) indices.data(), (char*) inverseBindPose.data());
         }
-    }
+        else
+        { // Static Mesh
+            std::vector<Vertex> vertices;
+            ProcessStaticMesh(pMesh, vertices, indices);
 
-    /// @brief Convert an assimp matrix to an aln one, and then to a flat float array
-    void ConvertMatrix(aiMatrix4x4& in, std::array<float, 16>& out)
-    {
-        glm::mat4 matrix;
-        for (int y = 0; y < 4; y++)
-        {
-            for (int x = 0; x < 4; x++)
-            {
-                matrix[y][x] = in[x][y]; // TODO: ?
-            }
+            StaticMeshInfo meshInfo;
+            meshInfo.originalFile = m_sceneContext.GetSourceFile().string();
+            meshInfo.indexTypeSize = sizeof(uint32_t);
+            meshInfo.vertexBufferSize = vertices.size() * sizeof(Vertex);
+            meshInfo.indexBufferSize = indices.size() * sizeof(uint32_t);
+            meshInfo.bounds = StaticMeshConverter::CalculateBounds(vertices.data(), vertices.size());
+
+            // TODO: Use StaticMesh::GetStaticTypeID();
+            meshPath += ".mesh";
+
+            file = StaticMeshConverter::Pack(&meshInfo, (char*) vertices.data(), (char*) indices.data());
         }
-        memcpy(&matrix, &out, sizeof(glm::mat4));
+
+        // Save to disk
+        SaveBinaryFile(meshPath.string(), file);
     }
 
     void ExtractNodes()
     {
-        PrefabInfo prefabInfo;
-
-        // // TODO: Extract the meshes's skeletons
-        // std::map<aiNode*, bool> skeletonNecessaryNodes;
-        // std::function<void(aiNode*)> populateNodeMap = [&](aiNode* pNode)
-        // {
-        //     skeletonNecessaryNodes[pNode] = false;
-        //     for (size_t childIndex = 0; childIndex < pNode->mNumChildren; ++childIndex)
-        //     {
-        //         populateNodeMap(pNode->mChildren[childIndex]);
-        //     }
-        // };
-
-        // populateNodeMap(m_pScene->mRootNode);
-
-        std::array<float, 16> identityMatrix;
-        glm::mat4 ident(1.0f);
-        memcpy(&identityMatrix, &ident, sizeof(glm::mat4));
-
         uint64_t lastNode = 0;
         uint8_t depth = 0;
         uint32_t nodeCount = 0;
-        std::function<void(aiNode*, uint64_t)> processNode = [&](aiNode* pNode, uint64_t parentID)
+
+        std::function<void(aiNode*, uint64_t, const aiMatrix4x4&)> processNode = [&](aiNode* pNode, uint64_t parentID, const aiMatrix4x4& parentGlobalTransform)
         {
             nodeCount++;
 
             uint64_t nodeindex = lastNode;
             lastNode++;
 
+            std::string indentString;
             for (int i = 0; i < depth; i++)
             {
-                std::cout << " ";
-            }
-            std::cout << pNode->mName.C_Str();
-            std::cout << "(" << pNode->mNumMeshes << " meshes)" << std::endl;
-
-            // Get node's parent (if any)
-            if (parentID != nodeindex)
-            {
-                prefabInfo.nodeParents[nodeindex] = parentID;
+                indentString += "  ";
             }
 
-            // Get the node's transform
-            std::array<float, 16> transform;
-            ConvertMatrix(pNode->mTransformation, transform);
+            auto t = m_sceneContext.DecomposeMatrix(pNode->mTransformation);
+            std::cout << indentString << std::string(pNode->mName.C_Str()) << std::endl;
 
-            prefabInfo.nodeTransforms[nodeindex] = prefabInfo.transforms.size();
-            prefabInfo.transforms.push_back(transform);
-
-            // Get node name
-            std::string nodeName = pNode->mName.C_Str();
-            if (nodeName.size() > 0)
-            {
-                prefabInfo.nodeNames[nodeindex] = nodeName;
-            }
+            auto nodeLocalTransform = pNode->mTransformation;
+            auto nodeGlobalTransform = nodeLocalTransform * parentGlobalTransform;
 
             // Extract the node mesh/material pair
             /// @note Assimp does not handle multiple material per mesh and will instead split
@@ -423,58 +418,20 @@ class AssetConverter
             {
                 for (size_t nodeMeshIndex = 0; nodeMeshIndex < pNode->mNumMeshes; ++nodeMeshIndex)
                 {
-                    auto meshIndex = pNode->mMeshes[nodeMeshIndex];
-                    auto materialIndex = m_pScene->mMeshes[meshIndex]->mMaterialIndex;
-
-                    fs::path materialPath = GetMaterialAssetPath(materialIndex);
-                    fs::path meshPath = GetMeshAssetPath(meshIndex);
-
-                    PrefabInfo::NodeMeshInfo nodeMesh;
-                    nodeMesh.meshPath = GetPathRelativeToOutput(meshPath).string();
-                    nodeMesh.materialPath = GetPathRelativeToOutput(materialPath).string();
-
-                    prefabInfo.nodeMeshes[lastNode] = nodeMesh;
-                    prefabInfo.nodeParents[lastNode] = nodeindex;
-                    prefabInfo.nodeTransforms[lastNode] = prefabInfo.transforms.size();
-
-                    prefabInfo.transforms.push_back(identityMatrix);
-
-                    lastNode++;
+                    auto pMesh = m_sceneContext.GetScene()->mMeshes[pNode->mMeshes[nodeMeshIndex]];
+                    ExtractMesh(pMesh);
                 }
-            }
-            else
-            {
-                // TODO: Keep the transformation
             }
 
             depth++;
             for (size_t ch = 0; ch < pNode->mNumChildren; ++ch)
             {
-                processNode(pNode->mChildren[ch], nodeindex);
+                processNode(pNode->mChildren[ch], nodeindex, nodeGlobalTransform);
             }
             depth--;
         };
 
-        // aiMatrix4x4 mat{};
-        // glm::mat4 rootmat{1};
-
-        // for (int y = 0; y < 4; y++)
-        // {
-        //     for (int x = 0; x < 4; x++)
-        //     {
-        //         mat[x][y] = rootmat[y][x];
-        //     }
-        // }
-
-        processNode(m_pScene->mRootNode, 0);
-        std::cout << nodeCount << " nodes." << std::endl;
-        AssetFile file = PackPrefab(prefabInfo);
-
-        fs::path scenefilepath = (m_outputDirectory.parent_path()) / m_inputFile.stem();
-        scenefilepath.replace_extension(".pfb");
-
-        // Save to disk
-        SaveBinaryFile(scenefilepath.string(), file);
+        processNode(m_sceneContext.GetScene()->mRootNode, 0, m_sceneContext.GetScene()->mRootNode->mTransformation);
     }
 
   public:
@@ -483,4 +440,5 @@ class AssetConverter
         auto converter = AssetConverter(inputFile, outputDirectory, postProcessFlags);
     }
 };
+
 } // namespace aln::assets::converter

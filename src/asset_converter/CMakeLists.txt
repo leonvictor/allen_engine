@@ -3,7 +3,11 @@ option(ASSET_CONVERTER_LIBRARY "Build the asset converter as library to link to 
 message(STATUS "Building Asset Converter as a library (to be used in editor mode): ${ASSET_CONVERTER_LIBRARY}")
 
 set(ASSET_CONVERT_LIB_SOURCE
-    src/image_converter.cpp)
+    src/assimp_scene_context.cpp
+    src/image_converter.cpp
+    src/assimp_skeleton.cpp
+    src/assimp_animation.cpp
+    )
 
 set(ASSET_CONVERTER_CLI_SOURCE
     src/cli.cpp)
