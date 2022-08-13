@@ -12,7 +12,7 @@ add_library(
     src/entity_system.cpp
     )
 
-target_compile_features(main PUBLIC cxx_std_20)
+target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE # Include directories inside this lib access the headers directly

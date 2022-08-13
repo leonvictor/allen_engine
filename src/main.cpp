@@ -13,11 +13,12 @@
 #include <functional>
 #include <iostream>
 #include <optional>
-#include <set>
 #include <stdexcept>
 #include <string.h>
 #include <unordered_map>
 #include <vector>
+
+#include <reflection/reflection.hpp>
 
 #include <graphics/device.hpp>
 #include <graphics/imgui.hpp>
@@ -26,6 +27,7 @@
 #include <graphics/rendering/swapchain_renderer.hpp>
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
+#include <set>
 
 #ifdef ALN_DEBUG
 #define _CRTDBG_MAP_ALLOC
@@ -40,22 +42,35 @@
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
-#include <core/camera.hpp>
-#include <core/camera_controller.hpp>
+#include <core/skeletal_mesh.hpp>
+#include <core/static_mesh.hpp>
+
 #include <core/component_factory.hpp>
-#include <core/light.hpp>
-#include <core/mesh_renderer.hpp>
-#include <core/render_system.hpp>
-#include <core/systems/script.hpp>
+#include <core/components/animation_graph.hpp>
+#include <core/components/animation_player_component.hpp>
+#include <core/components/camera.hpp>
+#include <core/components/light.hpp>
+#include <core/components/skeletal_mesh_component.hpp>
+#include <core/components/static_mesh_component.hpp>
+
+#include <core/entity_systems/animation_system.hpp>
+#include <core/entity_systems/camera_controller.hpp>
+#include <core/entity_systems/script.hpp>
+
 #include <core/time_system.hpp>
+#include <core/world_systems/render_system.hpp>
 
 #include <assets/manager.hpp>
+#include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
+#include <core/asset_loaders/skeleton_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
 
 #include <common/memory.hpp>
 #include <common/services/service_provider.hpp>
+
+#include <anim/animation_clip.hpp>
 
 #include "IconsFontAwesome4.h"
 #include "imgui.h"
@@ -65,9 +80,14 @@
 #include "imgui_stdlib.h"
 
 #include <config/path.h>
-#include <reflection/reflection.hpp>
+
+#include <editor/editor.hpp>
 
 #include <Tracy.hpp>
+
+// Test anim graph
+#include <anim/graph/graph.hpp>
+#include <anim/graph/nodes/animation_clip_node.hpp>
 
 using namespace aln::input;
 using namespace aln::entities;
@@ -75,8 +95,25 @@ using namespace aln::entities;
 namespace aln
 {
 
-const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.obj";
-const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.png";
+// Mike
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/Cube.010.smsh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike_Texture.text";
+// const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/RobotArmature.skel";
+
+// Cesium man
+const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan/Cesium_Man.smsh";
+const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan_img0.text";
+const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan/Armature.skel";
+
+// // Kenney
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/characterMedium/characterMedium_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
+
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet/defaultobject_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet.tx";
+
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/cube/cube_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
 const int MAX_MODELS = 50;
 
 class Engine
@@ -121,16 +158,22 @@ class Engine
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
         m_pAssetManager = std::make_unique<AssetManager>(m_serviceProvider.GetTaskService());
-        // TODO: Get rid of the default paths
-        m_pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
-        m_pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);
+        // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
+        // then register each of them with a single function.
+        m_pAssetManager->RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
+        pAssetManager->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
+        m_pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
         m_pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
+        pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
+        pAssetManager->RegisterAssetLoader<Skeleton, SkeletonLoader>();
 
+        // TODO: Get rid of the default paths
         // Create a default context
         m_componentFactory.context = {
             .graphicsDevice = m_pDevice,
             .defaultTexturePath = TEXTURE_PATH,
             .defaultModelPath = MODEL_PATH,
+            .defaultSkeletonPath = TEST_SKELETON_PATH,
             .pAssetManager = m_pAssetManager.get()};
 
         CreateWorld();
@@ -156,6 +199,8 @@ class Engine
     // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
     ServiceProvider m_serviceProvider;
 
+    editor::Editor m_editor;
+
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
     const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
     const glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
@@ -166,13 +211,12 @@ class Engine
 
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
 
-    std::array<glm::vec3, 2> cubePositions = {
+    std::array<glm::vec3, 1> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 5.0f, 0.0f),
-        // LIGHT_POSITION
     };
 
     Entity* m_pSelectedEntity = nullptr;
+    glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
@@ -180,6 +224,8 @@ class Engine
     // Object model
     ComponentFactory m_componentFactory;
     WorldEntity m_worldEntity;
+
+    UpdateContext m_updateContext;
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
@@ -190,8 +236,8 @@ class Engine
 
         ImGui::GetAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
 
-        reflect::SetImGuiContext(ImGui::GetCurrentContext());
-        reflect::SetImGuiAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
+        editor::SetImGuiContext(ImGui::GetCurrentContext());
+        editor::SetImGuiAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
     }
 
     void CreateWorld()
@@ -204,8 +250,7 @@ class Engine
             // TODO: Refine how the editor accesses the map
             Entity* pCameraEntity = m_worldEntity.m_entityMap.CreateEntity("MainCamera");
             auto pCameraComponent = m_componentFactory.Create<Camera>();
-            pCameraComponent->SetLocalTransformPosition(glm::vec3(-20.0f, 0.0f, 0.0f));
-            pCameraComponent->SetLocalTransformRotationEuler(glm::vec3(90.0f, 0.0f, 0.0f));
+            pCameraComponent->SetLocalTransformPosition(glm::vec3(0.0f, 0.0f, -20.0f));
             pCameraEntity->AddComponent(pCameraComponent);
 
             pCameraEntity->CreateSystem<EditorCameraController>();
@@ -228,15 +273,12 @@ class Engine
         }
 
         int i = 1;
-        for (auto pos : cubePositions)
-        {
-            // TODO: This api is too verbose
-            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
-            auto pMesh = m_componentFactory.Create<MeshRenderer>();
-            pMesh->SetLocalTransformPosition(pos);
-            pCube->AddComponent(pMesh);
-            i++;
-        }
+        Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
+        auto pMesh = m_componentFactory.Create<SkeletalMeshComponent>();
+        pCube->AddComponent(pMesh);
+        auto pAnim = m_componentFactory.Create<AnimationPlayerComponent>();
+        pCube->AddComponent(pAnim);
+        pCube->CreateSystem<AnimationSystem>();
     }
 
     void setupSkyBox()
@@ -264,6 +306,7 @@ class Engine
             // std::this_thread::sleep_for(std::chrono::seconds(1));
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             Time::Update();
+            m_updateContext.m_deltaTime = Time::GetDeltaTime();
 
             // TODO: Group glfw accesses in a window.NewFrame() method
             // Map GLFW events to the Input system
@@ -278,19 +321,20 @@ class Engine
 
             m_pAssetManager->Update();
 
+            m_updateContext.m_displayWidth = m_scenePreviewWidth;
+            m_updateContext.m_displayHeight = m_scenePreviewHeight;
+
+            // When out of editor
+            // context.displayWidth = m_window.GetWidth();
+            // context.displayHeight = m_window.GetHeight();
+
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?
             for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
             {
-                aln::entities::UpdateContext context = aln::entities::UpdateContext(static_cast<UpdateStage>(stage));
-                // When out of editor
-                // context.displayWidth = m_window.GetWidth();
-                // context.displayHeight = m_window.GetHeight();
+                m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
 
-                context.displayWidth = m_scenePreviewWidth;
-                context.displayHeight = m_scenePreviewHeight;
-
-                m_worldEntity.Update(context);
+                m_worldEntity.Update(m_updateContext);
             }
 
             // updateSkyboxUBO();
@@ -351,7 +395,7 @@ class Engine
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f));
-                            auto pMesh = m_componentFactory.Create<MeshRenderer>();
+                            auto pMesh = m_componentFactory.Create<StaticMeshComponent>();
                             pMesh->SetLocalTransformPosition(pos);
                             pCube->AddComponent(pMesh);
                             pCube->CreateSystem<ScriptSystem>();
@@ -447,7 +491,7 @@ class Engine
                         // TODO: vec3 might deserve a helper function to create ui for the 3 components...
                         // Position
                         bool changed = false;
-                        auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetPosition();
+                        auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetTranslation();
                         ImGui::Text("Position");
                         changed |= ImGui::DragFloat("x##Position", &pos.x, 1.0f);
                         ImGui::SameLine();
@@ -459,17 +503,16 @@ class Engine
                             m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformPosition(pos);
 
                         // Rotation
-                        auto euler = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetRotationEuler();
                         changed = false;
                         ImGui::Text("Rotation");
-                        changed |= ImGui::DragFloat("x##Rotation", &euler.x, 1.0f);
+                        changed |= ImGui::DragFloat("x##Rotation", &m_currentEulerRotation.x, 1.0f);
                         ImGui::SameLine();
-                        changed |= ImGui::DragFloat("y##Rotation", &euler.y, 1.0f);
+                        changed |= ImGui::DragFloat("y##Rotation", &m_currentEulerRotation.y, 1.0f);
                         ImGui::SameLine();
-                        changed |= ImGui::DragFloat("z##Rotation", &euler.z, 1.0f);
+                        changed |= ImGui::DragFloat("z##Rotation", &m_currentEulerRotation.z, 1.0f);
 
                         if (changed)
-                            m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(euler);
+                            m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(m_currentEulerRotation);
 
                         // Scale
                         auto scale = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetScale();
@@ -483,6 +526,8 @@ class Engine
 
                         if (changed)
                             m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformScale(scale);
+
+                        ImGui::PopItemWidth();
                     }
                 }
 
@@ -495,7 +540,7 @@ class Engine
 
                     if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
                     {
-                        typeDesc->InEditor(pComponent, typeDesc->GetPrettyName().c_str());
+                        m_editor.InInspector(pComponent, "");
                     }
 
                     if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
@@ -517,7 +562,7 @@ class Engine
                     ImGui::PushID(typeDesc->GetPrettyName().c_str());
                     if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
                     {
-                        typeDesc->InEditor(pSystem.get());
+                        m_editor.InInspector(pSystem.get(), "");
                     }
 
                     if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
@@ -670,7 +715,13 @@ class Engine
         EntityOutlinePopup(pEntity);
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+        {
             m_pSelectedEntity = pEntity;
+            if (pEntity->IsSpatialEntity())
+            {
+                m_currentEulerRotation = pEntity->GetRootSpatialComponent()->GetLocalTransform().GetRotationEuler();
+            }
+        }
 
         if (ImGui::BeginDragDropSource())
         {
@@ -735,6 +786,7 @@ int main()
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
+
     app.reset();
     return EXIT_SUCCESS;
 };

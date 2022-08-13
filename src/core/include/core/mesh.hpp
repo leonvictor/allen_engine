@@ -24,10 +24,13 @@ struct PrimitiveComponent
 /// @brief Mesh asset
 class Mesh : public IAsset
 {
+    // TODO: Mesh are virtual and can't be used as is. How do we reflect that in the asset system ?
+    ALN_REGISTER_ASSET_TYPE("mesh");
+
     friend class MeshLoader;
 
   private:
-    std::vector<Vertex> m_vertices;
+    std::vector<std::byte> m_vertices;
     std::vector<uint32_t> m_indices;
 
     std::vector<PrimitiveComponent> m_primitives;
@@ -35,21 +38,16 @@ class Mesh : public IAsset
     vkg::resources::Buffer m_vertexBuffer;
     vkg::resources::Buffer m_indexBuffer;
 
+  protected:
     /// @brief Create and fill the vulkan buffers to back the mesh.
-    void CreateGraphicResources(const std::shared_ptr<vkg::Device>&);
+    virtual void CreateGraphicResources(const std::shared_ptr<vkg::Device>&);
 
     /// @brief Reset the vulkan buffers backing the mesh on GPU.
     void FreeGraphicResources();
 
-    /// @brief Load the mesh from the source file.
-    bool Load(std::string path);
-
-    /// @brief Free mesh resources.
-    void Unload();
-
   public:
-    Mesh(AssetGUID& guid) : IAsset(guid) {}
+    Mesh(AssetID& id) : IAsset(id) {}
+
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
-    void RevertNormals();
 };
 } // namespace aln

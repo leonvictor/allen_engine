@@ -4,9 +4,10 @@ include(FetchContent)
 
 project(ALLEN VERSION 0.1)
 
-
 set(SOURCE 
     src/main.cpp)
+
+enable_testing()
 
 # Create the tracing configuration
 set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} ReleaseWithTracing)
@@ -30,6 +31,7 @@ set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} " /MD")
 set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASEWITHTRACING} " /MD")
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(ALLEN_EDITOR "Build the editor" ON)
 
 # Configure the config files
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
@@ -48,7 +50,7 @@ include_directories(CONFIG_INCLUDE_DIRS)
 # Put the .exe and .dll in the build directory's root so we can find them.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
-set(ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 
 # TODO: ?
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -149,9 +151,6 @@ target_include_directories(glm SYSTEM INTERFACE ${_inc})
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
 target_include_directories(main PUBLIC ${STB_INCLUDE_DIR})
 
-# tinyobjloader
-add_subdirectory(external/tinyobjloader)
-
 # stduuids
 set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 # add_compile_definitions(UUID_SYSTEM_GENERATOR)
@@ -159,6 +158,29 @@ set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 
 # json
 set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
+
+# assimp
+MESSAGE(STATUS "Configuring assimp...")
+set(assimp_DIR "/external/assimp/cmake-modules/")
+MESSAGE(STATUS ${CMAKE_MODULE_PATH})
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_NO_EXPORT ON)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_INSTALL OFF)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF)
+set(ASSIMP_INJECT_DEBUG_POSTFIX OFF)
+
+add_subdirectory(external/assimp )
+MESSAGE(STATUS "Assimp configured.")
+
+# lz4
+set(LZ4_BUNDLED_MODE ON)
+message(STATUS "Configuring LZ4...")
+set(LZ4_BUILD_CLI OFF)
+set(LZ4_BUILD_LEGACY_LZ4C OFF)
+add_subdirectory(external/lz4/build/cmake)
+message(STATUS "LZ4 Configured.")
 
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
@@ -173,6 +195,9 @@ add_subdirectory(src/entities)
 add_subdirectory(src/graphics)
 add_subdirectory(src/input)
 add_subdirectory(src/assets)
+add_subdirectory(src/asset_converter)
+add_subdirectory(src/editor)
+add_subdirectory(src/anim)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20) 
@@ -194,4 +219,10 @@ target_link_libraries(main PUBLIC
     input 
     graphics 
     entities 
-    core)
+    core
+    editor
+    anim
+    assimp::assimp)
+
+set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
+message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})

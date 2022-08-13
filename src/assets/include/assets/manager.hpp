@@ -52,7 +52,7 @@ class AssetManager
 
   private:
     std::map<std::type_index, std::unique_ptr<AssetLoader>> m_loaders;
-    std::map<AssetGUID, AssetRecord> m_assetCache;
+    std::map<AssetID, AssetRecord> m_assetCache;
 
     std::recursive_mutex m_mutex;
     std::vector<AssetRequest> m_pendingRequests;
@@ -283,6 +283,12 @@ class AssetManager
         {
             it.first->second = std::make_unique<TLoader>(args...);
         }
+    }
+
+    template <AssetType T>
+    const IAssetLoader<T>* GetLoader()
+    {
+        return static_pointer_cast<AssetLoader<T>>(&m_loaders[std::type_index(typeid(T))]);
     }
 
     /// @brief Return a pointer to the asset corresponding to the given path (todo: key).

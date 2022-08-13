@@ -22,8 +22,8 @@ class Buffer : public Allocation
     template <typename T>
     Buffer(std::shared_ptr<Device> device, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const std::vector<T>& data)
     {
-        vk::DeviceSize m_size = sizeof(T) * data.size();
-        Initialize(device, m_size, usage, memProperties, data.data());
+        vk::DeviceSize size = sizeof(T) * data.size();
+        Initialize(device, size, usage, memProperties, data.data());
     }
 
     /// @brief Copy the content of this buffer to an image.

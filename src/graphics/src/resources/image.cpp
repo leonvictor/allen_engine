@@ -492,69 +492,10 @@ std::vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBinding
     return bindings;
 }
 
-static vk::Format MapAssetFormatToVulkan(assets::TextureFormat format)
-{
-    switch (format)
-    {
-    case assets::TextureFormat::RGBA8:
-        return vk::Format::eR8G8B8A8Srgb;
-    default:
-        throw; // TODO
-    }
-}
-
-Image Image::FromAsset(std::shared_ptr<Device> pDevice, std::string filename)
-{
-    assets::AssetFile file;
-    bool loaded = assets::LoadBinaryFile(filename, file);
-
-    if (!loaded)
-    {
-        std::cout << "Error loading texture asset" << std::endl;
-        throw; // TODO
-    }
-
-    assets::TextureInfo info = assets::ReadTextureInfo(&file);
-
-    auto format = MapAssetFormatToVulkan(info.format);
-
-    void* data;
-    assets::UnpackTexture(&info, file.binaryBlob.data(), file.binaryBlob.size(), (char*) data);
-
-    // Copy data to staging buffer
-    Buffer stagingBuffer(pDevice, (vk::DeviceSize) info.size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data);
-
-    auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(info.pixelSize[0], info.pixelSize[1])))) + 1;
-    Image image = FromBuffer(pDevice, stagingBuffer, info.pixelSize[0], info.pixelSize[1], mipLevels);
-
-    return std::move(image);
-}
-
-Image Image::FromFile(std::shared_ptr<Device> pDevice, std::string path)
-{
-    int width, height, channels;
-    stbi_uc* pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-    if (!pixels)
-    {
-        std::cout << "Failed to load texture file " << path << std::endl;
-        throw;
-    }
-
-    // Copy data to staging buffer
-    Buffer stagingBuffer(pDevice, width * height * 4, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, pixels);
-
-    auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-    Image image = FromBuffer(pDevice, stagingBuffer, width, height, mipLevels);
-
-    delete pixels;
-    return std::move(image);
-}
-
-Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, vk::ImageType type)
+Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
 {
     Image image = Image(pDevice, width, height, mipLevels,
-        vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+        vk::SampleCountFlagBits::e1, format, vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
         arrayLayers, {}, vk::ImageLayout::eUndefined, type);
 

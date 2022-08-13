@@ -1,15 +1,24 @@
 set(LIB_NAME core)
 
 add_library(${LIB_NAME} SHARED
-    src/camera.cpp
-    src/mesh_renderer.cpp
-    src/light.cpp
-    src/render_system.cpp
-    src/camera_controller.cpp
+    src/world_systems/render_system.cpp
+
     src/time_system.cpp
     src/mesh.cpp
+    
+    src/components/animation_graph.cpp
+    src/components/mesh_component.cpp
+    src/components/static_mesh_component.cpp
+    src/components/skeletal_mesh_component.cpp
+    src/components/camera.cpp
+    src/components/light.cpp
+    src/components/animation_player_component.cpp
+    
+    src/entity_systems/script.cpp
+    src/entity_systems/camera_controller.cpp
+    src/entity_systems/animation_system.cpp
 
-    src/systems/script.cpp
+    src/type_descriptors/assets.cpp
 )
 
 set(LIB_DEPENDENCIES 
@@ -17,8 +26,9 @@ set(LIB_DEPENDENCIES
     TracyClient
 )
 
-set(LIB_LINK_DEPENDENCIES glm utils common entities graphics input
-assets)
+set(LIB_LINK_DEPENDENCIES 
+    glm utils common entities graphics input anim
+    assets reflection)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

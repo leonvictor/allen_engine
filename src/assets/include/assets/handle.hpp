@@ -20,6 +20,16 @@ class AssetHandle
     const T* m_pAsset = nullptr;
 
   public:
+    ~AssetHandle()
+    {
+        if (use_count() == 1)
+        {
+            delete m_pLoadedCount;
+            delete m_pInitializedCount;
+        }
+        m_pAsset.reset();
+    }
+
     AssetHandle() = default;
     AssetHandle(T* pAsset) : m_pAsset(pAsset) {}
 

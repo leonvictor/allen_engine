@@ -3,47 +3,35 @@
 #include <fstream>
 #include <iostream>
 
-using namespace assets;
-
-CompressionMode assets::ParseCompressionMode(std::string compressionMode)
+namespace aln::assets
 {
 
-    if (compressionMode == "none")
-    {
-        return CompressionMode::None;
-    }
-}
-
-bool assets::SaveBinaryFile(std::string path, const AssetFile& file)
+bool SaveBinaryFile(const std::string& path, const AssetFile& file)
 {
+    std::cout << "Saving to: " << path << std::endl;
+
+    uint32_t metadataSize = file.metadata.size();
+    uint32_t binarySize = file.binary.size();
+
     std::ofstream outfile;
     outfile.open(path, std::ios::binary | std::ios::out);
 
-    // First 4 chars are the type
-    outfile.write(file.type, 4);
-    // Then the format version
-    outfile.write((const char*) &file.version, sizeof(uint32_t));
-
-    // JSON length
-    uint32_t jLength = file.json.size();
-    outfile.write((const char*) &jLength, sizeof(uint32_t));
-
-    // binary length
-    uint32_t bLength = file.binaryBlob.size();
-    outfile.write((const char*) &bLength, sizeof(uint32_t));
-
-    // JSON
-    outfile.write(file.json.data(), jLength);
-
-    // Binary
-    outfile.write(file.binaryBlob.data(), bLength);
+    outfile.write(reinterpret_cast<const char*>(&file.type), 1);                   // First byte represent the type
+    outfile.write(reinterpret_cast<const char*>(&file.version), sizeof(uint32_t)); // Then the format version
+    outfile.write(reinterpret_cast<const char*>(&metadataSize), sizeof(uint32_t)); // Metadata size
+    outfile.write(reinterpret_cast<const char*>(&binarySize), sizeof(uint32_t));   // Binary blob size
+    outfile.write(file.metadata.data(), metadataSize);                             // Metadata
+    outfile.write(reinterpret_cast<const char*>(file.binary.data()), binarySize);  // Binary blob
 
     outfile.close();
     return true;
 }
 
-bool assets::LoadBinaryFile(std::string path, AssetFile& outputFile)
+bool LoadBinaryFile(const std::string& path, AssetFile& outputFile)
 {
+    uint32_t metadataSize;
+    uint32_t binarySize;
+
     std::ifstream infile;
     infile.open(path, std::ios::binary);
 
@@ -51,24 +39,18 @@ bool assets::LoadBinaryFile(std::string path, AssetFile& outputFile)
         return false;
 
     infile.seekg(0);
-    // Read type
-    infile.read(outputFile.type, 4);
-    // Version
-    infile.read((char*) &outputFile.version, sizeof(uint32_t));
 
-    // Json length
-    uint32_t jLength;
-    infile.read((char*) &jLength, sizeof(uint32_t));
+    infile.read(reinterpret_cast<char*>(&outputFile.type), 1);                   // Read type
+    infile.read(reinterpret_cast<char*>(&outputFile.version), sizeof(uint32_t)); // Read version
+    infile.read(reinterpret_cast<char*>(&metadataSize), sizeof(uint32_t));       // Read metadata size
+    infile.read(reinterpret_cast<char*>(&binarySize), sizeof(uint32_t));         // Read binary blob size
 
-    // Binary length
-    uint32_t bLength;
-    infile.read((char*) &bLength, sizeof(uint32_t));
+    outputFile.metadata.resize(metadataSize);
+    outputFile.binary.resize(binarySize);
 
-    outputFile.json.resize(jLength);
-    infile.read((char*) outputFile.json.data(), jLength);
-
-    outputFile.binaryBlob.resize(jLength);
-    infile.read((char*) outputFile.binaryBlob.data(), bLength);
+    infile.read(reinterpret_cast<char*>(outputFile.metadata.data()), metadataSize); // Read metadata
+    infile.read(reinterpret_cast<char*>(outputFile.binary.data()), binarySize);     // Read binary blob
 
     return true;
 }
+} // namespace aln::assets

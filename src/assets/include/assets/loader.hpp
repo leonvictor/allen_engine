@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <memory>
 
 #include "asset.hpp"
@@ -17,7 +18,7 @@ class AssetLoader
     virtual ~AssetLoader(){};
 
   protected:
-    virtual IAsset* Create(AssetGUID id) = 0;
+    virtual IAsset* Create(AssetID id) = 0;
     virtual bool Load(AssetRecord* pAsset) = 0;
     virtual void Unload(AssetRecord* pAsset) = 0;
 };
@@ -28,11 +29,11 @@ template <AssetType T>
 class IAssetLoader : public AssetLoader
 {
   public:
-    virtual ~IAssetLoader(){};
+    virtual ~IAssetLoader() override{};
 
   protected:
     /// @todo Creation can be delayed until the asset is loaded for the first time
-    IAsset* Create(AssetGUID id) final override { return aln::New<T>(id); }
+    IAsset* Create(AssetID id) final override { return aln::New<T>(id); }
     virtual bool Load(AssetRecord* pRecord) = 0;
     virtual void Unload(AssetRecord* pRecord) = 0;
 };

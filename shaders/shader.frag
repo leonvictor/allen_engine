@@ -40,8 +40,6 @@ layout(set = 0, binding = 0) buffer Lights {
     Light light[];
 } lights;
 
-// layout(binding = 2) uniform vec3 light_color; // TODO: Light color should be bound
-
 vec3 apply_directional_light(uint index, vec3 normal) {
     // TODO: Pass as uniform
     vec3 light_ambient = vec3(0.2f, 0.2f, 0.2f);

@@ -114,13 +114,7 @@ class Image : public Allocation
     Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format);
 
     /// @brief Create an image an upload the content of a buffer to it.
-    static Image FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
-
-    /// @brief Load a texture asset from disk.
-    static Image FromAsset(std::shared_ptr<Device>, std::string path);
-
-    /// @brief Load a texture from an image. Prefer using assets if possible!
-    static Image FromFile(std::shared_ptr<Device>, std::string path);
+    static Image FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
 
     /// @brief Load a cubemap from a directory.
     static Image CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string path);

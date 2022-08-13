@@ -2,6 +2,7 @@
 
 #include "device.hpp"
 #include "shaders.hpp"
+#include "vertex_descriptors.hpp"
 
 #include <iomanip>
 #include <utils/uuid.hpp>
@@ -22,6 +23,7 @@ class Pipeline
     };
 
   public:
+    // TODO: Move that to private
     vk::PipelineDepthStencilStateCreateInfo m_depthStencil;
     vk::PipelineRasterizationStateCreateInfo m_rasterizer;
     vk::PipelineMultisampleStateCreateInfo m_multisample;
@@ -51,6 +53,12 @@ class Pipeline
     /// @brief Initialize the pipeline and create the wrapped vulkan objects.
     void Create(std::string cachePath = "");
 
+    void SetPrimitiveTopology(vk::PrimitiveTopology topology)
+    {
+        assert(!IsInitialized());
+        m_primitiveTopology = topology;
+    }
+
     /// @brief Set viewport and scissors to match a whole extent.
     void SetExtent(const vk::Extent2D& extent);
 
@@ -68,11 +76,19 @@ class Pipeline
     void RegisterDescriptorLayout(vk::DescriptorSetLayout& descriptorSetLayout);
 
     void AddDynamicState(vk::DynamicState state);
-    void SetDepthTestWriteEnable(bool testEnable, bool writeEnable);
-
+    void SetDepthTestWriteEnable(bool testEnable, bool writeEnable, vk::CompareOp compareOp = vk::CompareOp::eLess);
+    void SetDepthBoundsTestEnable(bool enable, float minDepthBounds, float maxDepthBounds);
+    
     void SetRasterizerCullMode(vk::CullModeFlagBits cullMode);
 
     void SetBindPoint(vk::PipelineBindPoint bindPoint);
+
+    template <typename T>
+    void SetVertexType()
+    {
+        m_vertextAttributeDescriptions = VertexDescriptor<T>::GetAttributeDescription();
+        m_vertexBindingDescription = VertexDescriptor<T>::GetBindingDescription();
+    }
 
     void Bind(vk::CommandBuffer& cb);
 
@@ -91,8 +107,16 @@ class Pipeline
     std::vector<shaders::ShaderInfo> m_shaderStages;
     std::vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
     std::vector<vk::DynamicState> m_dynamicStates;
+
+    // Pipeline Input Assembly State
+    vk::PrimitiveTopology m_primitiveTopology;
+
     vk::UniquePipeline m_vkPipeline;
     vk::PipelineBindPoint m_bindPoint;
+
+    // Vertex description
+    vk::VertexInputBindingDescription m_vertexBindingDescription;
+    std::vector<vk::VertexInputAttributeDescription> m_vertextAttributeDescriptions;
 
     State m_status = State::Uninitialized;
 
