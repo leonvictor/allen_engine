@@ -17,19 +17,12 @@ namespace aln
 class SkeletonLoader : public IAssetLoader<Skeleton>
 {
   private:
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
     {
-        assert(pAsset->IsUnloaded());
-        auto pSkeleton = AssetHandle<Skeleton>(pAsset);
+        assert(pRecord->IsUnloaded());
+        assert(file.m_assetTypeID == Skeleton::GetStaticAssetTypeID());
 
-        assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pSkeleton->GetID().GetAssetPath(), file);
-        if (!loaded)
-        {
-            return false;
-        }
-
-        assert(file.type == assets::EAssetType::Skeleton);
+        Skeleton* pSkeleton = aln::New<Skeleton>();
 
         auto info = assets::SkeletonConverter::ReadInfo(&file);
 
@@ -50,7 +43,7 @@ class SkeletonLoader : public IAssetLoader<Skeleton>
         }
 
         pSkeleton->m_localReferencePose.resize(boneCount);
-        assets::SkeletonConverter::Unpack(&info, file.binary, (std::byte*) pSkeleton->m_localReferencePose.data());
+        assets::SkeletonConverter::Unpack(&info, file.m_binary, (std::byte*) pSkeleton->m_localReferencePose.data());
 
         // Calculate global pose
         pSkeleton->m_globalReferencePose.resize(boneCount);
@@ -65,27 +58,14 @@ class SkeletonLoader : public IAssetLoader<Skeleton>
             pSkeleton->m_globalReferencePose[boneIdx] = pSkeleton->m_globalReferencePose[parentIdx] * pSkeleton->m_localReferencePose[boneIdx];
         }
 
+        pRecord->SetAsset(pSkeleton);
         return true;
     }
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        assert(pAsset->IsLoaded());
-        auto pSkeleton = AssetHandle<Skeleton>(pAsset);
-        // TODO
-    }
-
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsLoaded());
-        auto pSkeleton = AssetHandle<Skeleton>(pAsset);
-        // TODO
-    }
-
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsInitialized());
-        auto pSkeleton = AssetHandle<Skeleton>(pAsset);
+        assert(pRecord->IsLoaded());
+        auto pSkeleton = pRecord->GetAsset<Skeleton>();
         // TODO
     }
 };

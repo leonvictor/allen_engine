@@ -23,29 +23,21 @@ class AnimationLoader : public IAssetLoader<AnimationClip>
         m_pDevice = pDevice;
     }
 
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
     {
-        assert(pAsset->IsUnloaded());
-        auto pAnim = AssetHandle<AnimationClip>(pAsset);
+        assert(pRecord->IsUnloaded());
+        assert(file.m_assetTypeID == AnimationClip::GetStaticAssetTypeID());
 
-        assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pAnim->GetID().GetAssetPath(), file);
-        if (!loaded)
-        {
-            return false;
-        }
-
-        assert(file.type == assets::EAssetType::Animation);
+        AnimationClip* pAnim = aln::New<AnimationClip>();
 
         auto info = assets::ReadAnimationClipInfo(&file);
-
         pAnim->m_ticksPerSecond = info.framesPerSecond;
         pAnim->m_duration = (float) info.duration;
 
         // TODO: Stream directly to the tracks
         std::vector<float> buffer;
         buffer.resize(info.binaryBufferSize / sizeof(float));
-        assets::UnpackAnimationClip(&info, file.binary, buffer);
+        assets::UnpackAnimationClip(&info, file.m_binary, buffer);
 
         float* dataPtr = buffer.data();
         for (auto& trackInfo : info.tracks)
@@ -67,28 +59,14 @@ class AnimationLoader : public IAssetLoader<AnimationClip>
         }
 
         // TODO: Add a dependency on the skeleton, and ensure it is loaded correctly
-
+        pRecord->SetAsset(pAnim);
         return true;
     }
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        assert(pAsset->IsLoaded());
-        auto pAnim = AssetHandle<AnimationClip>(pAsset);
-        // TODO
-    }
-
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsLoaded());
-        auto pAnim = AssetHandle<AnimationClip>(pAsset);
-        // TODO
-    }
-
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsInitialized());
-        auto pAnim = AssetHandle<AnimationClip>(pAsset);
+        assert(pRecord->IsLoaded());
+        auto pAnim = pRecord->GetAsset<AnimationClip>();
         // TODO
     }
 };

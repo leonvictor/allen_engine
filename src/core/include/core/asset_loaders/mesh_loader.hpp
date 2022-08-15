@@ -19,65 +19,56 @@ class MeshLoader : public IAssetLoader<Mesh>
   public:
     MeshLoader(std::shared_ptr<vkg::Device> pDevice) : m_pDevice(pDevice) {}
 
-    // AssetHandle<IAsset> Create(AssetID id)
-    // {
-    //     if (id.GetAssetTypeID() == SkeletalMesh::GetStaticAssetTypeID())
-    //     {
-    //         return AssetHandle<IAsset>(std::make_shared<SkeletalMesh>(id));
-    //     }
-    //     else
-    //     {
-    //         assert(id.GetAssetTypeID() == StaticMesh::GetStaticAssetTypeID());
-    //         return AssetHandle<IAsset>(std::make_shared<StaticMesh>(id));
-    //     }
-    // }
-
-    bool Load(AssetRecord* pRecord) override
+    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
     {
-        auto pAsset = pRecord->GetAsset();
-        assert(pAsset->IsUnloaded());
+        assert(pRecord->IsUnloaded());
 
-        assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pRecord->GetID().GetAssetPath(), file);
-        if (!loaded)
-        {
-            return false;
-        }
+        Mesh* pMesh = nullptr;
 
-        bool Load(AssetRecord * pRecord) override
+        if (pRecord->GetAssetTypeID() == SkeletalMesh::GetStaticAssetTypeID())
         {
-            assert(file.type == assets::EAssetType::SkeletalMesh);
-            auto pMesh = pRecord->GetAsset<SkeletalMesh>();
+            auto t1 = file.m_assetTypeID.ToString();
+            auto t2 = SkeletalMesh::GetStaticAssetTypeID().ToString();
+            assert(file.m_assetTypeID == SkeletalMesh::GetStaticAssetTypeID());
+
+            SkeletalMesh* pSkeletalMesh = aln::New<SkeletalMesh>();
 
             auto info = assets::SkeletalMeshConverter::ReadInfo(&file);
-            pMesh->m_indices.resize(info.indexBufferSize / sizeof(uint32_t));
-            pMesh->m_vertices.resize(info.vertexBufferSize); // @note: vertex buffer is a byte vector
-            pMesh->m_inverseBindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
-            pMesh->m_bindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
-
+            pSkeletalMesh->m_indices.resize(info.indexBufferSize / sizeof(uint32_t));
+            pSkeletalMesh->m_vertices.resize(info.vertexBufferSize); // @note: vertex buffer is a byte vector
+            pSkeletalMesh->m_inverseBindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
+            pSkeletalMesh->m_bindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
+            // pSkeletalMesh->m_pSkeleton = AssetHandle<Skeleton>(info.assetPath)
+            
             // TODO: Inverse (DANGER)
-            assets::SkeletalMeshConverter::Unpack(&info, file.binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data(), (std::byte*) pMesh->m_inverseBindPose.data());
-            // assets::SkeletalMeshConverter::Unpack(&info, file.binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data(), (std::byte*) pMesh->m_bindPose.data());
+            assets::SkeletalMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pSkeletalMesh->m_vertices.data(), (std::byte*) pSkeletalMesh->m_indices.data(), (std::byte*) pSkeletalMesh->m_inverseBindPose.data());
+            // assets::SkeletalMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data(), (std::byte*) pMesh->m_bindPose.data());
 
-            for (size_t i = 0; i < pMesh->m_bindPose.size(); ++i)
+            for (size_t i = 0; i < pSkeletalMesh->m_bindPose.size(); ++i)
             {
-                pMesh->m_bindPose[i] = pMesh->m_inverseBindPose[i].GetInverse();
+                pSkeletalMesh->m_bindPose[i] = pSkeletalMesh->m_inverseBindPose[i].GetInverse();
                 // pMesh->m_inverseBindPose[i] = pMesh->m_bindPose[i].GetInverse();
             }
-            pMesh->CreateGraphicResources(m_pDevice);
+
+            pMesh = pSkeletalMesh;
         }
         else
         {
-            assert(file.type == assets::EAssetType::StaticMesh);
-            auto pMesh = pRecord->GetAsset<StaticMesh>();
+            assert(file.m_assetTypeID == StaticMesh::GetStaticAssetTypeID());
+
+            StaticMesh* pStaticMesh = aln::New<StaticMesh>();
 
             auto info = assets::StaticMeshConverter::ReadInfo(&file);
-            pMesh->m_indices.resize(info.indexBufferSize / sizeof(uint32_t));
-            pMesh->m_vertices.resize(info.vertexBufferSize);
+            pStaticMesh->m_indices.resize(info.indexBufferSize / sizeof(uint32_t));
+            pStaticMesh->m_vertices.resize(info.vertexBufferSize);
 
-            assets::StaticMeshConverter::Unpack(&info, file.binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data());
-            pMesh->CreateGraphicResources(m_pDevice);
+            assets::StaticMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pStaticMesh->m_vertices.data(), (std::byte*) pStaticMesh->m_indices.data());
+
+            pMesh = pStaticMesh;
         }
+
+        pMesh->CreateGraphicResources(m_pDevice);
+        pRecord->SetAsset(pMesh);
 
         return true;
     }
@@ -85,7 +76,7 @@ class MeshLoader : public IAssetLoader<Mesh>
     void Unload(AssetRecord* pRecord) override
     {
         auto pAsset = pRecord->GetAsset();
-        assert(pAsset->IsLoaded());
+        assert(pRecord->IsLoaded());
 
         auto pMesh = pRecord->GetAsset<StaticMesh>();
         pMesh->FreeGraphicResources();
