@@ -85,10 +85,11 @@ set(ENKITS_BUILD_EXAMPLES OFF)
 set(ENKITS_BUILD_SHARED ON)
 set(ENKITS_INSTALL OFF)
 
-# TODO: Use the official release when/if my PR is accepted (https://github.com/dougbinks/enkiTS/pull/76)
+# TODO: Use a fixed release when the CMakeFile patch makes it there
 FetchContent_Declare(
   enkiTS
-  GIT_REPOSITORY https://github.com/leonvictor/enkiTS
+  GIT_REPOSITORY https://github.com/dougbinks/enkiTS
+  GIT_TAG fd5a2603a0adf1884eee40dd081e30733a3b46dd # (https://github.com/dougbinks/enkiTS/pull/76)
 )
 
 FetchContent_MakeAvailable(enkiTS)
