@@ -165,7 +165,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     }
 
     m_pRenderer->GetSkeletalMeshesPipeline().Bind(cb);
-    for (const auto& pSkeletalMesh : m_skeletalMeshComponents)
+    for (auto pSkeletalMesh : m_skeletalMeshComponents)
     {
         pSkeletalMesh->UpdateSkinningBuffer();
 

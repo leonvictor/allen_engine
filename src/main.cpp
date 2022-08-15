@@ -101,9 +101,10 @@ namespace aln
 // const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/RobotArmature.skel";
 
 // Cesium man
-const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan/Cesium_Man.smsh";
-const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan_img0.text";
-const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/CesiumMan/Armature.skel";
+const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Cesium_Man.smsh";
+const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan_img0.text";
+const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Armature.skel";
+const std::string MATERIAL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Cesium_Man-effect.mtrl";
 
 // // Kenney
 // const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/characterMedium/characterMedium_0.mesh";
@@ -114,7 +115,6 @@ const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/model
 
 // const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/cube/cube_0.mesh";
 // const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
-const int MAX_MODELS = 50;
 
 class Engine
 {
@@ -161,11 +161,11 @@ class Engine
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
         m_pAssetManager->RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
-        pAssetManager->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
+        m_pAssetManager->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
         m_pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
         m_pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
-        pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
-        pAssetManager->RegisterAssetLoader<Skeleton, SkeletonLoader>();
+        m_pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
+        m_pAssetManager->RegisterAssetLoader<Skeleton, SkeletonLoader>();
 
         // TODO: Get rid of the default paths
         // Create a default context
@@ -174,6 +174,7 @@ class Engine
             .defaultTexturePath = TEXTURE_PATH,
             .defaultModelPath = MODEL_PATH,
             .defaultSkeletonPath = TEST_SKELETON_PATH,
+            .defaultMaterialPath = MATERIAL_PATH,
             .pAssetManager = m_pAssetManager.get()};
 
         CreateWorld();
@@ -776,16 +777,7 @@ int main()
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
     std::unique_ptr<aln::Engine> app = std::make_unique<aln::Engine>();
-
-    try
-    {
-        app->run();
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+    app->run();
 
     app.reset();
     return EXIT_SUCCESS;

@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <memory>
 
+#include <aln_common_export.h>
+
 namespace aln
 {
 
