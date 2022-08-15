@@ -9,6 +9,7 @@
 #include <assets/asset_system/mesh_asset.hpp>
 
 #include "assimp_animation.hpp"
+#include "assimp_material.hpp"
 #include "assimp_scene_context.hpp"
 
 #include <filesystem>
@@ -50,89 +51,13 @@ class AssetConverter
     /// @brief Extract materials from a assimp scene and save them in asset binary format
     void ExtractMaterials()
     {
-        if (!m_sceneContext.GetScene()->HasMaterials())
+        if (m_sceneContext.GetScene()->HasMaterials())
         {
-            return;
-        }
-
-        for (int materialIndex = 0; materialIndex < m_sceneContext.GetScene()->mNumMaterials; materialIndex++)
-        {
-            aiMaterial* pMaterial = m_sceneContext.GetScene()->mMaterials[materialIndex];
-
-            MaterialInfo materialInfo;
-            materialInfo.baseEffect = "defaultPBR";
-            materialInfo.transparency = TransparencyMode::Transparent;
-
-            for (int p = 0; p < pMaterial->mNumProperties; p++)
+            for (auto materialIndex = 0; materialIndex < m_sceneContext.GetScene()->mNumMaterials; ++materialIndex)
             {
-                aiMaterialProperty* pt = pMaterial->mProperties[p];
-                switch (pt->mType)
-                {
-                case aiPTI_String:
-                {
-                    const char* data = pt->mData;
-                    materialInfo.customProperties[pt->mKey.C_Str()] = data;
-                }
-                break;
-                case aiPTI_Float:
-                {
-                    std::stringstream ss;
-                    ss << *(float*) pt->mData;
-                    materialInfo.customProperties[pt->mKey.C_Str()] = ss.str();
-
-                    if (strcmp(pt->mKey.C_Str(), "$mat.opacity") == 0)
-                    {
-                        float num = *(float*) pt->mData;
-                        if (num != 1.0)
-                        {
-                            materialInfo.transparency = TransparencyMode::Transparent;
-                        }
-                    }
-                }
-                break;
-                }
+                auto pMaterial = m_sceneContext.GetScene()->mMaterials[materialIndex];
+                AssimpMaterialReader::ReadMaterial(m_sceneContext, pMaterial);
             }
-
-            // Check opacity
-            std::string texPath = "";
-            if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE))
-            {
-                aiString assimppath;
-                pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &assimppath);
-
-                fs::path texturePath = &assimppath.data[0];
-                // Unreal compat
-                texturePath = texturePath.filename();
-                texPath = "T_" + texturePath.string();
-            }
-            else if (pMaterial->GetTextureCount(aiTextureType_BASE_COLOR))
-            {
-                aiString assimppath;
-                pMaterial->GetTexture(aiTextureType_BASE_COLOR, 0, &assimppath);
-
-                fs::path texturePath = &assimppath.data[0];
-                // Unreal compat
-                texturePath = texturePath.filename();
-                texPath = "T_" + texturePath.string();
-            }
-
-            // Force a default texture
-            else
-            {
-                texPath = "Default";
-            }
-
-            fs::path baseColorPath = m_sceneContext.GetOutputDirectory().parent_path() / texPath;
-            baseColorPath.replace_extension(".text");
-            baseColorPath = GetPathRelativeToOutput(baseColorPath);
-            materialInfo.textures["baseColor"] = baseColorPath.string();
-
-            AssetFile newFile = PackMaterial(&materialInfo);
-
-            // Save to disk
-            std::string materialName = std::string(pMaterial->GetName().C_Str()) + "_" + std::to_string(materialIndex);
-            fs::path materialPath = m_sceneContext.GetOutputDirectory() / (materialName + ".mat");
-            SaveBinaryFile(materialPath.string(), newFile);
         }
     }
 

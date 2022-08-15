@@ -58,7 +58,7 @@ struct AnimationClipInfo
 };
 
 /// @brief Read the json metadata and convert it in a TextInfo struct.
-AnimationClipInfo ReadAnimationClipInfo(AssetFile* file);
+AnimationClipInfo ReadAnimationClipInfo(const AssetFile* file);
 
 /// @brief Decompress an animation into a buffer.
 /// @param info: Clip info
@@ -68,7 +68,7 @@ void UnpackAnimationClip(const AnimationClipInfo* info, const std::vector<std::b
 
 /// @brief Compress and store an animation clip into binary format.
 /// @param info:
-AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data);
+AssetFile PackAnimationClip(const AnimationClipInfo* info, std::vector<float>& data);
 
 // TextureFormat ParseFormat(std::string formatString);
 } // namespace aln::assets

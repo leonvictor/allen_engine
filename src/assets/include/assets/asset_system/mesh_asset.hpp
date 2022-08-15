@@ -29,9 +29,9 @@ struct StaticMeshInfo
 struct StaticMeshConverter
 {
     /// @brief Read a mesh's AssetFile and populate its StaticMeshInfo
-    static StaticMeshInfo ReadInfo(AssetFile* file);
+    static StaticMeshInfo ReadInfo(const AssetFile* file);
     static void Unpack(const StaticMeshInfo* info, const std::vector<std::byte>& sourcebuffer, std::byte* vertexBuffer, std::byte* indexBuffer);
-    static AssetFile Pack(StaticMeshInfo* info, char* vertexData, char* indexData);
+    static AssetFile Pack(const StaticMeshInfo* info, char* vertexData, char* indexData);
     static MeshBounds CalculateBounds(Vertex* vertices, size_t count);
 };
 
@@ -50,9 +50,9 @@ struct SkeletalMeshInfo
 
 struct SkeletalMeshConverter
 {
-    static SkeletalMeshInfo ReadInfo(AssetFile* file);
+    static SkeletalMeshInfo ReadInfo(const AssetFile* file);
     static void Unpack(const SkeletalMeshInfo* info, const std::vector<std::byte>& sourcebuffer, std::byte* vertexBuffer, std::byte* indexBuffer, std::byte* bindPose);
-    static AssetFile Pack(SkeletalMeshInfo* info, char* vertexData, char* indexData, char* bindPose);
+    static AssetFile Pack(const SkeletalMeshInfo* info, char* vertexData, char* indexData, char* bindPose);
     static MeshBounds CalculateBounds(SkinnedVertex* vertices, size_t count);
 };
 } // namespace aln::assets

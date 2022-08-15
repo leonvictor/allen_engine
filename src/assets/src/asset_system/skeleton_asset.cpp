@@ -7,11 +7,11 @@ namespace aln::assets
 {
 using json = nlohmann::json;
 
-SkeletonInfo SkeletonConverter::ReadInfo(AssetFile* file)
+SkeletonInfo SkeletonConverter::ReadInfo(const AssetFile* file)
 {
     SkeletonInfo info;
 
-    json metadata = json::parse(file->metadata);
+    json metadata = json::parse(file->m_metadata);
 
     for (auto& [key, value] : metadata["bone_names"].items())
     {
@@ -38,11 +38,11 @@ void SkeletonConverter::Unpack(const SkeletonInfo* info, const std::vector<std::
         static_cast<int>(size));
 }
 
-AssetFile SkeletonConverter::Pack(SkeletonInfo* info, std::vector<Transform>& referencePose)
+AssetFile SkeletonConverter::Pack(const SkeletonInfo* info, std::vector<Transform>& referencePose)
 {
     AssetFile file;
-    file.type = EAssetType::Skeleton;
-    file.version = 1;
+    file.m_assetTypeID = AssetTypeID("skel"); // TODO: Use StaticMesh::GetStaticTypeID();
+    file.m_version = 1;
 
     assert(referencePose.size() == info->boneNames.size());
     assert(referencePose.size() == info->boneParentIndices.size());
@@ -50,17 +50,17 @@ AssetFile SkeletonConverter::Pack(SkeletonInfo* info, std::vector<Transform>& re
     // Find the worst-case compressed size
     auto referencePoseBufferSize = referencePose.size() * sizeof(Transform);
     size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(referencePoseBufferSize));
-    file.binary.resize(maxCompressedSize);
+    file.m_binary.resize(maxCompressedSize);
 
     // Compress buffer and copy it into the file struct
     auto compressedSize = LZ4_compress_default(
         reinterpret_cast<char*>((std::byte*) referencePose.data()),
-        reinterpret_cast<char*>(file.binary.data()),
+        reinterpret_cast<char*>(file.m_binary.data()),
         static_cast<int>(maxCompressedSize),
         static_cast<int>(referencePoseBufferSize));
 
     // Resize back to the actual compressed size
-    file.binary.resize(compressedSize);
+    file.m_binary.resize(compressedSize);
 
     json metadata;
     metadata["bone_names"] = info->boneNames;
@@ -68,7 +68,7 @@ AssetFile SkeletonConverter::Pack(SkeletonInfo* info, std::vector<Transform>& re
     metadata["compression"] = CompressionMode::None;
     metadata["original_file_path"] = info->originalFilePath;
 
-    file.metadata = metadata.dump();
+    file.m_metadata = metadata.dump();
     return file;
 }
 } // namespace aln::assets

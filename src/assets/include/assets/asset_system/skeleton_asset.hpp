@@ -42,8 +42,8 @@ struct SkeletonInfo
 struct SkeletonConverter
 {
     /// @brief Read a skeleton's AssetFile and populate its SkeletonInfo
-    static SkeletonInfo ReadInfo(AssetFile* file);
+    static SkeletonInfo ReadInfo(const AssetFile* file);
     static void Unpack(const SkeletonInfo* info, const std::vector<std::byte>& srcBuffer, std::byte* dstBuffer);
-    static AssetFile Pack(SkeletonInfo* info, std::vector<Transform>& referencePose);
+    static AssetFile Pack(const SkeletonInfo* info, std::vector<Transform>& referencePose);
 };
 } // namespace aln::assets

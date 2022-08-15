@@ -22,10 +22,13 @@ uint32_t AssimpSkeleton::GetBoneIndex(const std::string& boneName) const
 bool AssimpSkeleton::SaveToBinary(std::string outputDirectory)
 {
     assert(!HasPathOnDisk());
+    assert(!GetAssetID().IsValid());
+    m_id = AssetID(outputDirectory + "/" + m_name + ".skel");
 
     std::vector<Transform> referencePose;
     referencePose.reserve(GetBoneCount());
 
+    // TODO: This is a duplicate now
     SkeletonInfo skeletonInfo;
     skeletonInfo.assetPath = outputDirectory + "/" + m_name + ".skel";
 

@@ -7,11 +7,11 @@ namespace aln::assets
 {
 using json = nlohmann::json;
 
-StaticMeshInfo StaticMeshConverter::ReadInfo(AssetFile* file)
+StaticMeshInfo StaticMeshConverter::ReadInfo(const AssetFile* file)
 {
     StaticMeshInfo info;
 
-    json metadata = json::parse(file->metadata);
+    json metadata = json::parse(file->m_metadata);
 
     info.vertexBufferSize = metadata["vertex_buffer_size"];
     info.indexBufferSize = metadata["index_buffer_size"];
@@ -58,11 +58,11 @@ void StaticMeshConverter::Unpack(const StaticMeshInfo* info, const std::vector<s
     memcpy(indexBuffer, decompressedBuffer.data() + info->vertexBufferSize, info->indexBufferSize);
 }
 
-AssetFile StaticMeshConverter::Pack(StaticMeshInfo* info, char* vertexData, char* indexData)
+AssetFile StaticMeshConverter::Pack(const StaticMeshInfo* info, char* vertexData, char* indexData)
 {
     AssetFile file;
-    file.type = EAssetType::StaticMesh;
-    file.version = 1;
+    file.m_assetTypeID = AssetTypeID("mesh"); // TODO: Use StaticMesh::GetStaticTypeID()
+    file.m_version = 1;
 
     // Pack bounds info
     std::vector<float> boundsData;
@@ -89,17 +89,17 @@ AssetFile StaticMeshConverter::Pack(StaticMeshInfo* info, char* vertexData, char
 
     // Find the worst-case compressed size
     size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(fullSize));
-    file.binary.resize(maxCompressedSize);
+    file.m_binary.resize(maxCompressedSize);
 
     // Compress buffer and copy it into the file struct
     int compressedSize = LZ4_compress_default(
         reinterpret_cast<char*>(mergedBuffer.data()),
-        reinterpret_cast<char*>(file.binary.data()),
+        reinterpret_cast<char*>(file.m_binary.data()),
         static_cast<int>(mergedBuffer.size()),
         static_cast<int>(maxCompressedSize));
 
     // Resize back to the actual compressed size
-    file.binary.resize(compressedSize);
+    file.m_binary.resize(compressedSize);
 
     json metadata;
     metadata["vertex_buffer_size"] = info->vertexBufferSize;
@@ -109,7 +109,7 @@ AssetFile StaticMeshConverter::Pack(StaticMeshInfo* info, char* vertexData, char
     metadata["original_file"] = info->originalFile;
     metadata["compression"] = CompressionMode::LZ4;
 
-    file.metadata = metadata.dump();
+    file.m_metadata = metadata.dump();
 
     return file;
 }

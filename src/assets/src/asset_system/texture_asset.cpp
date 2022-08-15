@@ -8,9 +8,9 @@ namespace aln::assets
 
 using json = nlohmann::json;
 
-TextureInfo ReadTextureInfo(AssetFile* file)
+TextureInfo ReadTextureInfo(const AssetFile* file)
 {
-    json metadata = json::parse(file->metadata);
+    json metadata = json::parse(file->m_metadata);
 
     TextureInfo info;
     info.format = metadata["format"];
@@ -47,11 +47,11 @@ void UnpackTexture(const TextureInfo* info, const std::vector<std::byte>& source
     }
 }
 
-AssetFile PackTexture(TextureInfo* info, void* pixelData)
+AssetFile PackTexture(const TextureInfo* info, void* pixelData)
 {
     AssetFile file;
-    file.type = EAssetType::Texture;
-    file.version = 1;
+    file.m_assetTypeID = AssetTypeID("text"); // TODO: Use StaticMesh::GetStaticTypeID();
+    file.m_version = 1;
 
     json metadata;
     metadata["format"] = info->format;
@@ -61,19 +61,19 @@ AssetFile PackTexture(TextureInfo* info, void* pixelData)
     metadata["original_file"] = info->originalFile;
 
     auto maxCompressedSize = LZ4_compressBound(info->size);
-    file.binary.resize(maxCompressedSize);
+    file.m_binary.resize(maxCompressedSize);
 
     auto compressedSize = LZ4_compress_default(
         reinterpret_cast<const char*>(pixelData),
-        reinterpret_cast<char*>(file.binary.data()),
+        reinterpret_cast<char*>(file.m_binary.data()),
         static_cast<int>(info->size),
         static_cast<int>(maxCompressedSize));
 
-    file.binary.resize(compressedSize);
+    file.m_binary.resize(compressedSize);
 
     metadata["compression"] = CompressionMode::LZ4;
 
-    file.metadata = metadata.dump();
+    file.m_metadata = metadata.dump();
 
     return file;
 }

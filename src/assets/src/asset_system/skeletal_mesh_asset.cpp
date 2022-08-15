@@ -7,11 +7,11 @@ namespace aln::assets
 {
 using json = nlohmann::json;
 
-SkeletalMeshInfo SkeletalMeshConverter::ReadInfo(AssetFile* file)
+SkeletalMeshInfo SkeletalMeshConverter::ReadInfo(const AssetFile* file)
 {
     SkeletalMeshInfo info;
 
-    json metadata = json::parse(file->metadata);
+    json metadata = json::parse(file->m_metadata);
 
     info.vertexBufferSize = metadata["vertex_buffer_size"];
     info.indexBufferSize = metadata["index_buffer_size"];
@@ -62,11 +62,11 @@ void SkeletalMeshConverter::Unpack(const SkeletalMeshInfo* info, const std::vect
     memcpy(bindPose, decompressedBuffer.data() + info->vertexBufferSize + info->indexBufferSize, info->inverseBindPoseSize);
 }
 
-AssetFile SkeletalMeshConverter::Pack(SkeletalMeshInfo* info, char* vertexData, char* indexData, char* bindPoseData)
+AssetFile SkeletalMeshConverter::Pack(const SkeletalMeshInfo* info, char* vertexData, char* indexData, char* bindPoseData)
 {
     AssetFile file;
-    file.type = EAssetType::SkeletalMesh;
-    file.version = 1;
+    file.m_assetTypeID = AssetTypeID("smsh"); // TODO: Use StaticMesh::GetStaticTypeID();
+    file.m_version = 1;
 
     // Pack bounds info
     std::vector<float> boundsData;
@@ -96,17 +96,17 @@ AssetFile SkeletalMeshConverter::Pack(SkeletalMeshInfo* info, char* vertexData, 
 
     // Find the worst-case compressed size
     size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(fullSize));
-    file.binary.resize(maxCompressedSize);
+    file.m_binary.resize(maxCompressedSize);
 
     // Compress buffer and copy it into the file struct
     int compressedSize = LZ4_compress_default(
         reinterpret_cast<char*>(mergedBuffer.data()),
-        reinterpret_cast<char*>(file.binary.data()),
+        reinterpret_cast<char*>(file.m_binary.data()),
         static_cast<int>(fullSize),
         static_cast<int>(maxCompressedSize));
 
     // Resize back to the actual compressed size
-    file.binary.resize(compressedSize);
+    file.m_binary.resize(compressedSize);
 
     json metadata;
     metadata["vertex_buffer_size"] = info->vertexBufferSize;
@@ -117,7 +117,7 @@ AssetFile SkeletalMeshConverter::Pack(SkeletalMeshInfo* info, char* vertexData, 
     metadata["original_file"] = info->originalFile;
     metadata["compression"] = CompressionMode::LZ4;
 
-    file.metadata = metadata.dump();
+    file.m_metadata = metadata.dump();
 
     return file;
 }

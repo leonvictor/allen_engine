@@ -1,7 +1,11 @@
 #include "asset_system/asset_system.hpp"
 
+#include <assert.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+
+#include <common/binary_archive.hpp>
 
 namespace aln::assets
 {
@@ -10,46 +14,49 @@ bool SaveBinaryFile(const std::string& path, const AssetFile& file)
 {
     std::cout << "Saving to: " << path << std::endl;
 
-    uint32_t metadataSize = file.metadata.size();
-    uint32_t binarySize = file.binary.size();
+    assert(file.m_dependencies.size() < std::numeric_limits<uint8_t>::max());
+    uint8_t dependencyCount = file.m_dependencies.size();
 
-    std::ofstream outfile;
-    outfile.open(path, std::ios::binary | std::ios::out);
+    auto archive = BinaryArchive(std::filesystem::path(path), BinaryArchive::Mode::Write);
 
-    outfile.write(reinterpret_cast<const char*>(&file.type), 1);                   // First byte represent the type
-    outfile.write(reinterpret_cast<const char*>(&file.version), sizeof(uint32_t)); // Then the format version
-    outfile.write(reinterpret_cast<const char*>(&metadataSize), sizeof(uint32_t)); // Metadata size
-    outfile.write(reinterpret_cast<const char*>(&binarySize), sizeof(uint32_t));   // Binary blob size
-    outfile.write(file.metadata.data(), metadataSize);                             // Metadata
-    outfile.write(reinterpret_cast<const char*>(file.binary.data()), binarySize);  // Binary blob
+    archive << file.m_version;
+    archive << (uint32_t) file.m_assetTypeID;
 
-    outfile.close();
+    archive << dependencyCount;
+    for (auto& dependency : file.m_dependencies)
+    {
+        auto& assetPath = dependency.GetAssetPath();
+        archive << assetPath;
+    }
+
+    archive << file.m_metadata;
+    archive << file.m_binary;
+
     return true;
 }
 
 bool LoadBinaryFile(const std::string& path, AssetFile& outputFile)
 {
-    uint32_t metadataSize;
-    uint32_t binarySize;
+    auto archive = BinaryArchive(path, BinaryArchive::Mode::Read);
 
-    std::ifstream infile;
-    infile.open(path, std::ios::binary);
+    archive >> outputFile.m_version;
 
-    if (!infile.is_open())
-        return false;
+    // TODO: Stream directly to m_assetTypeID.m_id
+    uint32_t id;
+    archive >> id;
+    outputFile.m_assetTypeID = AssetTypeID(id);
 
-    infile.seekg(0);
+    uint8_t dependencyCount;
+    archive >> dependencyCount;
+    std::string assetPath;
+    for (auto idx = 0; idx < dependencyCount; idx++)
+    {
+        archive >> assetPath;
+        outputFile.m_dependencies.push_back(AssetID(assetPath));
+    }
 
-    infile.read(reinterpret_cast<char*>(&outputFile.type), 1);                   // Read type
-    infile.read(reinterpret_cast<char*>(&outputFile.version), sizeof(uint32_t)); // Read version
-    infile.read(reinterpret_cast<char*>(&metadataSize), sizeof(uint32_t));       // Read metadata size
-    infile.read(reinterpret_cast<char*>(&binarySize), sizeof(uint32_t));         // Read binary blob size
-
-    outputFile.metadata.resize(metadataSize);
-    outputFile.binary.resize(binarySize);
-
-    infile.read(reinterpret_cast<char*>(outputFile.metadata.data()), metadataSize); // Read metadata
-    infile.read(reinterpret_cast<char*>(outputFile.binary.data()), binarySize);     // Read binary blob
+    archive >> outputFile.m_metadata;
+    archive >> outputFile.m_binary;
 
     return true;
 }

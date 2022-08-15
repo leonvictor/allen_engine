@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "assimp_asset.hpp"
+
 namespace aln::assets::converter
 {
 
@@ -16,7 +18,7 @@ class AssimpSceneContext;
 
 /// @brief Holds raw skeleton data, used to save on disk
 /// @todo Refactor to mimic the runtime skeleton and save through serialization
-class AssimpSkeleton
+class AssimpSkeleton : public AssimpAsset
 {
     friend class AssimpSkeletonReader;
 

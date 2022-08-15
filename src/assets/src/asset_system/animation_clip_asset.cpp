@@ -8,9 +8,9 @@ namespace aln::assets
 
 using json = nlohmann::json;
 
-AnimationClipInfo ReadAnimationClipInfo(AssetFile* file)
+AnimationClipInfo ReadAnimationClipInfo(const AssetFile* file)
 {
-    json metadata = json::parse(file->metadata);
+    json metadata = json::parse(file->m_metadata);
 
     AnimationClipInfo info;
     info.name = metadata["name"];
@@ -52,27 +52,27 @@ void UnpackAnimationClip(const AnimationClipInfo* info, const std::vector<std::b
     }
 }
 
-AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data)
+AssetFile PackAnimationClip(const AnimationClipInfo* info, std::vector<float>& data)
 {
     AssetFile file;
-    file.type = EAssetType::Animation;
-    file.version = 1;
+    file.m_assetTypeID = AssetTypeID("anim"); // TODO: Use StaticMesh::GetStaticTypeID()
+    file.m_version = 1;
 
     // Compress binary
     // Find the worst-case compressed size
     size_t dataBinarySize = data.size() * sizeof(float);
     size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(dataBinarySize));
-    file.binary.resize(maxCompressedSize);
+    file.m_binary.resize(maxCompressedSize);
 
     // Compress buffer and copy it into the file struct
     int compressedSize = LZ4_compress_default(
         reinterpret_cast<char*>(data.data()),
-        reinterpret_cast<char*>(file.binary.data()),
+        reinterpret_cast<char*>(file.m_binary.data()),
         static_cast<int>(dataBinarySize),
         static_cast<int>(maxCompressedSize));
 
     // Resize back to the actual compressed size
-    file.binary.resize(compressedSize);
+    file.m_binary.resize(compressedSize);
 
     std::vector<json> tracksMetadata;
     tracksMetadata.reserve(info->tracks.size());
@@ -98,7 +98,7 @@ AssetFile PackAnimationClip(AnimationClipInfo* info, std::vector<float>& data)
     metadata["buffer_size"] = data.size();
     metadata["original_file"] = info->originalFile;
 
-    file.metadata = metadata.dump();
+    file.m_metadata = metadata.dump();
     // TODO: Compression is handled by a compressor class ?
     return file;
 }

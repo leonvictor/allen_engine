@@ -25,7 +25,7 @@ struct TextureInfo
 };
 
 /// @brief Read the json metadata and convert it in a TextInfo struct.
-TextureInfo ReadTextureInfo(AssetFile* file);
+TextureInfo ReadTextureInfo(const AssetFile* file);
 
 /// @brief Decompress a texture into a buffer.
 /// @param info: Texture info
@@ -34,5 +34,5 @@ TextureInfo ReadTextureInfo(AssetFile* file);
 void UnpackTexture(const TextureInfo* info, const std::vector<std::byte>& sourceBuffer, std::vector<std::byte>& destinationBuffer);
 
 /// @brief Compress and store a texture into binary format.
-AssetFile PackTexture(TextureInfo* info, void* pixelData);
+AssetFile PackTexture(const TextureInfo* info, void* pixelData);
 } // namespace aln::assets
