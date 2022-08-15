@@ -1,14 +1,20 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <typeindex>
 #include <typeinfo>
+
+#include <common/threading/task_service.hpp>
 
 #include "asset.hpp"
 #include "handle.hpp"
 #include "loader.hpp"
+#include "record.hpp"
+#include "request.hpp"
 
 namespace aln
 {
@@ -21,83 +27,50 @@ enum class AssetLifetime
     Global,  // Unloaded on game exit
 };
 
+/// @todo : Rename to service
 class AssetManager
 {
+    friend class Engine;
+    friend struct AssetRequest;
+
   private:
-    std::map<std::type_index, std::unique_ptr<AssetLoader>> m_loaders;
-    // TODO: Replace with dedicated per-type cache class
-    std::map<AssetGUID, AssetHandle<IAsset>> m_assetCache;
+    std::map<AssetTypeID, std::unique_ptr<AssetLoader>> m_loaders;
+    std::map<AssetID, AssetRecord> m_assetCache;
 
-    AssetHandle<IAsset> GetInternal(const std::type_index& typeIndex, const std::string& path)
-    {
-        auto it = m_assetCache.try_emplace(path);
-        if (it.second)
-        {
-            // Resource has not been created yet
-            auto& pLoader = m_loaders.at(typeIndex);
-            it.first->second = pLoader->Create(path);
+    std::recursive_mutex m_mutex;
+    std::vector<AssetRequest> m_pendingRequests;
+    std::vector<AssetRequest> m_activeRequests;
 
-            // Create dependencies as well
-            for (auto& dep : it.first->second->m_dependencies)
-            {
-                auto& pDepLoader = m_loaders.at(dep.type);
-                pDepLoader->Create(dep.id);
-            }
-        }
+    TaskService* m_pTaskService = nullptr;
+    TaskSet m_loadingTask;
+    bool m_isLoadingTaskRunning = false;
 
-        return it.first->second;
-    }
+    /// @brief Find an existing record. The record must have already been created !
+    AssetRecord* FindRecord(const AssetID& assetID);
+    AssetRecord* GetOrCreateRecord(const AssetID& assetID);
+    AssetRequest* FindActiveRequest(const AssetID id);
 
-    bool LoadInternal(const std::type_index& typeIndex, AssetHandle<IAsset> pAsset)
-    {
-        for (auto& dep : pAsset->m_dependencies)
-        {
-            // Also resolve missing dependencies
-            auto pDependencyHandle = GetInternal(dep.type, dep.id);
-            LoadInternal(dep.type, pDependencyHandle);
-        }
+    /// @brief Handle pending requests
+    void Update();
+    void HandleActiveRequests();
 
-        auto& pLoader = m_loaders.at(typeIndex);
-        return pLoader->LoadAsset(pAsset);
-    }
-
-    void UnloadInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
-    {
-        for (auto& dep : pAsset->m_dependencies)
-        {
-            auto& pDependencyHandle = m_assetCache.at(dep.id);
-            UnloadInternal(dep.type, pDependencyHandle);
-        }
-
-        auto& pLoader = m_loaders.at(typeIndex);
-        return pLoader->UnloadAsset(pAsset);
-    }
-
-    void InitializeInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
-    {
-        for (auto& dep : pAsset->m_dependencies)
-        {
-            auto& pDependencyHandle = m_assetCache.at(dep.id);
-            InitializeInternal(dep.type, pDependencyHandle);
-        }
-
-        auto& pLoader = m_loaders.at(typeIndex);
-        pLoader->InitializeAsset(pAsset);
-    }
-
-    void ShutdownInternal(std::type_index typeIndex, AssetHandle<IAsset> pAsset)
-    {
-        for (auto& dep : pAsset->m_dependencies)
-        {
-            auto& pDependencyHandle = m_assetCache.at(dep.id);
-            ShutdownInternal(dep.type, pDependencyHandle);
-        }
-
-        auto& pLoader = m_loaders.at(typeIndex);
-        pLoader->ShutdownAsset(pAsset);
-    }
+    inline bool IsIdle() const { return m_pendingRequests.empty() && m_activeRequests.empty(); }
+    inline bool IsBusy() const { return !IsIdle(); }
 
   public:
+    AssetManager(TaskService* pTaskService)
+        : m_pTaskService(pTaskService),
+          m_loadingTask([this](TaskSetPartition, uint32_t)
+              { HandleActiveRequests(); }) {}
+
+    ~AssetManager()
+    {
+        while (IsBusy())
+        {
+            Update();
+        }
+    }
+
     /// @brief Register a new loader
     /// @tparam T: Asset type
     /// @tparam TLoader: Loader type
@@ -106,46 +79,20 @@ class AssetManager
     {
         static_assert(std::is_base_of_v<AssetLoader, TLoader>);
 
-        auto it = m_loaders.try_emplace(std::type_index(typeid(T)), nullptr);
-
+        auto it = m_loaders.try_emplace(T::GetStaticAssetTypeID(), nullptr); // todo: remove nullptr ?
         if (it.second)
         {
             it.first->second = std::make_unique<TLoader>(args...);
         }
     }
 
-    /// @brief Return a pointer to the asset corresponding to the given path (todo: key).
-    /// If the asset was previously requested, a pointer to the existing instance will be returned. Otherwise the asset will be created and cached.
-    /// @todo Probably abstract away the path so that the manager chooses the loading mechanism (and not game code)
-    /// @todo Maybe forward arguments to the assets constructors ?
     template <AssetType T>
-    AssetHandle<T> Get(std::string path)
+    const IAssetLoader<T>* GetLoader()
     {
-        return AssetHandle<T>(GetInternal(std::type_index(typeid(T)), path));
+        return static_pointer_cast<AssetLoader<T>>(&m_loaders[T::GetStaticAssetTypeID()]);
     }
 
-    template <AssetType T>
-    bool Load(AssetHandle<T> pAsset)
-    {
-        return LoadInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
-    }
-
-    template <AssetType T>
-    void Unload(AssetHandle<T> pAsset)
-    {
-        UnloadInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
-    }
-
-    template <AssetType T>
-    void Initialize(AssetHandle<T> pAsset)
-    {
-        InitializeInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
-    }
-
-    template <AssetType T>
-    void Shutdown(AssetHandle<T> pAsset)
-    {
-        ShutdownInternal(std::type_index(typeid(T)), AssetHandle<IAsset>(pAsset));
-    }
+    void Load(IAssetHandle& assetHandle);
+    void Unload(IAssetHandle& assetHandle);
 };
 } // namespace aln

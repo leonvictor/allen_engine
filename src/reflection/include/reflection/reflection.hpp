@@ -8,10 +8,17 @@
 #include <typeinfo>
 #include <vector>
 
+#include <imgui.h>
+
+#include <common/memory.hpp>
 #include <utils/uuid.hpp>
 
 namespace aln::reflect
 {
+
+// ImGui method to set the context and allocator functions in case reflection is in a separate library.
+void SetImGuiContext(ImGuiContext* pContext);
+void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData);
 
 /// @brief A type that has been manually marked for reflection
 template <typename T>
@@ -40,8 +47,7 @@ struct TypeHelperResolver
     template <typename T, typename std::enable_if<std::is_constructible<T>::value, bool>::type = true>
     static T* CreateType()
     {
-        // TODO: Do NOT use new. Pass an allocator as template arg
-        T* comp = new T();
+        T* comp = aln::New<T>();
         return std::move(comp);
     }
 

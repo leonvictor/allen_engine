@@ -1,22 +1,34 @@
 cmake_minimum_required(VERSION 3.17)
 
+include(FetchContent)
+
 project(ALLEN VERSION 0.1)
 
 set(SOURCE 
     src/main.cpp)
 
+enable_testing()
+
 # Create the tracing configuration
 set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} ReleaseWithTracing)
-set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASE})
-set(CMAKE_C_FLAGS_RELEASEWITHTRACING ${CMAKE_C_FLAGS_RELEASE})
-set(CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_EXE_LINKER_FLAGS_RELEASE})
-set(CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_SHARED_LINKER_FLAGS_RELEASE})
+# Default compile flags to those of the Release config
+set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "")
+set(CMAKE_C_FLAGS_RELEASEWITHTRACING ${CMAKE_C_FLAGS_RELEASE} CACHE STRING "")
+set(CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_EXE_LINKER_FLAGS_RELEASE} CACHE STRING "")
+set(CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING ${CMAKE_SHARED_LINKER_FLAGS_RELEASE} CACHE STRING "")
 mark_as_advanced(
     CMAKE_CXX_FLAGS_RELEASEWITHTRACING
     CMAKE_C_FLAGS_RELEASEWITHTRACING
     CMAKE_EXE_LINKER_FLAGS_RELEASEWITHTRACING
     CMAKE_SHARED_LINKER_FLAGS_RELEASEWITHTRACING
 )
+
+# set the MSVC runtime libary to dynamic
+# should work but doesn't for some reason
+# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /MDd")
+set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} " /MD")
+set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASEWITHTRACING} " /MD")
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(ALLEN_EDITOR "Build the editor" ON)
@@ -67,6 +79,21 @@ add_executable(main ${SOURCE})
 # fmt
 add_subdirectory(external/fmt)
 
+# enkiTS
+set(ENKITS_BUILD_C_INTERFACE OFF)
+set(ENKITS_BUILD_EXAMPLES OFF)
+set(ENKITS_BUILD_SHARED ON)
+set(ENKITS_INSTALL OFF)
+
+# TODO: Use a fixed release when the CMakeFile patch makes it there
+FetchContent_Declare(
+  enkiTS
+  GIT_REPOSITORY https://github.com/dougbinks/enkiTS
+  GIT_TAG fd5a2603a0adf1884eee40dd081e30733a3b46dd # (https://github.com/dougbinks/enkiTS/pull/76)
+)
+
+FetchContent_MakeAvailable(enkiTS)
+
 # Tracy
 target_compile_definitions(main PRIVATE
     $<$<CONFIG:ReleaseWithTracing>:
@@ -76,6 +103,13 @@ target_compile_definitions(main PRIVATE
         ALN_ENABLE_TRACING>
 )
 add_subdirectory(external/tracy)
+set_target_properties(TracyClient
+    PROPERTIES
+        EXCLUDE_FROM_DEFAULT_BUILD_RELEASE TRUE
+        # EXCLUDE_FROM_DEFAULT_BUILD_DEBUG TRUE
+        # EXCLUDE_FROM_DEFAULT_BUILD_MIN_SIZE_REL TRUE
+        # EXCLUDE_FROM_DEFAULT_BUILD_REL_WITH_DEB_INFO TRUE
+    )
 
 # Include ImGui
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
@@ -102,10 +136,12 @@ set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
 add_subdirectory(external/glfw)
 
 # GLM
-add_compile_definitions(GLM_FORCE_RADIANS)
-add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
-add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
-add_compile_definitions(GLM_GTX_hash)
+target_compile_definitions(main PUBLIC
+    GLM_FORCE_RADIANS
+    GLM_ENABLE_EXPERIMENTAL
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_GTX_hash
+    )
 add_subdirectory(external/glm)
 
 # Hack: set glm's include dir as system to ignore warnings (not our code)
@@ -115,9 +151,6 @@ target_include_directories(glm SYSTEM INTERFACE ${_inc})
 # stb
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
 target_include_directories(main PUBLIC ${STB_INCLUDE_DIR})
-
-# tinyobjloader
-add_subdirectory(external/tinyobjloader)
 
 # stduuids
 set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
@@ -133,11 +166,12 @@ set(assimp_DIR "/external/assimp/cmake-modules/")
 MESSAGE(STATUS ${CMAKE_MODULE_PATH})
 set(ASSIMP_BUILD_TESTS OFF)
 set(ASSIMP_NO_EXPORT ON)
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
-set(ASSIMP_BUILD_OBJ_IMPORTER ON)
-set(ASSIMP_BUILD_FBX_IMPORTER ON)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_BUILD_TESTS OFF)
 set(ASSIMP_INSTALL OFF)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF)
+set(ASSIMP_INJECT_DEBUG_POSTFIX OFF)
+
 add_subdirectory(external/assimp )
 MESSAGE(STATUS "Assimp configured.")
 
@@ -164,15 +198,18 @@ add_subdirectory(src/input)
 add_subdirectory(src/assets)
 add_subdirectory(src/asset_converter)
 add_subdirectory(src/editor)
+add_subdirectory(src/anim)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20) 
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 target_compile_features(main PUBLIC cxx_std_20)
 
+# target_include_directories(main PUBLIC TracyClient)
 target_link_libraries(main PUBLIC 
-    TracyClient
+    # $<$<CONFIG:ReleaseWithTracing>:TracyClient>
     fmt::fmt
+    enkiTS
     common 
     reflection 
     glfw 
@@ -185,6 +222,7 @@ target_link_libraries(main PUBLIC
     entities 
     core
     editor
+    anim
     assimp::assimp)
 
 set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")

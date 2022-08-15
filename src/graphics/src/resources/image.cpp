@@ -492,10 +492,10 @@ std::vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBinding
     return bindings;
 }
 
-Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, vk::ImageType type)
+Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
 {
     Image image = Image(pDevice, width, height, mipLevels,
-        vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+        vk::SampleCountFlagBits::e1, format, vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
         arrayLayers, {}, vk::ImageLayout::eUndefined, type);
 

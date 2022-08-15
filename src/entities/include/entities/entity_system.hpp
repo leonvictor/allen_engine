@@ -4,7 +4,7 @@
 
 #include "../update_stages.hpp"
 
-#include "object_model.hpp"
+#include "update_context.hpp"
 #include "world_update.hpp"
 
 #include <map>
@@ -15,7 +15,7 @@
 
 namespace aln::entities
 {
-//fwd
+// fwd
 class Entity;
 class IComponent;
 
@@ -35,7 +35,7 @@ class IEntitySystem
     UpdatePriorities m_requiredUpdatePriorities;
     std::string m_name;
 
-    virtual void Update(const UpdateContext& context){};
+    virtual void Update(const UpdateContext& context) = 0;
 
     /// @brief Register a component with this system.
     virtual void RegisterComponent(IComponent* pComponent) = 0;
@@ -52,7 +52,6 @@ class IEntitySystem
     // Optional / Required components
     // Display this to the user
   public:
-    virtual ~IEntitySystem() {}
     std::string GetName() const { return m_name; }
 };
 } // namespace impl

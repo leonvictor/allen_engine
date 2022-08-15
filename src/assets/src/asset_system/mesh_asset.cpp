@@ -7,36 +7,17 @@ namespace aln::assets
 {
 using json = nlohmann::json;
 
-// VertexFormat ParseFormat(const char* f)
-// {
-
-//     if (strcmp(f, "PNCV_F32") == 0)
-//     {
-//         return assets::VertexFormat::PNCV_F32;
-//     }
-//     else if (strcmp(f, "P32N8C8V16") == 0)
-//     {
-//         return assets::VertexFormat::P32N8C8V16;
-//     }
-//     else
-//     {
-//         return assets::VertexFormat::Unknown;
-//     }
-// }
-
-MeshInfo ReadMeshInfo(AssetFile* file)
+StaticMeshInfo StaticMeshConverter::ReadInfo(const AssetFile* file)
 {
-    MeshInfo info;
+    StaticMeshInfo info;
 
-    json metadata = json::parse(file->metadata);
+    json metadata = json::parse(file->m_metadata);
 
     info.vertexBufferSize = metadata["vertex_buffer_size"];
     info.indexBufferSize = metadata["index_buffer_size"];
-    info.indexSize = (uint8_t) metadata["index_size"];
+    info.indexTypeSize = (uint8_t) metadata["index_type_size"];
     info.originalFile = metadata["original_file"];
-
-    std::string compressionString = metadata["compression"];
-    info.compressionMode = ParseCompressionMode(compressionString.c_str());
+    info.compressionMode = metadata["compression"];
 
     std::vector<float> boundsData;
     boundsData.reserve(7);
@@ -57,7 +38,7 @@ MeshInfo ReadMeshInfo(AssetFile* file)
     return info;
 }
 
-void UnpackMesh(const MeshInfo* info, const std::vector<std::byte>& sourcebuffer, std::byte* vertexBuffer, std::byte* indexBuffer)
+void StaticMeshConverter::Unpack(const StaticMeshInfo* info, const std::vector<std::byte>& sourceBuffer, std::byte* vertexBuffer, std::byte* indexBuffer)
 {
     // Decompressing into tmp vector.
     // TODO: Skip this step and decompress directly on the buffers
@@ -65,9 +46,9 @@ void UnpackMesh(const MeshInfo* info, const std::vector<std::byte>& sourcebuffer
     decompressedBuffer.resize(info->vertexBufferSize + info->indexBufferSize);
 
     LZ4_decompress_safe(
-        reinterpret_cast<const char*>(sourcebuffer.data()),
+        reinterpret_cast<const char*>(sourceBuffer.data()),
         reinterpret_cast<char*>(decompressedBuffer.data()),
-        static_cast<int>(sourcebuffer.size()),
+        static_cast<int>(sourceBuffer.size()),
         static_cast<int>(decompressedBuffer.size()));
 
     // Copy vertex buffer
@@ -77,26 +58,13 @@ void UnpackMesh(const MeshInfo* info, const std::vector<std::byte>& sourcebuffer
     memcpy(indexBuffer, decompressedBuffer.data() + info->vertexBufferSize, info->indexBufferSize);
 }
 
-AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
+AssetFile StaticMeshConverter::Pack(const StaticMeshInfo* info, char* vertexData, char* indexData)
 {
     AssetFile file;
-    file.type = EAssetType::Mesh;
-    file.version = 1;
+    file.m_assetTypeID = AssetTypeID("mesh"); // TODO: Use StaticMesh::GetStaticTypeID()
+    file.m_version = 1;
 
-    json metadata;
-    // if (info->vertexFormat == VertexFormat::P32N8C8V16)
-    // {
-    //     metadata["vertex_format"] = "P32N8C8V16";
-    // }
-    // else if (info->vertexFormat == VertexFormat::PNCV_F32)
-    // {
-    //     metadata["vertex_format"] = "PNCV_F32";
-    // }
-    metadata["vertex_buffer_size"] = info->vertexBufferSize;
-    metadata["index_buffer_size"] = info->indexBufferSize;
-    metadata["index_size"] = info->indexSize;
-    metadata["original_file"] = info->originalFile;
-
+    // Pack bounds info
     std::vector<float> boundsData;
     boundsData.resize(7);
 
@@ -110,10 +78,8 @@ AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
     boundsData[5] = info->bounds.extents[1];
     boundsData[6] = info->bounds.extents[2];
 
-    metadata["bounds"] = boundsData;
-
-    size_t fullsize = info->vertexBufferSize + info->indexBufferSize;
-    std::vector<std::byte> mergedBuffer(fullsize);
+    size_t fullSize = info->vertexBufferSize + info->indexBufferSize;
+    std::vector<std::byte> mergedBuffer(fullSize);
 
     // Copy vertex buffer
     memcpy(mergedBuffer.data(), vertexData, info->vertexBufferSize);
@@ -122,27 +88,33 @@ AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData)
     memcpy(mergedBuffer.data() + info->vertexBufferSize, indexData, info->indexBufferSize);
 
     // Find the worst-case compressed size
-    size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(fullsize));
-    file.binary.resize(maxCompressedSize);
+    size_t maxCompressedSize = LZ4_compressBound(static_cast<int>(fullSize));
+    file.m_binary.resize(maxCompressedSize);
 
     // Compress buffer and copy it into the file struct
     int compressedSize = LZ4_compress_default(
         reinterpret_cast<char*>(mergedBuffer.data()),
-        reinterpret_cast<char*>(file.binary.data()),
+        reinterpret_cast<char*>(file.m_binary.data()),
         static_cast<int>(mergedBuffer.size()),
         static_cast<int>(maxCompressedSize));
 
     // Resize back to the actual compressed size
-    file.binary.resize(compressedSize);
+    file.m_binary.resize(compressedSize);
 
-    metadata["compression"] = "LZ4";
+    json metadata;
+    metadata["vertex_buffer_size"] = info->vertexBufferSize;
+    metadata["index_buffer_size"] = info->indexBufferSize;
+    metadata["index_type_size"] = info->indexTypeSize;
+    metadata["bounds"] = boundsData;
+    metadata["original_file"] = info->originalFile;
+    metadata["compression"] = CompressionMode::LZ4;
 
-    file.metadata = metadata.dump();
+    file.m_metadata = metadata.dump();
 
     return file;
 }
 
-MeshBounds CalculateBounds(Vertex* vertices, size_t count)
+MeshBounds StaticMeshConverter::CalculateBounds(Vertex* vertices, size_t count)
 {
     MeshBounds bounds;
 

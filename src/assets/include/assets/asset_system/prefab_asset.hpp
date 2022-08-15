@@ -11,17 +11,17 @@ namespace aln::assets
 
 struct PrefabInfo
 {
-    std::unordered_map<uint64_t, int> nodeTransforms;    // Map a node index to its transform in the binary blob
-    std::unordered_map<uint64_t, std::string> nodeNames; // Map a node index to its name
-    std::unordered_map<uint64_t, uint64_t> nodeParents;  // Map a node index to its parent index
-
-    struct NodeMesh
+    struct NodeMeshInfo
     {
         std::string materialPath;
         std::string meshPath;
     };
 
-    std::unordered_map<uint64_t, NodeMesh> nodeMeshes;
+    // TODO: move nodeTransforms, nodeNames, nodeParent and nodeMeshes to a common NodeInfo struct
+    std::unordered_map<uint64_t, int> nodeTransforms;      // Map a node index to its transform index in the binary blob
+    std::unordered_map<uint64_t, std::string> nodeNames;   // Map a node index to its name
+    std::unordered_map<uint64_t, uint64_t> nodeParents;    // Map a node index to its parent index
+    std::unordered_map<uint64_t, NodeMeshInfo> nodeMeshes; // Map a node index to its mesh info
 
     std::vector<std::array<float, 16>> transforms;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <assets/asset.hpp>
+#include <assets/asset_system/material_asset.hpp>
 #include <assets/loader.hpp>
 
 #include "../material.hpp"
@@ -21,31 +22,42 @@ class MaterialLoader : public IAssetLoader<Material>
         m_pDevice = pDevice;
     }
 
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
     {
-        return true;
-    }
+        assert(pRecord->IsUnloaded());
+        assert(file.m_assetTypeID == Material::GetStaticAssetTypeID());
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
-    {
-    }
+        Material* pMat = aln::New<Material>();
 
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
-        auto pMat = AssetHandle<Material>(pAsset);
-        pMat->m_buffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        auto info = assets::ReadMaterialInfo(&file);
+        pMat->m_albedoMap = AssetHandle<Texture>(info.m_albedoMapID);
 
         // TMP while materials are poopy
+        pMat->m_buffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+
         auto material = MaterialBufferObject();
         pMat->m_buffer.Map(0, sizeof(material));
         pMat->m_buffer.Copy(&material, sizeof(material));
         pMat->m_buffer.Unmap();
+
+        pRecord->SetAsset(pMat);
+
+        return true;
     }
 
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        auto pMat = AssetHandle<Material>(pAsset);
+        auto pMat = pRecord->GetAsset<Material>();
         pMat->m_buffer = vkg::resources::Buffer();
+    }
+
+    void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) override
+    {
+        assert(dependencies.size() == 1);
+        auto pMaterial = pAssetRecord->GetAsset<Material>();
+
+        auto pAlbedoMapRecord = GetDependencyRecord(dependencies, pMaterial->m_albedoMap.GetAssetID());
+        pMaterial->m_albedoMap.m_pAssetRecord = pAlbedoMapRecord;
     }
 };
 

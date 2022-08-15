@@ -1,19 +1,17 @@
 #pragma once
 
 #include "entity.hpp"
-#include "entity_collection.hpp"
 #include "loading_context.hpp"
-#include "object_model.hpp"
+#include "update_context.hpp"
 
-#include <list>
-#include <set>
+#include <mutex>
 #include <vector>
 
 namespace aln::entities
 {
 class Entity;
 
-class EntityMap : private EntityCollection
+class EntityMap
 {
     friend class WorldEntity;
 
@@ -25,10 +23,8 @@ class EntityMap : private EntityCollection
         Activated        // All entities activated. Some might still be loading in case of dynamic adds
     };
 
-    /// Hierarchy of entities, used to display in the editor.
-    /// TODO: Maybe disable outside of the editor ?
-    /// @todo: fuse with another tree for culling etc ?
-    std::vector<Entity*> m_entitiesTree;
+    /// @todo: Entities live on the heap. Profile !
+    std::vector<Entity*> m_entities;
 
     std::vector<Entity*> m_entitiesToAdd;
     std::vector<Entity*> m_entitiesToRemove;
@@ -36,9 +32,10 @@ class EntityMap : private EntityCollection
     std::vector<Entity*> m_entitiesToReload; // TODO
     std::vector<Entity*> m_entitiesToActivate;
     std::vector<Entity*> m_entitiesToDeactivate;
-    std::list<Entity> m_createdEntities; // TODO: test forward_list ?
 
-    // ...
+    // Mutex guarding the main entity collection
+    std::recursive_mutex m_mutex;
+
     Status m_status = Status::Deactivated;
     bool m_isTransientMap = false;
 
@@ -65,6 +62,7 @@ class EntityMap : private EntityCollection
     void Update(const UpdateContext& updateContext);
 
     /// @brief Activate all entities in the collection.
+    /// @todo split activation/loading contexts
     void Activate(const LoadingContext& loadingContext);
 
   public:

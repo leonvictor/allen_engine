@@ -15,59 +15,76 @@ class MeshLoader : public IAssetLoader<Mesh>
 {
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
-    std::string m_defaultMeshPath;
 
   public:
-    MeshLoader(std::shared_ptr<vkg::Device> pDevice, std::string defaultMeshPath)
-    {
-        m_pDevice = pDevice;
-        m_defaultMeshPath = defaultMeshPath;
-    }
+    MeshLoader(std::shared_ptr<vkg::Device> pDevice) : m_pDevice(pDevice) {}
 
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
     {
-        assert(pAsset->IsUnloaded());
-        auto pMesh = AssetHandle<Mesh>(pAsset);
+        assert(pRecord->IsUnloaded());
 
-        assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pMesh->GetID(), file);
-        if (!loaded)
+        Mesh* pMesh = nullptr;
+
+        if (pRecord->GetAssetTypeID() == SkeletalMesh::GetStaticAssetTypeID())
         {
-            return false;
+            auto t1 = file.m_assetTypeID.ToString();
+            auto t2 = SkeletalMesh::GetStaticAssetTypeID().ToString();
+            assert(file.m_assetTypeID == SkeletalMesh::GetStaticAssetTypeID());
+
+            SkeletalMesh* pSkeletalMesh = aln::New<SkeletalMesh>();
+
+            auto info = assets::SkeletalMeshConverter::ReadInfo(&file);
+            pSkeletalMesh->m_indices.resize(info.indexBufferSize / sizeof(uint32_t));
+            pSkeletalMesh->m_vertices.resize(info.vertexBufferSize); // @note: vertex buffer is a byte vector
+            pSkeletalMesh->m_inverseBindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
+            pSkeletalMesh->m_bindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
+            // pSkeletalMesh->m_pSkeleton = AssetHandle<Skeleton>(info.assetPath)
+            
+            // TODO: Inverse (DANGER)
+            assets::SkeletalMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pSkeletalMesh->m_vertices.data(), (std::byte*) pSkeletalMesh->m_indices.data(), (std::byte*) pSkeletalMesh->m_inverseBindPose.data());
+            // assets::SkeletalMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data(), (std::byte*) pMesh->m_bindPose.data());
+
+            for (size_t i = 0; i < pSkeletalMesh->m_bindPose.size(); ++i)
+            {
+                pSkeletalMesh->m_bindPose[i] = pSkeletalMesh->m_inverseBindPose[i].GetInverse();
+                // pMesh->m_inverseBindPose[i] = pMesh->m_bindPose[i].GetInverse();
+            }
+
+            pMesh = pSkeletalMesh;
+        }
+        else
+        {
+            assert(file.m_assetTypeID == StaticMesh::GetStaticAssetTypeID());
+
+            StaticMesh* pStaticMesh = aln::New<StaticMesh>();
+
+            auto info = assets::StaticMeshConverter::ReadInfo(&file);
+            pStaticMesh->m_indices.resize(info.indexBufferSize / sizeof(uint32_t));
+            pStaticMesh->m_vertices.resize(info.vertexBufferSize);
+
+            assets::StaticMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pStaticMesh->m_vertices.data(), (std::byte*) pStaticMesh->m_indices.data());
+
+            pMesh = pStaticMesh;
         }
 
-        assert(file.type == assets::EAssetType::Mesh);
-
-        auto info = assets::ReadMeshInfo(&file);
-        pMesh->m_indices.resize(info.indexBufferSize);
-        pMesh->m_vertices.resize(info.vertexBufferSize);
-        assets::UnpackMesh(&info, file.binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data());
+        pMesh->CreateGraphicResources(m_pDevice);
+        pRecord->SetAsset(pMesh);
 
         return true;
     }
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        assert(pAsset->IsLoaded());
+        auto pAsset = pRecord->GetAsset();
+        assert(pRecord->IsLoaded());
 
-        auto pMesh = AssetHandle<Mesh>(pAsset);
+        auto pMesh = pRecord->GetAsset<StaticMesh>();
+        pMesh->FreeGraphicResources();
         pMesh->m_vertices.clear();
         pMesh->m_indices.clear();
         pMesh->m_primitives.clear();
-    }
 
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsLoaded());
-        auto pMesh = AssetHandle<Mesh>(pAsset);
-        pMesh->CreateGraphicResources(m_pDevice);
-    }
-
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
-    {
-        assert(pAsset->IsInitialized());
-        auto pMesh = AssetHandle<Mesh>(pAsset);
-        pMesh->FreeGraphicResources();
+        // TODO: bind pose as well
     }
 };
 

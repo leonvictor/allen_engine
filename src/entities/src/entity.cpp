@@ -1,6 +1,5 @@
 #include "entity.hpp"
 
-#include "entity_collection.hpp"
 #include "entity_system.hpp"
 
 #include "component.hpp"
@@ -24,21 +23,39 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
 
     for (auto pComponent : m_components)
     {
-        if (pComponent->IsUnloaded() || pComponent->IsLoading())
+        if (pComponent->IsUnloaded())
         {
-            if (!pComponent->LoadComponentAsync())
+            pComponent->LoadComponent();
+        }
+        if (pComponent->IsLoading())
+        {
+            if (!pComponent->UpdateLoadingStatus())
             {
-                allLoaded = false;
+                return false;
+            }
+            else
+            {
+                pComponent->InitializeComponent();
+
+                // Registering with systems happen during activation
+                // // Register each component with all local systems...
+                // for (auto pSystem : m_systems)
+                // {
+                //     pSystem->RegisterComponent(pComponent);
+                // }
+
+                // // ... and all global systems
+                // // This is the non-parallelizable part
+                // loadingContext.m_registerWithWorldSystems(this, pComponent);
             }
         }
+
+        // For now ! We should register components with systems as they become loaded
+        assert(!IsActivated());
     }
 
-    if (allLoaded)
-    {
-        m_status = Status::Loaded;
-    }
-
-    return allLoaded;
+    m_status = Status::Loaded;
+    return true;
 }
 
 void Entity::LoadComponents(const LoadingContext& loadingContext)
@@ -295,7 +312,7 @@ void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const a
     }
 }
 
-void Entity::UpdateSystems(UpdateContext const& context)
+void Entity::UpdateSystems(UpdateContext const& context) const
 {
     ZoneScoped;
     const UpdateStage updateStage = context.GetUpdateStage();

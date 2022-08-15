@@ -4,6 +4,8 @@
 #include <mesh.hpp>
 #include <texture.hpp>
 
+#include <anim/animation_clip.hpp>
+
 #include <reflection/reflection.hpp>
 
 namespace aln::reflect
@@ -60,6 +62,23 @@ template <>
 TypeDescriptor* GetPrimitiveDescriptor<Material>()
 {
     static TypeDescriptor_Material typeDesc;
+    return &typeDesc;
+}
+
+/// @brief Type descriptor for animation clips
+struct TypeDescriptor_AnimationClip : TypeDescriptor
+{
+    TypeDescriptor_AnimationClip() : TypeDescriptor{"AnimationClip", sizeof(AnimationClip), std::type_index(typeid(AnimationClip))} {}
+    virtual void Dump(const void* obj, int) const override
+    {
+        // std::cout << "std::string{\"" << *(const std::string*) obj << "\"}";
+    }
+};
+
+template <>
+TypeDescriptor* GetPrimitiveDescriptor<AnimationClip>()
+{
+    static TypeDescriptor_AnimationClip typeDesc;
     return &typeDesc;
 }
 

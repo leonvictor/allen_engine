@@ -1,71 +1,78 @@
 #pragma once
 
 #include "asset.hpp"
+#include "record.hpp"
 
+#include <common/memory.hpp>
 #include <memory>
 
 namespace aln
 {
+
+class IAssetHandle
+{
+    friend class AssetLoader;
+    friend class AssetManager;
+
+  private:
+    AssetID m_assetID;
+    AssetStatus GetStatus() const { return (m_pAssetRecord != nullptr) ? m_pAssetRecord->GetStatus() : AssetStatus::Unloaded; }
+
+  public:
+    // TODO: shouldn't be public
+    const AssetRecord* m_pAssetRecord = nullptr;
+
+    IAssetHandle() = default;
+    IAssetHandle(AssetID assetID) : m_assetID(assetID) {}
+    IAssetHandle(std::string assetPath) : m_assetID(assetPath) {}
+
+    // ------------------------------
+    // IDs
+    // ------------------------------
+    inline const AssetID& GetAssetID() const { return m_assetID; }
+    inline const AssetTypeID& GetAssetTypeID() const { return m_assetID.GetAssetTypeID(); }
+    inline const std::string& GetAssetPath() const { return m_assetID.GetAssetPath(); }
+
+    /// @todo: Remove when dependencies are correctly loaded from asset metadata
+    const AssetRecord* GetRecord() const { return m_pAssetRecord; }
+
+    // ------------------------------
+    // Status management
+    // ------------------------------
+    inline bool IsLoaded() const { return GetStatus() == AssetStatus::Loaded; }
+    inline bool IsUnloaded() const { return GetStatus() == AssetStatus::Unloaded; }
+    operator bool() const { return m_pAssetRecord != nullptr; }
+};
+
 template <AssetType T>
-class AssetHandle
+class AssetHandle : public IAssetHandle
 {
     template <AssetType Other>
     friend class AssetHandle;
 
     friend class AssetLoader;
-
-  private:
-    std::shared_ptr<T> m_pAsset;
-
-    mutable size_t* m_pLoadedCount;
-    mutable size_t* m_pInitializedCount;
+    friend class AssetManager;
 
   public:
-    ~AssetHandle()
+    AssetHandle() = default;
+    AssetHandle(AssetID assetID) : IAssetHandle(assetID)
     {
-        if (use_count() <= 1)
-        {
-            delete m_pLoadedCount;
-            delete m_pInitializedCount;
-        }
-        m_pAsset.reset();
+        assert(GetAssetTypeID() == T::GetStaticAssetTypeID());
+    }
+    AssetHandle(std::string assetPath) : IAssetHandle(assetPath)
+    {
+        assert(GetAssetTypeID() == T::GetStaticAssetTypeID());
     }
 
-    AssetHandle() = default;
-
-    /// @brief Create a new handle to a asset, taking ownership of it
-    AssetHandle(std::shared_ptr<T> pAsset) : m_pAsset(std::move(pAsset)), m_pInitializedCount(new size_t(0)), m_pLoadedCount(new size_t(0)) {}
-
-    /// @brief Copy constructs a handled asset, sharing ownership
-    /// @todo Only enable for this type, a derived one, or ??? the base IAsset class ???
-    template <AssetType Other>
-    AssetHandle(const AssetHandle<Other>& handle) : m_pAsset(std::static_pointer_cast<T>(handle.m_pAsset)),
-                                                    m_pInitializedCount(handle.m_pInitializedCount),
-                                                    m_pLoadedCount(handle.m_pLoadedCount) {}
-
-    /// @brief Move constructor
-    template <AssetType Other>
-    AssetHandle(AssetHandle<Other>&& handle) : m_pAsset(std::move(std::static_pointer_cast<T>(handle.m_pAsset))),
-                                               m_pInitializedCount(std::move(handle.m_pInitializedCount)),
-                                               m_pLoadedCount(std::move(handle.m_pLoadedCount)) {}
-
-    size_t use_count() const { return m_pAsset.use_count(); }
-    size_t load_count() const { return *m_pLoadedCount; }
-    size_t initialized_count() const { return *m_pInitializedCount; }
-
-    T& get() const { return *m_pAsset; }
-    T& operator*() const { return *m_pAsset.get(); }
-    T* operator->() const { return m_pAsset.get(); }
-
-    operator bool() const { return static_cast<bool>(m_pAsset); }
+    // ------------------------------
+    // Underlying asset access
+    // ------------------------------
+    const T* get() const { return (T*) m_pAssetRecord->GetAsset(); }
+    const T* operator->() const { return (T*) m_pAssetRecord->GetAsset(); }
 
     bool operator==(const AssetHandle<T>& other) const
     {
-        if (m_pAsset && other)
-        {
-            return m_pAsset == other.m_pAsset;
-        }
-        return false;
+        return m_pAssetRecord != nullptr && other.m_pAssetRecord != nullptr && m_pAssetRecord == other.m_pAssetRecord;
     }
 };
 } // namespace aln

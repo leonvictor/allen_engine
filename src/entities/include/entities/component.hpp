@@ -23,6 +23,20 @@ class IComponent
     // TODO: Serialization
 
   private:
+    const aln::utils::UUID m_ID;
+    bool m_isSingleton = false;                                  // Whether you can have multiple components of this type per entity
+    aln::utils::UUID m_entityID = aln::utils::UUID::InvalidID(); // Entity this component is attached to.
+
+    std::future<bool> m_loadingTask;
+
+    // Private state management methods. Use verbose naming to differentiate with the inner virtual ones.
+    void LoadComponent();
+    bool LoadComponentAsync();
+    void UnloadComponent();
+    void InitializeComponent();
+    void ShutdownComponent();
+
+  protected:
     /// @brief Each component can ben in one of the states
     enum class Status
     {
@@ -33,21 +47,6 @@ class IComponent
         Initialized    // Ready to use
     };
 
-    const aln::utils::UUID m_ID;
-    Status m_status = Status::Unloaded;
-    bool m_isSingleton = false;                                  // Whether you can have multiple components of this type per entity
-    aln::utils::UUID m_entityID = aln::utils::UUID::InvalidID(); // Entity this component is attached to.
-
-    std::future<bool> m_loadingTask;
-
-    // Private state management methods. Use verbose naming to differentiate with the inner virtual ones.
-    bool LoadComponent();
-    bool LoadComponentAsync();
-    void UnloadComponent();
-    void InitializeComponent();
-    void ShutdownComponent();
-
-  protected:
     virtual void Construct(const ComponentCreationContext&) {}
 
     /// @brief Allocate internal transient data.
@@ -59,10 +58,21 @@ class IComponent
 
     /// @brief Load all ressources.
     /// @return Whether loading was successful.
-    virtual bool Load() = 0;
+    virtual void Load() = 0;
 
     /// @brief Unload all ressources.
     virtual void Unload() = 0;
+
+    /// @brief Check the loading status of necessary resources and update the component status accordingly
+    virtual bool UpdateLoadingStatus()
+    {
+        m_status = Status::Loaded;
+        return true;
+    };
+
+    // @note: this was moved to protected because the status can be changed during UpdateLoadingStatus in derived classes.
+    // @todo: Find a way to do this automatically
+    Status m_status = Status::Unloaded;
 
   public:
     virtual ~IComponent() {}

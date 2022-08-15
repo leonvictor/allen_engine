@@ -3,7 +3,7 @@
 #include "command.hpp"
 #include "entity_system.hpp"
 #include "loading_context.hpp"
-#include "object_model.hpp"
+#include "update_context.hpp"
 
 #include <assert.h>
 #include <set>
@@ -50,7 +50,6 @@ class Entity
 
     friend Command;
     friend class EntityMap;
-    friend class EntityCollection;
     friend class std::set<Entity>;
 
     enum class Status
@@ -178,7 +177,7 @@ class Entity
     void DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
 
     /// @brief Update all systems attached to this entity.
-    void UpdateSystems(const UpdateContext& context);
+    void UpdateSystems(const UpdateContext& context) const;
 
     const std::vector<std::shared_ptr<IEntitySystem>>& GetSystems() { return m_systems; }
 

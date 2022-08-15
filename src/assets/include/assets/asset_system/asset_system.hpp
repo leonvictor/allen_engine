@@ -3,25 +3,12 @@
 #include <string>
 #include <vector>
 
+#include "../asset_id.hpp"
+#include "../asset_type_id.hpp"
+
+/// TODO: Asset conversion and loading is all over the place. Redesign it so things are neatly organized
 namespace aln::assets
 {
-enum class EAssetType : char
-{
-    Mesh,
-    Texture,
-    Material,
-    Animation,
-    Prefab,
-};
-
-/// @brief Intermediary format used to save/load any assets. Contains both metadata and data.
-struct AssetFile
-{
-    EAssetType type;               // Asset type (MESH, TEXT, ANIM...)
-    uint32_t version;              // Asset format version
-    std::string metadata;          // Asset-type dependent metadata, json format
-    std::vector<std::byte> binary; // Asset data in binary format
-};
 
 enum class CompressionMode : uint8_t
 {
@@ -29,7 +16,15 @@ enum class CompressionMode : uint8_t
     LZ4
 };
 
-CompressionMode ParseCompressionMode(const std::string& compressionMode);
+/// @brief Intermediary format used to save/load any assets. Contains both metadata and data.
+struct AssetFile
+{
+    uint32_t m_version;                  // Asset format version
+    AssetTypeID m_assetTypeID;           // Asset type (MESH, TEXT, ANIM...)
+    std::vector<AssetID> m_dependencies; // Dependencies
+    std::string m_metadata;              // Asset-type dependent metadata, json format
+    std::vector<std::byte> m_binary;     // Asset data in binary format
+};
 
 /// @brief Save an asset in binary format.
 /// @param path: File to save to

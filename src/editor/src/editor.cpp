@@ -8,6 +8,8 @@
 #include <core/mesh.hpp>
 #include <core/texture.hpp>
 
+#include <anim/animation_clip.hpp>
+
 #include <entities/entity_system.hpp>
 
 #include <glm/vec3.hpp>
@@ -91,30 +93,41 @@ void Editor::RegisterType()
 template <>
 void Editor::Display<AssetHandle<Mesh>>(void* pHandle, const char* label)
 {
-    auto& mesh = ((AssetHandle<Mesh>*) pHandle)->get();
+    auto pMesh = ((AssetHandle<Mesh>*) pHandle)->get();
     if (ImGui::CollapsingHeader("Mesh"))
     {
         // TODO: Edition
-        ImGui::Text(mesh.GetID().c_str());
+        ImGui::Text(pMesh->GetID().GetAssetPath().c_str());
+    }
+}
+
+template <>
+void Editor::Display<AssetHandle<AnimationClip>>(void* pHandle, const char* label)
+{
+    auto pAnim = ((AssetHandle<AnimationClip>*) pHandle)->get();
+    if (ImGui::CollapsingHeader("AnimationClip"))
+    {
+        // TODO: Edition
+        ImGui::Text(pAnim->GetID().GetAssetPath().c_str());
     }
 }
 
 template <>
 void Editor::Display<AssetHandle<Material>>(void* pHandle, const char* label)
 {
-    auto& material = ((AssetHandle<Material>*) pHandle)->get();
+    auto pMaterial = ((AssetHandle<Material>*) pHandle)->get();
 
     if (ImGui::CollapsingHeader("Material"))
     {
         // TODO: Edition
-        ImGui::Text(material.GetID().c_str());
+        ImGui::Text(pMaterial->GetID().GetAssetPath().c_str());
     }
 }
 
 template <>
 void Editor::Display<Texture>(void* pTexture, const char* label)
 {
-    ImGui::Text(((Texture*) pTexture)->GetID().c_str());
+    ImGui::Text(((Texture*) pTexture)->GetID().GetAssetPath().c_str());
 }
 
 template <>
@@ -158,6 +171,7 @@ Editor::Editor()
     RegisterType<bool>();
     RegisterType<AssetHandle<Mesh>>();
     RegisterType<AssetHandle<Material>>();
+    RegisterType<AssetHandle<AnimationClip>>();
     RegisterType<RGBColor>();
     RegisterType<RGBAColor>();
     RegisterType<glm::vec3>();

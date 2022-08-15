@@ -15,32 +15,21 @@ namespace aln
 {
 class Material : public IAsset
 {
+    ALN_REGISTER_ASSET_TYPE("mtrl");
+
     friend class MaterialLoader;
-    friend class MeshRenderer;
+    friend class MeshComponent;
 
   private:
     // TODO: Other maps
     // TODO: Shaders...
-    AssetHandle<Texture> m_albedoMap;
 
     vkg::resources::Buffer m_buffer;
+    AssetHandle<Texture> m_albedoMap;
 
   public:
-    Material(AssetGUID& guid) : IAsset(guid) {}
-
-    void SetAlbedoMap(const AssetHandle<Texture>& pTex)
-    {
-        if (pTex == m_albedoMap)
-            return;
-
-        assert(IAsset::IsUnloaded());
-
-        if (m_albedoMap)
-            RemoveDependency(m_albedoMap->GetID());
-
-        AddDependency<Texture>(pTex->GetID());
-        m_albedoMap = pTex;
-    }
+    inline const AssetHandle<Texture>& GetAlbedoMap() const { return m_albedoMap; }
+    inline const vkg::resources::Buffer& GetBuffer() const { return m_buffer; }
 };
 
 // TODO: This is never used. Refactor the material system

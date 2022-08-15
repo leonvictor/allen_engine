@@ -20,6 +20,8 @@ vk::Format MapAssetFormatToVulkan(assets::TextureFormat& format)
     {
     case assets::TextureFormat::RGBA8:
         return vk::Format::eR8G8B8A8Srgb;
+    case assets::TextureFormat::RGB8:
+        return vk::Format::eR8G8B8Srgb;
     default:
         throw; // TODO
     }
@@ -29,54 +31,33 @@ class TextureLoader : public IAssetLoader<Texture>
 {
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
-    std::string m_defaultTexturePath;
 
   public:
-    TextureLoader(std::shared_ptr<vkg::Device> pDevice, std::string defaultTexturePath)
+    TextureLoader(std::shared_ptr<vkg::Device> pDevice)
     {
         m_pDevice = pDevice;
-        m_defaultTexturePath = defaultTexturePath;
     }
 
-    bool Load(const AssetHandle<IAsset>& pAsset) override
+    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
     {
-        return true;
-    }
+        assert(pRecord->IsUnloaded());
+        assert(file.m_assetTypeID == Texture::GetStaticAssetTypeID());
 
-    void Unload(const AssetHandle<IAsset>& pAsset) override
-    {
-    }
+        Texture* pTex = aln::New<Texture>();
 
-    void Initialize(const AssetHandle<IAsset>& pAsset) override
-    {
-        auto pTex = AssetHandle<Texture>(pAsset);
-        assert(pTex->IsLoaded());
-
-        assets::AssetFile file;
-        bool loaded = assets::LoadBinaryFile(pTex->GetID(), file);
-
-        if (!loaded)
-        {
-            std::cout << "Error loading texture asset" << std::endl;
-            throw; // TODO
-        }
-
-        assert(file.type == assets::EAssetType::Texture);
-
-        assets::TextureInfo info = assets::ReadTextureInfo(&file);
-
+        auto info = assets::ReadTextureInfo(&file);
         auto format = MapAssetFormatToVulkan(info.format);
         auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(info.pixelSize[0], info.pixelSize[1])))) + 1;
 
         std::vector<std::byte> data;
-        assets::UnpackTexture(&info, file.binary, data);
+        assets::UnpackTexture(&info, file.m_binary, data);
 
         // Copy data to staging buffer
         // TODO: Skip the temporary buffer and stream directly to a vk::Buffer
         vkg::resources::Buffer stagingBuffer(m_pDevice, (vk::DeviceSize) info.size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data.data());
         data.clear();
 
-        pTex->m_image = vkg::resources::Image::FromBuffer(m_pDevice, stagingBuffer, info.pixelSize[0], info.pixelSize[1], mipLevels);
+        pTex->m_image = vkg::resources::Image::FromBuffer(m_pDevice, stagingBuffer, info.pixelSize[0], info.pixelSize[1], mipLevels, format);
 
         // TODO: Abstract io to another lib
         // TODO: Split image loading and vulkan texture creation
@@ -86,11 +67,15 @@ class TextureLoader : public IAssetLoader<Texture>
         pTex->m_image.AddView();
         pTex->m_image.AddSampler();
         pTex->m_image.SetDebugName("Material Texture"); // todo: add id name
+
+        pRecord->SetAsset(pTex);
+        return true;
     }
 
-    void Shutdown(const AssetHandle<IAsset>& pAsset) override
+    void Unload(AssetRecord* pRecord) override
     {
-        auto pTex = AssetHandle<Texture>(pAsset);
+        assert(pRecord->IsLoaded());
+        auto pTex = pRecord->GetAsset<Texture>();
         // TODO: Make sure reassignement is good enough.
         pTex->m_image = vkg::resources::Image();
     }

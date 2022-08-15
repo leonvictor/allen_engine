@@ -17,12 +17,10 @@ enum class TransparencyMode : uint8_t
 
 struct MaterialInfo
 {
-    std::string baseEffect;
-    std::unordered_map<std::string, std::string> textures;
-    std::unordered_map<std::string, std::string> customProperties;
-    TransparencyMode transparency;
+    std::string m_name;
+    AssetID m_albedoMapID;
 };
 
-MaterialInfo ReadMaterialInfo(AssetFile* file);
-AssetFile PackMaterial(MaterialInfo* info);
+MaterialInfo ReadMaterialInfo(const AssetFile* file);
+AssetFile PackMaterial(const MaterialInfo* info);
 } // namespace aln::assets

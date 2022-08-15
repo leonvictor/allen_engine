@@ -3,78 +3,57 @@
 #include <assert.h>
 #include <memory>
 
+#include "asset_system/asset_system.hpp"
+
 #include "asset.hpp"
 #include "handle.hpp"
+#include "record.hpp"
 
 namespace aln
 {
 /// TODO: Hide from clients
+/// @todo: Swap class names
 class AssetLoader
 {
     friend class AssetManager;
-
-  public:
-    virtual ~AssetLoader(){};
+    friend class AssetRequest;
 
   private:
-    bool LoadAsset(const AssetHandle<IAsset>& pHandle)
+    bool LoadAsset(AssetRecord* pRecord)
     {
-        if (pHandle->IsLoaded() || pHandle->IsInitialized())
+        assets::AssetFile file;
+        auto loaded = assets::LoadBinaryFile(pRecord->GetAssetPath(), file);
+        if (!loaded)
         {
-            (*pHandle.m_pLoadedCount)++;
-            return true;
+            // TODO: Properly handle load failure
+            assert(0);
+            return false;
         }
 
-        if (Load(pHandle))
+        for (auto& dependency : file.m_dependencies)
         {
-            /// TODO: Status setting could happen in the base Asset class (same way as here)
-            pHandle->m_status = IAsset::Status::Loaded;
-            (*pHandle.m_pLoadedCount)++;
-            return true;
+            pRecord->AddDependency(dependency);
         }
 
-        return false;
+        return Load(pRecord, file);
     }
-
-    void UnloadAsset(const AssetHandle<IAsset>& handle)
+    void UnloadAsset(AssetRecord* pAssetRecord) { Unload(pAssetRecord); }
+    virtual void InstallAsset(const AssetID& assetID, AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies)
     {
-        if (handle.load_count() == 1) // Only unload if this is the last one
-        {
-            assert(handle->IsLoaded());
-            Unload(handle);
-            handle->m_status = IAsset::Status::Unloaded;
-        }
-        (*handle.m_pLoadedCount)--;
-    }
+        assert(pAssetRecord->IsUnloaded());
+        assert(assetID.IsValid());
 
-    void InitializeAsset(const AssetHandle<IAsset>& handle)
-    {
-        if (!handle->IsInitialized())
-        {
-            assert(handle.initialized_count() == 0);
-            Initialize(handle);
-            handle->m_status = IAsset::Status::Initialized;
-        }
-        (*handle.m_pInitializedCount)++;
-    }
-
-    void ShutdownAsset(const AssetHandle<IAsset>& handle)
-    {
-        if (handle.initialized_count() == 1)
-        {
-            assert(handle->IsInitialized());
-            Shutdown(handle);
-            handle->m_status = IAsset::Status::Loaded;
-        }
-        (*handle.m_pInitializedCount)--;
+        pAssetRecord->m_pAsset->m_id = assetID;
+        InstallDependencies(pAssetRecord, dependencies);
     }
 
   protected:
-    virtual AssetHandle<IAsset> Create(AssetGUID id) = 0;
-    virtual bool Load(const AssetHandle<IAsset>&) = 0;
-    virtual void Unload(const AssetHandle<IAsset>&) = 0;
-    virtual void Initialize(const AssetHandle<IAsset>&) = 0;
-    virtual void Shutdown(const AssetHandle<IAsset>&) = 0;
+    virtual bool Load(AssetRecord* pAsset, const assets::AssetFile& file) = 0;
+    virtual void Unload(AssetRecord* pAsset) = 0;
+    virtual void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) {}
+
+  public:
+    virtual ~AssetLoader(){};
 };
 
 /// @brief Base class for all asset loaders.
@@ -82,18 +61,21 @@ class AssetLoader
 template <AssetType T>
 class IAssetLoader : public AssetLoader
 {
-  public:
-    virtual ~IAssetLoader(){};
-
   protected:
-    virtual AssetHandle<IAsset> Create(AssetGUID id)
-    {
-        return AssetHandle<IAsset>(std::make_shared<T>(id));
-    }
+    virtual bool Load(AssetRecord* pRecord, const assets::AssetFile& file) = 0;
+    virtual void Unload(AssetRecord* pRecord) = 0;
+    virtual void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) {}
 
-    virtual bool Load(const AssetHandle<IAsset>&) = 0;
-    virtual void Unload(const AssetHandle<IAsset>&) = 0;
-    virtual void Initialize(const AssetHandle<IAsset>&) = 0;
-    virtual void Shutdown(const AssetHandle<IAsset>&) = 0;
+    const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
+    {
+        for (auto& dependencyHandle : dependencies)
+        {
+            if (dependencyHandle.GetAssetID() == dependencyID)
+            {
+                return dependencyHandle.GetRecord();
+            }
+            assert(0);
+        }
+    }
 };
 } // namespace aln

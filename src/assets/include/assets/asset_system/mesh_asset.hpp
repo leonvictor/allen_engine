@@ -7,30 +7,6 @@
 namespace aln::assets
 {
 
-// struct Vertex_f32_PNCV
-// {
-
-//     float position[3];
-//     float normal[3];
-//     float color[3];
-//     float uv[2];
-// };
-// struct Vertex_P32N8C8V16
-// {
-
-//     float position[3];
-//     uint8_t normal[3];
-//     uint8_t color[3];
-//     float uv[2];
-// };
-
-// enum class VertexFormat : uint32_t
-// {
-//     Unknown = 0,
-//     PNCV_F32,  //everything at 32 bits
-//     P32N8C8V16 //position at 32 bits, normal at 8 bits, color at 8 bits, uvs at 16 bits float
-// };
-
 struct MeshBounds
 {
     float origin[3];
@@ -38,21 +14,45 @@ struct MeshBounds
     float extents[3];
 };
 
-struct MeshInfo
+struct StaticMeshInfo
 {
     uint64_t vertexBufferSize;
     uint64_t indexBufferSize;
     MeshBounds bounds;
     // VertexFormat vertexFormat; // TODO: that's a good idea
-    char indexSize;
+
+    uint8_t indexTypeSize; // In-memory size of an index (in bytes)
     CompressionMode compressionMode;
     std::string originalFile;
 };
 
-MeshInfo ReadMeshInfo(AssetFile* file);
+struct StaticMeshConverter
+{
+    /// @brief Read a mesh's AssetFile and populate its StaticMeshInfo
+    static StaticMeshInfo ReadInfo(const AssetFile* file);
+    static void Unpack(const StaticMeshInfo* info, const std::vector<std::byte>& sourcebuffer, std::byte* vertexBuffer, std::byte* indexBuffer);
+    static AssetFile Pack(const StaticMeshInfo* info, char* vertexData, char* indexData);
+    static MeshBounds CalculateBounds(Vertex* vertices, size_t count);
+};
 
-void UnpackMesh(const MeshInfo* info, const std::vector<std::byte>& sourcebuffer, std::byte* vertexBuffer, std::byte* indexBuffer);
-AssetFile PackMesh(MeshInfo* info, char* vertexData, char* indexData);
+struct SkeletalMeshInfo
+{
+    uint64_t vertexBufferSize;
+    uint64_t indexBufferSize;
+    uint64_t inverseBindPoseSize;
 
-MeshBounds CalculateBounds(Vertex* vertices, size_t count);
+    MeshBounds bounds;
+
+    uint8_t indexTypeSize; // In-memory size of an index (in bytes)
+    CompressionMode compressionMode;
+    std::string originalFile;
+};
+
+struct SkeletalMeshConverter
+{
+    static SkeletalMeshInfo ReadInfo(const AssetFile* file);
+    static void Unpack(const SkeletalMeshInfo* info, const std::vector<std::byte>& sourcebuffer, std::byte* vertexBuffer, std::byte* indexBuffer, std::byte* bindPose);
+    static AssetFile Pack(const SkeletalMeshInfo* info, char* vertexData, char* indexData, char* bindPose);
+    static MeshBounds CalculateBounds(SkinnedVertex* vertices, size_t count);
+};
 } // namespace aln::assets

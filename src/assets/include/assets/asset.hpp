@@ -1,14 +1,10 @@
 #pragma once
 
-#include <set>
-#include <string>
-#include <typeindex>
-#include <typeinfo>
+#include "asset_id.hpp"
+#include "asset_type_id.hpp"
 
 namespace aln
 {
-// TODO: change to a hash
-using AssetGUID = std::string;
 
 class IAsset;
 
@@ -20,51 +16,22 @@ class IAsset
 {
     friend class AssetLoader;
     friend class AssetManager;
+    friend class AssetRequest;
 
   private:
-    AssetGUID m_id;
-
-  protected:
-    enum class Status
-    {
-        Unloaded,   // Object created and attributes set
-        Loaded,     // Asset loaded in memory
-        Initialized // Asset loaded and initialization step done
-    };
-
-    struct Dependency
-    {
-        std::type_index type;
-        AssetGUID id;
-
-        bool operator<(const Dependency& other) const
-        {
-            return id < other.id;
-        }
-    };
-
-    Status m_status = Status::Unloaded;
-    std::set<Dependency> m_dependencies;
-
-    IAsset(AssetGUID& guid) : m_id(guid) {}
-
-    template <AssetType T>
-    void AddDependency(const AssetGUID& guid)
-    {
-        m_dependencies.emplace(std::type_index(typeid(T)), guid);
-    }
-
-    void RemoveDependency(const AssetGUID& guid)
-    {
-        std::erase_if(m_dependencies, [&](auto& dep)
-            { return dep.id == guid; });
-    }
+    AssetID m_id;
 
   public:
-    const AssetGUID& GetID() const { return m_id; }
-    bool IsUnloaded() const { return m_status == Status::Unloaded; }
-    bool IsLoaded() const { return m_status == Status::Loaded; }
-    bool IsInitialized() const { return m_status == Status::Initialized; }
-    bool operator==(const IAsset& other) const { return m_id == other.m_id; }
+    inline const AssetID& GetID() const { return m_id; }
+    virtual AssetTypeID GetAssetTypeID() const = 0;
+
+    inline bool operator==(const IAsset& other) const { return m_id == other.m_id; }
 };
 } // namespace aln
+
+#define ALN_REGISTER_ASSET_TYPE(assetTypeExtension)                                                 \
+  public:                                                                                           \
+    static AssetTypeID GetStaticAssetTypeID() { return AssetTypeID(assetTypeExtension); }           \
+    virtual AssetTypeID GetAssetTypeID() const override { return AssetTypeID(assetTypeExtension); } \
+                                                                                                    \
+  private:

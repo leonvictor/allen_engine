@@ -29,10 +29,12 @@
 #include <graphics/window.hpp>
 #include <set>
 
+#ifdef ALN_DEBUG
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 
 #include <crtdbg.h>
+#endif
 
 #include <input/input_system.hpp>
 
@@ -40,19 +42,35 @@
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
-#include <core/camera.hpp>
-#include <core/camera_controller.hpp>
+#include <core/skeletal_mesh.hpp>
+#include <core/static_mesh.hpp>
+
 #include <core/component_factory.hpp>
-#include <core/light.hpp>
-#include <core/mesh_renderer.hpp>
-#include <core/render_system.hpp>
-#include <core/systems/script.hpp>
+#include <core/components/animation_graph.hpp>
+#include <core/components/animation_player_component.hpp>
+#include <core/components/camera.hpp>
+#include <core/components/light.hpp>
+#include <core/components/skeletal_mesh_component.hpp>
+#include <core/components/static_mesh_component.hpp>
+
+#include <core/entity_systems/animation_system.hpp>
+#include <core/entity_systems/camera_controller.hpp>
+#include <core/entity_systems/script.hpp>
+
 #include <core/time_system.hpp>
+#include <core/world_systems/render_system.hpp>
 
 #include <assets/manager.hpp>
+#include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
+#include <core/asset_loaders/skeleton_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
+
+#include <common/memory.hpp>
+#include <common/services/service_provider.hpp>
+
+#include <anim/animation_clip.hpp>
 
 #include "IconsFontAwesome4.h"
 #include "imgui.h"
@@ -67,30 +85,36 @@
 
 #include <Tracy.hpp>
 
+// Test anim graph
+#include <anim/graph/graph.hpp>
+#include <anim/graph/nodes/animation_clip_node.hpp>
+
 using namespace aln::input;
 using namespace aln::entities;
-
-// TODO: Only when tracing memory
-#ifdef ALN_ENABLE_TRACING
-void* operator new(std::size_t count)
-{
-    auto ptr = malloc(count);
-    TracyAlloc(ptr, count);
-    return ptr;
-}
-void operator delete(void* ptr) noexcept
-{
-    TracyFree(ptr);
-    free(ptr);
-}
-#endif
 
 namespace aln
 {
 
-const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/cube.mesh";
-const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
-const int MAX_MODELS = 50;
+// Mike
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/Cube.010.smsh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike_Texture.text";
+// const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/RobotArmature.skel";
+
+// Cesium man
+const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Cesium_Man.smsh";
+const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan_img0.text";
+const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Armature.skel";
+const std::string MATERIAL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Cesium_Man-effect.mtrl";
+
+// // Kenney
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/characterMedium/characterMedium_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
+
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet/defaultobject_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet.tx";
+
+// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/cube/cube_0.mesh";
+// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
 
 class Engine
 {
@@ -133,18 +157,25 @@ class Engine
 
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
-        auto pAssetManager = std::make_shared<AssetManager>();
-        // TODO: Get rid of the default paths
-        pAssetManager->RegisterAssetLoader<Mesh, MeshLoader>(m_pDevice, MODEL_PATH);
-        pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice, TEXTURE_PATH);
-        pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
+        m_pAssetManager = std::make_unique<AssetManager>(m_serviceProvider.GetTaskService());
+        // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
+        // then register each of them with a single function.
+        m_pAssetManager->RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
+        m_pAssetManager->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
+        m_pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
+        m_pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
+        m_pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
+        m_pAssetManager->RegisterAssetLoader<Skeleton, SkeletonLoader>();
 
+        // TODO: Get rid of the default paths
         // Create a default context
         m_componentFactory.context = {
             .graphicsDevice = m_pDevice,
             .defaultTexturePath = TEXTURE_PATH,
             .defaultModelPath = MODEL_PATH,
-            .pAssetManager = pAssetManager};
+            .defaultSkeletonPath = TEST_SKELETON_PATH,
+            .defaultMaterialPath = MATERIAL_PATH,
+            .pAssetManager = m_pAssetManager.get()};
 
         CreateWorld();
         ShareImGuiContext();
@@ -164,6 +195,11 @@ class Engine
     vkg::render::OfflineRenderer m_sceneRenderer;
     vkg::ImGUI m_imgui;
 
+    std::unique_ptr<AssetManager> m_pAssetManager;
+
+    // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
+    ServiceProvider m_serviceProvider;
+
     editor::Editor m_editor;
 
     const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
@@ -176,10 +212,8 @@ class Engine
 
     const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
 
-    std::array<glm::vec3, 2> cubePositions = {
+    std::array<glm::vec3, 1> cubePositions = {
         glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 5.0f, 0.0f),
-        // LIGHT_POSITION
     };
 
     Entity* m_pSelectedEntity = nullptr;
@@ -191,6 +225,8 @@ class Engine
     // Object model
     ComponentFactory m_componentFactory;
     WorldEntity m_worldEntity;
+
+    UpdateContext m_updateContext;
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
@@ -207,6 +243,7 @@ class Engine
 
     void CreateWorld()
     {
+        m_worldEntity.Initialize(m_serviceProvider);
         m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
 
         // Create some entities
@@ -237,15 +274,12 @@ class Engine
         }
 
         int i = 1;
-        for (auto pos : cubePositions)
-        {
-            // TODO: This api is too verbose
-            Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
-            auto pMesh = m_componentFactory.Create<MeshRenderer>();
-            pMesh->SetLocalTransformPosition(pos);
-            pCube->AddComponent(pMesh);
-            i++;
-        }
+        Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
+        auto pMesh = m_componentFactory.Create<SkeletalMeshComponent>();
+        pCube->AddComponent(pMesh);
+        auto pAnim = m_componentFactory.Create<AnimationPlayerComponent>();
+        pCube->AddComponent(pAnim);
+        pCube->CreateSystem<AnimationSystem>();
     }
 
     void setupSkyBox()
@@ -273,6 +307,7 @@ class Engine
             // std::this_thread::sleep_for(std::chrono::seconds(1));
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             Time::Update();
+            m_updateContext.m_deltaTime = Time::GetDeltaTime();
 
             // TODO: Group glfw accesses in a window.NewFrame() method
             // Map GLFW events to the Input system
@@ -285,19 +320,22 @@ class Engine
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
+            m_pAssetManager->Update();
+
+            m_updateContext.m_displayWidth = m_scenePreviewWidth;
+            m_updateContext.m_displayHeight = m_scenePreviewHeight;
+
+            // When out of editor
+            // context.displayWidth = m_window.GetWidth();
+            // context.displayHeight = m_window.GetHeight();
+
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?
             for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
             {
-                aln::entities::UpdateContext context = aln::entities::UpdateContext(static_cast<UpdateStage>(stage));
-                // When out of editor
-                // context.displayWidth = m_window.GetWidth();
-                // context.displayHeight = m_window.GetHeight();
+                m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
 
-                context.displayWidth = m_scenePreviewWidth;
-                context.displayHeight = m_scenePreviewHeight;
-
-                m_worldEntity.Update(context);
+                m_worldEntity.Update(m_updateContext);
             }
 
             // updateSkyboxUBO();
@@ -358,7 +396,7 @@ class Engine
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f));
-                            auto pMesh = m_componentFactory.Create<MeshRenderer>();
+                            auto pMesh = m_componentFactory.Create<StaticMeshComponent>();
                             pMesh->SetLocalTransformPosition(pos);
                             pCube->AddComponent(pMesh);
                             pCube->CreateSystem<ScriptSystem>();
@@ -587,10 +625,13 @@ class Engine
         // Outline panel
         if (ImGui::Begin(ICON_FA_LIST " Outline"))
         {
-            auto& tree = m_worldEntity.GetEntityTree();
-            for (Entity* node : tree)
+            auto& entities = m_worldEntity.GetEntities();
+            for (auto pEntity : entities)
             {
-                RecurseEntityTree(node);
+                if (!pEntity->HasParentEntity())
+                {
+                    RecurseEntityTree(pEntity);
+                }
             }
 
             // Add a dummy panel to the rest of the outline pane
@@ -732,19 +773,12 @@ class Engine
 
 int main()
 {
+#ifdef ALN_DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
+#endif
     std::unique_ptr<aln::Engine> app = std::make_unique<aln::Engine>();
+    app->run();
 
-    try
-    {
-        app->run();
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
     app.reset();
     return EXIT_SUCCESS;
 };
