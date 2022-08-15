@@ -56,8 +56,7 @@ class MeshComponent : public entities::SpatialComponent
     virtual void Construct(const entities::ComponentCreationContext& ctx) override
     {
         m_pAssetManager = ctx.pAssetManager;
-        m_pMaterial = ctx.pAssetManager->Get<Material>("DefaultMaterial");
-        m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>(ctx.defaultTexturePath));
+        m_pMaterial = AssetHandle<Material>(ctx.defaultMaterialPath);
         m_pDevice = ctx.graphicsDevice;
     }
 
@@ -76,14 +75,6 @@ class MeshComponent : public entities::SpatialComponent
     virtual void Load() override;
     virtual void Unload() override;
 
-    bool UpdateLoadingStatus() override
-    {
-        if (m_pMesh->IsLoaded() && m_pMaterial->IsLoaded())
-        {
-            m_status = Status::Loaded;
-        }
-
-        return IsLoaded();
-    }
+    virtual bool UpdateLoadingStatus() override = 0;
 };
 } // namespace aln

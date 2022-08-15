@@ -26,34 +26,26 @@ vk::DescriptorSet& MeshComponent::GetDescriptorSet() { return m_vkDescriptorSet.
 
 void MeshComponent::Initialize()
 {
+    assert(m_pMaterial.IsLoaded());
     CreateUniformBuffer();
-    m_pAssetManager->Initialize<Material>(m_pMaterial);
     CreateDescriptorSet();
 }
 
 void MeshComponent::Shutdown()
 {
     m_vkDescriptorSet.reset();
-
-    m_pAssetManager->Shutdown<Material>(m_pMaterial);
-
     m_uniformBuffer = vkg::resources::Buffer();
 
     m_pDevice.reset();
 }
 
-bool MeshComponent::Load()
+void MeshComponent::Load()
 {
-    if (!m_pAssetManager->Load<Material>(m_pMaterial))
-    {
-        return false;
-    }
-
-    return true;
+    m_pAssetManager->Load(m_pMaterial);
 }
 
 void MeshComponent::Unload()
 {
-    m_pAssetManager->Unload<Material>(m_pMaterial);
+    m_pAssetManager->Unload(m_pMaterial);
 }
 } // namespace aln

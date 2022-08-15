@@ -35,7 +35,7 @@ class AnimationGraphComponent : public entities::IComponent
     ALN_REGISTER_TYPE();
 
   private:
-    std::shared_ptr<AssetManager> m_pAssetManager = nullptr;
+    AssetManager* m_pAssetManager = nullptr;
     AssetHandle<Skeleton> m_pSkeleton;                   // Animation skeleton
     PlaceHolderAnimationGraphInstance* m_pGraphInstance; // TODO: AnimationGraphInstance
 
@@ -50,36 +50,23 @@ class AnimationGraphComponent : public entities::IComponent
     void Construct(const entities::ComponentCreationContext& ctx) override
     {
         m_pAssetManager = ctx.pAssetManager;
-        m_pSkeleton = ctx.pAssetManager->Get<Skeleton>("tmp.anim"); // TODO
+        m_pSkeleton = AssetHandle<Skeleton>("tmp.anim");
 
         // TODO:
         m_pGraphInstance = new PlaceHolderAnimationGraphInstance(m_pSkeleton.get());
-        m_pGraphInstance->m_pAnimationClip = ctx.pAssetManager->Get<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
+        m_pGraphInstance->m_pAnimationClip = AssetHandle<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
     }
 
-    void Initialize() override
+    void Load() override
     {
-        m_pAssetManager->Initialize<AnimationClip>(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetManager->Initialize<Skeleton>(m_pSkeleton);
-    }
-
-    void Shutdown() override
-    {
-        m_pAssetManager->Shutdown<AnimationClip>(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetManager->Shutdown<Skeleton>(m_pSkeleton);
-    }
-
-    bool Load() override
-    {
-        m_pAssetManager->Load<AnimationClip>(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetManager->Load<Skeleton>(m_pSkeleton);
-        return true;
+        m_pAssetManager->Load(m_pGraphInstance->m_pAnimationClip);
+        m_pAssetManager->Load(m_pSkeleton);
     }
 
     void Unload() override
     {
-        m_pAssetManager->Unload<AnimationClip>(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetManager->Unload<Skeleton>(m_pSkeleton);
+        m_pAssetManager->Unload(m_pGraphInstance->m_pAnimationClip);
+        m_pAssetManager->Unload(m_pSkeleton);
     }
 };
 } // namespace aln

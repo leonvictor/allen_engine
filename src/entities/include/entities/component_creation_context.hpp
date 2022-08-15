@@ -22,6 +22,7 @@ struct ComponentCreationContext
     std::string defaultTexturePath;
     std::string defaultModelPath;
     std::string defaultSkeletonPath;
+    std::string defaultMaterialPath;
     AssetManager* pAssetManager;
 };
 

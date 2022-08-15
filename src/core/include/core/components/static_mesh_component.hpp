@@ -21,8 +21,7 @@ class StaticMeshComponent : public MeshComponent
     virtual void Construct(const entities::ComponentCreationContext& ctx) override
     {
         MeshComponent::Construct(ctx);
-        m_pMesh = ctx.pAssetManager->Get<StaticMesh>("D:/Dev/allen_engine/assets/models/assets_export/cube/cube.mesh");
-        m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>("D:/Dev/allen_engine/assets/models/assets_export/cube/chalet.text"));
+        m_pMesh = AssetHandle<StaticMesh>("D:/Dev/allen_engine/assets/models/assets_export/cube/cube.mesh");
     }
 
     // TODO: Descriptor allocation and update is managed by the swapchain.
@@ -97,32 +96,26 @@ class StaticMeshComponent : public MeshComponent
     }
 
   private:
-    void Initialize() override
+    void Load() override
     {
-        m_pAssetManager->Initialize<StaticMesh>(m_pMesh);
-        MeshComponent::Initialize();
-    }
-
-    void Shutdown() override
-    {
-        m_pAssetManager->Shutdown<StaticMesh>(m_pMesh);
-        MeshComponent::Shutdown();
-    }
-
-    bool Load() override
-    {
-        if (!m_pAssetManager->Load<StaticMesh>(m_pMesh))
-        {
-            std::cout << "Failed to load mesh ressource" << std::endl;
-            return false;
-        }
-        return MeshComponent::Load();
+        m_pAssetManager->Load(m_pMesh);
+        MeshComponent::Load();
     }
 
     void Unload() override
     {
-        m_pAssetManager->Unload<StaticMesh>(m_pMesh);
+        m_pAssetManager->Unload(m_pMesh);
         MeshComponent::Unload();
+    }
+
+    bool UpdateLoadingStatus() override
+    {
+        if (m_pMesh.IsLoaded() && m_pMaterial.IsLoaded())
+        {
+            m_status = Status::Loaded;
+        }
+
+        return IsLoaded();
     }
 };
 } // namespace aln
