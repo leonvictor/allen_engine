@@ -1,6 +1,10 @@
 #pragma once
 
 #include "asset.hpp"
+#include "asset_id.hpp"
+#include "status.hpp"
+
+#include <vector>
 
 namespace aln
 {
@@ -9,9 +13,17 @@ namespace aln
 class AssetRecord
 {
     friend class AssetManager;
+    friend class AssetRequest;
+    friend class AssetLoader;
 
   private:
+    AssetID m_assetID;
     IAsset* m_pAsset = nullptr;
+
+    std::vector<AssetID> m_dependencies;
+
+    // Runtime state
+    AssetStatus m_status = AssetStatus::Unloaded;
     uint32_t m_referenceCount = 0;
 
     void AddReference() { m_referenceCount++; }
@@ -19,12 +31,18 @@ class AssetRecord
     uint32_t GetReferenceCount() { return m_referenceCount; }
 
   public:
-    AssetGUID GetID()
-    {
-        assert(m_pAsset != nullptr);
-        return m_pAsset->GetID();
-    }
+    AssetRecord(AssetID assetID) : m_assetID(assetID) {}
 
+    // ------------------------------
+    // IDs
+    // ------------------------------
+    const AssetID& GetAssetID() const { return m_assetID; }
+    const AssetTypeID& GetAssetTypeID() const { return m_assetID.GetAssetTypeID(); }
+    const std::string& GetAssetPath() const { return m_assetID.GetAssetPath(); }
+
+    // ------------------------------
+    // Underlying asset access
+    // ------------------------------
     template <typename T>
     T* GetAsset()
     {
@@ -32,14 +50,30 @@ class AssetRecord
         return static_cast<T*>(m_pAsset);
     }
 
-    IAsset* GetAsset()
+    const IAsset* GetAsset() const
     {
         assert(m_pAsset != nullptr);
         return m_pAsset;
     }
 
-    operator bool() const { return m_pAsset != nullptr; }
+    void SetAsset(IAsset* pAsset) { m_pAsset = pAsset; }
 
+    // ------------------------------
+    // Status management
+    // ------------------------------
+    AssetStatus GetStatus() const { return m_status; }
+    inline bool IsLoaded() const { return m_status == AssetStatus::Loaded; }
+    inline bool IsUnloaded() const { return m_status == AssetStatus::Unloaded; }
+
+    // ------------------------------
+    // Dependencies
+    // ------------------------------
+    bool HasDependencies() const { return !m_dependencies.empty(); }
+    const std::vector<AssetID>& GetDependencies() const { return m_dependencies; }
+    /// @todo: Remove when dependencies are correctly loaded from asset metadata
+    void AddDependency(const AssetID& assetID) { m_dependencies.push_back(assetID); }
+
+    operator bool() const { return m_pAsset != nullptr; }
     bool operator==(const AssetRecord& other) const
     {
         return m_pAsset != nullptr && other.m_pAsset != nullptr && m_pAsset == other.m_pAsset;
