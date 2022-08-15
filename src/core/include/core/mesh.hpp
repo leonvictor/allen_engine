@@ -46,8 +46,6 @@ class Mesh : public IAsset
     void FreeGraphicResources();
 
   public:
-    Mesh(AssetID& id) : IAsset(id) {}
-
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
 };
 } // namespace aln

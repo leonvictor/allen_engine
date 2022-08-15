@@ -27,8 +27,6 @@ class Skeleton : public IAsset
     std::vector<Transform> m_globalReferencePose;
 
   public:
-    Skeleton(AssetID& id) : IAsset(id) {}
-
     inline size_t GetBonesCount() const { return m_bones.size(); }
     inline const Bone* GetBone(BoneIndex index) const { return &m_bones[index]; }
 

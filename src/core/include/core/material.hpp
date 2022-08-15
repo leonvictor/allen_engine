@@ -28,23 +28,6 @@ class Material : public IAsset
     AssetHandle<Texture> m_albedoMap;
 
   public:
-    Material(AssetID& guid) : IAsset(guid) {}
-
-    /// @todo Remove. Asset can't be modified
-    void SetAlbedoMap(const AssetHandle<Texture>& pTex)
-    {
-        if (pTex == m_albedoMap)
-            return;
-
-        assert(IAsset::IsUnloaded());
-
-        if (m_albedoMap)
-            RemoveDependency(m_albedoMap->GetID());
-
-        AddDependency<Texture>(pTex->GetID());
-        m_albedoMap = pTex;
-    }
-
     inline const AssetHandle<Texture>& GetAlbedoMap() const { return m_albedoMap; }
     inline const vkg::resources::Buffer& GetBuffer() const { return m_buffer; }
 };

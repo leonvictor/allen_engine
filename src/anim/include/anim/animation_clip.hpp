@@ -23,8 +23,6 @@ class AnimationClip : public IAsset
     friend class AnimationLoader;
 
   public:
-    AnimationClip(AssetID& id) : IAsset(id) {}
-
     /// @brief Sample the clip at a specific time
     /// @param time: Time to sample at
     /// @param pOutPose: Buffer to populate with the sampled pose

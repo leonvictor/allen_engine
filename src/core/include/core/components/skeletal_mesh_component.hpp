@@ -29,12 +29,14 @@ class SkeletalMeshComponent : public MeshComponent
     ALN_REGISTER_TYPE();
 
   private:
-    vk::UniqueDescriptorSet m_vkSkinDescriptorSet;
     AssetHandle<SkeletalMesh> m_pMesh;
     AssetHandle<Skeleton> m_pSkeleton; // Animation Skeleton
 
-    std::vector<glm::mat4x4> m_skinningTransforms;
     std::vector<Transform> m_boneTransforms; // Bone transforms, in global character space
+
+    std::vector<glm::mat4x4> m_skinningTransforms;
+    vkg::resources::Buffer m_skinningBuffer;
+    vk::UniqueDescriptorSet m_vkSkinDescriptorSet;
 
     // AssetHandle<Skeleton> m_pSkeleton; // Rendering skeleton
 
@@ -69,11 +71,8 @@ class SkeletalMeshComponent : public MeshComponent
     void Construct(const entities::ComponentCreationContext& ctx) override
     {
         MeshComponent::Construct(ctx);
-        m_pMesh = ctx.pAssetManager->Get<SkeletalMesh>(ctx.defaultModelPath);
-        m_pSkeleton = ctx.pAssetManager->Get<Skeleton>(ctx.defaultSkeletonPath);
-        m_pMaterial = ctx.pAssetManager->Get<Material>("DefaultMaterial");
-        m_pMaterial->SetAlbedoMap(m_pAssetManager->Get<Texture>(ctx.defaultTexturePath));
-        m_pDevice = ctx.graphicsDevice;
+        m_pMesh = AssetHandle<SkeletalMesh>(ctx.defaultModelPath);
+        m_pSkeleton = AssetHandle<Skeleton>(ctx.defaultSkeletonPath);
     }
 
     static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
@@ -152,7 +151,7 @@ class SkeletalMeshComponent : public MeshComponent
         writeDescriptors[3].dstArrayElement = 0;
         writeDescriptors[3].descriptorType = vk::DescriptorType::eStorageBuffer;
         writeDescriptors[3].descriptorCount = 1;
-        auto skinningBufferDescriptor = m_pMesh->GetSkinningBuffer().GetDescriptor();
+        auto skinningBufferDescriptor = m_skinningBuffer.GetDescriptor();
         writeDescriptors[3].pBufferInfo = &skinningBufferDescriptor; // TODO: Replace w/ push constants ?
 
         m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
@@ -163,9 +162,13 @@ class SkeletalMeshComponent : public MeshComponent
 
     void Initialize() override
     {
+        assert(m_pMesh.IsLoaded() && m_pSkeleton.IsLoaded());
+        assert(m_pMesh->m_bindPose.size() > 0);
+
         // TODO:
-        // m_pAssetManager->Initialize<Skeleton>(m_pSkeleton);
-        m_pAssetManager->Initialize<SkeletalMesh>(m_pMesh);
+        m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
+        // TODO: The buffer should be device-local
+        m_skinningBuffer = vkg::resources::Buffer(m_pDevice, m_pMesh->m_inverseBindPose.size() * sizeof(glm::mat4x4), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
         // Initialize the bone mapping
         const auto boneCount = m_pSkeleton->GetBonesCount();
@@ -183,40 +186,34 @@ class SkeletalMeshComponent : public MeshComponent
 
     void Shutdown() override
     {
-        // TODO:
-        // m_pAssetManager->Shutdown<Skeleton>(m_pSkeleton);
         m_animToRenderBonesMap.clear();
         m_skinningTransforms.clear();
         m_boneTransforms.clear();
-        m_pAssetManager->Shutdown<SkeletalMesh>(m_pMesh);
         MeshComponent::Shutdown();
     }
 
-    bool Load() override
+    void Load() override
     {
-        // TODO:
-        // m_pAssetManager->Load<Skeleton>(m_pSkeleton);
-
-        if (!m_pAssetManager->Load<SkeletalMesh>(m_pMesh))
-        {
-            std::cout << "Failed to load mesh ressource" << std::endl;
-            return false;
-        }
-
-        m_pAssetManager->Load<Skeleton>(m_pSkeleton);
-
-        m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
-
-        return MeshComponent::Load();
+        m_pAssetManager->Load(m_pMesh);
+        m_pAssetManager->Load(m_pSkeleton);
+        MeshComponent::Load();
     }
 
     void Unload() override
     {
-        // TODO:
-        // m_pAssetManager->Unload<Skeleton>(m_pSkeleton);
         m_skinningTransforms.clear();
-        m_pAssetManager->Unload<SkeletalMesh>(m_pMesh);
+        m_pAssetManager->Unload(m_pMesh);
         MeshComponent::Unload();
+    }
+
+    bool UpdateLoadingStatus() override
+    {
+        if (m_pMesh.IsLoaded() && m_pSkeleton.IsLoaded() && m_pMaterial.IsLoaded())
+        {
+            m_status = Status::Loaded;
+        }
+
+        return IsLoaded();
     }
 
     /// @brief Draw this skeletal mesh's skeleton
