@@ -9,6 +9,9 @@ add_library(${LIB_NAME}
     src/asset_system/animation_clip_asset.cpp
     src/asset_system/skeletal_mesh_asset.cpp
     src/asset_system/skeleton_asset.cpp
+
+    src/request.cpp
+    src/manager.cpp
     
     src/type_descriptors/handle.cpp
     )
@@ -19,7 +22,7 @@ set(LIB_DEPENDENCIES
     common
     )
 
-set(LIB_LINK_DEPENDENCIES reflection common)
+set(LIB_LINK_DEPENDENCIES reflection common lz4_static)
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
@@ -34,8 +37,8 @@ target_include_directories(${LIB_NAME}
         $<INSTALL_INTERFACE:include >
 
 )
-target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
+
 target_link_libraries(
     ${LIB_NAME} 
     PUBLIC ${LIB_LINK_DEPENDENCIES}
-    lz4_static)
+    )
