@@ -1,5 +1,4 @@
 #include "request.hpp"
-#include "asset_service.hpp"
 #include "status.hpp"
 
 namespace aln
@@ -31,7 +30,7 @@ void AssetRequest::Load()
         for (auto& dependencyID : dependencies)
         {
             auto& dependencyHandle = m_dependencies.emplace_back(IAssetHandle(dependencyID));
-            m_pAssetService->Load(dependencyHandle);
+            m_requestAssetLoad(dependencyHandle);
         }
     }
 }
@@ -67,6 +66,7 @@ void AssetRequest::Install()
 
 void AssetRequest::Unload()
 {
+    // TODO: Submit an unloading request
     m_pLoader->UnloadAsset(m_pAssetRecord);
 
     m_pAssetRecord->m_status = AssetStatus::Unloaded;

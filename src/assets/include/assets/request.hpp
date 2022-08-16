@@ -34,7 +34,9 @@ struct AssetRequest
     GUID m_requesterEntityID;
     AssetRecord* m_pAssetRecord = nullptr;
     AssetLoader* m_pLoader = nullptr;
-    AssetService* m_pAssetService = nullptr;
+
+    std::function<void(IAssetHandle&)> m_requestAssetLoad;
+    std::function<void(IAssetHandle&)> m_requestAssetUnload;
 
     Type m_type = Type::Invalid;
     State m_status = State::Invalid;

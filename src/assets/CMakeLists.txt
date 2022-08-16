@@ -10,7 +10,7 @@ add_library(${LIB_NAME}
     src/asset_system/skeleton_asset.cpp
 
     src/request.cpp
-    src/manager.cpp
+    src/asset_service.cpp
     
     src/type_descriptors/handle.cpp
     )

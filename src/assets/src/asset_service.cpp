@@ -126,7 +126,8 @@ void AssetService::HandleActiveRequests()
     {
         auto pRequest = &m_activeRequests[idx];
         pRequest->m_pLoader = m_loaders.at(pRequest->m_pAssetRecord->GetAssetTypeID()).get();
-        pRequest->m_pAssetService = this;
+        pRequest->m_requestAssetLoad = std::bind(&AssetService::Load, this, std::placeholders::_1);
+        pRequest->m_requestAssetUnload = std::bind(&AssetService::Unload, this, std::placeholders::_1);
 
         if (pRequest->IsLoadingRequest())
         {
