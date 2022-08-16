@@ -15,14 +15,14 @@
 namespace aln::vkg::resources
 {
 
-Image::Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+Image::Image(Device* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
     vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
     m_pDevice = pDevice;
     InitImage(width, height, mipLevels, numSamples, format, tiling, usage, arrayLayers, flags, layout, type);
 }
 
-Image::Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format)
+Image::Image(Device* pDevice, vk::Image& image, vk::Format format)
 {
     m_pDevice = pDevice;
     m_externallyOwnedImage = true;
@@ -492,7 +492,7 @@ std::vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBinding
     return bindings;
 }
 
-Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
+Image Image::FromBuffer(Device* pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
 {
     Image image = Image(pDevice, width, height, mipLevels,
         vk::SampleCountFlagBits::e1, format, vk::ImageTiling::eOptimal,
@@ -515,13 +515,12 @@ Image Image::FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_
                 else
                 {
                     image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
-                }
-            });
+                } });
 
     return std::move(image);
 }
 
-Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string path)
+Image Image::CubemapFromDirectory(Device* pDevice, std::string path)
 {
     // TODO: Quick and dirty way of storing faces names for now
     // Generate optimized file ?
@@ -605,8 +604,7 @@ Image Image::CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string p
         {
             image.TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
             stagingBuffer.CopyTo(cb, image);
-            image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
-        });
+            image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal); });
     return std::move(image);
 }
 } // namespace aln::vkg::resources

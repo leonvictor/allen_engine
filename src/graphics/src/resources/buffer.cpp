@@ -10,7 +10,7 @@ namespace aln::vkg::resources
 {
 Buffer::Buffer() {} // Empty ctor is required for now. Todo: Remove when we can
 
-Buffer::Buffer(std::shared_ptr<Device> pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
+Buffer::Buffer(Device* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
 {
     Initialize(pDevice, size, usage, memProperties, data);
 }
@@ -88,7 +88,7 @@ void Buffer::Allocate(const vk::MemoryPropertyFlags& memProperties)
     m_pDevice->GetVkDevice().bindBufferMemory(m_vkBuffer.get(), m_memory.get(), 0);
 }
 
-void Buffer::Initialize(std::shared_ptr<Device> pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
+void Buffer::Initialize(Device* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
 {
     m_pDevice = pDevice;
     m_size = size;

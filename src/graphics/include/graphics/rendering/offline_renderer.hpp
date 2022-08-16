@@ -82,7 +82,7 @@ class OfflineRenderer : public IRenderer
   public:
     OfflineRenderer() {}
 
-    void Create(std::shared_ptr<Device> pDevice, int width, int height, int nTargetImages, vk::Format colorImageFormat)
+    void Create(Device* pDevice, int width, int height, int nTargetImages, vk::Format colorImageFormat)
     {
         m_nTargetImages = nTargetImages;
         CreateInternal(pDevice, width, height, colorImageFormat);

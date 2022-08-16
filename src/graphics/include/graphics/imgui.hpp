@@ -28,7 +28,7 @@ class ImGUI
         ImGui::DestroyContext();
     }
 
-    void Initialize(GLFWwindow* pGlfwWindow, std::shared_ptr<Device> pDevice, RenderPass& renderPass, int nSwapchainImages)
+    void Initialize(GLFWwindow* pGlfwWindow, Device* pDevice, RenderPass& renderPass, int nSwapchainImages)
     {
         // Initialize Imgui context
         IMGUI_CHECKVERSION();

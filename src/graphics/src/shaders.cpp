@@ -9,7 +9,7 @@
 namespace aln::vkg::shaders
 {
 
-vk::ShaderModule CreateShaderModule(std::shared_ptr<Device> device, const std::string& filename)
+vk::ShaderModule CreateShaderModule(Device* device, const std::string& filename)
 {
     std::string ext = utils::getFileExtension(filename);
 
@@ -41,7 +41,7 @@ vk::ShaderModule CreateShaderModule(std::shared_ptr<Device> device, const std::s
 /// @brief Load a shader from a file.
 /// @param filename: shader file path (glsl or spirv)
 /// @return the vulkan createInfo struct to add to a pipeline.
-ShaderInfo LoadShader(std::shared_ptr<Device> device, const std::string& filename, const vk::ShaderStageFlagBits stage, std::string entryPoint)
+ShaderInfo LoadShader(Device* device, const std::string& filename, const vk::ShaderStageFlagBits stage, std::string entryPoint)
 {
     ShaderInfo info;
     info.module = CreateShaderModule(device, filename);

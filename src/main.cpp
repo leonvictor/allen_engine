@@ -127,18 +127,18 @@ class Engine
         m_instance.Create();
         m_window.CreateSurface(&m_instance);
 
-        m_pDevice = std::make_shared<vkg::Device>(&m_instance, m_window.GetVkSurface());
-        m_swapchain = vkg::Swapchain(m_pDevice, &m_window);
+        m_device.Initialize(&m_instance, m_window.GetVkSurface());
+        m_swapchain = vkg::Swapchain(&m_device, &m_window);
 
         m_renderer.Create(&m_swapchain);
 
         m_sceneRenderer.Create(
-            m_pDevice,
+            &m_device,
             m_window.GetWidth(), m_window.GetHeight(),
             2,
             m_swapchain.GetImageFormat());
 
-        m_imgui.Initialize(m_window.GetGLFWWindow(), m_pDevice, m_renderer.GetRenderPass(), m_renderer.GetNumberOfImages());
+        m_imgui.Initialize(m_window.GetGLFWWindow(), &m_device, m_renderer.GetRenderPass(), m_renderer.GetNumberOfImages());
 
         // Register callbacks to transfer events from the window to the input system
         // TODO: Ideally this would be managed entirelly by the input system, without a dependency on the window
@@ -146,7 +146,7 @@ class Engine
         m_window.AddMouseButtonCallback(std::bind(Input::UpdateMouseControlState, std::placeholders::_1, std::placeholders::_2));
         m_window.AddScrollCallback(std::bind(Input::UpdateScrollControlState, std::placeholders::_1, std::placeholders::_2));
 
-        // TODO: Get rid of all the references to m_pDevice
+        // TODO: Get rid of all the references to m_device
         // They should not be part of this class
 
         setupSkyBox();
@@ -158,10 +158,10 @@ class Engine
 
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
-        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
-        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
-        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
-        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
+        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&m_device);
         m_assetService.RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
         m_assetService.RegisterAssetLoader<Skeleton, SkeletonLoader>();
 
@@ -180,7 +180,7 @@ class Engine
   private:
     vkg::Instance m_instance;
     vkg::Window m_window;
-    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Device m_device;
     vkg::Swapchain m_swapchain;
     vkg::render::SwapchainRenderer m_renderer;
     vkg::render::OfflineRenderer m_sceneRenderer;
@@ -268,7 +268,7 @@ class Engine
         pMesh->SetMesh(MODEL_PATH);
         pMesh->SetSkeleton(TEST_SKELETON_PATH);
         pMesh->SetMaterial(MATERIAL_PATH);
-        pMesh->SetRenderDevice(m_pDevice);
+        pMesh->SetRenderDevice(&m_device);
 
         auto pAnim = aln::New<AnimationPlayerComponent>();
         pAnim->SetSkeleton("D:/Dev/allen_engine/assets/assets_export/CesiumMan/Armature.skel");
@@ -282,7 +282,7 @@ class Engine
 
     void setupSkyBox()
     {
-        // skybox = std::make_shared<Skybox>(m_pDevice, "", MODEL_PATH);
+        // skybox = std::make_shared<Skybox>(m_device, "", MODEL_PATH);
         // updateSkyboxUBO();
     }
 
@@ -357,7 +357,7 @@ class Engine
             m_renderer.EndFrame();
         }
 
-        m_pDevice->GetVkDevice().waitIdle();
+        m_device.GetVkDevice().waitIdle();
 
         FrameMark;
     }

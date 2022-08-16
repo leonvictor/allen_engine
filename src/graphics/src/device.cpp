@@ -9,10 +9,8 @@
 namespace aln::vkg
 {
 
-Device::Device() {}
-
 /// @brief Create a vulkan device.
-Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
+void Device::Initialize(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
 {
     m_pInstance = pInstance;
     m_physical = PickPhysicalDevice(surface);
@@ -24,8 +22,8 @@ Device::Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
     SetDebugUtilsObjectName(m_commandpools.graphics.m_vkCommandPool.get(), "Graphics Command Pool");
     m_commandpools.transfer = CommandPool(&m_logical.get(), &m_queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
     SetDebugUtilsObjectName(m_commandpools.transfer.m_vkCommandPool.get(), "Transfer Command Pool");
-    m_msaaSamples = GetMaxUsableSampleCount();
 
+    m_msaaSamples = GetMaxUsableSampleCount();
     m_descriptorAllocator.Init(&m_logical.get());
 }
 

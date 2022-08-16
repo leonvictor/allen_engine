@@ -17,10 +17,10 @@ class Buffer : public Allocation
 {
   public:
     Buffer(); // Empty ctor is required for now. Todo: Remove when we can
-    Buffer(std::shared_ptr<Device> device, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data = nullptr);
+    Buffer(Device* device, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data = nullptr);
 
     template <typename T>
-    Buffer(std::shared_ptr<Device> device, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const std::vector<T>& data)
+    Buffer(Device* device, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const std::vector<T>& data)
     {
         vk::DeviceSize size = sizeof(T) * data.size();
         Initialize(device, size, usage, memProperties, data.data());
@@ -45,7 +45,7 @@ class Buffer : public Allocation
 
     void CreateBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags& usage);
     void Allocate(const vk::MemoryPropertyFlags& memProperties);
-    void Initialize(std::shared_ptr<Device> pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data);
+    void Initialize(Device* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data);
 };
 } // namespace resources
 } // namespace aln::vkg

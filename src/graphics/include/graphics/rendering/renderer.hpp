@@ -67,7 +67,7 @@ class IRenderer
 
     State m_state = State::Uninitialized;
 
-    std::shared_ptr<Device> m_pDevice;
+    Device* m_pDevice;
 
     uint32_t m_currentFrameIndex = 0; // Frame index
     uint32_t m_activeImageIndex = 0;  // Active image index
@@ -93,7 +93,7 @@ class IRenderer
 
     IRenderer() {}
 
-    void CreateInternal(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
+    void CreateInternal(Device* pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
     {
         m_pDevice = pDevice;
         m_width = width;
@@ -304,7 +304,7 @@ class IRenderer
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    std::shared_ptr<Device> GetDevice()
+    Device* GetDevice()
     {
         // TODO: Get rid of all the references.
         std::cout << "Warning: accessing device outside of renderer context." << std::endl;

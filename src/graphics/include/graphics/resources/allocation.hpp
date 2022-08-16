@@ -15,7 +15,7 @@ namespace aln::vkg::resources
 class Allocation
 {
   protected:
-    std::shared_ptr<Device> m_pDevice;
+    Device* m_pDevice;
     vk::UniqueDeviceMemory m_memory;
     vk::DeviceSize m_size;
 

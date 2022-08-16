@@ -30,10 +30,10 @@ vk::Format MapAssetFormatToVulkan(assets::TextureFormat& format)
 class TextureLoader : public IAssetLoader
 {
   private:
-    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Device* m_pDevice;
 
   public:
-    TextureLoader(std::shared_ptr<vkg::Device> pDevice)
+    TextureLoader(vkg::Device* pDevice)
     {
         m_pDevice = pDevice;
     }

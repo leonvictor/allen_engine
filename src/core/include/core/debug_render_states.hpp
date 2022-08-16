@@ -28,7 +28,7 @@ class LinesRenderState
     vk::UniqueDescriptorSet m_descriptorSet;
 
   public:
-    void Initialize(std::shared_ptr<vkg::Device> pDevice, vkg::render::IRenderer* pRenderer)
+    void Initialize(vkg::Device* pDevice, vkg::render::IRenderer* pRenderer)
     {
         auto bufferSize = MaxLinesPerDrawCall * sizeof(DebugVertex) * 2;
 

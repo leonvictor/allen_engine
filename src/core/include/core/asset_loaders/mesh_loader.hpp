@@ -14,10 +14,10 @@ namespace aln
 class MeshLoader : public IAssetLoader
 {
   private:
-    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Device* m_pDevice;
 
   public:
-    MeshLoader(std::shared_ptr<vkg::Device> pDevice) : m_pDevice(pDevice) {}
+    MeshLoader(vkg::Device* pDevice) : m_pDevice(pDevice) {}
 
     bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
     {

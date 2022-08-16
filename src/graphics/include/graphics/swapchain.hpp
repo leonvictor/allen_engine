@@ -17,7 +17,7 @@ class Swapchain
   public:
     Swapchain() {}
 
-    Swapchain(std::shared_ptr<Device> pDevice, vkg::Window* pWindow);
+    Swapchain(Device* pDevice, vkg::Window* pWindow);
 
     uint32_t AcquireNextImage(vk::Semaphore& semaphore);
 
@@ -28,7 +28,7 @@ class Swapchain
     inline uint32_t GetWidth() const { return m_extent.width; }
     inline uint32_t GetHeight() const { return m_extent.height; }
     inline vk::Extent2D GetExtent() const { return m_extent; }
-    inline std::shared_ptr<Device> GetDevice() const { return m_pDevice; }
+    inline Device* GetDevice() const { return m_pDevice; }
 
     /// @brief Recreate the swapchain with the desired size. Will also trigger registered callbacks.
     void Resize(uint32_t width, uint32_t height);
@@ -46,7 +46,7 @@ class Swapchain
     vk::SurfaceFormatKHR m_surfaceFormat;
     vk::Extent2D m_extent;
 
-    std::shared_ptr<Device> m_pDevice;
+    Device* m_pDevice;
     uint32_t m_width, m_height;
     uint32_t m_activeImageIndex;
     bool m_resizeRequired = false;
@@ -66,4 +66,4 @@ class Swapchain
 
     vk::PresentModeKHR ChoosePresentMode(const std::vector<vk::PresentModeKHR>& availableModes);
 };
-} // namespace vkg
+} // namespace aln::vkg

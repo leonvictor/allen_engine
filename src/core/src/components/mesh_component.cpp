@@ -35,8 +35,6 @@ void MeshComponent::Shutdown()
 {
     m_vkDescriptorSet.reset();
     m_uniformBuffer = vkg::resources::Buffer();
-
-    m_pDevice.reset();
 }
 
 void MeshComponent::Load(const entities::LoadingContext& loadingContext)

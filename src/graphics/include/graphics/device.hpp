@@ -73,8 +73,8 @@ class Device
     static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, std::vector<const char*> requiredExtensions);
 
   public:
-    Device();
-    Device(vkg::Instance* pInstance, const vk::SurfaceKHR& surface);
+    Device() {};
+    void Initialize(vkg::Instance* pInstance, const vk::SurfaceKHR& surface);
 
     SwapchainSupportDetails GetSwapchainSupport(const vk::SurfaceKHR& surface);
 

@@ -23,11 +23,11 @@ class Skybox
     vkg::resources::Image texture;
     vk::UniqueDescriptorSet descriptorSet;
     Transform transform;
-    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Device* m_pDevice;
 
     Skybox() {}
 
-    Skybox(std::shared_ptr<vkg::Device> pDevice, std::string texturePath, std::string modelPath)
+    Skybox(vkg::Device* pDevice, std::string texturePath, std::string modelPath)
     {
         // TODO: Change to new entity system
         // m_pDevice = pDevice;

@@ -33,7 +33,7 @@ class Pipeline
 
     Pipeline() {}
 
-    explicit Pipeline(std::shared_ptr<Device> pDevice)
+    explicit Pipeline(Device* pDevice)
     {
         m_pDevice = pDevice;
         InitializeInternal();
@@ -78,7 +78,7 @@ class Pipeline
     void AddDynamicState(vk::DynamicState state);
     void SetDepthTestWriteEnable(bool testEnable, bool writeEnable, vk::CompareOp compareOp = vk::CompareOp::eLess);
     void SetDepthBoundsTestEnable(bool enable, float minDepthBounds, float maxDepthBounds);
-    
+
     void SetRasterizerCullMode(vk::CullModeFlagBits cullMode);
 
     void SetBindPoint(vk::PipelineBindPoint bindPoint);
@@ -101,7 +101,7 @@ class Pipeline
     inline vk::Pipeline& GetVkPipeline() { return m_vkPipeline.get(); }
 
   private:
-    std::shared_ptr<Device> m_pDevice;
+    Device* m_pDevice;
     vk::UniquePipelineLayout m_layout;
     vk::GraphicsPipelineCreateInfo m_pipelineCreateInfo;
     std::vector<shaders::ShaderInfo> m_shaderStages;

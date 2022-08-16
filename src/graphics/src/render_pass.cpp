@@ -3,7 +3,7 @@
 namespace aln::vkg
 {
 
-RenderPass::RenderPass(std::shared_ptr<Device> pDevice, int width, int height)
+RenderPass::RenderPass(Device* pDevice, int width, int height)
 {
     assert(pDevice);
 

@@ -15,10 +15,10 @@ namespace aln
 class AnimationLoader : public IAssetLoader
 {
   private:
-    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Device* m_pDevice;
 
   public:
-    AnimationLoader(std::shared_ptr<vkg::Device> pDevice)
+    AnimationLoader(vkg::Device* pDevice)
     {
         m_pDevice = pDevice;
     }

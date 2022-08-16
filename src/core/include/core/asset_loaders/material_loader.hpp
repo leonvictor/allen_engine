@@ -14,10 +14,10 @@ namespace aln
 class MaterialLoader : public IAssetLoader
 {
   private:
-    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Device* m_pDevice;
 
   public:
-    MaterialLoader(std::shared_ptr<vkg::Device> pDevice)
+    MaterialLoader(vkg::Device* pDevice)
     {
         m_pDevice = pDevice;
     }

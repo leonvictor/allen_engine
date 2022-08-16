@@ -9,7 +9,7 @@
 namespace aln::vkg
 {
 
-Swapchain::Swapchain(std::shared_ptr<Device> pDevice, vkg::Window* pWindow)
+Swapchain::Swapchain(Device* pDevice, vkg::Window* pWindow)
 {
     m_pDevice = pDevice;
     m_pWindow = pWindow;

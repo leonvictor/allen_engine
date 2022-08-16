@@ -107,17 +107,17 @@ class Image : public Allocation
 
     /// @brief Create a new empty vulkan image.
     /// @todo Maybe move this to a Create() fn ?
-    Image(std::shared_ptr<Device> pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    Image(Device* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
         vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
 
     /// @brief Wrap an existing VkImage. The original image won't be automatically destroyed.
-    Image(std::shared_ptr<Device> pDevice, vk::Image& image, vk::Format format);
+    Image(Device* pDevice, vk::Image& image, vk::Format format);
 
     /// @brief Create an image an upload the content of a buffer to it.
-    static Image FromBuffer(std::shared_ptr<Device> pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
+    static Image FromBuffer(Device* pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
 
     /// @brief Load a cubemap from a directory.
-    static Image CubemapFromDirectory(std::shared_ptr<Device> pDevice, std::string path);
+    static Image CubemapFromDirectory(Device* pDevice, std::string path);
 
     /// @brief Add a vulkan view to this image.
     void AddView(vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor, vk::ImageViewType viewtype = vk::ImageViewType::e2D);

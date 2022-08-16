@@ -35,7 +35,7 @@ class MeshComponent : public entities::SpatialComponent
     friend class GraphicsSystem;
 
   protected:
-    std::shared_ptr<vkg::Device> m_pDevice;
+    vkg::Device* m_pDevice;
 
     AssetHandle<Material> m_pMaterial;
 
@@ -58,7 +58,7 @@ class MeshComponent : public entities::SpatialComponent
     }
 
     /// @todo: pDevice should be passed when we build/update the buffers and not be a member
-    void SetRenderDevice(std::shared_ptr<vkg::Device> pDevice)
+    void SetRenderDevice(vkg::Device* pDevice)
     {
         assert(IsUnloaded());
         m_pDevice = pDevice;
