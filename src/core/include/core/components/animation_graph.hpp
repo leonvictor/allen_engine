@@ -46,15 +46,15 @@ class AnimationGraphComponent : public entities::IComponent
         delete m_pGraphInstance;
     }
 
-    // TODO: Should this be public ?
-    void Construct(const entities::ComponentCreationContext& ctx) override
-    {
-        m_pSkeleton = AssetHandle<Skeleton>("tmp.anim");
+    // TODO: Replace with set methods
+    // void Construct(const entities::ComponentCreationContext& ctx) override
+    // {
+    //     m_pSkeleton = AssetHandle<Skeleton>("tmp.anim");
 
-        // TODO:
-        m_pGraphInstance = new PlaceHolderAnimationGraphInstance(m_pSkeleton.get());
-        m_pGraphInstance->m_pAnimationClip = AssetHandle<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
-    }
+    //     // TODO:
+    //     m_pGraphInstance = new PlaceHolderAnimationGraphInstance(m_pSkeleton.get());
+    //     m_pGraphInstance->m_pAnimationClip = AssetHandle<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
+    // }
 
     void Load(const entities::LoadingContext& loadingContext) override
     {

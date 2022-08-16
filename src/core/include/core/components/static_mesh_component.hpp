@@ -18,10 +18,10 @@ class StaticMeshComponent : public MeshComponent
   public:
     inline const StaticMesh* GetMesh() const { return m_pMesh.get(); }
 
-    virtual void Construct(const entities::ComponentCreationContext& ctx) override
+    void SetMesh(const std::string& path) override
     {
-        MeshComponent::Construct(ctx);
-        m_pMesh = AssetHandle<StaticMesh>("D:/Dev/allen_engine/assets/models/assets_export/cube/cube.mesh");
+        assert(IsUnloaded());
+        m_pMesh = AssetHandle<StaticMesh>(path);
     }
 
     // TODO: Descriptor allocation and update is managed by the swapchain.

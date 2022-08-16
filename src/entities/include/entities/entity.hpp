@@ -182,11 +182,11 @@ class Entity
     // Components
     // -------------------------------------------------
 
-    /// @brief Destroy a component from this entity.
+    /// @brief Destroy a component from this entity
     /// @param componentID: UUID of the component to destroy.
     void DestroyComponent(const UUID& componentID);
 
-    /// @brief Add a component to this entity.
+    /// @brief Add a component to this entity, taking ownership of it
     /// @param pComponent: Component to add.
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
     void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID());

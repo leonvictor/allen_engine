@@ -299,6 +299,7 @@ void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemT
         { return pSystem->GetType()->m_ID == pSystemTypeInfo->m_ID; });
 
     assert(it != m_systems.end());
+    aln::Delete(*it);
     m_systems.erase(it);
 }
 
@@ -384,11 +385,7 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
         }
     }
 
-    pComponent->m_entityID = UUID::InvalidID();
-
-    // TODO: Experiment with different component storage modes
-    // Using a pool might be a good idea, to pack them in contiguous memory regions
-    // delete pComponent;
+    aln::Delete(pComponent);
 }
 
 void Entity::DestroyComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent)

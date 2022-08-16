@@ -45,7 +45,6 @@
 #include <core/skeletal_mesh.hpp>
 #include <core/static_mesh.hpp>
 
-#include <core/component_factory.hpp>
 #include <core/components/animation_graph.hpp>
 #include <core/components/animation_player_component.hpp>
 #include <core/components/camera.hpp>
@@ -169,16 +168,6 @@ class Engine
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
 
-        // TODO: Get rid of the default paths
-        // Create a default context
-        m_componentFactory.context = {
-            .graphicsDevice = m_pDevice,
-            .defaultTexturePath = TEXTURE_PATH,
-            .defaultModelPath = MODEL_PATH,
-            .defaultSkeletonPath = TEST_SKELETON_PATH,
-            .defaultMaterialPath = MATERIAL_PATH,
-        };
-
         CreateWorld();
         ShareImGuiContext();
     }
@@ -226,8 +215,6 @@ class Engine
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
 
-    // Object model
-    ComponentFactory m_componentFactory;
     WorldEntity m_worldEntity;
 
     UpdateContext m_updateContext;
@@ -254,7 +241,7 @@ class Engine
         {
             // TODO: Refine how the editor accesses the map
             Entity* pCameraEntity = m_worldEntity.m_entityMap.CreateEntity("MainCamera");
-            auto pCameraComponent = m_componentFactory.Create<Camera>();
+            auto pCameraComponent = aln::New<Camera>();
             pCameraComponent->SetLocalTransformPosition(glm::vec3(0.0f, 0.0f, -20.0f));
             pCameraEntity->AddComponent(pCameraComponent);
 
@@ -263,27 +250,34 @@ class Engine
 
         {
             Entity* pLightEntity = m_worldEntity.m_entityMap.CreateEntity("DirectionalLight");
-            Light* pLightComponent = m_componentFactory.Create<Light>();
+            Light* pLightComponent = aln::New<Light>();
             pLightComponent->direction = WORLD_RIGHT;
             pLightComponent->type = Light::Type::Directional;
             pLightComponent->SetLocalTransformPosition(LIGHT_POSITION);
             pLightEntity->AddComponent(pLightComponent);
 
             Entity* pPointLightEntity = m_worldEntity.m_entityMap.CreateEntity("PointLight");
-            Light* pPLightComponent = m_componentFactory.Create<Light>();
+            Light* pPLightComponent = aln::New<Light>();
             pPLightComponent->direction = WORLD_RIGHT;
             pPLightComponent->type = Light::Type::Point;
             pPLightComponent->SetLocalTransformPosition(LIGHT_POSITION);
             pPointLightEntity->AddComponent(pPLightComponent);
         }
 
-        int i = 1;
-        Entity* pCube = m_worldEntity.m_entityMap.CreateEntity(fmt::format("cube ({})", i));
-        auto pMesh = m_componentFactory.Create<SkeletalMeshComponent>();
-        pCube->AddComponent(pMesh);
-        auto pAnim = m_componentFactory.Create<AnimationPlayerComponent>();
-        pCube->AddComponent(pAnim);
+        auto pMesh = aln::New<SkeletalMeshComponent>();
+        pMesh->SetMesh(MODEL_PATH);
+        pMesh->SetSkeleton(TEST_SKELETON_PATH);
+        pMesh->SetMaterial(MATERIAL_PATH);
+        pMesh->SetRenderDevice(m_pDevice);
+
+        auto pAnim = aln::New<AnimationPlayerComponent>();
+        pAnim->SetSkeleton("D:/Dev/allen_engine/assets/assets_export/CesiumMan/Armature.skel");
+        pAnim->SetAnimationClip("D:/Dev/allen_engine/assets/assets_export/CesiumMan/Default.anim");
+
+        Entity* pCube = m_worldEntity.m_entityMap.CreateEntity("Cesium Man");
         pCube->CreateSystem<AnimationSystem>();
+        pCube->AddComponent(pMesh);
+        pCube->AddComponent(pAnim);
     }
 
     void setupSkyBox()
@@ -403,7 +397,7 @@ class Engine
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f),
                                 glm::linearRand(-100.0f, 100.0f));
-                            auto pMesh = m_componentFactory.Create<StaticMeshComponent>();
+                            auto pMesh = aln::New<StaticMeshComponent>();
                             pMesh->SetLocalTransformPosition(pos);
                             pCube->AddComponent(pMesh);
                             pCube->CreateSystem<ScriptSystem>();
@@ -617,7 +611,7 @@ class Engine
                     {
                         if (ImGui::Selectable(comp->GetPrettyName().c_str()))
                         {
-                            auto newComp = m_componentFactory.Create(comp);
+                            auto newComp = comp->typeHelper->CreateType<entities::IComponent>();
                             m_pSelectedEntity->AddComponent(newComp);
                         }
                     }

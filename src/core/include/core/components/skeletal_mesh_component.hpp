@@ -46,6 +46,18 @@ class SkeletalMeshComponent : public MeshComponent
     inline const SkeletalMesh* GetMesh() const { return m_pMesh.get(); }
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
 
+    void SetMesh(const std::string& path) override
+    {
+        assert(IsUnloaded());
+        m_pMesh = AssetHandle<SkeletalMesh>(path);
+    }
+
+    void SetSkeleton(const std::string& path)
+    {
+        assert(IsUnloaded());
+        m_pSkeleton = AssetHandle<Skeleton>(path);
+    }
+
     void SetPose(const Pose* pPose)
     {
         assert(pPose != nullptr);
@@ -62,13 +74,6 @@ class SkeletalMeshComponent : public MeshComponent
     void ResetPose()
     {
         m_boneTransforms = m_pMesh->GetBindPose();
-    }
-
-    void Construct(const entities::ComponentCreationContext& ctx) override
-    {
-        MeshComponent::Construct(ctx);
-        m_pMesh = AssetHandle<SkeletalMesh>(ctx.defaultModelPath);
-        m_pSkeleton = AssetHandle<Skeleton>(ctx.defaultSkeletonPath);
     }
 
     static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()

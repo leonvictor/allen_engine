@@ -48,8 +48,6 @@ class IComponent
         Initialized    // Ready to use
     };
 
-    virtual void Construct(const ComponentCreationContext&) {}
-
     /// @brief Allocate internal transient data.
     /// Occurs automatically once loading completes sucessfully.
     virtual void Initialize() = 0;

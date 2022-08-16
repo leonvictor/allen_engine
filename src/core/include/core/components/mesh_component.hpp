@@ -12,7 +12,6 @@
 
 #include <entities/spatial_component.hpp>
 
-#include "../component_factory.hpp"
 #include "../material.hpp"
 #include "../mesh.hpp"
 #include "../texture.hpp"
@@ -51,11 +50,18 @@ class MeshComponent : public entities::SpatialComponent
     virtual void CreateDescriptorSet() = 0;
 
   public:
-    // TODO: Should this be public ?
-    virtual void Construct(const entities::ComponentCreationContext& ctx) override
+    virtual void SetMesh(const std::string& path) = 0;
+    virtual void SetMaterial(const std::string& path)
     {
-        m_pMaterial = AssetHandle<Material>(ctx.defaultMaterialPath);
-        m_pDevice = ctx.graphicsDevice;
+        assert(IsUnloaded());
+        m_pMaterial = AssetHandle<Material>(path);
+    }
+
+    /// @todo: pDevice should be passed when we build/update the buffers and not be a member
+    void SetRenderDevice(std::shared_ptr<vkg::Device> pDevice)
+    {
+        assert(IsUnloaded());
+        m_pDevice = pDevice;
     }
 
     virtual vk::DescriptorSet& GetDescriptorSet();

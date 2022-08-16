@@ -36,11 +36,16 @@ class AnimationPlayerComponent : public entities::IComponent
 
     void Update(Seconds deltaTime);
 
-    // TODO: Should this be public ?
-    void Construct(const entities::ComponentCreationContext& ctx) override
+    void SetSkeleton(const std::string& path)
     {
-        m_pSkeleton = AssetHandle<Skeleton>("D:/Dev/allen_engine/assets/assets_export/CesiumMan/Armature.skel"); // TODO
-        m_pAnimationClip = AssetHandle<AnimationClip>("D:/Dev/allen_engine/assets/assets_export/CesiumMan/Default.anim");
+        assert(IsUnloaded());
+        m_pSkeleton = AssetHandle<Skeleton>(path);
+    }
+
+    void SetAnimationClip(const std::string& path)
+    {
+        assert(IsUnloaded());
+        m_pAnimationClip = AssetHandle<AnimationClip>(path);
     }
 
     void Initialize() override

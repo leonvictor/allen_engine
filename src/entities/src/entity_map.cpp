@@ -39,6 +39,8 @@ void EntityMap::Clear(const LoadingContext& loadingContext)
                 pEntity->Deactivate(loadingContext);
             }
             pEntity->UnloadComponents(loadingContext);
+
+            aln::Delete(pEntity);
         }
         m_entities.clear();
     }
