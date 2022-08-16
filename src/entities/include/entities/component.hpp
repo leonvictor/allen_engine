@@ -4,13 +4,10 @@
 #include <reflection/reflection.hpp>
 #include <utils/uuid.hpp>
 
-#include "component_creation_context.hpp"
 #include "loading_context.hpp"
 
 namespace aln
 {
-// fwd
-class ComponentFactory;
 
 namespace entities
 {
@@ -20,7 +17,6 @@ namespace entities
 class IComponent
 {
     friend class Entity;
-    friend class aln::ComponentFactory;
     // TODO: Serialization
 
   private:
