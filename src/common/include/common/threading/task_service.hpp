@@ -3,6 +3,8 @@
 #include <TaskScheduler.h>
 #include <cstdint>
 
+#include "../services/service.hpp"
+
 namespace aln
 {
 
@@ -11,7 +13,7 @@ using ITaskSet = enki::ITaskSet;
 using TaskSetFunction = enki::TaskSetFunction;
 using TaskSetPartition = enki::TaskSetPartition;
 
-class TaskService
+class TaskService : public IService
 {
 
   private:

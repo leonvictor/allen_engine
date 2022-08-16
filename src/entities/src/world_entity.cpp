@@ -15,7 +15,7 @@ namespace aln::entities
 
 void WorldEntity::Initialize(ServiceProvider& serviceProvider)
 {
-    m_pTaskService = serviceProvider.GetTaskService();
+    m_pTaskService = serviceProvider.GetService<TaskService>();
     assert(m_pTaskService != nullptr);
 
     m_loadingContext = LoadingContext(m_pTaskService);

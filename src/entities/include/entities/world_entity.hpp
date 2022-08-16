@@ -13,7 +13,6 @@
 
 namespace aln
 {
-class TaskProvider;
 class Engine;
 
 namespace entities

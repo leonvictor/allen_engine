@@ -27,8 +27,7 @@ enum class AssetLifetime
     Global,  // Unloaded on game exit
 };
 
-/// @todo : Rename to service
-class AssetService
+class AssetService : public IService
 {
     friend class Engine;
     friend struct AssetRequest;

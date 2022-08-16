@@ -69,6 +69,7 @@
 
 #include <common/memory.hpp>
 #include <common/services/service_provider.hpp>
+#include <common/threading/task_service.hpp>
 
 #include <anim/animation_clip.hpp>
 
@@ -119,7 +120,7 @@ const std::string MATERIAL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_exp
 class Engine
 {
   public:
-    Engine()
+    Engine() : m_assetService(&m_taskService)
     {
         m_window.InitializeWindow();
         m_instance.RequestExtensions(m_window.GetRequiredExtensions());
@@ -160,12 +161,15 @@ class Engine
         m_pAssetService = std::make_unique<AssetService>(m_serviceProvider.GetTaskService());
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
-        m_pAssetService->RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
-        m_pAssetService->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
-        m_pAssetService->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
-        m_pAssetService->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
-        m_pAssetService->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
-        m_pAssetService->RegisterAssetLoader<Skeleton, SkeletonLoader>();
+        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
+        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
+        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
+        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
+        m_assetService.RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
+        m_assetService.RegisterAssetLoader<Skeleton, SkeletonLoader>();
+
+        m_serviceProvider.RegisterService(&m_taskService);
+        m_serviceProvider.RegisterService(&m_assetService);
 
         // TODO: Get rid of the default paths
         // Create a default context
@@ -195,7 +199,9 @@ class Engine
     vkg::render::OfflineRenderer m_sceneRenderer;
     vkg::ImGUI m_imgui;
 
-    std::unique_ptr<AssetService> m_pAssetService;
+    // Services
+    TaskService m_taskService;
+    AssetService m_assetService;
 
     // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
     ServiceProvider m_serviceProvider;
@@ -320,7 +326,7 @@ class Engine
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
-            m_pAssetService->Update();
+            m_assetService.Update();
 
             m_updateContext.m_displayWidth = m_scenePreviewWidth;
             m_updateContext.m_displayHeight = m_scenePreviewHeight;
