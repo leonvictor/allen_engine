@@ -28,7 +28,7 @@ enum class AssetLifetime
 };
 
 /// @todo : Rename to service
-class AssetManager
+class AssetService
 {
     friend class Engine;
     friend struct AssetRequest;
@@ -58,12 +58,12 @@ class AssetManager
     inline bool IsBusy() const { return !IsIdle(); }
 
   public:
-    AssetManager(TaskService* pTaskService)
+    AssetService(TaskService* pTaskService)
         : m_pTaskService(pTaskService),
           m_loadingTask([this](TaskSetPartition, uint32_t)
               { HandleActiveRequests(); }) {}
 
-    ~AssetManager()
+    ~AssetService()
     {
         while (IsBusy())
         {

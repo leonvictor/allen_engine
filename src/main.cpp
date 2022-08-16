@@ -60,7 +60,7 @@
 #include <core/time_system.hpp>
 #include <core/world_systems/render_system.hpp>
 
-#include <assets/manager.hpp>
+#include <assets/asset_service.hpp>
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
@@ -157,15 +157,15 @@ class Engine
 
         // TODO: Move somewhere else
         // TODO: What's the scope ? How do we expose the asset manager ?
-        m_pAssetManager = std::make_unique<AssetManager>(m_serviceProvider.GetTaskService());
+        m_pAssetService = std::make_unique<AssetService>(m_serviceProvider.GetTaskService());
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
-        m_pAssetManager->RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
-        m_pAssetManager->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
-        m_pAssetManager->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
-        m_pAssetManager->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
-        m_pAssetManager->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
-        m_pAssetManager->RegisterAssetLoader<Skeleton, SkeletonLoader>();
+        m_pAssetService->RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
+        m_pAssetService->RegisterAssetLoader<SkeletalMesh, MeshLoader>(m_pDevice);
+        m_pAssetService->RegisterAssetLoader<Texture, TextureLoader>(m_pDevice);
+        m_pAssetService->RegisterAssetLoader<Material, MaterialLoader>(m_pDevice);
+        m_pAssetService->RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
+        m_pAssetService->RegisterAssetLoader<Skeleton, SkeletonLoader>();
 
         // TODO: Get rid of the default paths
         // Create a default context
@@ -175,7 +175,7 @@ class Engine
             .defaultModelPath = MODEL_PATH,
             .defaultSkeletonPath = TEST_SKELETON_PATH,
             .defaultMaterialPath = MATERIAL_PATH,
-            .pAssetManager = m_pAssetManager.get()};
+            .pAssetService = m_pAssetService.get()};
 
         CreateWorld();
         ShareImGuiContext();
@@ -195,7 +195,7 @@ class Engine
     vkg::render::OfflineRenderer m_sceneRenderer;
     vkg::ImGUI m_imgui;
 
-    std::unique_ptr<AssetManager> m_pAssetManager;
+    std::unique_ptr<AssetService> m_pAssetService;
 
     // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
     ServiceProvider m_serviceProvider;
@@ -320,7 +320,7 @@ class Engine
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
-            m_pAssetManager->Update();
+            m_pAssetService->Update();
 
             m_updateContext.m_displayWidth = m_scenePreviewWidth;
             m_updateContext.m_displayHeight = m_scenePreviewHeight;

@@ -35,7 +35,7 @@ class AnimationGraphComponent : public entities::IComponent
     ALN_REGISTER_TYPE();
 
   private:
-    AssetManager* m_pAssetManager = nullptr;
+    AssetService* m_pAssetService = nullptr;
     AssetHandle<Skeleton> m_pSkeleton;                   // Animation skeleton
     PlaceHolderAnimationGraphInstance* m_pGraphInstance; // TODO: AnimationGraphInstance
 
@@ -49,7 +49,7 @@ class AnimationGraphComponent : public entities::IComponent
     // TODO: Should this be public ?
     void Construct(const entities::ComponentCreationContext& ctx) override
     {
-        m_pAssetManager = ctx.pAssetManager;
+        m_pAssetService = ctx.pAssetService;
         m_pSkeleton = AssetHandle<Skeleton>("tmp.anim");
 
         // TODO:
@@ -59,14 +59,14 @@ class AnimationGraphComponent : public entities::IComponent
 
     void Load() override
     {
-        m_pAssetManager->Load(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetManager->Load(m_pSkeleton);
+        m_pAssetService->Load(m_pGraphInstance->m_pAnimationClip);
+        m_pAssetService->Load(m_pSkeleton);
     }
 
     void Unload() override
     {
-        m_pAssetManager->Unload(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetManager->Unload(m_pSkeleton);
+        m_pAssetService->Unload(m_pGraphInstance->m_pAnimationClip);
+        m_pAssetService->Unload(m_pSkeleton);
     }
 };
 } // namespace aln

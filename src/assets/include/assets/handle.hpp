@@ -12,7 +12,7 @@ namespace aln
 class IAssetHandle
 {
     friend class AssetLoader;
-    friend class AssetManager;
+    friend class AssetService;
 
   private:
     AssetID m_assetID;
@@ -51,7 +51,7 @@ class AssetHandle : public IAssetHandle
     friend class AssetHandle;
 
     friend class AssetLoader;
-    friend class AssetManager;
+    friend class AssetService;
 
   public:
     AssetHandle() = default;

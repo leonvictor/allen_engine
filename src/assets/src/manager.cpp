@@ -1,18 +1,18 @@
 #pragma once
 
-#include "manager.hpp"
+#include "asset_service.hpp"
 
 namespace aln
 {
 
-AssetRecord* AssetManager::FindRecord(const AssetID& assetID)
+AssetRecord* AssetService::FindRecord(const AssetID& assetID)
 {
     auto it = m_assetCache.find(assetID);
     assert(it != m_assetCache.end());
     return &it->second;
 }
 
-AssetRecord* AssetManager::GetOrCreateRecord(const AssetID& assetID)
+AssetRecord* AssetService::GetOrCreateRecord(const AssetID& assetID)
 {
     auto it = m_assetCache.try_emplace(assetID, assetID);
     // TODO: This condition might not be necessary ?
@@ -24,7 +24,7 @@ AssetRecord* AssetManager::GetOrCreateRecord(const AssetID& assetID)
     return &it.first->second;
 }
 
-AssetRequest* AssetManager::FindActiveRequest(const AssetID id)
+AssetRequest* AssetService::FindActiveRequest(const AssetID id)
 {
     std::lock_guard lock(m_mutex);
 
@@ -40,7 +40,7 @@ AssetRequest* AssetManager::FindActiveRequest(const AssetID id)
 }
 
 /// @brief Handle pending requests
-void AssetManager::Update()
+void AssetService::Update()
 {
     if (m_isLoadingTaskRunning && !m_loadingTask.GetIsComplete())
     {
@@ -119,14 +119,14 @@ void AssetManager::Update()
     }
 }
 
-void AssetManager::HandleActiveRequests()
+void AssetService::HandleActiveRequests()
 {
     int32_t requestCount = (int32_t) m_activeRequests.size() - 1;
     for (auto idx = requestCount; idx >= 0; idx--)
     {
         auto pRequest = &m_activeRequests[idx];
         pRequest->m_pLoader = m_loaders.at(pRequest->m_pAssetRecord->GetAssetTypeID()).get();
-        pRequest->m_pManager = this;
+        pRequest->m_pAssetService = this;
 
         if (pRequest->IsLoadingRequest())
         {
@@ -163,7 +163,7 @@ void AssetManager::HandleActiveRequests()
     }
 }
 
-void AssetManager::Load(IAssetHandle& assetHandle)
+void AssetService::Load(IAssetHandle& assetHandle)
 {
     std::lock_guard lock(m_mutex);
 
@@ -182,7 +182,7 @@ void AssetManager::Load(IAssetHandle& assetHandle)
     }
 }
 
-void AssetManager::Unload(IAssetHandle& assetHandle)
+void AssetService::Unload(IAssetHandle& assetHandle)
 {
     std::lock_guard lock(m_mutex);
     assetHandle.m_pAssetRecord = nullptr;

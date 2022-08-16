@@ -15,7 +15,7 @@ namespace aln
 /// @todo: Swap class names
 class AssetLoader
 {
-    friend class AssetManager;
+    friend class AssetService;
     friend class AssetRequest;
 
   private:

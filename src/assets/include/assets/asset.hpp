@@ -15,7 +15,7 @@ concept AssetType = std::is_base_of<IAsset, T>::value;
 class IAsset
 {
     friend class AssetLoader;
-    friend class AssetManager;
+    friend class AssetService;
     friend class AssetRequest;
 
   private:

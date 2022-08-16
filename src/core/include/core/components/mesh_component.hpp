@@ -37,7 +37,7 @@ class MeshComponent : public entities::SpatialComponent
   protected:
     std::shared_ptr<vkg::Device> m_pDevice;
     /// @todo Find a good way to expose the asset manager.
-    AssetManager* m_pAssetManager = nullptr;
+    AssetService* m_pAssetService = nullptr;
 
     AssetHandle<Material> m_pMaterial;
 
@@ -55,7 +55,7 @@ class MeshComponent : public entities::SpatialComponent
     // TODO: Should this be public ?
     virtual void Construct(const entities::ComponentCreationContext& ctx) override
     {
-        m_pAssetManager = ctx.pAssetManager;
+        m_pAssetService = ctx.pAssetService;
         m_pMaterial = AssetHandle<Material>(ctx.defaultMaterialPath);
         m_pDevice = ctx.graphicsDevice;
     }

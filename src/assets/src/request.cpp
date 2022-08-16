@@ -1,10 +1,10 @@
 #include "request.hpp"
-#include "manager.hpp"
+#include "asset_service.hpp"
 #include "status.hpp"
 
 namespace aln
 {
-class AssetManager;
+class AssetService;
 
 void AssetRequest::Load()
 {
@@ -31,7 +31,7 @@ void AssetRequest::Load()
         for (auto& dependencyID : dependencies)
         {
             auto& dependencyHandle = m_dependencies.emplace_back(IAssetHandle(dependencyID));
-            m_pManager->Load(dependencyHandle);
+            m_pAssetService->Load(dependencyHandle);
         }
     }
 }

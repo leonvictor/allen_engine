@@ -98,13 +98,13 @@ class StaticMeshComponent : public MeshComponent
   private:
     void Load() override
     {
-        m_pAssetManager->Load(m_pMesh);
+        m_pAssetService->Load(m_pMesh);
         MeshComponent::Load();
     }
 
     void Unload() override
     {
-        m_pAssetManager->Unload(m_pMesh);
+        m_pAssetService->Unload(m_pMesh);
         MeshComponent::Unload();
     }
 

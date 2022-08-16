@@ -12,7 +12,7 @@ namespace aln
 // A record for an asset should be unique.
 class AssetRecord
 {
-    friend class AssetManager;
+    friend class AssetService;
     friend class AssetRequest;
     friend class AssetLoader;
 

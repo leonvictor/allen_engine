@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assets/manager.hpp>
+#include <assets/asset_service.hpp>
 
 #include <memory>
 #include <string>
@@ -23,7 +23,7 @@ struct ComponentCreationContext
     std::string defaultModelPath;
     std::string defaultSkeletonPath;
     std::string defaultMaterialPath;
-    AssetManager* pAssetManager;
+    AssetService* pAssetService;
 };
 
 } // namespace entities

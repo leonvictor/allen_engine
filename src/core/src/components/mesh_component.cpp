@@ -41,11 +41,11 @@ void MeshComponent::Shutdown()
 
 void MeshComponent::Load()
 {
-    m_pAssetManager->Load(m_pMaterial);
+    m_pAssetService->Load(m_pMaterial);
 }
 
 void MeshComponent::Unload()
 {
-    m_pAssetManager->Unload(m_pMaterial);
+    m_pAssetService->Unload(m_pMaterial);
 }
 } // namespace aln
