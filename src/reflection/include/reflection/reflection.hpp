@@ -35,9 +35,9 @@ class ITypeHelper
   public:
     virtual ~ITypeHelper() = default;
     template <typename T>
-    std::unique_ptr<T> CreateType()
+    T* CreateType()
     {
-        return std::move(std::unique_ptr<T>(static_cast<T*>(raw_ptr())));
+        return std::move(static_cast<T*>(raw_ptr()));
     }
 };
 

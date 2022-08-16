@@ -12,6 +12,25 @@ namespace aln::entities
 
 using aln::utils::UUID;
 
+Entity::~Entity()
+{
+    assert(IsUnloaded());
+
+    m_deferredActions.clear();
+
+    for (auto& pSystem : m_systems)
+    {
+        aln::Delete(pSystem);
+    }
+    m_systems.clear();
+
+    for (auto& pComponent : m_components)
+    {
+        aln::Delete(pComponent);
+    }
+    m_components.clear();
+}
+
 // -------------------------------------------------
 // State management
 // -------------------------------------------------
@@ -180,7 +199,7 @@ void Entity::GenerateSystemUpdateList()
         }
 
         // Sort update list
-        auto comparator = [i](const std::shared_ptr<IEntitySystem>& pSystemA, const std::shared_ptr<IEntitySystem>& pSystemB)
+        auto comparator = [i](const IEntitySystem* pSystemA, const IEntitySystem* pSystemB)
         {
             uint16_t A = pSystemA->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
             uint16_t B = pSystemB->GetRequiredUpdatePriorities().GetPriorityForStage((UpdateStage) i);
@@ -257,8 +276,7 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const al
 }
 void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
 {
-    assert(std::find_if(m_systems.begin(), m_systems.end(),
-               [&](std::shared_ptr<IEntitySystem> pSystem)
+    assert(std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
                { return pSystem->GetType()->m_ID == pTypeDescriptor->m_ID; }) != m_systems.end());
 
     if (IsUnloaded())
@@ -277,7 +295,7 @@ void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
 
 void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
-    auto it = std::find_if(m_systems.begin(), m_systems.end(), [&](std::shared_ptr<IEntitySystem> pSystem)
+    auto it = std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
         { return pSystem->GetType()->m_ID == pSystemTypeInfo->m_ID; });
 
     assert(it != m_systems.end());

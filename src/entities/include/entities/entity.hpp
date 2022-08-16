@@ -64,10 +64,10 @@ class Entity
     Status m_status = Status::Unloaded;
 
     std::vector<IComponent*> m_components;
-    std::vector<std::shared_ptr<IEntitySystem>> m_systems;
+    std::vector<IEntitySystem*> m_systems;
 
     // TODO: Replace by dedicated struct
-    std::array<std::vector<std::shared_ptr<IEntitySystem>>, UpdateStage::NumStages> m_systemUpdateLists;
+    std::array<std::vector<IEntitySystem*>, UpdateStage::NumStages> m_systemUpdateLists;
 
     // Spatial attributes
     SpatialComponent* m_pRootSpatialComponent = nullptr;
@@ -107,25 +107,23 @@ class Entity
   public:
     /// @todo: Constructor is private to prevent extending this class
     Entity(){};
+    ~Entity();
+
+    const UUID GetID() const { return m_ID; };
+    std::string& GetName() { return m_name; }
+
     /// @brief Whether this entity is loaded (some components might still be loading in case of dynamic add)
     bool IsLoaded() const { return m_status == Status::Loaded || m_status == Status::Activated; }
     bool IsUnloaded() const { return m_status == Status::Unloaded; }
     bool IsActivated() const { return m_status == Status::Activated; }
+
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
-    const UUID GetID() const { return m_ID; };
-    std::string& GetName() { return m_name; }
     bool HasParentEntity() const { return m_pParentSpatialEntity != nullptr; }
     bool HasChildrenEntities() const { return !m_attachedEntities.empty(); }
-    const std::vector<Entity*> GetChildren() const
-    {
-        return m_attachedEntities;
-    }
+    const std::vector<Entity*> GetChildren() const { return m_attachedEntities; }
 
     /// @todo Consider implications of this being public ?
-    SpatialComponent* GetRootSpatialComponent()
-    {
-        return m_pRootSpatialComponent;
-    }
+    SpatialComponent* GetRootSpatialComponent() { return m_pRootSpatialComponent; }
 
     void LoadComponents(const LoadingContext& loadingContext);
     void UnloadComponents(const LoadingContext& loadingContext);
@@ -171,14 +169,14 @@ class Entity
         DestroySystem(T::GetStaticType());
     }
 
-    /// @brief Destroy as system.
+    /// @brief Destroy a system.
     /// @todo used by the editor, should this be public ?
     void DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
 
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context) const;
 
-    const std::vector<std::shared_ptr<IEntitySystem>>& GetSystems() { return m_systems; }
+    const std::vector<IEntitySystem*>& GetSystems() { return m_systems; }
 
     // -------------------------------------------------
     // Components

@@ -570,7 +570,7 @@ class Engine
                     ImGui::PushID(typeDesc->GetPrettyName().c_str());
                     if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
                     {
-                        m_editor.InInspector(pSystem.get(), "");
+                        m_editor.InInspector(pSystem, "");
                     }
 
                     if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
