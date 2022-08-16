@@ -67,7 +67,20 @@ class MeshLoader : public IAssetLoader
             pMesh = pStaticMesh;
         }
 
-        pMesh->CreateGraphicResources(m_pDevice);
+        // Create and fill the vulkan buffers to back the mesh.
+        // Create vertex buffer
+        vkg::resources::Buffer vertexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, pMesh->m_vertices);
+        pMesh->m_vertexBuffer = vkg::resources::Buffer(m_pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+        // Create index buffer
+        vkg::resources::Buffer indexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, pMesh->m_indices);
+        pMesh->m_indexBuffer = vkg::resources::Buffer(m_pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+        m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
+            {
+            vertexStagingBuffer.CopyTo(cb, pMesh->m_vertexBuffer);
+            indexStagingBuffer.CopyTo(cb, pMesh->m_indexBuffer); });
+
         pRecord->SetAsset(pMesh);
 
         return true;

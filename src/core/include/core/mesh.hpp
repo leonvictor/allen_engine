@@ -6,7 +6,6 @@
 
 #include <assets/asset.hpp>
 #include <common/vertex.hpp>
-#include <graphics/device.hpp>
 #include <graphics/resources/buffer.hpp>
 
 namespace aln
@@ -37,13 +36,6 @@ class Mesh : public IAsset
 
     vkg::resources::Buffer m_vertexBuffer;
     vkg::resources::Buffer m_indexBuffer;
-
-  protected:
-    /// @brief Create and fill the vulkan buffers to back the mesh.
-    virtual void CreateGraphicResources(const std::shared_ptr<vkg::Device>&);
-
-    /// @brief Reset the vulkan buffers backing the mesh on GPU.
-    void FreeGraphicResources();
 
   public:
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
