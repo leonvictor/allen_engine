@@ -311,6 +311,7 @@ class Engine
             // -----------------
             // Frame start
             // -----------------
+
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             // TODO: Map GLFW events to the Input system
             // Update services
@@ -328,11 +329,12 @@ class Engine
             m_updateContext.m_displayWidth = m_scenePreviewWidth;
             m_updateContext.m_displayHeight = m_scenePreviewHeight;
 
-            // m_worldEntity.UpdateState();
-
             // When out of editor
             // context.displayWidth = m_window.GetWidth();
             // context.displayHeight = m_window.GetHeight();
+
+            // Loading stage
+            m_worldEntity.UpdateLoading();
 
             // Object model: Update systems at various points in the frame.
             // TODO: Handle sync points here ?

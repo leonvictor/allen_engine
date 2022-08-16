@@ -30,6 +30,9 @@ void WorldEntity::Initialize(ServiceProvider& serviceProvider)
     m_loadingContext.m_unregisterEntityUpdate = std::bind(&WorldEntity::UnregisterEntityUpdate, this, std::placeholders::_1);
 
     assert(m_loadingContext.IsInitialized());
+
+    m_entityMap.Load(m_loadingContext);
+    m_entityMap.Activate(m_loadingContext);
 }
 
 WorldEntity::~WorldEntity()
@@ -57,7 +60,7 @@ void WorldEntity::Update(const UpdateContext& context)
         const UpdateContext& m_updateContext;
 
         UpdateTask(const std::vector<Entity*>& entities, const UpdateContext& updateContext)
-            : m_entities(entities), m_updateContext(updateContext) {}
+            : ITaskSet(entities.size()), m_entities(entities), m_updateContext(updateContext) {}
 
         virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) override
         {
@@ -76,17 +79,7 @@ void WorldEntity::Update(const UpdateContext& context)
     // --------------
 
     assert(m_loadingContext.IsInitialized());
-    if (!m_entityMap.Load(m_loadingContext))
-    {
-        return; // Not all entities are loaded yet, return.
-    }
-
-    // assert(m_entityMap.m_status == EntityMap::Status::Loaded);
-
-    if (!m_entityMap.IsActivated())
-    {
-        m_entityMap.Activate(m_loadingContext);
-    }
+    m_entityMap.UpdateEntitiesState(m_loadingContext);
 
     // --------------
     // Updating phase
@@ -101,6 +94,11 @@ void WorldEntity::Update(const UpdateContext& context)
     {
         system->Update(context);
     }
+}
+
+void WorldEntity::UpdateLoading()
+{
+    m_entityMap.UpdateEntitiesState(m_loadingContext);
 }
 
 void WorldEntity::RegisterComponent(Entity* pEntity, IComponent* pComponent)

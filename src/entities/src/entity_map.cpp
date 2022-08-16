@@ -59,7 +59,45 @@ void EntityMap::DeactivateEntity(Entity* pEntity)
     m_entitiesToDeactivate.push_back(pEntity);
 }
 
-bool EntityMap::Load(const LoadingContext& loadingContext)
+void EntityMap::Load(const LoadingContext& loadingContext)
+{
+    assert(IsUnloaded());
+    // TODO: Handle deserialization of a saved map
+    m_status = Status::Loaded;
+}
+
+void EntityMap::Activate(const LoadingContext& loadingContext)
+{
+    struct ActivationTask : public ITaskSet
+    {
+        const std::vector<Entity*> m_entities;
+        const LoadingContext& m_loadingContext;
+
+        ActivationTask(const std::vector<Entity*>& entities, const LoadingContext& loadingContext)
+            : ITaskSet(m_entities.size()), m_entities(entities), m_loadingContext(loadingContext) {}
+
+        virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) final override
+        {
+            for (auto i = range.start; i < range.end; ++i)
+            {
+                const auto pEntity = m_entities[i];
+                if (pEntity->IsLoaded())
+                {
+                    pEntity->Activate(m_loadingContext);
+                }
+            }
+        }
+    };
+
+    assert(IsLoaded());
+
+    // auto activationTask = ActivationTask(m_entities, loadingContext);
+    // loadingContext.m_pTaskService->ExecuteTask(&activationTask);
+
+    m_status = Status::Activated;
+}
+
+void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
 {
     // Manage the events registered by entities outside of the loading phase
     // TODO: Where should this logic be ?
@@ -151,12 +189,8 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     m_entitiesToRemove.clear();
 
     // Entity loading
-    if (m_loadingEntities.size() > 0 && m_status == Status::Deactivated)
-    {
-        m_status = Status::EntitiesLoading;
-    }
-
     std::vector<Entity*> stillLoadingEntities;
+    // TODO: Parallelize
     for (auto pEntity : m_loadingEntities)
     {
         if (pEntity->UpdateLoadingAndEntityState(loadingContext))
@@ -170,18 +204,9 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
         else // Entity is still loading
         {
             stillLoadingEntities.push_back(pEntity);
-            // return false; // TODO ?
         }
     }
     m_loadingEntities = stillLoadingEntities;
-
-    // Ensure that we set the status to loaded, if we were in the entity loading stage and all entities were successfully loaded
-    // TODO:
-    if (m_status == Status::EntitiesLoading && m_loadingEntities.empty())
-    {
-        assert(!m_isTransientMap);
-        m_status = Status::Loaded;
-    }
 
     // TODO: All entities are activated in parallel.
     // As the map will be instanciated for multiple threads this is ok for now i think ?
@@ -191,7 +216,6 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
     {
         pEntity->Activate(loadingContext);
     }
-
     m_entitiesToActivate.clear();
 
     for (auto pEntity : m_entitiesToDeactivate)
@@ -199,37 +223,6 @@ bool EntityMap::Load(const LoadingContext& loadingContext)
         pEntity->Deactivate(loadingContext);
     }
     m_entitiesToDeactivate.clear();
-
-    return true;
-}
-
-void EntityMap::Activate(const LoadingContext& loadingContext)
-{
-    struct ActivationTask : public ITaskSet
-    {
-        const std::vector<Entity*> m_entities;
-        const LoadingContext& m_loadingContext;
-
-        ActivationTask(const std::vector<Entity*>& entities, const LoadingContext& loadingContext)
-            : m_entities(entities), m_loadingContext(loadingContext) {}
-
-        virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) final override
-        {
-            for (auto i = range.start; i < range.end; ++i)
-            {
-                const auto pEntity = m_entities[i];
-                if (pEntity->IsLoaded())
-                {
-                    pEntity->Activate(m_loadingContext);
-                }
-            }
-        }
-    };
-
-    auto activationTask = ActivationTask(m_entities, loadingContext);
-    loadingContext.m_pTaskService->ExecuteTask(&activationTask);
-
-    m_status = Status::Activated;
 }
 
 Entity* EntityMap::CreateEntity(std::string name)

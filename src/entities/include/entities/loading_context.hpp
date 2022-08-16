@@ -32,6 +32,6 @@ struct LoadingContext
     LoadingContext(TaskService* pTaskService, AssetService* pAssetService)
         : m_pTaskService(pTaskService), m_pAssetService(pAssetService) {}
 
-    bool IsInitialized() { return m_pTaskService != nullptr; }
+    bool IsInitialized() { return m_pTaskService != nullptr && m_pAssetService != nullptr; }
 };
 } // namespace aln::entities

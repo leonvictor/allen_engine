@@ -17,10 +17,9 @@ class EntityMap
 
     enum class Status
     {
-        Deactivated,     // Not activated
-        EntitiesLoading, // Entities loading
-        Loaded,          // All entities loaded
-        Activated        // All entities activated. Some might still be loading in case of dynamic adds
+        Unloaded, // Not activated
+        Loaded,   // All entities loaded
+        Activated // All entities activated. Some might still be loading in case of dynamic adds
     };
 
     /// @todo: Entities live on the heap. Profile !
@@ -36,7 +35,7 @@ class EntityMap
     // Mutex guarding the main entity collection
     std::recursive_mutex m_mutex;
 
-    Status m_status = Status::Deactivated;
+    Status m_status = Status::Unloaded;
     bool m_isTransientMap = false;
 
     EntityMap() {}
@@ -45,7 +44,9 @@ class EntityMap
     /// all entities in the underlying collection.
     void Clear(const LoadingContext& loadingContext);
 
-    bool IsActivated() { return m_status == Status::Activated; }
+    inline bool IsActivated() const { return m_status == Status::Activated; }
+    inline bool IsLoaded() const { return m_status == Status::Loaded; }
+    inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
 
     void ActivateEntity(Entity* pEntity);
     void DeactivateEntity(Entity* pEntity);
@@ -54,16 +55,17 @@ class EntityMap
     // Map state management
     // -------------------------------------------------
 
-    /// @brief Update the loading state of each entity
-    /// @note This function should be called exactly once per frame.
-    bool Load(const LoadingContext& loadingContext);
+    /// @brief Load the initial state of the map itself, along with already contained entities
+    void Load(const LoadingContext& loadingContext);
+    void Unload(const LoadingContext& loadingContext);
 
-    /// @brief Update the systems of each entity.
-    void Update(const UpdateContext& updateContext);
-
-    /// @brief Activate all entities in the collection.
+    /// @brief Activate the map and all associated entities
     /// @todo split activation/loading contexts
     void Activate(const LoadingContext& loadingContext);
+    void Deactivate(const LoadingContext& loadingContext);
+
+    /// @brief Update the map's state, and process the state change requested for all entities
+    void UpdateEntitiesState(const LoadingContext& loadingContext);
 
   public:
     EntityMap(bool isTransient) : m_isTransientMap(isTransient) {}

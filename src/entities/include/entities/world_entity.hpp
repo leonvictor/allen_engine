@@ -50,9 +50,11 @@ class WorldEntity
 
     void Initialize(ServiceProvider& serviceProvider);
 
-    /// @brief 2 phases: loading and updating.
-    /// @todo: better explanations (when it's donezo)
-    void Update(UpdateContext const& context);
+    /// @brief Update all entities' systems, then all world systems
+    void Update(const UpdateContext& context);
+
+    /// @brief Run the world's loading step, handling entities that were modified during the last frame
+    void UpdateLoading();
 
     /// @brief Turn on an entity in the world.
     void ActivateEntity(Entity* pEntity);
