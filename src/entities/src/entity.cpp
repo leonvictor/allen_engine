@@ -36,17 +36,6 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
             else
             {
                 pComponent->InitializeComponent();
-
-                // Registering with systems happen during activation
-                // // Register each component with all local systems...
-                // for (auto pSystem : m_systems)
-                // {
-                //     pSystem->RegisterComponent(pComponent);
-                // }
-
-                // // ... and all global systems
-                // // This is the non-parallelizable part
-                // loadingContext.m_registerWithWorldSystems(this, pComponent);
             }
         }
 
@@ -288,14 +277,11 @@ void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
 
 void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
-    // TODO: find the index of system in m_systems
-
-    auto systemIt = std::find_if(m_systems.begin(), m_systems.end(), [&](std::shared_ptr<IEntitySystem> pSystem)
+    auto it = std::find_if(m_systems.begin(), m_systems.end(), [&](std::shared_ptr<IEntitySystem> pSystem)
         { return pSystem->GetType()->m_ID == pSystemTypeInfo->m_ID; });
-    // int systemIdx = 0;
 
-    // TODO: assert that systemIdx is valid
-    m_systems.erase(systemIt);
+    assert(it != m_systems.end());
+    m_systems.erase(it);
 }
 
 void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
@@ -429,18 +415,6 @@ void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialCompo
 
     if (IsUnloaded())
     {
-        // TODO: Replaced by a method, but we lost an assertion
-        // SpatialComponent* pParentComponent = nullptr;
-        // if (parentSpatialComponentID.IsValid())
-        // {
-        //     assert(pSpatialComponent != nullptr);
-
-        //     auto componentIt = std::find(m_components.begin(), m_components.end(), [parentSpatialComponentID](IComponent* comp) { comp->GetID() == parentSpatialComponentID; });
-        //     assert(componentIt != m_components.end());
-
-        //     pParentComponent = dynamic_cast<SpatialComponent*>(m_components[componentIt - m_components.begin()]);
-        //     assert(pParentComponent != nullptr);
-        // }
         auto pParentComponent = GetSpatialComponent(parentSpatialComponentID);
         AddComponentImmediate(pComponent, pParentComponent);
     }
@@ -547,8 +521,6 @@ SpatialComponent* Entity::GetSpatialComponent(const UUID& spatialComponentID)
         return nullptr;
     }
 
-    // assert(pSpatialComponent != nullptr);
-
     auto componentIt = std::find_if(m_components.begin(), m_components.end(), [spatialComponentID](IComponent* comp)
         { return comp->GetID() == spatialComponentID; });
     assert(componentIt != m_components.end());
@@ -603,12 +575,6 @@ void Entity::SetParentEntity(Entity* pEntity)
         {
             AttachToParent();
         }
-
-        auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
-        action.m_type = EntityInternalStateAction::Type::ParentChanged;
-        action.m_ptr = nullptr;
-
-        EntityStateUpdatedEvent.Execute(this);
     }
 }
 

@@ -33,7 +33,6 @@ class EntityInternalStateAction
         AddComponent,
         CreateSystem,
         DestroySystem,
-        ParentChanged, // The entity's parent has changed
     };
 
     Type m_type;           // Type of action

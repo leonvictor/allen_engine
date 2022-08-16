@@ -108,12 +108,6 @@ void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
         {
             switch (action.m_type)
             {
-            case EntityInternalStateAction::Type::ParentChanged:
-            {
-                // TODO: No longer necessary
-                break;
-            }
-
             case EntityInternalStateAction::Type::AddComponent:
             {
                 auto pParentComponent = pEntity->GetSpatialComponent(action.m_ID);
