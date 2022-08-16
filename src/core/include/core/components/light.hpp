@@ -38,8 +38,8 @@ class Light : public entities::SpatialComponent
 
     void Initialize() override {}
     void Shutdown() override {}
-    void Load() override {} // Lights do not need to load resources
-    void Unload() override {}
+    void Load(const entities::LoadingContext& loadingContext) override {} // Lights do not need to load resources
+    void Unload(const entities::LoadingContext& loadingContext) override {}
 
     LightUniform GetUniform();
 

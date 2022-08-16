@@ -5,6 +5,7 @@
 #include <utils/uuid.hpp>
 
 #include "component_creation_context.hpp"
+#include "loading_context.hpp"
 
 namespace aln
 {
@@ -30,9 +31,9 @@ class IComponent
     std::future<bool> m_loadingTask;
 
     // Private state management methods. Use verbose naming to differentiate with the inner virtual ones.
-    void LoadComponent();
-    bool LoadComponentAsync();
-    void UnloadComponent();
+    void LoadComponent(const LoadingContext& loadingContext);
+    bool LoadComponentAsync(const LoadingContext& loadingContext);
+    void UnloadComponent(const LoadingContext& loadingContext);
     void InitializeComponent();
     void ShutdownComponent();
 
@@ -58,10 +59,10 @@ class IComponent
 
     /// @brief Load all ressources.
     /// @return Whether loading was successful.
-    virtual void Load() = 0;
+    virtual void Load(const LoadingContext& loadingContext) = 0;
 
     /// @brief Unload all ressources.
-    virtual void Unload() = 0;
+    virtual void Unload(const LoadingContext& loadingContext) = 0;
 
     /// @brief Check the loading status of necessary resources and update the component status accordingly
     virtual bool UpdateLoadingStatus()

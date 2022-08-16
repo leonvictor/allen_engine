@@ -8,6 +8,7 @@
 #include <assets/handle.hpp>
 #include <entities/component.hpp>
 
+#include <assets/asset_service.hpp>
 #include <assets/type_descriptors/handles.hpp>
 
 #include <memory>
@@ -35,7 +36,6 @@ class AnimationGraphComponent : public entities::IComponent
     ALN_REGISTER_TYPE();
 
   private:
-    AssetService* m_pAssetService = nullptr;
     AssetHandle<Skeleton> m_pSkeleton;                   // Animation skeleton
     PlaceHolderAnimationGraphInstance* m_pGraphInstance; // TODO: AnimationGraphInstance
 
@@ -49,7 +49,6 @@ class AnimationGraphComponent : public entities::IComponent
     // TODO: Should this be public ?
     void Construct(const entities::ComponentCreationContext& ctx) override
     {
-        m_pAssetService = ctx.pAssetService;
         m_pSkeleton = AssetHandle<Skeleton>("tmp.anim");
 
         // TODO:
@@ -57,16 +56,16 @@ class AnimationGraphComponent : public entities::IComponent
         m_pGraphInstance->m_pAnimationClip = AssetHandle<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
     }
 
-    void Load() override
+    void Load(const entities::LoadingContext& loadingContext) override
     {
-        m_pAssetService->Load(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetService->Load(m_pSkeleton);
+        loadingContext.m_pAssetService->Load(m_pGraphInstance->m_pAnimationClip);
+        loadingContext.m_pAssetService->Load(m_pSkeleton);
     }
 
-    void Unload() override
+    void Unload(const entities::LoadingContext& loadingContext) override
     {
-        m_pAssetService->Unload(m_pGraphInstance->m_pAnimationClip);
-        m_pAssetService->Unload(m_pSkeleton);
+        loadingContext.m_pAssetService->Unload(m_pGraphInstance->m_pAnimationClip);
+        loadingContext.m_pAssetService->Unload(m_pSkeleton);
     }
 };
 } // namespace aln

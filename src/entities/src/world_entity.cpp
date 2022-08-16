@@ -2,7 +2,7 @@
 #include "component.hpp"
 #include "entity.hpp"
 
-#include <common/services/service_provider.hpp>
+#include <assets/asset_service.hpp>
 #include <common/threading/task_service.hpp>
 
 #include <Tracy.hpp>
@@ -18,7 +18,10 @@ void WorldEntity::Initialize(ServiceProvider& serviceProvider)
     m_pTaskService = serviceProvider.GetService<TaskService>();
     assert(m_pTaskService != nullptr);
 
-    m_loadingContext = LoadingContext(m_pTaskService);
+    auto pAssetService = serviceProvider.GetService<AssetService>();
+    assert(pAssetService != nullptr);
+
+    m_loadingContext = LoadingContext(m_pTaskService, pAssetService);
 
     // Register callbacks to propagate component registrations to world systems
     m_loadingContext.m_registerWithWorldSystems = std::bind(&WorldEntity::RegisterComponent, this, std::placeholders::_1, std::placeholders::_2);

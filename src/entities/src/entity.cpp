@@ -25,7 +25,7 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
     {
         if (pComponent->IsUnloaded())
         {
-            pComponent->LoadComponent();
+            pComponent->LoadComponent(loadingContext);
         }
         if (pComponent->IsLoading())
         {
@@ -66,8 +66,7 @@ void Entity::LoadComponents(const LoadingContext& loadingContext)
     {
         if (pComponent->IsUnloaded())
         {
-            // TODO: What do we do with loadingContext ?
-            pComponent->LoadComponent();
+            pComponent->LoadComponent(loadingContext);
         }
     }
 
@@ -88,7 +87,7 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
         if (pComponent->IsLoaded() || pComponent->IsLoading())
         {
             // TODO: What do we do with loadingContext ?
-            pComponent->UnloadComponent();
+            pComponent->UnloadComponent(loadingContext);
         }
     }
 
@@ -388,12 +387,12 @@ void Entity::DestroyComponentImmediate(IComponent* pComponent)
     // delete pComponent;
 }
 
-void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent* pComponent)
+void Entity::DestroyComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent)
 {
     if (IsActivated())
     {
         // Unregister the component from local and world systems
-        context.m_unregisterWithWorldSystems(this, pComponent);
+        loadingContext.m_unregisterWithWorldSystems(this, pComponent);
 
         for (auto pSystem : m_systems)
         {
@@ -408,7 +407,7 @@ void Entity::DestroyComponentDeferred(const LoadingContext& context, IComponent*
 
     if (pComponent->IsLoaded())
     {
-        pComponent->UnloadComponent();
+        pComponent->UnloadComponent(loadingContext);
     }
 
     DestroyComponentImmediate(pComponent);
@@ -496,14 +495,14 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
     m_components.push_back(pComponent);
 }
 
-void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pComponent, SpatialComponent* pParentComponent)
+void Entity::AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     AddComponentImmediate(pComponent, pParentComponent);
 
     if (IsLoaded())
     {
         // TODO: Async ?
-        pComponent->LoadComponent();
+        pComponent->LoadComponent(loadingContext);
         pComponent->InitializeComponent();
     }
 
@@ -514,7 +513,7 @@ void Entity::AddComponentDeferred(const LoadingContext& context, IComponent* pCo
         {
             pSystem->RegisterComponent(pComponent);
         }
-        context.m_registerWithWorldSystems(this, pComponent);
+        loadingContext.m_registerWithWorldSystems(this, pComponent);
     }
 }
 

@@ -5,10 +5,10 @@
 
 namespace aln::entities
 {
-void IComponent::LoadComponent()
+void IComponent::LoadComponent(const LoadingContext& loadingContext)
 {
     assert(m_status == Status::Unloaded);
-    Load();
+    Load(loadingContext);
     m_status = Status::Loading;
 }
 
@@ -19,10 +19,10 @@ void IComponent::InitializeComponent()
     m_status = Status::Initialized;
 }
 
-void IComponent::UnloadComponent()
+void IComponent::UnloadComponent(const LoadingContext& loadingContext)
 {
     assert(m_status == Status::Loaded || m_status == Status::LoadingFailed);
-    Unload();
+    Unload(loadingContext);
     m_status = Status::Unloaded;
 }
 

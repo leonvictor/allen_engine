@@ -96,16 +96,16 @@ class StaticMeshComponent : public MeshComponent
     }
 
   private:
-    void Load() override
+    void Load(const entities::LoadingContext& loadingContext) override
     {
-        m_pAssetService->Load(m_pMesh);
-        MeshComponent::Load();
+        loadingContext.m_pAssetService->Load(m_pMesh);
+        MeshComponent::Load(loadingContext);
     }
 
-    void Unload() override
+    void Unload(const entities::LoadingContext& loadingContext) override
     {
-        m_pAssetService->Unload(m_pMesh);
-        MeshComponent::Unload();
+        loadingContext.m_pAssetService->Unload(m_pMesh);
+        MeshComponent::Unload(loadingContext);
     }
 
     bool UpdateLoadingStatus() override

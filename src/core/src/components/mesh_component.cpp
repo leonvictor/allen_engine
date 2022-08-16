@@ -39,13 +39,13 @@ void MeshComponent::Shutdown()
     m_pDevice.reset();
 }
 
-void MeshComponent::Load()
+void MeshComponent::Load(const entities::LoadingContext& loadingContext)
 {
-    m_pAssetService->Load(m_pMaterial);
+    loadingContext.m_pAssetService->Load(m_pMaterial);
 }
 
-void MeshComponent::Unload()
+void MeshComponent::Unload(const entities::LoadingContext& loadingContext)
 {
-    m_pAssetService->Unload(m_pMaterial);
+    loadingContext.m_pAssetService->Unload(m_pMaterial);
 }
 } // namespace aln

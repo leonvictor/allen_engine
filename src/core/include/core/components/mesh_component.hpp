@@ -17,6 +17,7 @@
 #include "../mesh.hpp"
 #include "../texture.hpp"
 
+#include <assets/asset_service.hpp>
 #include <assets/handle.hpp>
 #include <assets/type_descriptors/handles.hpp>
 
@@ -36,8 +37,6 @@ class MeshComponent : public entities::SpatialComponent
 
   protected:
     std::shared_ptr<vkg::Device> m_pDevice;
-    /// @todo Find a good way to expose the asset manager.
-    AssetService* m_pAssetService = nullptr;
 
     AssetHandle<Material> m_pMaterial;
 
@@ -55,7 +54,6 @@ class MeshComponent : public entities::SpatialComponent
     // TODO: Should this be public ?
     virtual void Construct(const entities::ComponentCreationContext& ctx) override
     {
-        m_pAssetService = ctx.pAssetService;
         m_pMaterial = AssetHandle<Material>(ctx.defaultMaterialPath);
         m_pDevice = ctx.graphicsDevice;
     }
@@ -72,8 +70,8 @@ class MeshComponent : public entities::SpatialComponent
 
     virtual void Initialize() override;
     virtual void Shutdown() override;
-    virtual void Load() override;
-    virtual void Unload() override;
+    virtual void Load(const entities::LoadingContext& loadingContext) override;
+    virtual void Unload(const entities::LoadingContext& loadingContext) override;
 
     virtual bool UpdateLoadingStatus() override = 0;
 };

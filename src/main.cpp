@@ -61,6 +61,7 @@
 #include <core/world_systems/render_system.hpp>
 
 #include <assets/asset_service.hpp>
+
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
@@ -156,9 +157,6 @@ class Engine
         //  - Only update objects which have been modified
         // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
 
-        // TODO: Move somewhere else
-        // TODO: What's the scope ? How do we expose the asset manager ?
-        m_pAssetService = std::make_unique<AssetService>(m_serviceProvider.GetTaskService());
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
         m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(m_pDevice);
@@ -179,7 +177,7 @@ class Engine
             .defaultModelPath = MODEL_PATH,
             .defaultSkeletonPath = TEST_SKELETON_PATH,
             .defaultMaterialPath = MATERIAL_PATH,
-            .pAssetService = m_pAssetService.get()};
+        };
 
         CreateWorld();
         ShareImGuiContext();
@@ -187,7 +185,7 @@ class Engine
 
     void run()
     {
-        mainLoop();
+        Update();
     }
 
   private:
@@ -305,31 +303,32 @@ class Engine
         // skybox->updateUniformBuffer(ubo);
     }
 
-    void mainLoop()
+    void Update()
     {
         // TODO: Move to window
         while (!m_window.ShouldClose())
         {
-            // std::this_thread::sleep_for(std::chrono::seconds(1));
+            // -----------------
+            // Frame start
+            // -----------------
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
+            // TODO: Map GLFW events to the Input system
+            // Update services
             Time::Update();
-            m_updateContext.m_deltaTime = Time::GetDeltaTime();
-
-            // TODO: Group glfw accesses in a window.NewFrame() method
-            // Map GLFW events to the Input system
-            m_window.NewFrame();
-
             Input::UpdateMousePosition(m_window.GetCursorPosition());
-            // Trigger input callbacks
-            Input::Dispatch();
+            Input::Dispatch(); // Trigger input callbacks
 
+            m_window.NewFrame();
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
             m_assetService.Update();
 
+            m_updateContext.m_deltaTime = Time::GetDeltaTime();
             m_updateContext.m_displayWidth = m_scenePreviewWidth;
             m_updateContext.m_displayHeight = m_scenePreviewHeight;
+
+            // m_worldEntity.UpdateState();
 
             // When out of editor
             // context.displayWidth = m_window.GetWidth();

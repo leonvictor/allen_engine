@@ -11,14 +11,10 @@
 
 #include <entities/spatial_component.hpp>
 
-#include <assets/handle.hpp>
-#include <assets/type_descriptors/handles.hpp>
-
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
 #include <memory>
-#include <vector>
 
 namespace aln
 {
@@ -192,18 +188,18 @@ class SkeletalMeshComponent : public MeshComponent
         MeshComponent::Shutdown();
     }
 
-    void Load() override
+    void Load(const entities::LoadingContext& loadingContext) override
     {
-        m_pAssetService->Load(m_pMesh);
-        m_pAssetService->Load(m_pSkeleton);
-        MeshComponent::Load();
+        loadingContext.m_pAssetService->Load(m_pMesh);
+        loadingContext.m_pAssetService->Load(m_pSkeleton);
+        MeshComponent::Load(loadingContext);
     }
 
-    void Unload() override
+    void Unload(const entities::LoadingContext& loadingContext) override
     {
         m_skinningTransforms.clear();
-        m_pAssetService->Unload(m_pMesh);
-        MeshComponent::Unload();
+        loadingContext.m_pAssetService->Unload(m_pMesh);
+        MeshComponent::Unload(loadingContext);
     }
 
     bool UpdateLoadingStatus() override

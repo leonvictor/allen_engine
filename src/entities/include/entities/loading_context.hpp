@@ -6,7 +6,8 @@
 namespace aln
 {
 class TaskService;
-}
+class AssetService;
+} // namespace aln
 
 namespace aln::entities
 {
@@ -28,8 +29,8 @@ struct LoadingContext
     std::function<void(Entity*)> m_unregisterEntityUpdate;
 
     LoadingContext() = default;
-    LoadingContext(TaskService* pTaskService)
-        : m_pTaskService(pTaskService) {}
+    LoadingContext(TaskService* pTaskService, AssetService* pAssetService)
+        : m_pTaskService(pTaskService), m_pAssetService(pAssetService) {}
 
     bool IsInitialized() { return m_pTaskService != nullptr; }
 };
