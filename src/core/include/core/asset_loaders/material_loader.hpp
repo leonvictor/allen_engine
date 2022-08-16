@@ -11,7 +11,7 @@
 namespace aln
 {
 
-class MaterialLoader : public IAssetLoader<Material>
+class MaterialLoader : public IAssetLoader
 {
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
@@ -43,12 +43,6 @@ class MaterialLoader : public IAssetLoader<Material>
         pRecord->SetAsset(pMat);
 
         return true;
-    }
-
-    void Unload(AssetRecord* pRecord) override
-    {
-        auto pMat = pRecord->GetAsset<Material>();
-        pMat->m_buffer = vkg::resources::Buffer();
     }
 
     void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) override

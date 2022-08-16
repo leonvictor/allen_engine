@@ -11,7 +11,7 @@
 namespace aln
 {
 
-class MeshLoader : public IAssetLoader<Mesh>
+class MeshLoader : public IAssetLoader
 {
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
@@ -39,7 +39,7 @@ class MeshLoader : public IAssetLoader<Mesh>
             pSkeletalMesh->m_inverseBindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
             pSkeletalMesh->m_bindPose.resize(info.inverseBindPoseSize / sizeof(Transform));
             // pSkeletalMesh->m_pSkeleton = AssetHandle<Skeleton>(info.assetPath)
-            
+
             // TODO: Inverse (DANGER)
             assets::SkeletalMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pSkeletalMesh->m_vertices.data(), (std::byte*) pSkeletalMesh->m_indices.data(), (std::byte*) pSkeletalMesh->m_inverseBindPose.data());
             // assets::SkeletalMeshConverter::Unpack(&info, file.m_binary, (std::byte*) pMesh->m_vertices.data(), (std::byte*) pMesh->m_indices.data(), (std::byte*) pMesh->m_bindPose.data());
@@ -72,20 +72,5 @@ class MeshLoader : public IAssetLoader<Mesh>
 
         return true;
     }
-
-    void Unload(AssetRecord* pRecord) override
-    {
-        auto pAsset = pRecord->GetAsset();
-        assert(pRecord->IsLoaded());
-
-        auto pMesh = pRecord->GetAsset<StaticMesh>();
-        pMesh->FreeGraphicResources();
-        pMesh->m_vertices.clear();
-        pMesh->m_indices.clear();
-        pMesh->m_primitives.clear();
-
-        // TODO: bind pose as well
-    }
 };
-
 } // namespace aln

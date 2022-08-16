@@ -14,7 +14,7 @@ concept AssetType = std::is_base_of<IAsset, T>::value;
 /// @brief Abstract base class for all assets (textures, meshes, animation...).
 class IAsset
 {
-    friend class AssetLoader;
+    friend class IAssetLoader;
     friend class AssetService;
     friend class AssetRequest;
 
@@ -22,6 +22,8 @@ class IAsset
     AssetID m_id;
 
   public:
+    virtual ~IAsset(){}
+
     inline const AssetID& GetID() const { return m_id; }
     virtual AssetTypeID GetAssetTypeID() const = 0;
 

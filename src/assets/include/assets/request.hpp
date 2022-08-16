@@ -33,7 +33,7 @@ struct AssetRequest
 
     GUID m_requesterEntityID;
     AssetRecord* m_pAssetRecord = nullptr;
-    AssetLoader* m_pLoader = nullptr;
+    IAssetLoader* m_pLoader = nullptr;
 
     std::function<void(IAssetHandle&)> m_requestAssetLoad;
     std::function<void(IAssetHandle&)> m_requestAssetUnload;

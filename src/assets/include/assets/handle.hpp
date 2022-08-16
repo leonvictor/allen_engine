@@ -11,7 +11,7 @@ namespace aln
 
 class IAssetHandle
 {
-    friend class AssetLoader;
+    friend class IAssetLoader;
     friend class AssetService;
 
   private:
@@ -50,7 +50,7 @@ class AssetHandle : public IAssetHandle
     template <AssetType Other>
     friend class AssetHandle;
 
-    friend class AssetLoader;
+    friend class IAssetLoader;
     friend class AssetService;
 
   public:

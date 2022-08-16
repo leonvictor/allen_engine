@@ -14,7 +14,7 @@ class AssetRecord
 {
     friend class AssetService;
     friend class AssetRequest;
-    friend class AssetLoader;
+    friend class IAssetLoader;
 
   private:
     AssetID m_assetID;
@@ -50,7 +50,7 @@ class AssetRecord
         return static_cast<T*>(m_pAsset);
     }
 
-    const IAsset* GetAsset() const
+    IAsset* GetAsset() const
     {
         assert(m_pAsset != nullptr);
         return m_pAsset;

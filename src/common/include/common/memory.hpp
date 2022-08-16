@@ -31,6 +31,6 @@ void Delete(T*& ptr) noexcept
 #endif
 
     ptr->~T();
-    free(ptr);
+    free((void*) ptr);
 }
 } // namespace aln

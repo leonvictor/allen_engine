@@ -158,7 +158,6 @@ void AssetService::HandleActiveRequests()
         if (pRequest->IsComplete())
         {
             // Remove completed request
-            pRequest->m_pAssetRecord->m_status = AssetStatus::Loaded;
             m_activeRequests.erase(m_activeRequests.begin() + idx);
         }
     }

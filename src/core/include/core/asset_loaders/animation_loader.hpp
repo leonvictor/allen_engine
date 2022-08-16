@@ -12,7 +12,7 @@
 namespace aln
 {
 
-class AnimationLoader : public IAssetLoader<AnimationClip>
+class AnimationLoader : public IAssetLoader
 {
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
@@ -61,13 +61,6 @@ class AnimationLoader : public IAssetLoader<AnimationClip>
         // TODO: Add a dependency on the skeleton, and ensure it is loaded correctly
         pRecord->SetAsset(pAnim);
         return true;
-    }
-
-    void Unload(AssetRecord* pRecord) override
-    {
-        assert(pRecord->IsLoaded());
-        auto pAnim = pRecord->GetAsset<AnimationClip>();
-        // TODO
     }
 };
 

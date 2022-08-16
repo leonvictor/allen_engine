@@ -33,7 +33,7 @@ class AssetService : public IService
     friend struct AssetRequest;
 
   private:
-    std::map<AssetTypeID, std::unique_ptr<AssetLoader>> m_loaders;
+    std::map<AssetTypeID, std::unique_ptr<IAssetLoader>> m_loaders;
     std::map<AssetID, AssetRecord> m_assetCache;
 
     std::recursive_mutex m_mutex;
@@ -76,7 +76,7 @@ class AssetService : public IService
     template <AssetType T, typename TLoader, class... Args>
     void RegisterAssetLoader(Args... args)
     {
-        static_assert(std::is_base_of_v<AssetLoader, TLoader>);
+        static_assert(std::is_base_of_v<IAssetLoader, TLoader>);
 
         auto it = m_loaders.try_emplace(T::GetStaticAssetTypeID(), nullptr); // todo: remove nullptr ?
         if (it.second)
@@ -86,9 +86,9 @@ class AssetService : public IService
     }
 
     template <AssetType T>
-    const IAssetLoader<T>* GetLoader()
+    const IAssetLoader* GetLoader()
     {
-        return static_pointer_cast<AssetLoader<T>>(&m_loaders[T::GetStaticAssetTypeID()]);
+        return &m_loaders[T::GetStaticAssetTypeID()];
     }
 
     void Load(IAssetHandle& assetHandle);

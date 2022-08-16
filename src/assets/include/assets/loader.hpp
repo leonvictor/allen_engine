@@ -12,8 +12,7 @@
 namespace aln
 {
 /// TODO: Hide from clients
-/// @todo: Swap class names
-class AssetLoader
+class IAssetLoader
 {
     friend class AssetService;
     friend class AssetRequest;
@@ -37,34 +36,33 @@ class AssetLoader
 
         return Load(pRecord, file);
     }
-    void UnloadAsset(AssetRecord* pAssetRecord) { Unload(pAssetRecord); }
-    virtual void InstallAsset(const AssetID& assetID, AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies)
+
+    void UnloadAsset(AssetRecord* pRecord)
     {
-        assert(pAssetRecord->IsUnloaded());
+        assert(pRecord->IsLoaded());
+        Unload(pRecord);
+    }
+
+    virtual void InstallAsset(const AssetID& assetID, AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies)
+    {
+        assert(pRecord->IsUnloaded());
         assert(assetID.IsValid());
 
-        pAssetRecord->m_pAsset->m_id = assetID;
-        InstallDependencies(pAssetRecord, dependencies);
+        pRecord->m_pAsset->m_id = assetID;
+        InstallDependencies(pRecord, dependencies);
     }
 
   protected:
-    virtual bool Load(AssetRecord* pAsset, const assets::AssetFile& file) = 0;
-    virtual void Unload(AssetRecord* pAsset) = 0;
-    virtual void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) {}
-
-  public:
-    virtual ~AssetLoader(){};
-};
-
-/// @brief Base class for all asset loaders.
-/// Each new asset type will require extending this class to provide customized creation, loading, post-loading, pre-unloading, unloading behaviors
-template <AssetType T>
-class IAssetLoader : public AssetLoader
-{
-  protected:
     virtual bool Load(AssetRecord* pRecord, const assets::AssetFile& file) = 0;
-    virtual void Unload(AssetRecord* pRecord) = 0;
-    virtual void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) {}
+
+    virtual void Unload(AssetRecord* pRecord)
+    {
+        auto pAsset = pRecord->GetAsset();
+        aln::Delete(pAsset);
+        pRecord->m_pAsset = nullptr;
+    };
+
+    virtual void InstallDependencies(AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies) {}
 
     const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
     {
@@ -74,8 +72,12 @@ class IAssetLoader : public AssetLoader
             {
                 return dependencyHandle.GetRecord();
             }
-            assert(0);
         }
+        assert(0); // Not reachable
+        return nullptr;
     }
+
+  public:
+    virtual ~IAssetLoader(){};
 };
 } // namespace aln

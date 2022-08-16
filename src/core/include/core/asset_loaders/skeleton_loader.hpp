@@ -14,7 +14,7 @@
 namespace aln
 {
 
-class SkeletonLoader : public IAssetLoader<Skeleton>
+class SkeletonLoader : public IAssetLoader
 {
   private:
     bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
@@ -60,13 +60,6 @@ class SkeletonLoader : public IAssetLoader<Skeleton>
 
         pRecord->SetAsset(pSkeleton);
         return true;
-    }
-
-    void Unload(AssetRecord* pRecord) override
-    {
-        assert(pRecord->IsLoaded());
-        auto pSkeleton = pRecord->GetAsset<Skeleton>();
-        // TODO
     }
 };
 

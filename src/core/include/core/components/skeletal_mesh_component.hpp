@@ -202,8 +202,8 @@ class SkeletalMeshComponent : public MeshComponent
 
     void Unload(const entities::LoadingContext& loadingContext) override
     {
-        m_skinningTransforms.clear();
         loadingContext.m_pAssetService->Unload(m_pMesh);
+        loadingContext.m_pAssetService->Unload(m_pSkeleton);
         MeshComponent::Unload(loadingContext);
     }
 

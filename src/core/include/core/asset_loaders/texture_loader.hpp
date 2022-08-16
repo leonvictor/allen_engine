@@ -27,7 +27,7 @@ vk::Format MapAssetFormatToVulkan(assets::TextureFormat& format)
     }
 }
 
-class TextureLoader : public IAssetLoader<Texture>
+class TextureLoader : public IAssetLoader
 {
   private:
     std::shared_ptr<vkg::Device> m_pDevice;
@@ -70,14 +70,6 @@ class TextureLoader : public IAssetLoader<Texture>
 
         pRecord->SetAsset(pTex);
         return true;
-    }
-
-    void Unload(AssetRecord* pRecord) override
-    {
-        assert(pRecord->IsLoaded());
-        auto pTex = pRecord->GetAsset<Texture>();
-        // TODO: Make sure reassignement is good enough.
-        pTex->m_image = vkg::resources::Image();
     }
 };
 
