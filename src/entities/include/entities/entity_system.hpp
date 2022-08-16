@@ -52,6 +52,7 @@ class IEntitySystem
     // Optional / Required components
     // Display this to the user
   public:
+    virtual ~IEntitySystem() {}
     std::string GetName() const { return m_name; }
 };
 } // namespace impl
