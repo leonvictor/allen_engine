@@ -180,7 +180,10 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     DrawingContext drawingContext;
     for (const auto& pSkeletalMeshComponent : m_skeletalMeshComponents)
     {
-        pSkeletalMeshComponent->DrawPose(drawingContext);
+        if (pSkeletalMeshComponent->m_drawDebugSkeleton)
+        {
+            pSkeletalMeshComponent->DrawPose(drawingContext);
+        }
         // pSkeletalMeshComponent->DrawBindPose(drawingContext);
     }
 

@@ -40,6 +40,11 @@ class SkeletalMeshComponent : public MeshComponent
     // Bone mapping between animation and render skeletons
     std::vector<BoneIndex> m_animToRenderBonesMap;
 
+    // Editor toggles
+    /// @todo : Disable in release / move out to anoter class
+    bool m_drawDebugSkeleton = true;
+    bool m_drawRootBone = false;
+
     // TODO: Procedural Bones Solver
 
   public:

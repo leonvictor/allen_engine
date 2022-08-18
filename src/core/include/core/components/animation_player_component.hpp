@@ -31,6 +31,10 @@ class AnimationPlayerComponent : public entities::IComponent
     Percentage m_previousAnimTime = 0.0f;
     Percentage m_animTime = 0.0f;
 
+    // Editor
+    // TODO: Move out / Pause the whole world rather than just an anim player
+    bool m_pause = false;
+
   public:
     inline const Pose* GetPose() { return m_pPose; }
 

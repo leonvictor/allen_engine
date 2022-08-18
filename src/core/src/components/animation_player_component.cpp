@@ -2,12 +2,16 @@
 
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::AnimationPlayerComponent)
 ALN_REFLECT_MEMBER(m_animTime)
+ALN_REFLECT_MEMBER(m_pause)
 ALN_REGISTER_IMPL_END()
 
 namespace aln
 {
 void AnimationPlayerComponent::Update(Seconds deltaTime)
 {
+    if (m_pause)
+        return;
+
     // TODO switch on play mode
     m_previousAnimTime = m_animTime;
     m_animTime += deltaTime;
