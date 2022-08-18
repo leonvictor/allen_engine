@@ -28,7 +28,6 @@ concept TrivialTypeContiguousContainer = requires(T a)
 };
 
 /// @brief Base class for binary archives
-/// @todo They are more archives than streams... What do i call them ?
 /// @todo Handle state flags such as EoF or fail to signal user when something goes wrong
 class IBinaryArchive
 {
@@ -49,7 +48,7 @@ class IBinaryArchive
     bool IsWriting() const { return m_mode == IOMode::Write; }
 };
 
-/// @brief A binary file to write to or read from
+/// @brief A binary file archive to write to or read from
 class BinaryFileArchive : public IBinaryArchive
 {
   private:
@@ -150,10 +149,10 @@ class BinaryFileArchive : public IBinaryArchive
     // --------------------------
     //  Binary archives
     // --------------------------
-    friend const BinaryFileArchive& operator>>(const BinaryFileArchive& is, BinaryMemoryArchive& os);
-    friend BinaryFileArchive& operator<<(BinaryFileArchive& os, const BinaryMemoryArchive& is);
-    friend const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& is, BinaryFileArchive& os);
-    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& os, const BinaryFileArchive& is);
+    friend const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out);
+    friend BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in);
+    friend const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out);
+    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in);
 };
 
 /// @brief Archive view of an existing binary memory array
@@ -285,20 +284,21 @@ class BinaryMemoryArchive : public IBinaryArchive
     // --------------------------
     //  Binary archives
     // --------------------------
-    friend const BinaryFileArchive& operator>>(const BinaryFileArchive& is, BinaryMemoryArchive& os);
-    friend BinaryFileArchive& operator<<(BinaryFileArchive& os, const BinaryMemoryArchive& is);
-    friend const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& is, BinaryFileArchive& os);
-    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& os, const BinaryFileArchive& is);
+    friend const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out);
+    friend BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in);
+    friend const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out);
+    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in);
 };
 
-/// --------------------
-/// Interop
-/// --------------------
-BinaryMemoryArchive& operator<<(BinaryMemoryArchive& os, const BinaryFileArchive& is)
+// --------------------
+// Interop
+// --------------------
+
+/// @brief Save the full file in memory
+BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in)
 {
-    // Save the full file in memory
-    assert(os.IsWriting() && is.IsReading());
-    auto pFileStream = reinterpret_cast<std::ifstream*>(is.m_pFileStream);
+    assert(out.IsWriting() && in.IsReading());
+    auto pFileStream = reinterpret_cast<std::ifstream*>(in.m_pFileStream);
 
     auto currentFilePos = pFileStream->tellg();
 
@@ -307,57 +307,56 @@ BinaryMemoryArchive& operator<<(BinaryMemoryArchive& os, const BinaryFileArchive
     auto size = (size_t) pFileStream->tellg();
     pFileStream->seekg(0, pFileStream->beg);
 
-    // Write the stream's size
-    os << size;
+    // Write the archive size
+    out << size;
 
     // Reserve memory and read
-    auto originalSize = os.m_memory.size();
-    os.m_memory.resize(os.m_memory.size() + size);
+    auto originalSize = out.m_memory.size();
+    out.m_memory.resize(originalSize + size);
 
-    auto pEnd = os.m_memory.data() + originalSize;
+    auto pEnd = out.m_memory.data() + originalSize;
     pFileStream->read(reinterpret_cast<char*>(pEnd), size);
 
     // Put the file reader back to its original position, just in case
     pFileStream->seekg(currentFilePos);
 
-    return os;
+    return out;
 };
 
-const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& is, BinaryFileArchive& os)
+const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out)
 {
-    assert(os.IsWriting() && is.IsReading());
-    auto pFileStream = reinterpret_cast<std::ofstream*>(os.m_pFileStream);
+    assert(out.IsWriting() && in.IsReading());
+    auto pFileStream = reinterpret_cast<std::ofstream*>(out.m_pFileStream);
 
     // Overwrite the content of the file by reopening it
     pFileStream->close();
-    pFileStream->open(os.m_path, std::ios::binary | std::ios::out);
+    pFileStream->open(out.m_path, std::ios::binary | std::ios::out);
 
-    // Extract the stream's size
+    // Extract the archive size
     size_t size;
-    is >> size;
+    in >> size;
 
     // Write the data from the current reading position to the end
-    // auto size = std::distance(is.m_pReader, is.m_memory.end()); // TODO: This might not work
-    pFileStream->write(reinterpret_cast<const char*>(is.m_memory.data()), size);
+    pFileStream->write(reinterpret_cast<const char*>(in.m_memory.data()), size);
 
-    // Invalidate the memory stream which as reached the end of the buffer
-    is.m_pReader += size;
+    // Update the reader ptr to point to the new end
+    in.m_pReader += size;
 
-    return is;
+    return in;
 };
 
-BinaryFileArchive& operator<<(BinaryFileArchive& os, const BinaryMemoryArchive& is)
+BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in)
 {
-    assert(os.IsWriting() && is.IsReading());
-    os << is.m_memory;
-    return os;
+    assert(out.IsWriting() && in.IsReading());
+    out << in.m_memory;
+    return out;
 };
 
-const BinaryFileArchive& operator>>(const BinaryFileArchive& is, BinaryMemoryArchive& os)
+const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out)
 {
-    assert(os.IsWriting() && is.IsReading());
-    is >> os.m_memory;
-    return is;
+    assert(out.IsWriting() && in.IsReading());
+    in >> out.m_memory;
+    return in;
 };
 
 } // namespace aln
