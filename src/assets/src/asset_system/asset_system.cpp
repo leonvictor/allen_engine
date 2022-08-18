@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <common/binary_archive.hpp>
+#include <common/serialization/binary_archive.hpp>
 
 namespace aln::assets
 {
@@ -17,7 +17,7 @@ bool SaveBinaryFile(const std::string& path, const AssetFile& file)
     assert(file.m_dependencies.size() < std::numeric_limits<uint8_t>::max());
     uint8_t dependencyCount = file.m_dependencies.size();
 
-    auto archive = BinaryArchive(std::filesystem::path(path), BinaryArchive::Mode::Write);
+    auto archive = BinaryFileArchive(std::filesystem::path(path), BinaryFileArchive::IOMode::Write);
 
     archive << file.m_version;
     archive << (uint32_t) file.m_assetTypeID;
@@ -37,7 +37,7 @@ bool SaveBinaryFile(const std::string& path, const AssetFile& file)
 
 bool LoadBinaryFile(const std::string& path, AssetFile& outputFile)
 {
-    auto archive = BinaryArchive(path, BinaryArchive::Mode::Read);
+    auto archive = BinaryFileArchive(path, BinaryFileArchive::IOMode::Read);
 
     archive >> outputFile.m_version;
 
