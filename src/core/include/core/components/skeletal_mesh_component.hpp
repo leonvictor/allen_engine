@@ -233,12 +233,13 @@ class SkeletalMeshComponent : public MeshComponent
         auto boneCount = m_boneTransforms.size();
         for (BoneIndex boneIndex = 1; boneIndex < boneCount; boneIndex++)
         {
-            boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
-
             const auto parentBoneIndex = m_pSkeleton->GetBone(boneIndex)->GetParentIndex();
-            const Transform parentWorldTransform = worldTransform * m_boneTransforms[parentBoneIndex];
-
-            drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
+            if (m_drawRootBone || parentBoneIndex != 0)
+            {
+                boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
+                const Transform parentWorldTransform = worldTransform * m_boneTransforms[parentBoneIndex];
+                drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
+            }
         }
     }
 
