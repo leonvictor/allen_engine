@@ -27,19 +27,12 @@ class SkeletonLoader : public IAssetLoader
         auto info = assets::SkeletonConverter::ReadInfo(&file);
 
         auto boneCount = info.boneNames.size();
-        pSkeleton->m_bones.resize(boneCount);
+        pSkeleton->m_boneNames.resize(boneCount);
+        pSkeleton->m_parentBoneIndices.resize(boneCount);
         for (BoneIndex idx = 0; idx < boneCount; ++idx)
         {
-            auto& bone = pSkeleton->m_bones[idx];
-            bone.m_index = idx;
-            bone.m_parentIndex = (BoneIndex) info.boneParentIndices[idx];
-            bone.m_name = info.boneNames[idx];
-
-            // TODO: Fix root bone not found because of mismatching types
-            if (bone.m_parentIndex == InvalidIndex)
-            {
-                pSkeleton->m_rootBone = &bone;
-            }
+            pSkeleton->m_boneNames[idx] = info.boneNames[idx];
+            pSkeleton->m_parentBoneIndices[idx] = info.boneParentIndices[idx];
         }
 
         pSkeleton->m_localReferencePose.resize(boneCount);
@@ -50,8 +43,7 @@ class SkeletonLoader : public IAssetLoader
         pSkeleton->m_globalReferencePose[0] = pSkeleton->m_localReferencePose[0];
         for (BoneIndex boneIdx = 1; boneIdx < boneCount; boneIdx++)
         {
-            const auto pBone = pSkeleton->GetBone(boneIdx);
-            const auto parentIdx = pBone->GetParentIndex();
+            const auto parentIdx = pSkeleton->GetParentBoneIndex(boneIdx);
 
             assert(parentIdx < boneIdx);
 

@@ -2,7 +2,6 @@
 
 #include "mesh.hpp"
 
-#include <anim/bone.hpp>
 #include <common/transform.hpp>
 
 namespace aln

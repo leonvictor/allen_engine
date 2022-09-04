@@ -5,7 +5,7 @@
 
 namespace aln
 {
-using BoneIndex = uint16_t;
+using BoneIndex = uint32_t;
 using NodeIndex = uint32_t;
 using TaskIndex = uint32_t;
 using PoseBufferIndex = uint8_t;

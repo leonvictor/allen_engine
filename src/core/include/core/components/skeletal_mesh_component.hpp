@@ -177,12 +177,14 @@ class SkeletalMeshComponent : public MeshComponent
         m_skinningBuffer = vkg::resources::Buffer(m_pDevice, m_pMesh->m_inverseBindPose.size() * sizeof(glm::mat4x4), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
         // Initialize the bone mapping
+        /// @todo: For now skeletal meshes don't have a specific skeleton
         const auto boneCount = m_pSkeleton->GetBonesCount();
         m_animToRenderBonesMap.resize(boneCount, InvalidIndex);
-        for (auto boneIdx = 0; boneIdx < boneCount; ++boneIdx)
+        for (BoneIndex boneIdx = 0; boneIdx < boneCount; ++boneIdx)
         {
-            auto animBoneIdx = m_pSkeleton->GetBone(boneIdx)->GetIndex();
-            m_animToRenderBonesMap[boneIdx] = animBoneIdx; // TODO !!
+            // TODO: Actually map
+            auto animBoneIdx = boneIdx;
+            m_animToRenderBonesMap[boneIdx] = animBoneIdx;
         }
 
         // TODO: Set to bind pose
@@ -233,7 +235,7 @@ class SkeletalMeshComponent : public MeshComponent
         auto boneCount = m_boneTransforms.size();
         for (BoneIndex boneIndex = 1; boneIndex < boneCount; boneIndex++)
         {
-            const auto parentBoneIndex = m_pSkeleton->GetBone(boneIndex)->GetParentIndex();
+            const auto parentBoneIndex = m_pSkeleton->GetParentBoneIndex(boneIndex);
             if (m_drawRootBone || parentBoneIndex != 0)
             {
                 boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
@@ -259,7 +261,7 @@ class SkeletalMeshComponent : public MeshComponent
         {
             boneWorldTransform = worldTransform * bindPose[boneIndex];
 
-            const auto parentBoneIndex = m_pSkeleton->GetBone(boneIndex)->GetParentIndex();
+            const auto parentBoneIndex = m_pSkeleton->GetParentBoneIndex(boneIndex);
             const Transform parentWorldTransform = worldTransform * bindPose[parentBoneIndex];
 
             drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);

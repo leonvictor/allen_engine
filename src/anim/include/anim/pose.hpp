@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
+#include "types.hpp"
 
-#include "bone.hpp"
+#include <vector>
 
 #include <common/transform.hpp>
 

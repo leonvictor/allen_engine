@@ -90,8 +90,7 @@ void Pose::CalculateGlobalTransforms()
     m_globalTransforms[0] = m_localTransforms[0];
     for (auto boneIdx = 1; boneIdx < boneCount; boneIdx++)
     {
-        const auto pBone = m_pSkeleton->GetBone(boneIdx);
-        const auto parentIdx = pBone->GetParentIndex();
+        const auto parentIdx = m_pSkeleton->GetParentBoneIndex(boneIdx);
 
         assert(parentIdx < boneIdx);
 
