@@ -3,6 +3,7 @@ set(LIB_NAME common)
 add_library(${LIB_NAME} SHARED
     src/transform.cpp
     src/colors.cpp
+    src/serialization/binary_archive.cpp
 )
 
 include(GenerateExportHeader)
@@ -10,7 +11,7 @@ generate_export_header(${LIB_NAME}
     BASE_NAME ALN_${LIB_NAME}
 )
 
-set(LIB_LINK_DEPENDENCIES glm utils enkiTS)
+set(LIB_LINK_DEPENDENCIES glm utils enkiTS lz4_static)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

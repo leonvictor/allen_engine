@@ -46,6 +46,7 @@ class IBinaryArchive
 
     bool IsReading() const { return m_mode == IOMode::Read; }
     bool IsWriting() const { return m_mode == IOMode::Write; }
+    virtual bool IsValid() const = 0;
 };
 
 /// @brief A binary file archive to write to or read from
@@ -146,6 +147,19 @@ class BinaryFileArchive : public IBinaryArchive
         return *this;
     }
 
+    bool IsValid() const override
+    {
+        if (IsReading())
+        {
+            auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
+            return pFileStream->is_open();
+        }
+        else
+        {
+            auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
+            return pFileStream->is_open();
+        }
+    }
     // --------------------------
     //  Binary archives
     // --------------------------
@@ -171,55 +185,7 @@ class BinaryMemoryArchive : public IBinaryArchive
         }
     }
 
-    /// --------------------------
-    /// Compression
-    /// @note This version creates a copy of the data in order to compress/decompress it
-    /// A cleverer alternative probably exists
-    /// --------------------------
-
-    /// @brief Compress the archive
-    /// @return The original size of the uncompressed archive
-    size_t Compress()
-    {
-        auto uncompressedSize = static_cast<int>(m_memory.size());
-        auto maxCompressedSize = LZ4_compressBound(uncompressedSize);
-
-        auto buffer = std::vector<std::byte>(maxCompressedSize);
-
-        auto compressedSize = LZ4_compress_default(
-            reinterpret_cast<const char*>(m_memory.data()),
-            reinterpret_cast<char*>(buffer.data()),
-            uncompressedSize,
-            maxCompressedSize);
-
-        buffer.resize(compressedSize);
-        m_memory.swap(buffer);
-
-        if (IsReading())
-        {
-            m_pReader = m_memory.begin();
-        }
-
-        return uncompressedSize;
-    }
-
-    void Decompress(size_t originalSize)
-    {
-        auto buffer = std::vector<std::byte>(originalSize);
-
-        LZ4_decompress_safe(
-            reinterpret_cast<const char*>(m_memory.data()),
-            reinterpret_cast<char*>(buffer.data()),
-            static_cast<int>(m_memory.size()),
-            static_cast<int>(originalSize));
-
-        m_memory.swap(buffer);
-
-        if (IsReading())
-        {
-            m_pReader = m_memory.begin();
-        }
-    }
+    bool IsValid() const override { return m_pReader != m_memory.begin(); }
 
     // --------------------------
     //  Trivial types
@@ -295,68 +261,9 @@ class BinaryMemoryArchive : public IBinaryArchive
 // --------------------
 
 /// @brief Save the full file in memory
-BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in)
-{
-    assert(out.IsWriting() && in.IsReading());
-    auto pFileStream = reinterpret_cast<std::ifstream*>(in.m_pFileStream);
-
-    auto currentFilePos = pFileStream->tellg();
-
-    // Find the file's size
-    pFileStream->seekg(0, pFileStream->end);
-    auto size = (size_t) pFileStream->tellg();
-    pFileStream->seekg(0, pFileStream->beg);
-
-    // Write the archive size
-    out << size;
-
-    // Reserve memory and read
-    auto originalSize = out.m_memory.size();
-    out.m_memory.resize(originalSize + size);
-
-    auto pEnd = out.m_memory.data() + originalSize;
-    pFileStream->read(reinterpret_cast<char*>(pEnd), size);
-
-    // Put the file reader back to its original position, just in case
-    pFileStream->seekg(currentFilePos);
-
-    return out;
-};
-
-const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out)
-{
-    assert(out.IsWriting() && in.IsReading());
-    auto pFileStream = reinterpret_cast<std::ofstream*>(out.m_pFileStream);
-
-    // Overwrite the content of the file by reopening it
-    pFileStream->close();
-    pFileStream->open(out.m_path, std::ios::binary | std::ios::out);
-
-    // Extract the archive size
-    size_t size;
-    in >> size;
-
-    // Write the data from the current reading position to the end
-    pFileStream->write(reinterpret_cast<const char*>(in.m_memory.data()), size);
-
-    // Update the reader ptr to point to the new end
-    in.m_pReader += size;
-
-    return in;
-};
-
-BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in)
-{
-    assert(out.IsWriting() && in.IsReading());
-    out << in.m_memory;
-    return out;
-};
-
-const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out)
-{
-    assert(out.IsWriting() && in.IsReading());
-    in >> out.m_memory;
-    return in;
-};
+BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in);
+const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out);
+BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in);
+const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out);
 
 } // namespace aln
