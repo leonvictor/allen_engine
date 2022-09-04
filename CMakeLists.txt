@@ -102,7 +102,15 @@ target_compile_definitions(main PRIVATE
         TRACY_CALLSTACK
         ALN_ENABLE_TRACING>
 )
-add_subdirectory(external/tracy)
+
+FetchContent_Declare(
+    TracyClient
+    GIT_REPOSITORY https://github.com/wolfpld/tracy
+    GIT_TAG a8511d357650282c6915f7aa9775e9c4945e42b5 # v0.8.2
+)
+
+FetchContent_MakeAvailable(TracyClient)
+
 set_target_properties(TracyClient
     PROPERTIES
         EXCLUDE_FROM_DEFAULT_BUILD_RELEASE TRUE
@@ -162,8 +170,6 @@ set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
 
 # assimp
 MESSAGE(STATUS "Configuring assimp...")
-set(assimp_DIR "/external/assimp/cmake-modules/")
-MESSAGE(STATUS ${CMAKE_MODULE_PATH})
 set(ASSIMP_BUILD_TESTS OFF)
 set(ASSIMP_NO_EXPORT ON)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
@@ -172,16 +178,27 @@ set(ASSIMP_INSTALL OFF)
 set(ASSIMP_WARNINGS_AS_ERRORS OFF)
 set(ASSIMP_INJECT_DEBUG_POSTFIX OFF)
 
-add_subdirectory(external/assimp )
-MESSAGE(STATUS "Assimp configured.")
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp
+    GIT_TAG c8dafe0d2887242285c0080c6cbbea8c1f1c8094 # v5.2.4
+)
+
+FetchContent_MakeAvailable(assimp)
 
 # lz4
 set(LZ4_BUNDLED_MODE ON)
-message(STATUS "Configuring LZ4...")
 set(LZ4_BUILD_CLI OFF)
 set(LZ4_BUILD_LEGACY_LZ4C OFF)
-add_subdirectory(external/lz4/build/cmake)
-message(STATUS "LZ4 Configured.")
+
+FetchContent_Declare(
+  lz4
+  GIT_REPOSITORY https://github.com/lz4/lz4
+  GIT_TAG 5ff839680134437dbf4678f3d0c7b371d84f4964 #  v1.9.4 
+  SOURCE_SUBDIR build/cmake
+)
+
+FetchContent_MakeAvailable(lz4)
 
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
