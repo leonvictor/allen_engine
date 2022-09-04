@@ -45,7 +45,6 @@
 #include <core/skeletal_mesh.hpp>
 #include <core/static_mesh.hpp>
 
-#include <core/components/animation_graph.hpp>
 #include <core/components/animation_player_component.hpp>
 #include <core/components/camera.hpp>
 #include <core/components/light.hpp>

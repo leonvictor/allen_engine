@@ -10,15 +10,9 @@
 	path = external/stb
 	url = https://github.com/nothings/stb
     
-[submodule "external/tracy"]
-	path = external/tracy
-	url = https://github.com/wolfpld/tracy
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt
 [submodule "external/assimp"]
 	path = external/assimp
 	url = https://github.com/assimp/assimp
-[submodule "external/lz4"]
-	path = external/lz4
-	url = https://github.com/lz4/lz4

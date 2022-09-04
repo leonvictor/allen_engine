@@ -6,7 +6,6 @@ add_library(${LIB_NAME} SHARED
     src/time_system.cpp
     src/mesh.cpp
     
-    src/components/animation_graph.cpp
     src/components/mesh_component.cpp
     src/components/static_mesh_component.cpp
     src/components/skeletal_mesh_component.cpp
