@@ -266,8 +266,8 @@ class Engine
         pMesh->SetRenderDevice(&m_device);
 
         auto pAnim = aln::New<AnimationPlayerComponent>();
-        pAnim->SetSkeleton("D:/Dev/allen_engine/assets/assets_export/CesiumMan/Armature.skel");
-        pAnim->SetAnimationClip("D:/Dev/allen_engine/assets/assets_export/CesiumMan/Default.anim");
+        pAnim->SetSkeleton(std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Armature.skel");
+        pAnim->SetAnimationClip(std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Default.anim");
 
         Entity* pCube = m_worldEntity.m_entityMap.CreateEntity("Cesium Man");
         pCube->CreateSystem<AnimationSystem>();
