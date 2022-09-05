@@ -18,16 +18,19 @@ class IBinaryArchive;
 class BinaryMemoryArchive;
 class BinaryFileArchive;
 
-/// @brief Contigious containers containing trivial types, i.e. std::vector<float> and std::string
 template <typename T>
-concept TrivialTypeContiguousContainer = requires(T a)
+concept TriviallyCopyableType = std::is_trivially_copyable_v<T>;
+
+template <typename T>
+concept ContiguousContainer = requires(T a)
 {
     T::size_type;
     std::contiguous_iterator<typename T::iterator>;
-    {std::is_trivial_v<typename T::value_type>};
 };
 
 /// @brief Base class for binary archives
+/// @note Supports IO operations for trivially copyable types and contiguous containers of trivially copyable types.
+/// "Recursive" containers are also supported
 /// @todo Handle state flags such as EoF or fail to signal user when something goes wrong
 class IBinaryArchive
 {
@@ -89,62 +92,19 @@ class BinaryFileArchive : public IBinaryArchive
         }
     }
 
-    // --------------------------
-    //  Trivial types
-    // --------------------------
-    template <typename T>
-    BinaryFileArchive& operator<<(const T& data)
+    void Close()
     {
-        static_assert(std::is_trivial_v<T>);
-        assert(IsWriting());
-
-        auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
-        pFileStream->write(reinterpret_cast<const char*>(&data), sizeof(T));
-
-        return *this;
-    }
-
-    template <typename T>
-    const BinaryFileArchive& operator>>(T& data) const
-    {
-        static_assert(std::is_trivial_v<T>);
-        assert(IsReading());
-
-        auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
-        pFileStream->read(reinterpret_cast<char*>(&data), sizeof(T));
-
-        return *this;
-    }
-
-    // --------------------------
-    //  Containers
-    // --------------------------
-    template <TrivialTypeContiguousContainer T>
-    BinaryFileArchive& operator<<(const T& data)
-    {
-        assert(IsWriting());
-        auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
-
-        auto size = data.size();
-        pFileStream->write(reinterpret_cast<const char*>(&size), sizeof(T::size_type));
-        pFileStream->write(reinterpret_cast<const char*>(data.data()), size * sizeof(T::value_type));
-
-        return *this;
-    }
-
-    template <TrivialTypeContiguousContainer T>
-    const BinaryFileArchive& operator>>(T& data) const
-    {
-        assert(IsReading());
-        auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
-
-        typename T::size_type size;
-        pFileStream->read(reinterpret_cast<char*>(&size), sizeof(T::size_type));
-
-        data.resize(size);
-        pFileStream->read(reinterpret_cast<char*>(data.data()), size * sizeof(T::value_type));
-
-        return *this;
+        assert(m_pFileStream != nullptr);
+        if (IsReading())
+        {
+            auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
+            pFileStream->close();
+        }
+        else
+        {
+            auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
+            pFileStream->close();
+        }
     }
 
     bool IsValid() const override
@@ -160,6 +120,101 @@ class BinaryFileArchive : public IBinaryArchive
             return pFileStream->is_open();
         }
     }
+
+    // --------------------------
+    //  Trivially copyable types
+    // --------------------------
+    template <TriviallyCopyableType T>
+    BinaryFileArchive& operator<<(const T& data)
+    {
+        static_assert(std::is_trivial_v<T>);
+        assert(IsWriting());
+
+        auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
+        pFileStream->write(reinterpret_cast<const char*>(&data), sizeof(T));
+
+        return *this;
+    }
+
+    template <TriviallyCopyableType T>
+    const BinaryFileArchive& operator>>(T& data) const
+    {
+        static_assert(std::is_trivial_v<T>);
+        assert(IsReading());
+
+        auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
+        pFileStream->read(reinterpret_cast<char*>(&data), sizeof(T));
+
+        return *this;
+    }
+
+    // --------------------------
+    //  Containers
+    // --------------------------
+    template <ContiguousContainer T>
+    BinaryFileArchive& operator<<(const T& container)
+    {
+        assert(IsWriting());
+        auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
+
+        auto size = container.size();
+        pFileStream->write(reinterpret_cast<const char*>(&size), sizeof(T::size_type));
+        for (const auto& item : container)
+        {
+            *this << item;
+        }
+
+        return *this;
+    }
+
+    template <ContiguousContainer T>
+    const BinaryFileArchive& operator>>(T& container) const
+    {
+        assert(IsReading());
+        auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
+
+        typename T::size_type size;
+        pFileStream->read(reinterpret_cast<char*>(&size), sizeof(T::size_type));
+
+        container.resize(size);
+        for (auto i = 0; i < size; ++i)
+        {
+            *this >> container[i];
+        }
+
+        return *this;
+    }
+
+    template <typename T>
+    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+        BinaryFileArchive& operator<<(const T& container)
+    {
+        assert(IsWriting());
+        auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
+
+        auto size = container.size();
+        pFileStream->write(reinterpret_cast<const char*>(&size), sizeof(T::size_type));
+        pFileStream->write(reinterpret_cast<const char*>(container.data()), size * sizeof(T::value_type));
+
+        return *this;
+    }
+
+    template <typename T>
+    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    const BinaryFileArchive& operator>>(T& container) const
+    {
+        assert(IsReading());
+        auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
+
+        typename T::size_type size;
+        pFileStream->read(reinterpret_cast<char*>(&size), sizeof(T::size_type));
+
+        container.resize(size);
+        pFileStream->read(reinterpret_cast<char*>(container.data()), size * sizeof(T::value_type));
+
+        return *this;
+    }
+
     // --------------------------
     //  Binary archives
     // --------------------------
@@ -188,9 +243,9 @@ class BinaryMemoryArchive : public IBinaryArchive
     bool IsValid() const override { return m_pReader != m_memory.begin(); }
 
     // --------------------------
-    //  Trivial types
+    //  Trivially copyable types
     // --------------------------
-    template <typename T>
+    template <TriviallyCopyableType T>
     BinaryMemoryArchive& operator<<(const T& data)
     {
         static_assert(std::is_trivial_v<T>);
@@ -202,7 +257,7 @@ class BinaryMemoryArchive : public IBinaryArchive
         return *this;
     }
 
-    template <typename T>
+    template <TriviallyCopyableType T>
     const BinaryMemoryArchive& operator>>(T& data) const
     {
         static_assert(std::is_trivial_v<T>);
@@ -217,8 +272,42 @@ class BinaryMemoryArchive : public IBinaryArchive
     // --------------------------
     //  Containers
     // --------------------------
-    template <TrivialTypeContiguousContainer T>
+    template <ContiguousContainer T>
     BinaryMemoryArchive& operator<<(const T& container)
+    {
+        assert(IsWriting());
+
+        auto containerSize = container.size();
+        *this << containerSize;
+
+        for (const auto& item : container)
+        {
+            *this << item;
+        }
+
+        return *this;
+    }
+
+    template <ContiguousContainer T>
+    const BinaryMemoryArchive& operator>>(T& container) const
+    {
+        assert(IsReading());
+
+        typename T::size_type containerSize;
+        *this >> containerSize;
+
+        container.resize(containerSize);
+        for (auto i = 0; i < containerSize; ++i)
+        {
+            *this >> container[i];
+        }
+
+        return *this;
+    }
+
+    template <typename T>
+    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+        BinaryMemoryArchive& operator<<(const T& container)
     {
         assert(IsWriting());
 
@@ -231,7 +320,8 @@ class BinaryMemoryArchive : public IBinaryArchive
         return *this;
     }
 
-    template <TrivialTypeContiguousContainer T>
+    template <typename T>
+    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
     const BinaryMemoryArchive& operator>>(T& container) const
     {
         assert(IsReading());
