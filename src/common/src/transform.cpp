@@ -37,14 +37,6 @@ Transform Transform::GetInverse() const
     return inverse;
 }
 
-Transform& Transform::operator=(const Transform& other)
-{
-    m_translation = other.m_translation;
-    m_rotation = other.m_rotation;
-    m_scale = other.m_scale;
-    return *this;
-}
-
 bool Transform::operator==(const Transform& b) const
 {
     return glm::all(glm::epsilonEqual(m_translation, b.m_translation, Epsilon)) &&

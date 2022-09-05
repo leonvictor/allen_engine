@@ -59,7 +59,6 @@ class ALN_COMMON_EXPORT Transform
 
     Transform GetInverse() const;
 
-    Transform& operator=(const Transform& other);
     bool operator==(const Transform& b) const;
     bool operator!=(const Transform& b) const;
 
