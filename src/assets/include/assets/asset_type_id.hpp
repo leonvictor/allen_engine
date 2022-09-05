@@ -10,7 +10,7 @@ namespace aln
 class AssetTypeID
 {
   private:
-    uint32_t m_id = 0;
+    uint32_t m_id;
 
   public:
     AssetTypeID() = default;
@@ -46,4 +46,9 @@ class AssetTypeID
 
     bool IsValid() const { return m_id != 0; }
 };
+
+// AssetTypeID must be trivial for serialization purposes
+/// @note I'm not sure this is good practice. I think compile-time asserts are cool to notice early if something broke
+// but I might be missing something
+static_assert(std::is_trivial<AssetTypeID>());
 } // namespace aln

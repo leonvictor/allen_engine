@@ -167,7 +167,7 @@ void AssetService::Load(IAssetHandle& assetHandle)
 {
     std::lock_guard lock(m_mutex);
 
-    auto pRecord = GetOrCreateRecord(assetHandle.GetAssetPath());
+    auto pRecord = GetOrCreateRecord(assetHandle.GetAssetID());
     // Update the handle
     assetHandle.m_pAssetRecord = pRecord;
 
@@ -187,7 +187,7 @@ void AssetService::Unload(IAssetHandle& assetHandle)
     std::lock_guard lock(m_mutex);
     assetHandle.m_pAssetRecord = nullptr;
 
-    auto pRecord = FindRecord(assetHandle.GetAssetPath());
+    auto pRecord = FindRecord(assetHandle.GetAssetID());
     if (pRecord->GetReferenceCount() == 1)
     {
         AssetRequest& request = m_pendingRequests.emplace_back();
