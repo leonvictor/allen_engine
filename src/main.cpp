@@ -1,22 +1,12 @@
 #include <glm/gtc/random.hpp>
 #include <glm/vec3.hpp>
 
-#include <chrono> // std::chrono::seconds
-#include <thread> // std::this_thread::sleep_for
-
-#include <array>
-#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <fmt/core.h>
-#include <fstream>
 #include <functional>
-#include <iostream>
-#include <optional>
 #include <stdexcept>
 #include <string.h>
-#include <unordered_map>
-#include <vector>
 
 #include <reflection/reflection.hpp>
 
@@ -27,7 +17,6 @@
 #include <graphics/rendering/swapchain_renderer.hpp>
 #include <graphics/ubo.hpp>
 #include <graphics/window.hpp>
-#include <set>
 
 #ifdef ALN_DEBUG
 #define _CRTDBG_MAP_ALLOC
@@ -102,15 +91,13 @@ const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_expo
 const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Armature.skel";
 const std::string MATERIAL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Cesium_Man-effect.mtrl";
 
-// // Kenney
-// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/characterMedium/characterMedium_0.mesh";
-// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
-
-// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet/defaultobject_0.mesh";
-// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/chalet.tx";
-
-// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/cube/cube_0.mesh";
-// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/textures/container2.tx";
+static constexpr glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
+static constexpr glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
+static constexpr glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
+static constexpr glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
+static constexpr glm::vec3 WORLD_LEFT = -WORLD_RIGHT;
+static constexpr glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
+static constexpr glm::vec3 WORLD_DOWN = -WORLD_UP;
 
 class Engine
 {
@@ -143,13 +130,6 @@ class Engine
 
         // TODO: Get rid of all the references to m_device
         // They should not be part of this class
-
-        setupSkyBox();
-
-        // TODO:
-        //  - Do not update if no object were modified
-        //  - Only update objects which have been modified
-        // TODO: Let the scene handle its own descriptions (eg. do not pass each model to the swapchain like this)
 
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
@@ -188,30 +168,14 @@ class Engine
     // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
     ServiceProvider m_serviceProvider;
 
+    // Editor. TODO: move to editor class
     editor::Editor m_editor;
-
-    const glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
-    const glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
-    const glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
-    const glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
-    const glm::vec3 WORLD_LEFT = -WORLD_RIGHT;
-    const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
-    const glm::vec3 WORLD_DOWN = -WORLD_UP;
-
-    const glm::vec3 LIGHT_POSITION = glm::vec3(-4.5f);
-
-    std::array<glm::vec3, 1> cubePositions = {
-        glm::vec3(0.0f, 0.0f, 0.0f),
-    };
-
     Entity* m_pSelectedEntity = nullptr;
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
-
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
 
     WorldEntity m_worldEntity;
-
     UpdateContext m_updateContext;
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
@@ -248,14 +212,14 @@ class Engine
             Light* pLightComponent = aln::New<Light>();
             pLightComponent->direction = WORLD_RIGHT;
             pLightComponent->type = Light::Type::Directional;
-            pLightComponent->SetLocalTransformPosition(LIGHT_POSITION);
+            pLightComponent->SetLocalTransformPosition(glm::vec3(-4.5f));
             pLightEntity->AddComponent(pLightComponent);
 
             Entity* pPointLightEntity = m_worldEntity.m_entityMap.CreateEntity("PointLight");
             Light* pPLightComponent = aln::New<Light>();
             pPLightComponent->direction = WORLD_RIGHT;
             pPLightComponent->type = Light::Type::Point;
-            pPLightComponent->SetLocalTransformPosition(LIGHT_POSITION);
+            pPLightComponent->SetLocalTransformPosition(glm::vec3(-4.5f));
             pPointLightEntity->AddComponent(pPLightComponent);
         }
 
@@ -273,23 +237,6 @@ class Engine
         pCube->CreateSystem<AnimationSystem>();
         pCube->AddComponent(pMesh);
         pCube->AddComponent(pAnim);
-    }
-
-    void setupSkyBox()
-    {
-        // skybox = std::make_shared<Skybox>(m_device, "", MODEL_PATH);
-        // updateSkyboxUBO();
-    }
-
-    void updateSkyboxUBO()
-    {
-        // vkg::UniformBufferObject ubo;
-        // ubo.model = glm::mat4(glm::mat3(camera.getViewMatrix()));
-        // ubo.view = glm::mat4(1.0f);                                                                                                            // eye/camera position, center position, up axis
-        // ubo.projection = glm::perspective(glm::radians(45.0f), (float) m_swapchain.GetWidth() / (float) m_swapchain.GetHeight(), 0.1f, 300.f); // 45deg vertical fov, aspect ratio, near view plane, far view plane
-        // ubo.projection[1][1] *= -1;                                                                                                            // GLM is designed for OpenGL which uses inverted y coordinates
-        // ubo.cameraPos = camera.transform.position;
-        // skybox->updateUniformBuffer(ubo);
     }
 
     void Update()
@@ -333,18 +280,6 @@ class Engine
 
                 m_worldEntity.Update(m_updateContext);
             }
-
-            // updateSkyboxUBO();
-
-            // TODO: Handle picker again
-            // if (input.isPressedLastFrame(GLFW_MOUSE_BUTTON_LEFT, true) && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && !ImGui::IsAnyItemHovered())
-            // {
-            //     auto rgb = swapchain->picker.pickColor(models, lastMousePos);
-            //     auto cID = ColorUID(rgb);
-            //     // TODO: Handle background
-            //     // TODO: Make sure ColorUID has a reserved id for the background
-            //     selectedObject = clickables[cID];
-            // }
 
             DrawUI();
 
