@@ -9,7 +9,7 @@ add_library(${LIB_NAME}
 
 set(LIB_DEPENDENCIES  ${IMGUI_INCLUDE_DIRS})
 
-set(LIB_LINK_DEPENDENCIES reflection assets core entities anim)
+set(LIB_LINK_DEPENDENCIES reflection assets core entities anim fmt::fmt)
 
 target_include_directories(${LIB_NAME} 
     PRIVATE

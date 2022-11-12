@@ -6,7 +6,11 @@
 
 #include "../update_stages.hpp"
 
-namespace aln::entities
+namespace aln
+{
+class Engine;
+
+namespace entities
 {
 
 // fwd
@@ -37,4 +41,5 @@ class UpdateContext
     inline Seconds GetDisplayHeight() const { return m_displayHeight; }
     inline Seconds GetDisplayWidth() const { return m_displayWidth; }
 };
-} // namespace aln::entities
+} // namespace entities
+} // namespace aln

@@ -14,6 +14,10 @@
 namespace aln
 {
 class Engine;
+namespace editor
+{
+class Editor;
+}
 
 namespace entities
 {
@@ -21,6 +25,7 @@ namespace entities
 class WorldEntity
 {
     friend class aln::Engine;
+    friend class aln::editor::Editor;
 
   private:
     EntityMap m_entityMap;
