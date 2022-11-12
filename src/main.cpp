@@ -74,7 +74,7 @@
 #include <Tracy.hpp>
 
 using namespace aln::input;
-using namespace aln::entities;
+using namespace aln;
 
 namespace aln
 {

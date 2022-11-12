@@ -4,13 +4,12 @@
 #include <input/input_action.hpp>
 #include <input/input_system.hpp>
 
-using namespace aln::entities;
 using namespace aln::input;
 
 namespace aln
 {
 
-void EditorCameraController::Update(const entities::UpdateContext&)
+void EditorCameraController::Update(const UpdateContext&)
 {
     if (!m_hasChanged)
         return;

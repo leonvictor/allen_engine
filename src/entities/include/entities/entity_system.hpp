@@ -13,7 +13,7 @@
 
 #include <reflection/reflection.hpp>
 
-namespace aln::entities
+namespace aln
 {
 // fwd
 class Entity;
@@ -57,4 +57,4 @@ class IEntitySystem
 };
 } // namespace impl
 using impl::IEntitySystem;
-} // namespace aln::entities
+} // namespace aln

@@ -7,7 +7,7 @@
 #include <mutex>
 #include <vector>
 
-namespace aln::entities
+namespace aln
 {
 class Entity;
 
@@ -76,4 +76,4 @@ class EntityMap
     /// @brief Permanently remove an entity from the collection.
     void RemoveEntity(Entity* pEntity);
 };
-} // namespace aln::entities
+} // namespace aln

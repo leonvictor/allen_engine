@@ -51,17 +51,17 @@ void Editor::DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void
 }
 
 template <>
-void Editor::Display<entities::IComponent>(void* ptr, const char* label)
+void Editor::Display<IComponent>(void* ptr, const char* label)
 {
-    auto pComp = (entities::IComponent*) ptr;
+    auto pComp = (IComponent*) ptr;
     auto pType = pComp->GetType();
     DisplayTypeStruct(pType, pComp);
 }
 
 template <>
-void Editor::Display<entities::IEntitySystem>(void* ptr, const char* label)
+void Editor::Display<IEntitySystem>(void* ptr, const char* label)
 {
-    auto pSys = (entities::IEntitySystem*) ptr;
+    auto pSys = (IEntitySystem*) ptr;
     auto pType = pSys->GetType();
     DisplayTypeStruct(pType, pSys);
 }
@@ -164,7 +164,7 @@ void Editor::Display<std::string>(void* ptr, const char* label)
     ImGui::InputText(label, pString, pString->size());
 }
 // Poopy
-Editor::Editor(entities::WorldEntity& worldEntity) : m_worldEntity(worldEntity)
+Editor::Editor(WorldEntity& worldEntity) : m_worldEntity(worldEntity)
 {
     RegisterType<int>();
     RegisterType<float>();
@@ -413,7 +413,7 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
                 {
                     if (ImGui::Selectable(comp->GetPrettyName().c_str()))
                     {
-                        auto newComp = comp->typeHelper->CreateType<entities::IComponent>();
+                        auto newComp = comp->typeHelper->CreateType<IComponent>();
                         m_pSelectedEntity->AddComponent(newComp);
                     }
                 }
@@ -444,8 +444,8 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
             {
-                assert(payload->DataSize == sizeof(entities::Entity**));
-                entities::Entity* entityPayload = *((entities::Entity**) payload->Data);
+                assert(payload->DataSize == sizeof(Entity**));
+                Entity* entityPayload = *((Entity**) payload->Data);
                 entityPayload->SetParentEntity(nullptr);
             }
             ImGui::EndDragDropTarget();
@@ -458,7 +458,7 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
     ImGui::ShowDemoWindow();
 }
 
-void Editor::RecurseEntityTree(entities::Entity* pEntity)
+void Editor::RecurseEntityTree(Entity* pEntity)
 {
     ImGui::PushID(pEntity->GetID().ToString().c_str());
     static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen;
@@ -498,7 +498,7 @@ void Editor::RecurseEntityTree(entities::Entity* pEntity)
 
     if (ImGui::BeginDragDropSource())
     {
-        ImGui::SetDragDropPayload("ENTITY", &pEntity, sizeof(entities::Entity**));
+        ImGui::SetDragDropPayload("ENTITY", &pEntity, sizeof(Entity**));
         ImGui::Text(pEntity->GetName().c_str());
         ImGui::EndDragDropSource();
     }
@@ -508,9 +508,9 @@ void Editor::RecurseEntityTree(entities::Entity* pEntity)
     {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
         {
-            assert(payload->DataSize == sizeof(entities::Entity**));
+            assert(payload->DataSize == sizeof(Entity**));
 
-            entities::Entity* entityPayload = *((entities::Entity**) payload->Data);
+            Entity* entityPayload = *((Entity**) payload->Data);
 
             if (entityPayload->IsSpatialEntity())
             {
@@ -541,7 +541,7 @@ void Editor::RecurseEntityTree(entities::Entity* pEntity)
     ImGui::PopID();
 }
 
-void Editor::EntityOutlinePopup(entities::Entity* pEntity)
+void Editor::EntityOutlinePopup(Entity* pEntity)
 {
     if (ImGui::BeginPopupContextItem("entity_outline_popup", ImGuiPopupFlags_MouseButtonRight))
     {

@@ -15,7 +15,7 @@
 namespace aln
 {
 
-class AnimationSystem : public entities::IEntitySystem
+class AnimationSystem : public IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
@@ -29,8 +29,8 @@ class AnimationSystem : public entities::IEntitySystem
     }
 
     // TODO: Hide UpdateContext from users
-    void Update(const aln::entities::UpdateContext& ctx) override;
-    void RegisterComponent(aln::entities::IComponent* pComponent) override;
-    void UnregisterComponent(aln::entities::IComponent* pComponent) override;
+    void Update(const UpdateContext& ctx) override;
+    void RegisterComponent(IComponent* pComponent) override;
+    void UnregisterComponent(IComponent* pComponent) override;
 };
 } // namespace aln

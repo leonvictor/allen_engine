@@ -19,8 +19,6 @@ namespace editor
 class Editor;
 }
 
-namespace entities
-{
 /// @brief The one entity that represents the world. Holds entities and world systems.
 class WorldEntity
 {
@@ -91,5 +89,4 @@ class WorldEntity
 
     const std::vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
 };
-} // namespace entities
 } // namespace aln

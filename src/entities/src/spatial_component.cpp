@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace aln::entities
+namespace aln
 {
 using aln::utils::UUID;
 
@@ -123,4 +123,4 @@ void SpatialComponent::OffsetLocalTransformRotation(const glm::quat quatOffset)
     m_localTransform.SetRotation(glm::normalize(m_localTransform.GetRotation() * quatOffset));
     CalculateWorldTransform(true);
 }
-} // namespace aln::entities
+} // namespace aln

@@ -9,7 +9,7 @@ class TaskService;
 class AssetService;
 } // namespace aln
 
-namespace aln::entities
+namespace aln
 {
 class Entity;
 class IComponent;
@@ -34,4 +34,4 @@ struct LoadingContext
 
     bool IsInitialized() { return m_pTaskService != nullptr && m_pAssetService != nullptr; }
 };
-} // namespace aln::entities
+} // namespace aln

@@ -10,7 +10,7 @@
 #include <execution>
 #include <functional>
 
-namespace aln::entities
+namespace aln
 {
 
 void WorldEntity::Initialize(ServiceProvider& serviceProvider)
@@ -150,4 +150,4 @@ void WorldEntity::DeactivateEntity(Entity* pEntity)
 //     return m_entityMap.Collection();
 // }
 
-} // namespace aln::entities
+} // namespace aln

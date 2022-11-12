@@ -37,12 +37,12 @@ void MeshComponent::Shutdown()
     m_uniformBuffer = vkg::resources::Buffer();
 }
 
-void MeshComponent::Load(const entities::LoadingContext& loadingContext)
+void MeshComponent::Load(const LoadingContext& loadingContext)
 {
     loadingContext.m_pAssetService->Load(m_pMaterial);
 }
 
-void MeshComponent::Unload(const entities::LoadingContext& loadingContext)
+void MeshComponent::Unload(const LoadingContext& loadingContext)
 {
     loadingContext.m_pAssetService->Unload(m_pMaterial);
 }

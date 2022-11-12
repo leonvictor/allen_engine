@@ -20,7 +20,7 @@
 #include <common/TracySystem.hpp>
 #include <fmt/core.h>
 
-namespace aln::entities
+namespace aln
 {
 void EntityMap::Clear(const LoadingContext& loadingContext)
 {
@@ -234,4 +234,4 @@ Entity* EntityMap::CreateEntity(std::string name)
 
     return pEntity;
 }
-} // namespace aln::entities
+} // namespace aln

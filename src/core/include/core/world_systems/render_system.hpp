@@ -21,24 +21,21 @@ class SkeletalMeshComponent;
 class Light;
 class Camera;
 
-namespace entities
-{
 class Entity;
 class IComponent;
-} // namespace entities
 
 namespace vkg::render
 {
 class IRenderer;
 }
 
-class GraphicsSystem : public entities::IWorldSystem
+class GraphicsSystem : public IWorldSystem
 {
     vkg::render::IRenderer* m_pRenderer = nullptr;
 
-    aln::entities::ComponentsRegistry<StaticMeshComponent> m_staticMeshComponents;
-    aln::entities::ComponentsRegistry<SkeletalMeshComponent> m_skeletalMeshComponents;
-    aln::entities::ComponentsRegistry<Light> m_lightComponents;
+    ComponentsRegistry<StaticMeshComponent> m_staticMeshComponents;
+    ComponentsRegistry<SkeletalMeshComponent> m_skeletalMeshComponents;
+    ComponentsRegistry<Light> m_lightComponents;
 
     Camera* m_pCameraComponent = nullptr;
 
@@ -62,10 +59,10 @@ class GraphicsSystem : public entities::IWorldSystem
     // -------------------------------------------------
     void Shutdown() override;
     void Initialize() override;
-    void Update(const entities::UpdateContext& context) override;
-    void RegisterComponent(const entities::Entity* pEntity, entities::IComponent* pComponent) override;
-    void UnregisterComponent(const entities::Entity* pEntity, entities::IComponent* pComponent) override;
-    const entities::UpdatePriorities& GetUpdatePriorities() override;
+    void Update(const UpdateContext& context) override;
+    void RegisterComponent(const Entity* pEntity, IComponent* pComponent) override;
+    void UnregisterComponent(const Entity* pEntity, IComponent* pComponent) override;
+    const UpdatePriorities& GetUpdatePriorities() override;
 
     // Rendering calls
     void RenderSkeletalMeshes();

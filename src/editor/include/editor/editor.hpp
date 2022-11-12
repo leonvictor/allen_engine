@@ -36,8 +36,8 @@ void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc*
 class Editor
 {
   private:
-    entities::WorldEntity& m_worldEntity;
-    entities::Entity* m_pSelectedEntity = nullptr;
+    WorldEntity& m_worldEntity;
+    Entity* m_pSelectedEntity = nullptr;
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
 
     float m_scenePreviewWidth = 1.0f;
@@ -56,12 +56,11 @@ class Editor
     void InInspector(T* obj, const char* label) { Display<T>(obj, label); }
 
     void DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void* obj);
-    void EntityOutlinePopup(entities::Entity* pEntity = nullptr);
-    void RecurseEntityTree(entities::Entity* pEntity);
+    void EntityOutlinePopup(Entity* pEntity = nullptr);
+    void RecurseEntityTree(Entity* pEntity);
 
   public:
-    Editor(entities::WorldEntity& worldEntity);
-
+    Editor(WorldEntity& worldEntity);
 
     const glm::vec2& GetScenePreviewSize() const
     {

@@ -7,7 +7,7 @@
 
 #include <future>
 
-namespace aln::entities
+namespace aln
 {
 
 using aln::utils::UUID;
@@ -667,4 +667,4 @@ void Entity::RefreshEntityAttachments()
         }
     }
 }
-} // namespace aln::entities
+} // namespace aln

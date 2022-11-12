@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-namespace aln::entities
+namespace aln
 {
 
 void IWorldSystem::InitializeSystem()

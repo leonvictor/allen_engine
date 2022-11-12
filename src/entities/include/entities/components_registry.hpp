@@ -7,7 +7,7 @@
 
 #include "component.hpp"
 
-namespace aln::entities
+namespace aln
 {
 
 // fwd
@@ -133,4 +133,4 @@ class ComponentsRegistry
     inline bool empty() const { return m_registry.empty(); }
 };
 
-} // namespace aln::entities
+} // namespace aln

@@ -9,7 +9,7 @@
 
 namespace aln
 {
-class Camera : public entities::SpatialComponent
+class Camera : public SpatialComponent
 {
     ALN_REGISTER_TYPE();
 
@@ -47,7 +47,7 @@ class Camera : public entities::SpatialComponent
 
     void Initialize() override {}
     void Shutdown() override {}
-    void Load(const entities::LoadingContext& loadingContext) override {}
-    void Unload(const entities::LoadingContext& loadingContext) override {}
+    void Load(const LoadingContext& loadingContext) override {}
+    void Unload(const LoadingContext& loadingContext) override {}
 };
 } // namespace aln

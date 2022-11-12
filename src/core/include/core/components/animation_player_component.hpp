@@ -19,7 +19,7 @@
 namespace aln
 {
 
-class AnimationPlayerComponent : public entities::IComponent
+class AnimationPlayerComponent : public IComponent
 {
     ALN_REGISTER_TYPE();
 
@@ -64,13 +64,13 @@ class AnimationPlayerComponent : public entities::IComponent
         delete m_pPose;
     }
 
-    void Load(const entities::LoadingContext& loadingContext) override
+    void Load(const LoadingContext& loadingContext) override
     {
         loadingContext.m_pAssetService->Load(m_pAnimationClip);
         loadingContext.m_pAssetService->Load(m_pSkeleton);
     }
 
-    void Unload(const entities::LoadingContext& loadingContext) override
+    void Unload(const LoadingContext& loadingContext) override
     {
         loadingContext.m_pAssetService->Unload(m_pAnimationClip);
         loadingContext.m_pAssetService->Unload(m_pSkeleton);

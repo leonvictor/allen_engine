@@ -10,11 +10,11 @@ namespace aln
 {
 
 /// @todo For now this is a test system...
-class ScriptSystem : public entities::IEntitySystem
+class ScriptSystem : public IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
-    aln::entities::SpatialComponent* m_pRootComponent;
+    SpatialComponent* m_pRootComponent;
 
     float m_rotationSpeedX = 15.0f;
     float m_rotationSpeedY = 0.0f;
@@ -27,10 +27,10 @@ class ScriptSystem : public entities::IEntitySystem
     }
 
     // TODO: Hide UpdateContext from users
-    void Update(const aln::entities::UpdateContext& ctx) override;
+    void Update(const UpdateContext& ctx) override;
 
-    void RegisterComponent(aln::entities::IComponent* pComponent) override;
+    void RegisterComponent(IComponent* pComponent) override;
 
-    void UnregisterComponent(aln::entities::IComponent* pComponent) override;
+    void UnregisterComponent(IComponent* pComponent) override;
 };
 } // namespace aln

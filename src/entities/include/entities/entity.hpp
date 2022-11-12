@@ -16,7 +16,7 @@
 
 #include <Tracy.hpp>
 
-namespace aln::entities
+namespace aln
 {
 
 // fwd
@@ -209,4 +209,4 @@ class Entity
     inline bool operator!=(const Entity& other) const { return !operator==(other); }
     friend bool operator<(const Entity& l, const Entity& r) { return l.m_ID < r.m_ID; }
 };
-} // namespace aln::entities
+} // namespace aln

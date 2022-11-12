@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace aln::entities
+namespace aln
 {
 
 class Entity;
@@ -16,4 +16,4 @@ class Command
     std::vector<Entity*> m_updatedEntities;
     void Execute(Entity* pEntity);
 };
-} // namespace aln::entities
+} // namespace aln

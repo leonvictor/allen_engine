@@ -2,7 +2,7 @@
 
 namespace aln
 {
-void ScriptSystem::Update(const aln::entities::UpdateContext& ctx)
+void ScriptSystem::Update(const UpdateContext& ctx)
 {
     // TODO: Register systems such as Time and Input, and provide derived classes with getters methods like GetTime() or KeyPressed()
     // At the same time, get rid of the Time singleton
@@ -14,16 +14,16 @@ void ScriptSystem::Update(const aln::entities::UpdateContext& ctx)
     m_pRootComponent->SetLocalTransformRotationEuler(rot);
 }
 
-void ScriptSystem::RegisterComponent(aln::entities::IComponent* pComponent)
+void ScriptSystem::RegisterComponent(IComponent* pComponent)
 {
-    auto pSpatialComponent = dynamic_cast<aln::entities::SpatialComponent*>(pComponent);
+    auto pSpatialComponent = dynamic_cast<SpatialComponent*>(pComponent);
     if (pSpatialComponent != nullptr)
     {
         m_pRootComponent = pSpatialComponent;
     }
 }
 
-void ScriptSystem::UnregisterComponent(aln::entities::IComponent* pComponent)
+void ScriptSystem::UnregisterComponent(IComponent* pComponent)
 {
     if (pComponent == m_pRootComponent)
     {

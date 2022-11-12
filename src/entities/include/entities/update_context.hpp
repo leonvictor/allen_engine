@@ -10,9 +10,6 @@ namespace aln
 {
 class Engine;
 
-namespace entities
-{
-
 // fwd
 class Entity;
 class IComponent;
@@ -41,5 +38,4 @@ class UpdateContext
     inline Seconds GetDisplayHeight() const { return m_displayHeight; }
     inline Seconds GetDisplayWidth() const { return m_displayWidth; }
 };
-} // namespace entities
 } // namespace aln

@@ -10,12 +10,10 @@
 
 namespace aln
 {
-namespace entities
-{
-class IComponent;
-}
 
-class EditorCameraController : aln::entities::IEntitySystem
+class IComponent;
+
+class EditorCameraController : IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
@@ -25,9 +23,9 @@ class EditorCameraController : aln::entities::IEntitySystem
         m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::FrameStart, 1);
     }
 
-    void RegisterComponent(aln::entities::IComponent* pComponent) override;
-    void UnregisterComponent(aln::entities::IComponent* pComponent) override;
-    void Update(const aln::entities::UpdateContext& context) override;
+    void RegisterComponent(IComponent* pComponent) override;
+    void UnregisterComponent(IComponent* pComponent) override;
+    void Update(const UpdateContext& context) override;
 
   private:
     aln::input::InputContext m_inputContext;

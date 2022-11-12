@@ -16,7 +16,7 @@ struct LightUniform
     // TODO: Add inner and outer cutoff for spot lights
 };
 
-class Light : public entities::SpatialComponent
+class Light : public SpatialComponent
 {
     ALN_REGISTER_TYPE();
 
@@ -38,8 +38,8 @@ class Light : public entities::SpatialComponent
 
     void Initialize() override {}
     void Shutdown() override {}
-    void Load(const entities::LoadingContext& loadingContext) override {} // Lights do not need to load resources
-    void Unload(const entities::LoadingContext& loadingContext) override {}
+    void Load(const LoadingContext& loadingContext) override {} // Lights do not need to load resources
+    void Unload(const LoadingContext& loadingContext) override {}
 
     LightUniform GetUniform();
 

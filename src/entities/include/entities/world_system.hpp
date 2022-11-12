@@ -2,7 +2,7 @@
 
 // https://www.youtube.com/watch?v=jjEsB611kxs @1:49:00
 
-namespace aln::entities
+namespace aln
 {
 
 class UpdateContext;
@@ -58,4 +58,4 @@ class IWorldSystem
   public:
     virtual ~IWorldSystem() {}
 };
-} // namespace aln::entities
+} // namespace aln

@@ -2,7 +2,7 @@
 
 namespace aln
 {
-void AnimationSystem::Update(const aln::entities::UpdateContext& ctx)
+void AnimationSystem::Update(const UpdateContext& ctx)
 {
     m_pAnimationPlayerComponent->Update(ctx.GetDeltaTime());
     m_pSkeletalMeshComponent->SetPose(m_pAnimationPlayerComponent->GetPose());
@@ -12,7 +12,7 @@ void AnimationSystem::Update(const aln::entities::UpdateContext& ctx)
     // - Update all remaining bones (procedural etc)
 }
 
-void AnimationSystem::RegisterComponent(aln::entities::IComponent* pComponent)
+void AnimationSystem::RegisterComponent(IComponent* pComponent)
 {
     auto pAnimationPlayerComponent = dynamic_cast<AnimationPlayerComponent*>(pComponent);
     if (pAnimationPlayerComponent != nullptr)
@@ -29,7 +29,7 @@ void AnimationSystem::RegisterComponent(aln::entities::IComponent* pComponent)
     }
 }
 
-void AnimationSystem::UnregisterComponent(aln::entities::IComponent* pComponent)
+void AnimationSystem::UnregisterComponent(IComponent* pComponent)
 {
     if (pComponent == m_pSkeletalMeshComponent)
     {

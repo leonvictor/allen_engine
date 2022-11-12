@@ -30,7 +30,7 @@ struct UniformBufferObject;
 
 /// @brief The MeshComponent component holds a mesh, its material, and the vulkan objects
 // representing them on the GPU.
-class MeshComponent : public entities::SpatialComponent
+class MeshComponent : public SpatialComponent
 {
     friend class GraphicsSystem;
 
@@ -76,8 +76,8 @@ class MeshComponent : public entities::SpatialComponent
 
     virtual void Initialize() override;
     virtual void Shutdown() override;
-    virtual void Load(const entities::LoadingContext& loadingContext) override;
-    virtual void Unload(const entities::LoadingContext& loadingContext) override;
+    virtual void Load(const LoadingContext& loadingContext) override;
+    virtual void Unload(const LoadingContext& loadingContext) override;
 
     virtual bool UpdateLoadingStatus() override = 0;
 };

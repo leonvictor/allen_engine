@@ -9,9 +9,6 @@
 namespace aln
 {
 
-namespace entities
-{
-
 /// @brief Data storage attached to Entities.
 /// @note https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
 class IComponent
@@ -83,5 +80,4 @@ class IComponent
 
     ALN_REGISTER_TYPE()
 };
-} // namespace entities
 } // namespace aln

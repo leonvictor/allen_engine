@@ -94,7 +94,7 @@ void GraphicsSystem::Initialize()
     m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
 }
 
-void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
+void GraphicsSystem::Update(const UpdateContext& context)
 {
     ZoneScoped;
 
@@ -192,7 +192,7 @@ void GraphicsSystem::Update(const aln::entities::UpdateContext& context)
     m_pRenderer->EndFrame();
 }
 
-void GraphicsSystem::RegisterComponent(const entities::Entity* pEntity, entities::IComponent* pComponent)
+void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pComponent)
 {
     auto pCamera = dynamic_cast<Camera*>(pComponent);
     if (pCamera != nullptr)
@@ -228,7 +228,7 @@ void GraphicsSystem::RegisterComponent(const entities::Entity* pEntity, entities
     }
 }
 
-void GraphicsSystem::UnregisterComponent(const entities::Entity* pEntity, entities::IComponent* pComponent)
+void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pComponent)
 {
     auto pCamera = dynamic_cast<Camera*>(pComponent);
     if (pCamera != nullptr)
@@ -264,10 +264,10 @@ void GraphicsSystem::UnregisterComponent(const entities::Entity* pEntity, entiti
     }
 }
 
-const entities::UpdatePriorities& GraphicsSystem::GetUpdatePriorities()
+const UpdatePriorities& GraphicsSystem::GetUpdatePriorities()
 {
     // TODO
-    entities::UpdatePriorities up;
+    UpdatePriorities up;
     return up;
 };
 

@@ -7,7 +7,7 @@
 
 #include <vector>
 
-namespace aln::entities
+namespace aln
 {
 
 /// @brief Entities with a spatial component have a position and orientation in the world.
@@ -85,4 +85,4 @@ class SpatialComponent : public IComponent
     /// @param quatOffset: delta rotation
     void OffsetLocalTransformRotation(const glm::quat quatOffset);
 };
-} // namespace aln::entities
+} // namespace aln
