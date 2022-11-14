@@ -26,7 +26,7 @@
 #include <crtdbg.h>
 #endif
 
-#include <input/input_system.hpp>
+#include <input/input_service.hpp>
 
 #include <entities/entity.hpp>
 #include <entities/world_entity.hpp>
@@ -123,9 +123,9 @@ class Engine
 
         // Register callbacks to transfer events from the window to the input system
         // TODO: Ideally this would be managed entirelly by the input system, without a dependency on the window
-        m_window.AddKeyCallback(std::bind(Input::UpdateKeyboardControlState, std::placeholders::_1, std::placeholders::_2));
-        m_window.AddMouseButtonCallback(std::bind(Input::UpdateMouseControlState, std::placeholders::_1, std::placeholders::_2));
-        m_window.AddScrollCallback(std::bind(Input::UpdateScrollControlState, std::placeholders::_1, std::placeholders::_2));
+        m_window.AddKeyCallback(std::bind(&InputService::UpdateKeyboardControlState, &m_inputService, std::placeholders::_1, std::placeholders::_2));
+        m_window.AddMouseButtonCallback(std::bind(&InputService::UpdateMouseControlState, &m_inputService, std::placeholders::_1, std::placeholders::_2));
+        m_window.AddScrollCallback(std::bind(&InputService::UpdateScrollControlState, &m_inputService, std::placeholders::_1, std::placeholders::_2));
 
         // TODO: Get rid of all the references to m_device
         // They should not be part of this class
@@ -142,6 +142,9 @@ class Engine
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
         m_serviceProvider.RegisterService(&m_timeService);
+        m_serviceProvider.RegisterService(&m_inputService);
+
+        m_updateContext.m_pServiceProvider = &m_serviceProvider;
 
         CreateWorld();
         ShareImGuiContext();
@@ -164,6 +167,7 @@ class Engine
     TaskService m_taskService;
     AssetService m_assetService;
     TimeService m_timeService;
+    InputService m_inputService;
 
     // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
     ServiceProvider m_serviceProvider;
@@ -239,18 +243,21 @@ class Engine
     {
         while (!m_window.ShouldClose())
         {
-            // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
-            // TODO: Map GLFW events to the Input system
             // Update services
-            Input::UpdateMousePosition(m_window.GetCursorPosition());
-            Input::Dispatch(); // Trigger input callbacks
+
+            // todo: Move to InputService::Update. We need to associate the service with the window beforehand
+            m_inputService.UpdateMousePosition(m_window.GetCursorPosition());
+
+            m_inputService.Update();
             m_timeService.Update();
             m_assetService.Update();
 
+            // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             m_window.NewFrame();
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
+            // Populate update context
             m_updateContext.m_deltaTime = m_timeService.GetDeltaTime();
 
             auto& dim = m_editor.GetScenePreviewSize();

@@ -19,5 +19,7 @@ class AxisControl : public InputControl<float>
         m_id = code;
         // TODO: For now we use GLFW scancodes as ids. We should use a guid
     }
+
+    void Update() {}
 };
 } // namespace aln::input

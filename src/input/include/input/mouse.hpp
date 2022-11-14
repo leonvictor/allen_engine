@@ -15,7 +15,7 @@ namespace input
 /// @brief Describe a physical mouse and its on-screen cursor relative.
 class Mouse : IInputDevice
 {
-    friend class Input;
+    friend class InputService;
     friend Engine;
 
   private:
@@ -23,10 +23,10 @@ class Mouse : IInputDevice
     glm::vec2 m_position;
 
     // Difference in curosr position since last frame.
-    glm::vec2 m_delta;
+    glm::vec2 m_delta = {0, 0};
 
     // Difference in position of the scroller since last frame.
-    glm::vec2 m_scrollDelta;
+    glm::vec2 m_scrollDelta = {0, 0};
 
     /// Mouse buttons
     std::map<int, ButtonControl> m_buttons;
@@ -35,12 +35,27 @@ class Mouse : IInputDevice
     AxisControl m_scrollControl;
 
     /// @brief Update position and delta according to the new provided position.
-    void Update(glm::vec2 position);
+    void SetCursorPosition(glm::vec2 position)
+    {
+        m_delta = position - m_position;
+        m_position = position;
+    }
 
     /// @brief Return a list of state changed events that occured since the last call to this function.
     /// TODO: Share this behavior with Keyboard (and other devices)
     /// This probably means moving m_buttons/m_keys to a common m_control
     std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() override;
+
+    void Update()
+    {
+        for (auto& [buttonCode, buttonControl] : m_buttons)
+        {
+            buttonControl.Update();
+        }
+
+        // Reset deltas
+        m_scrollDelta = {0.0f, 0.0f};
+    }
 
     /// @brief Translate a GLFW Event to KeyControl
     /// @todo Move to virtual fn in InputDevice (possibly InputControl even ?)
@@ -48,15 +63,44 @@ class Mouse : IInputDevice
 
     void UpdateScrollControlState(float xdelta, float ydelta);
 
+    const ButtonControl& GetButton(int code) const
+    {
+        auto iter = m_buttons.find(code);
+        if (iter != m_buttons.end())
+        {
+            return iter->second;
+        }
+
+        throw;
+    }
+
   public:
     const int TEMPORARY_SCROLL_ID = 11111;
 
     /// @brief Default constructor creates standard mouse controls (right and left click, scrolling wheel).
     Mouse();
 
-    const glm::vec2& GetPosition() const;
-    const glm::vec2& GetDelta() const;
-    const glm::vec2& GetScroll() const;
+    inline const glm::vec2& GetPosition() const { return m_position; }
+    inline const glm::vec2& GetDelta() const { return m_delta; }
+    inline const glm::vec2& GetScrollDelta() const { return m_scrollDelta; };
+
+    inline bool WasPressed(int code) const
+    {
+        auto& control = GetButton(code);
+        return control.WasPressed();
+    }
+
+    inline bool WasReleased(int code) const
+    {
+        auto& control = GetButton(code);
+        return control.WasReleased();
+    }
+
+    inline bool IsHeld(int code) const
+    {
+        auto& control = GetButton(code);
+        return control.IsHeld();
+    }
 };
 } // namespace input
 } // namespace aln

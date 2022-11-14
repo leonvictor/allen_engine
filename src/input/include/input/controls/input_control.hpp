@@ -4,6 +4,14 @@
 
 namespace aln::input
 {
+enum class ButtonState : uint8_t
+{
+    None,
+    Pressed,
+    Held,
+    Released
+};
+
 class IInputControl
 {
   protected:
@@ -25,14 +33,26 @@ class InputControl : public IInputControl
     friend class Keyboard;
     friend class Mouse;
 
+  public:
+    enum class UpdateState : uint8_t
+    {
+        None,
+        Changed,        // Control was touched this frame
+        RequiresUpdate, // Control requires an update
+    };
+
   protected:
     T m_value;
     T m_defaultValue;
+    UpdateState m_updateState = UpdateState::None;
 
     void SetValue(T value)
     {
         m_value = value;
+        m_updateState = UpdateState::Changed;
     }
+
+    virtual void Update() = 0;
 
   public:
     bool IsActuated() const

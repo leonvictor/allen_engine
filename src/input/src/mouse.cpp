@@ -6,12 +6,6 @@
 namespace aln::input
 {
 
-void Mouse::Update(glm::vec2 position)
-{
-    m_delta = position - m_position;
-    m_position = position;
-}
-
 /// @brief Return a list of state changed events that occured since the last call to this function.
 /// TODO: Share this behavior with Keyboard (and other devices)
 /// This probably means moving m_buttons/m_keys to a common m_control
@@ -55,8 +49,17 @@ void Mouse::UpdateControlState(int code, int action)
 
     // Find the control if it has already been added to the device, create it otherwise
     auto iter = m_buttons.emplace(std::make_pair(code, ButtonControl(code))).first;
+
     // Update the control value
-    iter->second.SetValue((float) MapGLFWActionCode(action));
+    if (action == GLFW_PRESS)
+    {
+        iter->second.SetValue(ButtonState::Pressed);
+    }
+
+    else if (action == GLFW_RELEASE)
+    {
+        iter->second.SetValue(ButtonState::Released);
+    }
 
     // Create and populate a control state changed event
     auto& event = m_statesChanged.emplace(std::make_pair(code, ControlStateChangedEvent()))->second;
@@ -81,8 +84,4 @@ Mouse::Mouse()
     // FIXME: ID should be unique
     m_scrollControl = AxisControl(TEMPORARY_SCROLL_ID);
 }
-
-const glm::vec2& Mouse::GetPosition() const { return m_position; }
-const glm::vec2& Mouse::GetDelta() const { return m_delta; }
-const glm::vec2& Mouse::GetScroll() const { return m_scrollDelta; }
 } // namespace aln::input

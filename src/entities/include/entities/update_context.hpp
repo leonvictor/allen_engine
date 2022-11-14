@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <common/services/service_provider.hpp>
 #include <common/types.hpp>
 
 #include "../update_stages.hpp"
@@ -22,20 +23,31 @@ class UpdateContext
     friend class Engine;
 
   private:
+    ServiceProvider* m_pServiceProvider = nullptr;
+
     UpdateStage m_updateStage = UpdateStage::FrameStart;
-    Seconds m_deltaTime = 0.0f;
 
     // TODO: Move to Viewport class
-    float m_displayWidth;
-    float m_displayHeight;
+    float m_displayWidth = 0.0f;
+    float m_displayHeight = 0.0f;
+
+    // Time data
+    Seconds m_deltaTime = 0.0f;
 
   public:
+    /// @todo Should be private
     EntityMap* pEntityMap;
 
-    // TODO: Propagate input to systems (and get rid of singletons)
     UpdateStage GetUpdateStage() const { return m_updateStage; }
     inline Seconds GetDeltaTime() const { return m_deltaTime; }
     inline Seconds GetDisplayHeight() const { return m_displayHeight; }
     inline Seconds GetDisplayWidth() const { return m_displayWidth; }
+
+    template <typename T>
+    T* GetService() const
+    {
+        assert(m_pServiceProvider != nullptr);
+        return m_pServiceProvider->GetService<T>();
+    }
 };
 } // namespace aln

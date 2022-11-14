@@ -3,8 +3,7 @@ set(LIB_NAME input)
 add_library(
     ${LIB_NAME} SHARED
     src/input_action.cpp
-    src/input_device.cpp
-    src/input_system.cpp
+    src/input_service.cpp
     src/input_context.cpp
     src/mouse.cpp
     src/keyboard.cpp
@@ -20,6 +19,7 @@ set(LIB_DEPENDENCIES
     glm
     glfw
     imm32
+    common
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC ${LIB_DEPENDENCIES})

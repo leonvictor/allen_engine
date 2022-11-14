@@ -1,8 +1,9 @@
 #include "keyboard.hpp"
 
 #include "control_state_event.hpp"
-#include "controls/key_control.hpp"
 #include "input_device.hpp"
+
+#include <GLFW/glfw3.h>
 
 #include <glm/vec2.hpp>
 #include <map>
@@ -49,18 +50,27 @@ void Keyboard::UpdateControlState(int code, int action)
         return;
     }
 
+    // TODO: Add buttons statically once at app launch and use map.find here
     // Find the control if it has already been added to the device, create it otherwise
-    auto iter = m_keys.emplace(std::make_pair(code, KeyControl(code))).first;
+    auto iter = m_keys.emplace(std::make_pair(code, ButtonControl(code))).first;
+
     // Update the control value
-    iter->second.SetValue(MapGLFWActionCode(action));
-    // SetControlValue(iter->second, MapGLFWActionCode(action));
+    if (action == GLFW_PRESS)
+    {
+        iter->second.SetValue(ButtonState::Pressed);
+    }
+
+    else if (action == GLFW_RELEASE)
+    {
+        iter->second.SetValue(ButtonState::Released);
+    }
 
     // Create and populate a control state changed event
     auto& event = m_statesChanged.emplace(std::make_pair(code, ControlStateChangedEvent()))->second;
     event.pControl = &iter->second;
 }
 
-KeyControl& Keyboard::GetKey(int code)
+const ButtonControl& Keyboard::GetKey(int code) const
 {
     auto iter = m_keys.find(code);
     if (iter != m_keys.end())
