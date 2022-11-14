@@ -1,15 +1,16 @@
 #pragma once
 
 #include <chrono>
-#include <utils/singleton.hpp>
+
+#include <common/services/service.hpp>
 
 namespace aln
 {
-/// @brief Interface to get time information. Use as a singleton (i.e. Time::GetTime())
-/// @todo Unity uses a "fake" timer to enforce a maximum delta time
-class Time
+/// @brief Interface to get time information
+/// @todo use a "fake" timer to enforce a maximum delta time
+/// @todo add a way to pause the world
+class TimeService : public IService
 {
-    friend class ISingleton<Time>;
     friend class Engine;
 
   private:
@@ -26,23 +27,21 @@ class Time
     uint64_t m_frameCount;
 
     /// @brief Notify the time system that we changed frames. Get the current time and update internal fields accordingly.
-    static void Update();
+    void Update();
 
-    static Time& Singleton();
-
-    Time();
+    TimeService() : m_startTime(Clock::now()), m_frameTime(m_startTime), m_frameCount(0) {};
 
   public:
     /// @brief Interval since last frame (in seconds).
-    static float GetDeltaTime();
+    float GetDeltaTime() const;
 
     /// @brief Time at the beginning of this frame (in seconds).
-    static float GetTime();
+    float GetTime() const;
 
     /// @brief Number of frames since the start of the application.
-    static uint64_t GetFrameCount();
+    uint64_t GetFrameCount() const;
 
     /// @brief Real time since the start of the application (in seconds).
-    static float GetTimeSinceStartup();
+    float GetTimeSinceStartup() const;
 };
 } // namespace aln

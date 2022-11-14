@@ -3,7 +3,7 @@ set(LIB_NAME core)
 add_library(${LIB_NAME} SHARED
     src/world_systems/render_system.cpp
 
-    src/time_system.cpp
+    src/services/time_service.cpp
     src/mesh.cpp
     
     src/components/mesh_component.cpp

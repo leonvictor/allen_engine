@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utils/singleton.hpp>
-
 #include <iostream>
 #include <string>
 
@@ -13,8 +11,9 @@ enum Level
 };
 
 /// @brief Debug utility for the Engine.
+/// @todo Actually do this
 /// @todo For now these utility simply print the logs to the console
-class Debug : private ISingleton<Debug>
+class Debug
 {
     /// @brief Log a message at the info level.
     static void Log(std::string text)

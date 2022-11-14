@@ -4,8 +4,6 @@
 #include <entities/spatial_component.hpp>
 #include <reflection/reflection.hpp>
 
-#include "../time_system.hpp"
-
 namespace aln
 {
 
@@ -23,7 +21,7 @@ class ScriptSystem : public IEntitySystem
   public:
     ScriptSystem()
     {
-        m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::PostPhysics, 10);
+      m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::PostPhysics, 10);
     }
 
     // TODO: Hide UpdateContext from users

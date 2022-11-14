@@ -45,10 +45,10 @@
 #include <core/entity_systems/camera_controller.hpp>
 #include <core/entity_systems/script.hpp>
 
-#include <core/time_system.hpp>
 #include <core/world_systems/render_system.hpp>
 
 #include <assets/asset_service.hpp>
+#include <core/services/time_service.hpp>
 
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
@@ -141,6 +141,7 @@ class Engine
 
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
+        m_serviceProvider.RegisterService(&m_timeService);
 
         CreateWorld();
         ShareImGuiContext();
@@ -162,6 +163,7 @@ class Engine
     // Services
     TaskService m_taskService;
     AssetService m_assetService;
+    TimeService m_timeService;
 
     // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
     ServiceProvider m_serviceProvider;
@@ -240,16 +242,16 @@ class Engine
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             // TODO: Map GLFW events to the Input system
             // Update services
-            Time::Update();
             Input::UpdateMousePosition(m_window.GetCursorPosition());
             Input::Dispatch(); // Trigger input callbacks
+            m_timeService.Update();
             m_assetService.Update();
 
             m_window.NewFrame();
             m_renderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
-            m_updateContext.m_deltaTime = Time::GetDeltaTime();
+            m_updateContext.m_deltaTime = m_timeService.GetDeltaTime();
 
             auto& dim = m_editor.GetScenePreviewSize();
             m_updateContext.m_displayWidth = dim.x;
@@ -272,7 +274,7 @@ class Engine
             }
 
             auto desc = m_sceneRenderer.GetActiveImage()->GetDescriptorSet();
-            m_editor.DrawUI(desc, Time::GetDeltaTime());
+            m_editor.DrawUI(desc, m_timeService.GetDeltaTime());
 
             m_imgui.Render(m_renderer.GetActiveRenderTarget().commandBuffer.get());
 

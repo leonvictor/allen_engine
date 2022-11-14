@@ -5,8 +5,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <utils/singleton.hpp>
-
 namespace aln::vkg
 {
 

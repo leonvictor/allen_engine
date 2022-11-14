@@ -4,13 +4,10 @@ namespace aln
 {
 void ScriptSystem::Update(const UpdateContext& ctx)
 {
-    // TODO: Register systems such as Time and Input, and provide derived classes with getters methods like GetTime() or KeyPressed()
-    // At the same time, get rid of the Time singleton
-    // Also make it pseudo-realtime
     auto rot = m_pRootComponent->GetLocalTransform().GetRotationEuler();
-    rot.x += m_rotationSpeedX * Time::GetDeltaTime();
-    rot.y += m_rotationSpeedY * Time::GetDeltaTime();
-    rot.z += m_rotationSpeedZ * Time::GetDeltaTime();
+    rot.x += m_rotationSpeedX * ctx.GetDeltaTime();
+    rot.y += m_rotationSpeedY * ctx.GetDeltaTime();
+    rot.z += m_rotationSpeedZ * ctx.GetDeltaTime();
     m_pRootComponent->SetLocalTransformRotationEuler(rot);
 }
 
