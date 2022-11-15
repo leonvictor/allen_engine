@@ -13,8 +13,6 @@
 namespace aln
 {
 class Engine;
-namespace input
-{
 
 /// @brief Describes a physical keyboard.
 class Keyboard : public IInputDevice
@@ -176,5 +174,4 @@ class Keyboard : public IInputDevice
     inline bool WasReleased(Key key) const { return m_keys[(uint16_t) key].WasReleased(); }
     inline bool IsHeld(Key key) const { return m_keys[(uint16_t) key].IsHeld(); }
 };
-} // namespace input
 } // namespace aln

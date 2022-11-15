@@ -13,8 +13,7 @@
 namespace aln
 {
 class Engine;
-namespace input
-{
+
 /// @brief Describe a physical mouse and its on-screen cursor relative.
 class Mouse : IInputDevice
 {
@@ -90,5 +89,4 @@ class Mouse : IInputDevice
     inline bool WasReleased(Button button) const { return m_buttons[(uint8_t) button].WasReleased(); }
     inline bool IsHeld(Button button) const { return m_buttons[(uint8_t) button].IsHeld(); }
 };
-} // namespace input
 } // namespace aln

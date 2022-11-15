@@ -2,7 +2,7 @@
 
 #include <map>
 
-namespace aln::input
+namespace aln
 {
 struct ControlStateChangedEvent;
 
@@ -17,4 +17,4 @@ class IInputDevice
     /// @brief Return a list of state changed events that occured since the last call to this method.
     virtual std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() = 0;
 };
-} // namespace aln::input
+} // namespace aln

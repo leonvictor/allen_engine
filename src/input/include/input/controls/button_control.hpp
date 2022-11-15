@@ -2,7 +2,7 @@
 
 #include "input_control.hpp"
 
-namespace aln::input
+namespace aln
 {
 
 /// @brief Control for simple buttons.
@@ -46,4 +46,4 @@ class ButtonControl : public InputControl<ButtonState>
         }
     }
 };
-} // namespace aln::input
+} // namespace aln

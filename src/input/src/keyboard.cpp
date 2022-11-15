@@ -8,10 +8,10 @@
 #include <glm/vec2.hpp>
 #include <map>
 
-namespace aln::input
+namespace aln
 {
 
-// 1:1 Map from glfw key codes to
+// 1:1 Map from glfw key codes to ours
 const std::unordered_map<uint16_t, Keyboard::Key> Keyboard::GlfwKeyMap = {
     {GLFW_KEY_UNKNOWN, Key::Unknown},
     {GLFW_KEY_UNKNOWN, Key::Unknown},
@@ -199,4 +199,4 @@ void Keyboard::UpdateControlState(int glfwCode, int action)
     auto& event = m_statesChanged.emplace(std::make_pair(glfwCode, ControlStateChangedEvent()))->second;
     event.pControl = &m_keys[(uint16_t) iter->second];
 }
-} // namespace aln::input
+} // namespace aln

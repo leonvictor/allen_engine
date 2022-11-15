@@ -13,9 +13,6 @@ namespace aln
 
 class Engine;
 
-namespace input
-{
-
 /// TODO: https://www.gamedev.net/blogs/entry/2250186-designing-a-robust-input-handling-system-for-games/
 class InputContext;
 
@@ -83,5 +80,4 @@ class InputService : public IService
     /// TODO: Access to the gamepad.
     // static const GetGamepad& Gamepad();
 };
-} // namespace input
 } // namespace aln

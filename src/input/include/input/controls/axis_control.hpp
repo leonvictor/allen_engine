@@ -1,7 +1,7 @@
 #pragma once
 #include "input_control.hpp"
 
-namespace aln::input
+namespace aln
 {
 
 /// @brief Floating point axis control.
@@ -22,4 +22,4 @@ class AxisControl : public InputControl<float>
 
     void Update() {}
 };
-} // namespace aln::input
+} // namespace aln

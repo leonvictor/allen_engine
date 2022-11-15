@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace aln::input
+namespace aln
 {
 enum class ButtonState : uint8_t
 {
@@ -65,4 +65,4 @@ class InputControl : public IInputControl
         return m_value;
     }
 };
-} // namespace aln::input
+} // namespace aln

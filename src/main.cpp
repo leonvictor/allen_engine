@@ -73,9 +73,6 @@
 
 #include <Tracy.hpp>
 
-using namespace aln::input;
-using namespace aln;
-
 namespace aln
 {
 
@@ -103,6 +100,8 @@ class Engine
   public:
     Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity)
     {
+        // Initialize the render engine
+        // @todo: Improve API
         m_window.InitializeWindow();
         m_instance.RequestExtensions(m_window.GetRequiredExtensions());
         m_instance.Create();
@@ -169,7 +168,6 @@ class Engine
     TimeService m_timeService;
     InputService m_inputService;
 
-    // TODO: Uniformize existing services and call them that (rather than systems, which are confusing)
     ServiceProvider m_serviceProvider;
 
     editor::Editor m_editor;

@@ -3,7 +3,7 @@
 #include "controls/input_control.hpp"
 #include "input_action_phase.hpp"
 
-namespace aln::input
+namespace aln
 {
 /// Forward declarations
 class InputAction;
@@ -107,4 +107,4 @@ class PressInteraction : public Interaction
     //         return interactionContext.phase;
     //     }
 };
-} // namespace aln::input
+} // namespace aln

@@ -3,7 +3,7 @@
 #include "callback_context.hpp"
 #include "input_action_phase.hpp"
 
-namespace aln::input
+namespace aln
 {
 void InputAction::Trigger(InputAction::Context actionContext)
 {

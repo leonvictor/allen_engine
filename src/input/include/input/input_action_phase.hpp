@@ -1,6 +1,6 @@
 #pragma once
 
-namespace aln::input
+namespace aln
 {
 enum InputActionPhase
 {

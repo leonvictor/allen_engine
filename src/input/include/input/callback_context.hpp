@@ -1,8 +1,8 @@
 #pragma once
 
-namespace aln::input
+namespace aln
 {
 struct CallbackContext
 {
 };
-} // namespace aln::input
+} // namespace aln

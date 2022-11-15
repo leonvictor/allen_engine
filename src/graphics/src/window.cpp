@@ -80,8 +80,6 @@ void Window::KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int act
     {
         callback(scancode, action);
     }
-    // FIXME: GLFW events for keyboard and mouse might share the same identifiers ?
-    // Input::UpdateKeyboardControlState(scancode, action);
 }
 
 void Window::ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoffset)
@@ -91,7 +89,6 @@ void Window::ScrollCallback(GLFWwindow* pGlfwWindow, double xoffset, double yoff
     {
         callback(xoffset, yoffset);
     }
-    // Input::UpdateScrollControlState(xoffset, yoffset);
 }
 
 void Window::MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action, int mods)
@@ -101,7 +98,6 @@ void Window::MouseButtonCallback(GLFWwindow* pGlfwWindow, int button, int action
     {
         callback(button, action);
     }
-    // Input::UpdateMouseControlState(button, action);
 }
 
 void Window::InitializeWindow()

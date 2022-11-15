@@ -11,7 +11,7 @@ namespace aln
 
 void EditorCameraController::Update(const UpdateContext& context)
 {
-    auto pInputService = context.GetService<input::InputService>();
+    auto pInputService = context.GetService<InputService>();
     auto pMouse = pInputService->GetMouse();
 
     // Zoom
@@ -22,14 +22,14 @@ void EditorCameraController::Update(const UpdateContext& context)
     }
 
     // Translate
-    if (pMouse->IsHeld(input::Mouse::Button::Middle))
+    if (pMouse->IsHeld(Mouse::Button::Middle))
     {
         auto delta = pMouse->GetDelta() * m_translationSensitivity;
         m_pCameraInstance->OffsetLocalTransformPosition((m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x));
     }
 
     // Rotate
-    if (pMouse->IsHeld(input::Mouse::Button::Right))
+    if (pMouse->IsHeld(Mouse::Button::Right))
     {
         auto delta = pMouse->GetDelta() * m_rotationSensitivity;
         m_pCameraInstance->OffsetLocalTransformRotation(glm::quat(glm::radians(glm::vec3(-delta.y, delta.x, 0.0f))));

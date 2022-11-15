@@ -1,7 +1,7 @@
 #include "input_service.hpp"
 #include "input_context.hpp"
 
-namespace aln::input
+namespace aln
 {
 void InputService::RegisterContext(InputContext* pContext)
 {
@@ -41,4 +41,4 @@ void InputService::Dispatch()
         }
     }
 }
-} // namespace aln::input
+} // namespace aln

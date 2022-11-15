@@ -6,7 +6,7 @@
 #include <functional>
 #include <memory>
 
-namespace aln::input
+namespace aln
 {
 /// Forward declaration
 class IInputControl;

@@ -6,7 +6,7 @@
 
 #include <map>
 
-namespace aln::input
+namespace aln
 {
 
 std::multimap<int, ControlStateChangedEvent> InputContext::Map(std::multimap<int, ControlStateChangedEvent> inputMap)
@@ -63,4 +63,4 @@ void InputContext::Disable()
 }
 
 bool InputContext::IsEnabled() const { return m_enabled; }
-} // namespace aln::input
+} // namespace aln

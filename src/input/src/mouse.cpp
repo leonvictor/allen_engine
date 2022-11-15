@@ -3,7 +3,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace aln::input
+namespace aln
 {
 
 // 1:1 Map from glfw mouse button input codes to ours
@@ -90,4 +90,4 @@ void Mouse::UpdateScrollControlState(float xdelta, float ydelta)
 
     m_scrollDelta = glm::vec2(xdelta, ydelta);
 }
-} // namespace aln::input
+} // namespace aln

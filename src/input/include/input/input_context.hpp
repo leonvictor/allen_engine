@@ -6,7 +6,7 @@
 #include <functional>
 #include <map>
 
-namespace aln::input
+namespace aln
 {
 
 // fwd
@@ -40,4 +40,4 @@ class InputContext
 
     bool IsEnabled() const;
 };
-} // namespace aln::input
+} // namespace aln
