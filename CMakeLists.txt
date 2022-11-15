@@ -182,7 +182,14 @@ set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
 # target_include_directories(main PUBLIC ${STDUUID_INCLUDE_DIR})
 
 # json
-set(JSON_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/json)
+SET(JSON_BuildTests OFF)
+
+FetchContent_Declare(
+    json
+    GIT_URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+)
+
+FetchContent_MakeAvailable(json)
 
 # assimp
 MESSAGE(STATUS "Configuring assimp...")

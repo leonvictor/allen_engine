@@ -1,6 +1,6 @@
 #include "asset_system/animation_clip_asset.hpp"
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 #include <lz4.h>
 
 namespace aln::assets
