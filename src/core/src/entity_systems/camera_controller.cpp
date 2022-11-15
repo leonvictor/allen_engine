@@ -55,7 +55,6 @@ void EditorCameraController::UnregisterComponent(IComponent* pComponent)
     if (pComponent == m_pCameraInstance)
     {
         m_pCameraInstance = nullptr;
-        m_inputContext.Disable();
     }
 }
 
