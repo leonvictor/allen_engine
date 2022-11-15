@@ -77,7 +77,13 @@ set(IMGUI_INCLUDE_DIRS
 add_executable(main ${SOURCE})
 
 # fmt
-add_subdirectory(external/fmt)
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt
+    GIT_TAG a33701196adfad74917046096bf5a2aa0ab0bb50 # https://github.com/fmtlib/fmt/releases/tag/9.1.0
+)
+
+FetchContent_MakeAvailable(fmt)
 
 # enkiTS
 set(ENKITS_BUILD_C_INTERFACE OFF)
@@ -141,7 +147,14 @@ set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
-add_subdirectory(external/glfw)
+
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw
+    GIT_TAG 7482de6071d21db77a7236155da44c172a7f6c9e # https://github.com/glfw/glfw/releases/tag/3.3.8
+)
+
+FetchContent_MakeAvailable(glfw)
 
 # GLM
 target_compile_definitions(main PUBLIC
@@ -150,11 +163,14 @@ target_compile_definitions(main PUBLIC
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     GLM_GTX_hash
     )
-add_subdirectory(external/glm)
 
-# Hack: set glm's include dir as system to ignore warnings (not our code)
-get_target_property(_inc glm INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(glm SYSTEM INTERFACE ${_inc})
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm
+    GIT_TAG bf71a834948186f4097caa076cd2663c69a10e1e # https://github.com/g-truc/glm/releases/tag/0.9.9.8
+)
+
+FetchContent_MakeAvailable(glm)
 
 # stb
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)

@@ -6,7 +6,6 @@
 #include <stdexcept>
 
 #include <glm/vec3.hpp>
-#include <stb_image.h>
 #include <stdexcept>
 
 namespace aln::vkg::resources
