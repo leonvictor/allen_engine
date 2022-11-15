@@ -6,6 +6,18 @@
 namespace aln::input
 {
 
+// 1:1 Map from glfw mouse button input codes to ours
+const std::unordered_map<uint8_t, Mouse::Button> Mouse::GlfwButtonMap = {
+    {GLFW_MOUSE_BUTTON_LEFT, Mouse::Button::Left},
+    {GLFW_MOUSE_BUTTON_RIGHT, Mouse::Button::Right},
+    {GLFW_MOUSE_BUTTON_MIDDLE, Mouse::Button::Middle},
+    {GLFW_MOUSE_BUTTON_4, Mouse::Button::Button4},
+    {GLFW_MOUSE_BUTTON_5, Mouse::Button::Button5},
+    {GLFW_MOUSE_BUTTON_6, Mouse::Button::Button6},
+    {GLFW_MOUSE_BUTTON_7, Mouse::Button::Button7},
+    {GLFW_MOUSE_BUTTON_8, Mouse::Button::Button8},
+};
+
 /// @brief Return a list of state changed events that occured since the last call to this function.
 /// TODO: Share this behavior with Keyboard (and other devices)
 /// This probably means moving m_buttons/m_keys to a common m_control
@@ -22,13 +34,14 @@ std::multimap<int, ControlStateChangedEvent> Mouse::PollControlChangedEvents()
 
     // This is 3.
     /// FIXME: Too many loops
-    for (auto iter = m_buttons.begin(); iter != m_buttons.end(); ++iter)
+    auto numButtons = m_buttons.size();
+    for (auto buttonIdx = 0; buttonIdx < numButtons; ++buttonIdx)
     {
         // Populate the list
-        if (!m_statesChanged.contains(iter->first) && iter->second.IsActuated())
+        if (!m_statesChanged.contains(buttonIdx) && m_buttons[(uint8_t) buttonIdx].IsActuated())
         {
-            auto& event = m_statesChanged.emplace(std::make_pair(iter->first, ControlStateChangedEvent()))->second;
-            event.pControl = &iter->second;
+            auto& event = m_statesChanged.emplace(std::make_pair(buttonIdx, ControlStateChangedEvent()))->second;
+            event.pControl = &m_buttons[(uint8_t) buttonIdx];
         }
     }
 
@@ -48,40 +61,33 @@ void Mouse::UpdateControlState(int code, int action)
     }
 
     // Find the control if it has already been added to the device, create it otherwise
-    auto iter = m_buttons.emplace(std::make_pair(code, ButtonControl(code))).first;
+    auto iter = GlfwButtonMap.find(code);
+    assert(iter != GlfwButtonMap.end());
 
     // Update the control value
     if (action == GLFW_PRESS)
     {
-        iter->second.SetValue(ButtonState::Pressed);
+        m_buttons[(uint8_t) iter->second].SetValue(ButtonState::Pressed);
     }
 
     else if (action == GLFW_RELEASE)
     {
-        iter->second.SetValue(ButtonState::Released);
+        m_buttons[(uint8_t) iter->second].SetValue(ButtonState::Released);
     }
 
     // Create and populate a control state changed event
     auto& event = m_statesChanged.emplace(std::make_pair(code, ControlStateChangedEvent()))->second;
-    event.pControl = &iter->second;
+    event.pControl = &m_buttons[(uint8_t) iter->second];
 }
 
 void Mouse::UpdateScrollControlState(float xdelta, float ydelta)
 {
     m_scrollControl.SetValue(ydelta);
-    auto& event = m_statesChanged.emplace(std::make_pair(TEMPORARY_SCROLL_ID, ControlStateChangedEvent()))->second;
-    event.pControl = &m_scrollControl;
+
+    // todo: fix: we need an event when scroll is touched
+    // auto& event = m_statesChanged.emplace(std::make_pair(TEMPORARY_SCROLL_ID, ControlStateChangedEvent()))->second;
+    // event.pControl = &m_scrollControl;
 
     m_scrollDelta = glm::vec2(xdelta, ydelta);
-}
-
-Mouse::Mouse()
-{
-    m_buttons.try_emplace(GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_1);
-    m_buttons.try_emplace(GLFW_MOUSE_BUTTON_2, GLFW_MOUSE_BUTTON_2);
-    m_buttons.try_emplace(GLFW_MOUSE_BUTTON_3, GLFW_MOUSE_BUTTON_3);
-
-    // FIXME: ID should be unique
-    m_scrollControl = AxisControl(TEMPORARY_SCROLL_ID);
 }
 } // namespace aln::input

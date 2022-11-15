@@ -68,7 +68,6 @@ class InputService : public IService
     }
 
     /// @brief Process registered input by passing them to active contexts.
-    /// TODO: Shouldn't be accessible outside the main engine loop
     void Dispatch();
 
   public:

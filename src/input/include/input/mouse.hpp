@@ -5,6 +5,9 @@
 #include "input_device.hpp"
 
 #include <glm/vec2.hpp>
+
+#include <array>
+#include <unordered_map>
 #include <vector>
 
 namespace aln
@@ -18,20 +21,36 @@ class Mouse : IInputDevice
     friend class InputService;
     friend Engine;
 
+  public:
+    enum class Button : uint8_t
+    {
+        Left,
+        Right,
+        Middle,
+        Button4,
+        Button5,
+        Button6,
+        Button7,
+        Button8,
+    };
+
   private:
+    static const std::unordered_map<uint8_t, Button> GlfwButtonMap;
+
     // Position in screen space.
     glm::vec2 m_position;
 
-    // Difference in curosr position since last frame.
+    // Difference in cursor position since last frame.
     glm::vec2 m_delta = {0, 0};
 
     // Difference in position of the scroller since last frame.
     glm::vec2 m_scrollDelta = {0, 0};
 
     /// Mouse buttons
-    std::map<int, ButtonControl> m_buttons;
+    std::array<ButtonControl, 8> m_buttons;
 
     /// Mouse scroll
+    /// @todo Rename to scroll (or m_buttons to m_buttonControls but match them)
     AxisControl m_scrollControl;
 
     /// @brief Update position and delta according to the new provided position.
@@ -48,9 +67,9 @@ class Mouse : IInputDevice
 
     void Update()
     {
-        for (auto& [buttonCode, buttonControl] : m_buttons)
+        for (auto& button : m_buttons)
         {
-            buttonControl.Update();
+            button.Update();
         }
 
         // Reset deltas
@@ -58,49 +77,18 @@ class Mouse : IInputDevice
     }
 
     /// @brief Translate a GLFW Event to KeyControl
-    /// @todo Move to virtual fn in InputDevice (possibly InputControl even ?)
     void UpdateControlState(int code, int action);
 
     void UpdateScrollControlState(float xdelta, float ydelta);
 
-    const ButtonControl& GetButton(int code) const
-    {
-        auto iter = m_buttons.find(code);
-        if (iter != m_buttons.end())
-        {
-            return iter->second;
-        }
-
-        throw;
-    }
-
   public:
-    const int TEMPORARY_SCROLL_ID = 11111;
-
-    /// @brief Default constructor creates standard mouse controls (right and left click, scrolling wheel).
-    Mouse();
-
     inline const glm::vec2& GetPosition() const { return m_position; }
     inline const glm::vec2& GetDelta() const { return m_delta; }
     inline const glm::vec2& GetScrollDelta() const { return m_scrollDelta; };
 
-    inline bool WasPressed(int code) const
-    {
-        auto& control = GetButton(code);
-        return control.WasPressed();
-    }
-
-    inline bool WasReleased(int code) const
-    {
-        auto& control = GetButton(code);
-        return control.WasReleased();
-    }
-
-    inline bool IsHeld(int code) const
-    {
-        auto& control = GetButton(code);
-        return control.IsHeld();
-    }
+    inline bool WasPressed(Button button) const { return m_buttons[(uint8_t) button].WasPressed(); }
+    inline bool WasReleased(Button button) const { return m_buttons[(uint8_t) button].WasReleased(); }
+    inline bool IsHeld(Button button) const { return m_buttons[(uint8_t) button].IsHeld(); }
 };
 } // namespace input
 } // namespace aln

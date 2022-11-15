@@ -5,7 +5,7 @@
 namespace aln::input
 {
 
-/// @brief Control for keyboard keys.
+/// @brief Control for simple buttons.
 /// TODO: Update to manage various keyboard layouts
 class ButtonControl : public InputControl<ButtonState>
 {
@@ -13,15 +13,11 @@ class ButtonControl : public InputControl<ButtonState>
     friend class Mouse;
 
   private:
-    int m_code;
-
   public:
-    ButtonControl(int code)
+    ButtonControl()
     {
         m_defaultValue = ButtonState::None;
         m_value = ButtonState::None;
-        m_code = code;
-        m_id = code; // TODO: For now we use GLFW scancodes as ids
     }
 
     bool IsHeld() const { return m_value == ButtonState::Held || m_value == ButtonState::Pressed; }

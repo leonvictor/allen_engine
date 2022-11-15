@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <input/input_service.hpp>
+#include <input/mouse.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -21,14 +22,14 @@ void EditorCameraController::Update(const UpdateContext& context)
     }
 
     // Translate
-    if (pMouse->IsHeld(GLFW_MOUSE_BUTTON_MIDDLE))
+    if (pMouse->IsHeld(input::Mouse::Button::Middle))
     {
         auto delta = pMouse->GetDelta() * m_translationSensitivity;
         m_pCameraInstance->OffsetLocalTransformPosition((m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x));
     }
 
     // Rotate
-    if (pMouse->IsHeld(GLFW_MOUSE_BUTTON_RIGHT))
+    if (pMouse->IsHeld(input::Mouse::Button::Right))
     {
         auto delta = pMouse->GetDelta() * m_rotationSensitivity;
         m_pCameraInstance->OffsetLocalTransformRotation(glm::quat(glm::radians(glm::vec3(-delta.y, delta.x, 0.0f))));
