@@ -73,6 +73,10 @@
 
 #include <Tracy.hpp>
 
+// Test anim graph
+#include <anim/graph/graph.hpp>
+#include <anim/graph/nodes/animation_clip_node.hpp>
+
 namespace aln
 {
 

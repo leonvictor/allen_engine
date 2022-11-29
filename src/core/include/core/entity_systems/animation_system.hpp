@@ -4,6 +4,7 @@
 #include <entities/spatial_component.hpp>
 #include <reflection/reflection.hpp>
 
+#include "../components/animation_graph.hpp"
 #include "../components/animation_player_component.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 
@@ -18,6 +19,7 @@ class AnimationSystem : public IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
+    AnimationGraphComponent* m_pAnimationGraphComponent;
     AnimationPlayerComponent* m_pAnimationPlayerComponent;
     SkeletalMeshComponent* m_pSkeletalMeshComponent;
 

@@ -4,6 +4,9 @@ namespace aln
 {
 void AnimationSystem::Update(const UpdateContext& ctx)
 {
+    if (m_pAnimationGraphComponent == nullptr && m_pSkeletalMeshComponent == nullptr)
+        return;
+
     m_pAnimationPlayerComponent->Update(ctx.GetDeltaTime());
     m_pSkeletalMeshComponent->SetPose(m_pAnimationPlayerComponent->GetPose());
     // m_pSkeletalMeshComponent->ResetPoseSkeleton();
@@ -21,6 +24,13 @@ void AnimationSystem::RegisterComponent(IComponent* pComponent)
         return;
     }
 
+    auto pAnimationGraphComponent = dynamic_cast<AnimationGraphComponent*>(pComponent);
+    if (pAnimationGraphComponent != nullptr)
+    {
+        m_pAnimationGraphComponent = pAnimationGraphComponent;
+        return;
+    }
+
     auto pSkeletalMesh = dynamic_cast<SkeletalMeshComponent*>(pComponent);
     if (pSkeletalMesh != nullptr)
     {
@@ -34,6 +44,10 @@ void AnimationSystem::UnregisterComponent(IComponent* pComponent)
     if (pComponent == m_pSkeletalMeshComponent)
     {
         m_pSkeletalMeshComponent = nullptr;
+    }
+    else if (pComponent == m_pAnimationGraphComponent)
+    {
+        m_pAnimationGraphComponent = nullptr;
     }
     else if (pComponent == m_pAnimationPlayerComponent)
     {
