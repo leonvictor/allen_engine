@@ -1,4 +1,5 @@
 #include "editor.hpp"
+#include "animation_graph/animation_graph_editor.hpp"
 
 #include "misc/cpp/imgui_stdlib.h"
 
@@ -16,14 +17,14 @@
 
 namespace aln::editor
 {
-void SetImGuiContext(ImGuiContext* pContext)
-{
-    ImGui::SetCurrentContext(pContext);
-}
 
-void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData)
+void SetImGuiContext(const EditorImGuiContext& context)
 {
-    ImGui::SetAllocatorFunctions(*pAllocFunc, *pFreeFunc, *pUserData);
+    ImGui::SetAllocatorFunctions(*context.m_pAllocFunc, *context.m_pFreeFunc, context.m_pUserData);
+    ImGui::SetCurrentContext(context.m_pImGuiContext);
+
+    ImNodes::SetCurrentContext(context.m_pImNodesContext);
+    ImNodes::SetImGuiContext(context.m_pImGuiContext);
 }
 
 template <typename T>
@@ -231,6 +232,12 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
         m_scenePreviewWidth = dim.x;
         m_scenePreviewHeight = dim.y;
         ImGui::Image((ImTextureID) renderedSceneImageDescriptorSet, {m_scenePreviewWidth, m_scenePreviewHeight});
+    }
+    ImGui::End();
+
+    if (ImGui::Begin("Animation Graph", nullptr))
+    {
+        AnimationGraphEditor::Draw();
     }
     ImGui::End();
 

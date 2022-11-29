@@ -183,14 +183,13 @@ class Engine
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
     {
-        ImGuiMemAllocFunc pAllocFunc;
-        ImGuiMemFreeFunc pFreeFunc;
-        void* pUserData;
+        editor::EditorImGuiContext context;
+        context.m_pImGuiContext = ImGui::GetCurrentContext();
+        context.m_pImNodesContext = ImNodes::GetCurrentContext();
 
-        ImGui::GetAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
+        ImGui::GetAllocatorFunctions(&context.m_pAllocFunc, &context.m_pFreeFunc, &context.m_pUserData);
 
-        editor::SetImGuiContext(ImGui::GetCurrentContext());
-        editor::SetImGuiAllocatorFunctions(&pAllocFunc, &pFreeFunc, &pUserData);
+        editor::SetImGuiContext(context);
     }
 
     void CreateWorld()

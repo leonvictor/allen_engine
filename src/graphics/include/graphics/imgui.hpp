@@ -7,6 +7,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
+#include "imnodes.h"
 
 #include "device.hpp"
 #include "instance.hpp"
@@ -26,6 +27,7 @@ class ImGUI
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
+        ImNodes::DestroyContext();
     }
 
     void Initialize(GLFWwindow* pGlfwWindow, Device* pDevice, RenderPass& renderPass, int nSwapchainImages)
@@ -33,6 +35,8 @@ class ImGUI
         // Initialize Imgui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+        ImNodes::CreateContext();
+
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         (void) io;

@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include <imgui.h>
+#include <imnodes.h>
 
 #include <IconsFontAwesome4.h>
 #include <imgui_internal.h>
@@ -29,9 +30,17 @@
 
 namespace aln::editor
 {
-// ImGui methods to set the context and allocator functions in case reflection is in a separate library.
-void SetImGuiContext(ImGuiContext* pContext);
-void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData);
+struct EditorImGuiContext
+{
+    ImGuiContext* m_pImGuiContext = nullptr;
+    ImNodesContext* m_pImNodesContext = nullptr;
+    ImGuiMemAllocFunc m_pAllocFunc = nullptr;
+    ImGuiMemFreeFunc m_pFreeFunc = nullptr;
+    void* m_pUserData = nullptr;
+};
+
+/// @brief Set ImGui contexts and allocator functions in case reflection is in a separate library.
+void SetImGuiContext(const EditorImGuiContext& context);
 
 class Editor
 {
