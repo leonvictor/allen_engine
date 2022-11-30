@@ -1,12 +1,13 @@
 #pragma once
 
 #include "imnodes.h"
+#include "imnodes_config_or_default.h"
+#include "ImGuiStorage.h"
 
 #include <imgui.h>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
 
-#include <assert.h>
 #include <limits.h>
 
 // the structure of this file:
@@ -76,15 +77,15 @@ enum ImNodesLinkCreationType_
 // {
 //     T();
 //
-//     int id;
+//     ID id;
 // };
 template<typename T>
 struct ImObjectPool
 {
-    ImVector<T>    Pool;
-    ImVector<bool> InUse;
-    ImVector<int>  FreeList;
-    ImGuiStorage   IdMap;
+    ImVector<T>                          Pool;
+    ImVector<bool>                       InUse;
+    ImVector<int>                        FreeList;
+    IMNODES_NAMESPACE::Internal::Storage IdMap;
 
     ImObjectPool() : Pool(), InUse(), FreeList(), IdMap() {}
 };
@@ -101,7 +102,7 @@ struct ImOptionalIndex
 
     inline int Value() const
     {
-        assert(HasValue());
+        IM_ASSERT(HasValue());
         return _Index;
     }
 
@@ -131,10 +132,10 @@ private:
 
 struct ImNodeData
 {
-    int    Id;
-    ImVec2 Origin; // The node origin is in editor space
-    ImRect TitleBarContentRect;
-    ImRect Rect;
+    IMNODES_NAMESPACE::ID Id;
+    ImVec2                Origin; // The node origin is in editor space
+    ImRect                TitleBarContentRect;
+    ImRect                Rect;
 
     struct
     {
@@ -152,32 +153,32 @@ struct ImNodeData
     ImVector<int> PinIndices;
     bool          Draggable;
 
-    ImNodeData(const int node_id)
-        : Id(node_id), Origin(100.0f, 100.0f), TitleBarContentRect(),
+    ImNodeData(const IMNODES_NAMESPACE::ID node_id)
+        : Id(node_id), Origin(0.0f, 0.0f), TitleBarContentRect(),
           Rect(ImVec2(0.0f, 0.0f), ImVec2(0.0f, 0.0f)), ColorStyle(), LayoutStyle(), PinIndices(),
           Draggable(true)
     {
     }
 
-    ~ImNodeData() { Id = INT_MIN; }
+    ~ImNodeData() { Id = IMNODES_NAMESPACE::INVALID_ID; }
 };
 
 struct ImPinData
 {
-    int                  Id;
-    int                  ParentNodeIdx;
-    ImRect               AttributeRect;
-    ImNodesAttributeType Type;
-    ImNodesPinShape      Shape;
-    ImVec2               Pos; // screen-space coordinates
-    int                  Flags;
+    IMNODES_NAMESPACE::ID Id;
+    int                   ParentNodeIdx;
+    ImRect                AttributeRect;
+    ImNodesAttributeType  Type;
+    ImNodesPinShape       Shape;
+    ImVec2                Pos; // screen-space coordinates
+    int                   Flags;
 
     struct
     {
         ImU32 Background, Hovered;
     } ColorStyle;
 
-    ImPinData(const int pin_id)
+    ImPinData(const IMNODES_NAMESPACE::ID pin_id)
         : Id(pin_id), ParentNodeIdx(), AttributeRect(), Type(ImNodesAttributeType_None),
           Shape(ImNodesPinShape_CircleFilled), Pos(), Flags(ImNodesAttributeFlags_None),
           ColorStyle()
@@ -187,15 +188,18 @@ struct ImPinData
 
 struct ImLinkData
 {
-    int Id;
-    int StartPinIdx, EndPinIdx;
+    IMNODES_NAMESPACE::ID Id;
+    int                   StartPinIdx, EndPinIdx;
 
     struct
     {
         ImU32 Base, Hovered, Selected;
     } ColorStyle;
 
-    ImLinkData(const int link_id) : Id(link_id), StartPinIdx(), EndPinIdx(), ColorStyle() {}
+    ImLinkData(const IMNODES_NAMESPACE::ID link_id)
+        : Id(link_id), StartPinIdx(), EndPinIdx(), ColorStyle()
+    {
+    }
 };
 
 struct ImClickInteractionState
@@ -262,6 +266,11 @@ struct ImNodesEditorContext
     ImVector<int> SelectedNodeIndices;
     ImVector<int> SelectedLinkIndices;
 
+    // Relative origins of selected nodes for snapping of dragged nodes
+    ImVector<ImVec2> SelectedNodeOffsets;
+    // Offset of the primary node origin relative to the mouse cursor.
+    ImVec2 PrimaryNodeOffset;
+
     ImClickInteractionState ClickInteraction;
 
     // Mini-map state set by MiniMap()
@@ -280,9 +289,9 @@ struct ImNodesEditorContext
 
     ImNodesEditorContext()
         : Nodes(), Pins(), Links(), Panning(0.f, 0.f), SelectedNodeIndices(), SelectedLinkIndices(),
-          ClickInteraction(), MiniMapEnabled(false), MiniMapSizeFraction(0.0f),
-          MiniMapNodeHoveringCallback(NULL), MiniMapNodeHoveringCallbackUserData(NULL),
-          MiniMapScaling(0.0f)
+          SelectedNodeOffsets(), PrimaryNodeOffset(0.f, 0.f), ClickInteraction(),
+          MiniMapEnabled(false), MiniMapSizeFraction(0.0f), MiniMapNodeHoveringCallback(NULL),
+          MiniMapNodeHoveringCallbackUserData(NULL), MiniMapScaling(0.0f)
     {
     }
 };
@@ -317,9 +326,9 @@ struct ImNodesContext
     ImVector<int> AttributeFlagStack;
 
     // UI element state
-    int CurrentNodeIdx;
-    int CurrentPinIdx;
-    int CurrentAttributeId;
+    int                   CurrentNodeIdx;
+    int                   CurrentPinIdx;
+    IMNODES_NAMESPACE::ID CurrentAttributeId;
 
     ImOptionalIndex HoveredNodeIdx;
     ImOptionalIndex HoveredLinkIdx;
@@ -333,8 +342,8 @@ struct ImNodesContext
     // Unclear what parts of the code this relates to.
     int ImNodesUIState;
 
-    int  ActiveAttributeId;
-    bool ActiveAttribute;
+    IMNODES_NAMESPACE::ID ActiveAttributeId;
+    bool                  ActiveAttribute;
 
     // ImGui::IO cache
 
@@ -346,6 +355,7 @@ struct ImNodesContext
     bool  LeftMouseDragging;
     bool  AltMouseDragging;
     float AltMouseScrollDelta;
+    bool  MultipleSelectModifier;
 };
 
 namespace IMNODES_NAMESPACE
@@ -353,16 +363,16 @@ namespace IMNODES_NAMESPACE
 static inline ImNodesEditorContext& EditorContextGet()
 {
     // No editor context was set! Did you forget to call ImNodes::CreateContext()?
-    assert(GImNodes->EditorCtx != NULL);
+    IM_ASSERT(GImNodes->EditorCtx != NULL);
     return *GImNodes->EditorCtx;
 }
 
 // [SECTION] ObjectPool implementation
 
 template<typename T>
-static inline int ObjectPoolFind(const ImObjectPool<T>& objects, const int id)
+static inline int ObjectPoolFind(const ImObjectPool<T>& objects, const IMNODES_NAMESPACE::ID id)
 {
-    const int index = objects.IdMap.GetInt(static_cast<ImGuiID>(id), -1);
+    const int index = objects.IdMap.GetInt(id, -1);
     return index;
 }
 
@@ -371,7 +381,7 @@ static inline void ObjectPoolUpdate(ImObjectPool<T>& objects)
 {
     for (int i = 0; i < objects.InUse.size(); ++i)
     {
-        const int id = objects.Pool[i].Id;
+        const ID id = objects.Pool[i].Id;
 
         if (!objects.InUse[i] && objects.IdMap.GetInt(id, -1) == i)
         {
@@ -393,7 +403,7 @@ inline void ObjectPoolUpdate(ImObjectPool<ImNodeData>& nodes)
         }
         else
         {
-            const int id = nodes.Pool[i].Id;
+            const ID id = nodes.Pool[i].Id;
 
             if (nodes.IdMap.GetInt(id, -1) == i)
             {
@@ -401,7 +411,7 @@ inline void ObjectPoolUpdate(ImObjectPool<ImNodeData>& nodes)
                 // unused
                 ImVector<int>&   depth_stack = EditorContextGet().NodeDepthOrder;
                 const int* const elem = depth_stack.find(i);
-                assert(elem != depth_stack.end());
+                IM_ASSERT(elem != depth_stack.end());
                 depth_stack.erase(elem);
 
                 nodes.IdMap.SetInt(id, -1);
@@ -422,9 +432,9 @@ static inline void ObjectPoolReset(ImObjectPool<T>& objects)
 }
 
 template<typename T>
-static inline int ObjectPoolFindOrCreateIndex(ImObjectPool<T>& objects, const int id)
+static inline int ObjectPoolFindOrCreateIndex(ImObjectPool<T>& objects, const ID id)
 {
-    int index = objects.IdMap.GetInt(static_cast<ImGuiID>(id), -1);
+    int index = objects.IdMap.GetInt(id, -1);
 
     // Construct new object
     if (index == -1)
@@ -443,7 +453,7 @@ static inline int ObjectPoolFindOrCreateIndex(ImObjectPool<T>& objects, const in
             objects.FreeList.pop_back();
         }
         IM_PLACEMENT_NEW(objects.Pool.Data + index) T(id);
-        objects.IdMap.SetInt(static_cast<ImGuiID>(id), index);
+        objects.IdMap.SetInt(id, index);
     }
 
     // Flag it as used
@@ -453,9 +463,9 @@ static inline int ObjectPoolFindOrCreateIndex(ImObjectPool<T>& objects, const in
 }
 
 template<>
-inline int ObjectPoolFindOrCreateIndex(ImObjectPool<ImNodeData>& nodes, const int node_id)
+inline int ObjectPoolFindOrCreateIndex(ImObjectPool<ImNodeData>& nodes, const ID node_id)
 {
-    int node_idx = nodes.IdMap.GetInt(static_cast<ImGuiID>(node_id), -1);
+    int node_idx = nodes.IdMap.GetInt(node_id, -1);
 
     // Construct new node
     if (node_idx == -1)
@@ -474,7 +484,7 @@ inline int ObjectPoolFindOrCreateIndex(ImObjectPool<ImNodeData>& nodes, const in
             nodes.FreeList.pop_back();
         }
         IM_PLACEMENT_NEW(nodes.Pool.Data + node_idx) ImNodeData(node_id);
-        nodes.IdMap.SetInt(static_cast<ImGuiID>(node_id), node_idx);
+        nodes.IdMap.SetInt(node_id, node_idx);
 
         ImNodesEditorContext& editor = EditorContextGet();
         editor.NodeDepthOrder.push_back(node_idx);
@@ -487,7 +497,7 @@ inline int ObjectPoolFindOrCreateIndex(ImObjectPool<ImNodeData>& nodes, const in
 }
 
 template<typename T>
-static inline T& ObjectPoolFindOrCreateObject(ImObjectPool<T>& objects, const int id)
+static inline T& ObjectPoolFindOrCreateObject(ImObjectPool<T>& objects, const ID id)
 {
     const int index = ObjectPoolFindOrCreateIndex(objects, id);
     return objects.Pool[index];
