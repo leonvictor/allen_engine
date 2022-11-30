@@ -10,8 +10,6 @@
 namespace aln
 {
 
-using aln::utils::UUID;
-
 Entity::~Entity()
 {
     assert(IsUnloaded());
@@ -649,7 +647,7 @@ void Entity::DetachFromParent()
 
     // Remove component hierarchy values
     // m_pRootSpatialComponent->m_pSpatialParent = nullptr;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = UUID::InvalidID();
+    // m_pRootSpatialComponent->m_parentAttachmentSocketID = UUID::InvalidID;
 
     m_isAttachedToParent = false;
 }

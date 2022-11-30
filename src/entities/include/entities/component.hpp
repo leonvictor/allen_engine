@@ -1,8 +1,8 @@
 #pragma once
 
+#include <common/uuid.hpp>
 #include <future>
 #include <reflection/reflection.hpp>
-#include <utils/uuid.hpp>
 
 #include "loading_context.hpp"
 
@@ -17,9 +17,9 @@ class IComponent
     // TODO: Serialization
 
   private:
-    const aln::utils::UUID m_ID;
-    bool m_isSingleton = false;                                  // Whether you can have multiple components of this type per entity
-    aln::utils::UUID m_entityID = aln::utils::UUID::InvalidID(); // Entity this component is attached to.
+    const UUID m_ID = UUID::Generate();
+    bool m_isSingleton = false;          // Whether you can have multiple components of this type per entity
+    UUID m_entityID = UUID::InvalidID(); // Entity this component is attached to.
 
     std::future<bool> m_loadingTask;
 
@@ -73,7 +73,7 @@ class IComponent
     inline bool IsLoading() const { return m_status == Status::Loading; }
     inline bool IsLoaded() const { return m_status == Status::Loaded; }
 
-    const aln::utils::UUID& GetID() const { return m_ID; }
+    const UUID& GetID() const { return m_ID; }
 
     bool operator==(const IComponent& other) const { return m_ID == other.GetID(); }
     bool operator!=(const IComponent& other) const { return !operator==(other); }

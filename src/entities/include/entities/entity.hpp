@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
+#include <common/uuid.hpp>
 #include <reflection/reflection.hpp>
-#include <utils/uuid.hpp>
 
 #include <Tracy.hpp>
 
@@ -35,9 +35,9 @@ class EntityInternalStateAction
         DestroySystem,
     };
 
-    Type m_type;           // Type of action
-    const void* m_ptr;     // Pointer to the designed IComponent or system TypeInfo
-    aln::utils::UUID m_ID; // Optional: ID of the spatial parent component
+    Type m_type;       // Type of action
+    const void* m_ptr; // Pointer to the designed IComponent or system TypeInfo
+    UUID m_ID;         // Optional: ID of the spatial parent component
 };
 
 /// @brief An Entity represents a single element in a scene/world. They're actual objects,
@@ -45,8 +45,6 @@ class EntityInternalStateAction
 /// Entities can be organized in hierarchies.
 class Entity
 {
-    using UUID = aln::utils::UUID;
-
     friend Command;
     friend class EntityMap;
     friend class std::set<Entity>;
@@ -59,7 +57,7 @@ class Entity
     };
 
   private:
-    const aln::utils::UUID m_ID;
+    const UUID m_ID = UUID::Generate();
     std::string m_name;
     Status m_status = Status::Unloaded;
 
@@ -71,9 +69,9 @@ class Entity
 
     // Spatial attributes
     SpatialComponent* m_pRootSpatialComponent = nullptr;
-    Entity* m_pParentSpatialEntity = nullptr;    // A spatial entity may request to be attached to another spatial entity
-    std::vector<Entity*> m_attachedEntities;     // Children spatial entities
-    aln::utils::UUID m_parentAttachmentSocketID; // TODO: ?
+    Entity* m_pParentSpatialEntity = nullptr; // A spatial entity may request to be attached to another spatial entity
+    std::vector<Entity*> m_attachedEntities;  // Children spatial entities
+    aln::UUID m_parentAttachmentSocketID;     // TODO: ?
     bool m_isAttachedToParent = false;
 
     // TODO:

@@ -74,6 +74,7 @@ set(IMGUI_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/external/imgui_plugins
 )
 
+add_compile_definitions(IMNODES_USER_CONFIG)
 add_executable(main ${SOURCE})
 
 # fmt

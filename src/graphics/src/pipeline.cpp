@@ -349,8 +349,8 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
         {
             badCache = true;
             std::cout << "  UUID mismatch in " << path << ".\n";
-            std::cout << "    Cache contains: " << utils::UUID(pipelineCacheUUID) << "\n";
-            std::cout << "    Driver expects: " << utils::UUID(m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID) << "\n";
+            std::cout << "    Cache contains: " << UUID(pipelineCacheUUID) << "\n";
+            std::cout << "    Driver expects: " << UUID(m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID) << "\n";
         }
         if (badCache)
         {

@@ -9,7 +9,7 @@
 #include <typeinfo>
 
 #include <common/services/service_provider.hpp>
-#include <utils/uuid.hpp>
+#include <common/uuid.hpp>
 
 namespace aln
 {

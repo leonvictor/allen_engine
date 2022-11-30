@@ -3,7 +3,7 @@
 #include <map>
 #include <vector>
 
-#include <utils/uuid.hpp>
+#include <common/uuid.hpp>
 
 #include "component.hpp"
 
@@ -26,7 +26,7 @@ class ComponentsRegistry
       private:
         ComponentsRegistry<T>* m_pRegistry = nullptr;
 
-        std::map<aln::utils::UUID, std::vector<T*>>::iterator m_mapIterator;
+        std::map<UUID, std::vector<T*>>::iterator m_mapIterator;
         std::vector<T*>::iterator m_vecIterator;
 
         iterator(ComponentsRegistry<T>* pRegistry) : m_pRegistry(pRegistry),
@@ -87,10 +87,10 @@ class ComponentsRegistry
 
   private:
     size_t m_registeredComponentsCount = 0;
-    std::map<aln::utils::UUID, std::vector<T*>> m_registry;
+    std::map<UUID, std::vector<T*>> m_registry;
 
   public:
-    void AddRecordEntry(const aln::utils::UUID id, T* pComponent)
+    void AddRecordEntry(const UUID id, T* pComponent)
     {
         // auto record = m_registry.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple());
         auto record = m_registry.try_emplace(id);
@@ -98,7 +98,7 @@ class ComponentsRegistry
         m_registeredComponentsCount++;
     }
 
-    void RemoveRecordEntry(const aln::utils::UUID& entityID, T* pComponent)
+    void RemoveRecordEntry(const UUID& entityID, T* pComponent)
     {
         auto recordIt = m_registry.find(entityID);
         if (recordIt != m_registry.end())

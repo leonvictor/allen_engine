@@ -5,7 +5,6 @@
 
 namespace aln
 {
-using aln::utils::UUID;
 
 void SpatialComponent::CalculateWorldTransform(bool callback)
 {

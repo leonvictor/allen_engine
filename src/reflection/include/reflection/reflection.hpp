@@ -11,7 +11,7 @@
 #include <imgui.h>
 
 #include <common/memory.hpp>
-#include <utils/uuid.hpp>
+#include <common/uuid.hpp>
 
 namespace aln::reflect
 {
@@ -71,7 +71,7 @@ struct TypeDescriptor
 {
     const char* name;
     size_t size;
-    const aln::utils::UUID m_ID;
+    const aln::UUID m_ID = UUID::Generate();
     std::type_index m_typeIndex;
 
     std::unique_ptr<ITypeHelper> typeHelper; // TODO: should be unique

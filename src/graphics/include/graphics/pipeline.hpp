@@ -4,8 +4,8 @@
 #include "shaders.hpp"
 #include "vertex_descriptors.hpp"
 
+#include <common/uuid.hpp>
 #include <iomanip>
-#include <utils/uuid.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace aln::vkg
