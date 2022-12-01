@@ -28,6 +28,8 @@
 #include <entities/spatial_component.hpp>
 #include <entities/world_entity.hpp>
 
+#include "animation_graph/animation_graph_editor.hpp"
+
 namespace aln::editor
 {
 struct EditorImGuiContext
@@ -48,6 +50,8 @@ class Editor
     WorldEntity& m_worldEntity;
     Entity* m_pSelectedEntity = nullptr;
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
+
+    AnimationGraphEditor* m_pAnimationGraphEditor = nullptr;
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;

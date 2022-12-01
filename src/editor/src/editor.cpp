@@ -237,7 +237,21 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
 
     if (ImGui::Begin("Animation Graph", nullptr))
     {
-        AnimationGraphEditor::Draw();
+        // TMP: Create a graph editor
+        if (m_pAnimationGraphEditor == nullptr)
+        {
+            m_pAnimationGraphEditor = aln::New<AnimationGraphEditor>();
+        }
+
+        m_pAnimationGraphEditor->Draw();
+    }
+    else
+    {
+        if (m_pAnimationGraphEditor != nullptr)
+        {
+            // TODO: Serialize
+            aln::Delete(m_pAnimationGraphEditor);
+        }
     }
     ImGui::End();
 
