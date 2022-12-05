@@ -30,6 +30,7 @@
 
 #include "animation_graph/animation_graph_editor.hpp"
 #include "assets_browser.hpp"
+#include "editor_window.hpp"
 #include "types_editor.hpp"
 
 namespace aln::editor
@@ -46,6 +47,12 @@ struct EditorImGuiContext
 /// @brief Set ImGui contexts and allocator functions in case reflection is in a separate library.
 void SetImGuiContext(const EditorImGuiContext& context);
 
+/// @todo: Idea = pass around a context when drawing child windows, with callbacks to things like "selected an entity"
+// or "window requires self deletion"
+struct EditorDrawContext
+{
+};
+
 class Editor
 {
   private:
@@ -54,6 +61,8 @@ class Editor
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
 
     TypeEditorService m_typeEditorService;
+
+    std::vector<IEditorWindow*> m_windows;
 
     // TODO: Handle widget lifetime. For now they're always here !
     AnimationGraphEditor m_animationGraphEditor;
@@ -67,6 +76,39 @@ class Editor
 
   public:
     Editor(WorldEntity& worldEntity);
+
+    template <typename T>
+    void AddWindow()
+    {
+        static_assert(std::is_base_of_v<IEditorWindow, T>);
+
+        auto pWindow = aln::New<T>();
+        pWindow->Initialize(&m_typeEditorService);
+        m_windows.push_back(pWindow);
+    }
+
+    void RemoveWindow()
+    {
+        // todo: maybe by ID ?
+    }
+
+    // -------------------
+    // Editor Lifetime
+    //--------------------
+    void Initialize()
+    {
+        // TODO
+    }
+
+    void Shutdown()
+    {
+        for (auto& pWindow : m_windows)
+        {
+            pWindow->Shutdown();
+            aln::Delete(pWindow);
+        }
+        m_windows.clear();
+    }
 
     const glm::vec2& GetScenePreviewSize() const
     {
