@@ -60,7 +60,7 @@ void EditorCameraController::UnregisterComponent(IComponent* pComponent)
 }
 
 ALN_REGISTER_IMPL_BEGIN(SYSTEM, aln::EditorCameraController)
-ALN_REFLECT_MEMBER(m_rotationSensitivity)
-ALN_REFLECT_MEMBER(m_translationSensitivity)
+ALN_REFLECT_MEMBER(m_rotationSensitivity, Rotation Sensitivity)
+ALN_REFLECT_MEMBER(m_translationSensitivity, Translation Sensitivity)
 ALN_REGISTER_IMPL_END()
 } // namespace aln

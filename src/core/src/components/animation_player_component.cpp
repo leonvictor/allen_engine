@@ -1,8 +1,8 @@
 #include "components/animation_player_component.hpp"
 
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::AnimationPlayerComponent)
-ALN_REFLECT_MEMBER(m_animTime)
-ALN_REFLECT_MEMBER(m_pause)
+ALN_REFLECT_MEMBER(m_animTime, Animation Time)
+ALN_REFLECT_MEMBER(m_pause, Pause)
 ALN_REGISTER_IMPL_END()
 
 namespace aln

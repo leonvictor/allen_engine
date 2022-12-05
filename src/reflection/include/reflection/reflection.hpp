@@ -149,6 +149,7 @@ struct TypeDescriptor_Struct : TypeDescriptor
     struct Member
     {
         const char* name;
+        const char* displayName;
         size_t offset;
         TypeDescriptor* type;
 
@@ -203,8 +204,8 @@ struct TypeDescriptor_Struct : TypeDescriptor
         typeDesc->size = sizeof(T);                                             \
         typeDesc->members = {
 
-#define ALN_REFLECT_MEMBER(name) \
-    {#name, offsetof(T, name), aln::reflect::TypeResolver<decltype(T::name)>::get()},
+#define ALN_REFLECT_MEMBER(name, displayName) \
+    {#name, #displayName, offsetof(T, name), aln::reflect::TypeResolver<decltype(T::name)>::get()},
 
 #define ALN_REGISTER_IMPL_END()      \
     }                                \
