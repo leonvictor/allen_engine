@@ -24,43 +24,47 @@ TypeEditorService::TypeEditorService()
 }
 
 template <typename T>
-void TypeEditorService::Display(T* ptr, const char* label)
+void TypeEditorService::Display(T* ptr, const char* label) const
 {
     m_displayFuncs.at(std::type_index(typeid(T)))(ptr, label);
 }
 
 template <>
-void TypeEditorService::Display<IComponent>(IComponent* pComponent, const char* label)
+void TypeEditorService::Display<IComponent>(IComponent* pComponent, const char* label) const
 {
+    ImGui::Indent();
     DisplayTypeStruct(pComponent->GetType(), pComponent);
+    ImGui::Unindent();
 }
 
 template <>
-void TypeEditorService::Display<IEntitySystem>(IEntitySystem* pSystem, const char* label)
+void TypeEditorService::Display<IEntitySystem>(IEntitySystem* pSystem, const char* label) const
 {
+    ImGui::Indent();
     DisplayTypeStruct(pSystem->GetType(), pSystem);
+    ImGui::Unindent();
 }
 
 template <>
-void TypeEditorService::Display<int>(int* i, const char* label)
+void TypeEditorService::Display<int>(int* i, const char* label) const
 {
     ImGui::InputInt(label, i);
 }
 
 template <>
-void TypeEditorService::Display<float>(float* i, const char* label)
+void TypeEditorService::Display<float>(float* i, const char* label) const
 {
     ImGui::InputFloat(label, i);
 }
 
 template <>
-void TypeEditorService::Display<bool>(bool* b, const char* label)
+void TypeEditorService::Display<bool>(bool* b, const char* label) const
 {
     ImGui::Checkbox(label, b);
 }
 
 template <>
-void TypeEditorService::Display<AssetHandle<Mesh>>(AssetHandle<Mesh>* pHandle, const char* label)
+void TypeEditorService::Display<AssetHandle<Mesh>>(AssetHandle<Mesh>* pHandle, const char* label) const
 {
     auto pMesh = pHandle->get();
     if (ImGui::CollapsingHeader("Mesh"))
@@ -71,7 +75,7 @@ void TypeEditorService::Display<AssetHandle<Mesh>>(AssetHandle<Mesh>* pHandle, c
 }
 
 template <>
-void TypeEditorService::Display<AssetHandle<AnimationClip>>(AssetHandle<AnimationClip>* pHandle, const char* label)
+void TypeEditorService::Display<AssetHandle<AnimationClip>>(AssetHandle<AnimationClip>* pHandle, const char* label) const
 {
     auto pAnim = pHandle->get();
     if (ImGui::CollapsingHeader("AnimationClip"))
@@ -82,7 +86,7 @@ void TypeEditorService::Display<AssetHandle<AnimationClip>>(AssetHandle<Animatio
 }
 
 template <>
-void TypeEditorService::Display<AssetHandle<Material>>(AssetHandle<Material>* pHandle, const char* label)
+void TypeEditorService::Display<AssetHandle<Material>>(AssetHandle<Material>* pHandle, const char* label) const
 {
     auto pMaterial = pHandle->get();
 
@@ -94,13 +98,13 @@ void TypeEditorService::Display<AssetHandle<Material>>(AssetHandle<Material>* pH
 }
 
 template <>
-void TypeEditorService::Display<Texture>(Texture* pTexture, const char* label)
+void TypeEditorService::Display<Texture>(Texture* pTexture, const char* label) const
 {
     ImGui::Text(pTexture->GetID().GetAssetPath().c_str());
 }
 
 template <>
-void TypeEditorService::Display<RGBAColor>(RGBAColor* pColor, const char* label)
+void TypeEditorService::Display<RGBAColor>(RGBAColor* pColor, const char* label) const
 {
     ImGui::ColorEdit4("##picker", (float*) pColor);
     ImGui::SameLine();
@@ -108,7 +112,7 @@ void TypeEditorService::Display<RGBAColor>(RGBAColor* pColor, const char* label)
 }
 
 template <>
-void TypeEditorService::Display<RGBColor>(RGBColor* pColor, const char* label)
+void TypeEditorService::Display<RGBColor>(RGBColor* pColor, const char* label) const
 {
     ImGui::ColorEdit3("##picker", (float*) pColor);
     ImGui::SameLine();
@@ -116,7 +120,7 @@ void TypeEditorService::Display<RGBColor>(RGBColor* pColor, const char* label)
 }
 
 template <>
-void TypeEditorService::Display<glm::vec3>(glm::vec3* pVec, const char* label)
+void TypeEditorService::Display<glm::vec3>(glm::vec3* pVec, const char* label) const
 {
     ImGui::DragFloat((std::string("x##") + label).c_str(), &pVec->x, 1.0f);
     ImGui::SameLine();
@@ -126,15 +130,41 @@ void TypeEditorService::Display<glm::vec3>(glm::vec3* pVec, const char* label)
 }
 
 template <>
-void TypeEditorService::Display<std::string>(std::string* pString, const char* label)
+void TypeEditorService::Display<std::string>(std::string* pString, const char* label) const
 {
     ImGui::InputText(label, pString, pString->size());
 }
 
 template <>
-void TypeEditorService::Display<AssetID>(AssetID* pID, const char* label)
+void TypeEditorService::Display<AssetID>(AssetID* pID, const char* label) const
 {
-    ImGui::Text(pID->GetAssetPath().c_str());
+    if (pID->IsValid())
+    {
+        auto str = pID->GetAssetName();
+        ImGui::InputText(label, &str, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_ReadOnly);
+
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted(pID->GetAssetPath().c_str());
+            ImGui::EndTooltip();
+        }
+    }
+    else
+    {
+        std::string str = "None";
+        ImGui::InputText(label, &str, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_ReadOnly);
+    }
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload("AssetID"))
+        {
+            assert(pPayload->DataSize == sizeof(AssetID));
+            *pID = *((AssetID*) pPayload->Data);
+        }
+        ImGui::EndDragDropTarget();
+    }
     // TODO
 }
 } // namespace aln

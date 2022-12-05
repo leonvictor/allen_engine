@@ -23,14 +23,12 @@ class TypeEditorService
   private:
     std::unordered_map<std::type_index, std::function<void(void*, const char*)>> m_displayFuncs;
 
+    /// @brief Wrapper around display function accepting void pointers, used in the display functions map
     template <typename T>
-    void RegisteredDisplay(void* ptr, const char* label)
+    void RegisteredDisplay(void* ptr, const char* label) const
     {
         return Display<T>((T*) ptr, label);
     }
-
-  public:
-    TypeEditorService();
 
     template <typename T>
     void RegisterType()
@@ -38,27 +36,25 @@ class TypeEditorService
         m_displayFuncs[std::type_index(typeid(T))] = std::bind(&TypeEditorService::RegisteredDisplay<T>, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    template <typename T>
-    void Display(T* ptr, const char* label);
-
-    void Display(std::type_index typeIndex, void* obj, const char* label)
+    /// @brief Display a type by looking up its typeIndex in the map. Used only for reflected structs' members for which the runtime
+    // type is not available.
+    void Display(std::type_index typeIndex, void* obj, const char* label) const
     {
         m_displayFuncs.at(typeIndex)(obj, label);
     }
 
-    // template <typename T>
-    // void Display(void* ptr, const char* label);
+  public:
+    TypeEditorService();
 
-    void DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void* obj)
+    template <typename T>
+    void Display(T* ptr, const char* label) const;
+
+    void DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void* obj) const
     {
-        ImGui::Indent();
+        for (auto& member : pType->members)
         {
-            for (auto& member : pType->members)
-            {
-                Display(member.type->m_typeIndex, (char*) obj + member.offset, member.GetPrettyName().c_str());
-            }
+            Display(member.type->m_typeIndex, (char*) obj + member.offset, member.displayName);
         }
-        ImGui::Unindent();
     }
 };
 } // namespace aln
