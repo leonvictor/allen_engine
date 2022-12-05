@@ -6,10 +6,10 @@ namespace aln
 {
 
 // TODO
-class PassthroughNode : public PoseNode
+class PassthroughRuntimeNode : public PoseRuntimeNode
 {
   private:
-    std::vector<PoseNode*> m_pChildNodes; // todo
+    std::vector<PoseRuntimeNode*> m_pChildNodes; // todo
 
   protected:
     PoseNodeResult Update(GraphContext& context) override
@@ -21,10 +21,10 @@ class PassthroughNode : public PoseNode
         for (auto& pChild : m_pChildNodes)
         {
             // TODO: Populate dependencies
-            auto res = pChild->Update(context);
-            if (res.HasRegisteredTasks())
+            auto childResult = pChild->Update(context);
+            if (childResult.HasRegisteredTasks())
             {
-                wouldBeTaskDependencies.push_back(res.m_taskIndex);
+                wouldBeTaskDependencies.push_back(childResult.m_taskIndex);
             }
         }
 

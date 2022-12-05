@@ -9,7 +9,7 @@
 
 #include "../bone_mask.hpp"
 #include "../sync_track.hpp"
-#include "graph_node.hpp"
+#include "runtime_graph_node.hpp"
 
 namespace aln
 {
@@ -61,7 +61,7 @@ struct ValueTypeValidation<BoneMask>
 /// @todo Value is lazily calculated then cached
 /// @todo Value types:
 /// - Bool, StringID, Int, Float, Vector, Target, BoneMask
-class ValueNode : public GraphNode
+class ValueNode : public RuntimeGraphNode
 {
   public:
     template <typename T>

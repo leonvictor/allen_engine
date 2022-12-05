@@ -40,10 +40,10 @@ struct OverrideFlagsSet
     }
 };
 
-class RootMotionOverrideNode : public PassthroughNode
+class RootMotionOverrideNode : public PassthroughRuntimeNode
 {
   public:
-    struct Settings : public GraphNode::Settings
+    struct Settings : public RuntimeGraphNode::Settings
     {
         OverrideFlagsSet m_overrideFlags;
         float m_maxLinearVelocity;
@@ -101,14 +101,14 @@ class RootMotionOverrideNode : public PassthroughNode
 
     PoseNodeResult Update(GraphContext& context) override
     {
-        PoseNodeResult result = PassthroughNode::Update(context);
+        PoseNodeResult result = PassthroughRuntimeNode::Update(context);
         ModifyDisplacement(context, result);
         return result;
     }
 
     PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) override
     {
-        PoseNodeResult result = PassthroughNode::Update(context, updateRange);
+        PoseNodeResult result = PassthroughRuntimeNode::Update(context, updateRange);
         ModifyDisplacement(context, result);
         return result;
     }

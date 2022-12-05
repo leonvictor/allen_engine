@@ -63,13 +63,27 @@ class GraphContext
 #endif
 
   public:
-    GraphContext();
+    GraphContext()
+    {
+        // TODO
+    }
 
-    void Initialize(TaskSystem* pTaskSystem, const Pose* pPreviousPose);
-    void Shutdown();
+    void Initialize(TaskSystem* pTaskSystem, const Pose* pPreviousPose)
+    {
+        // TODO
+    }
+
+    void Shutdown()
+    {
+        // TODO
+    }
 
     inline bool IsValid() const { return m_pSkeleton != nullptr && m_pTaskSystem != nullptr && m_pPreviousPose != nullptr; }
-    void Update(const Seconds deltaTime, const Transform& currentWorldTransform);
+
+    void Update(const Seconds deltaTime, const Transform& currentWorldTransform)
+    {
+        // TODO
+    }
 
 // Debugging
 #ifndef NDEBUG

@@ -8,8 +8,8 @@
 #include "../event.hpp"
 #include "../sync_track.hpp"
 #include "../types.hpp"
-#include "graph_node.hpp"
-#include "task.hpp"
+#include "graph_context.hpp"
+#include "runtime_graph_node.hpp"
 
 namespace aln
 {
@@ -33,7 +33,7 @@ struct PoseNodeResult
 /// Register pose generation tasks
 /// Sampling and modifying root motion deltas
 /// Sampling anim events
-class PoseNode : public GraphNode
+class PoseRuntimeNode : public RuntimeGraphNode
 {
   protected:
     uint32_t m_loopCount = 0;
@@ -55,8 +55,8 @@ class PoseNode : public GraphNode
     inline Seconds GetDuration() const { return m_duration; }
 
     // Initialize an animation node with a specific start time
-    void Initialize(GraphContext& context, const SyncTrackTime& InitialTime = SyncTrackTime());
-    virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime);
+    void Initialize(GraphContext& context, const SyncTrackTime& InitialTime = SyncTrackTime()) {} // TODO
+    virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) {}   // TODO
 
     /// @brief Unsynchronized update
     /// @note Use the time delta for the current step

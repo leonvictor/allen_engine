@@ -2,46 +2,40 @@
 
 #include "../animation_graph_dataset.hpp"
 #include "../pose_node.hpp"
+#include "../runtime_graph_node.hpp"
 #include "../tasks/sample_task.hpp"
 #include "../value_node.hpp"
+
 #include <vector>
 
 namespace aln
 {
 
 /// @brief "Source" nodes, act as a slot in which data will get plugged in
-class AnimationClipNode : public PoseNode
+class AnimationClipRuntimeNode : public PoseRuntimeNode
 {
+  private:
+    ValueNode* m_pPlayInReverseValueNode = nullptr; // TODO: Actually a boolNode
+    const AnimationClip* m_pAnimationClip = nullptr;
+
   public:
-    struct Runtime : public GraphNode::Runtime
+    class Settings : public RuntimeGraphNode::Settings
     {
-        Task* m_pTask;
-        ValueNode* m_pPlayInReverseValueNode = nullptr; // TODO: Actually a boolNode
-        AnimationClip* m_pAnimation = nullptr;
+        friend class AnimationClipEditorNode;
 
-        Runtime()
-        {
-            // TODO: Attributes are not set when constructed. When do we create the task ?
-            m_pTask = new SampleTask(0 /*todo*/, m_pAnimation, 0 /*todo*/);
-        }
-    };
-
-    class Settings : public GraphNode::Settings
-    {
       private:
         uint32_t m_dataSlotIdx;
         NodeIndex m_playInReverseValueNodeIdx = InvalidIndex;
 
       public:
-        // From:
-        // void AnimationClipNode::Settings::InstanciateNode(TVector<GraphNode*> const& nodePtrs, AnimationGraphDataset const* pDataset, InitOptions) const
-        void InstanciateNode(const std::vector<GraphNode*>& nodePtrs, AnimationGraphDataSet const* pDataSet, InitOptions options) const override
+        // TODO: Put const back when we use placement-new in a pre allocated array
+        void InstanciateNode(/* todo: const */ std::vector<RuntimeGraphNode*>& nodePtrs, const AnimationGraphDataset* pDataSet, InitOptions options) const override
         {
-            auto pNode = CreateNode<AnimationClipNode>(nodePtrs, options);
+            auto pNode = CreateNode<AnimationClipRuntimeNode>(nodePtrs, options);
             SetOptionalNodePtrFromIndex(nodePtrs, m_playInReverseValueNodeIdx, pNode->m_pPlayInReverseValueNode);
 
-            auto pSettings = pNode->GetSettings<AnimationClipNode>();
-            pNode->m_pAnimation = pDataSet->GetAnimationClip(pSettings->m_dataSlotIdx);
+            auto pSettings = pNode->GetSettings<AnimationClipRuntimeNode>();
+            pNode->m_pAnimationClip = pDataSet->GetAnimationClip(pSettings->m_dataSlotIdx);
         }
     };
 
@@ -59,14 +53,18 @@ class AnimationClipNode : public PoseNode
         return result;
     }
 
-    virtual const SyncTrack& GetSyncTrack() const override{
+    virtual const SyncTrack& GetSyncTrack() const override
+    {
         // TODO: Abstract method impl
+        return SyncTrack();
     };
 
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
         // TODO: Abstract method impl
     }
+
+    const AnimationClip* GetAnimationClip() const { return m_pAnimationClip; }
 
   private:
 };

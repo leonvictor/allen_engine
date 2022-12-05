@@ -8,7 +8,7 @@
 
 namespace aln
 {
-class SpeedScaleNode : public PassthroughNode
+class SpeedScaleRuntimeNode : public PassthroughRuntimeNode
 {
   private:
     float m_blendWeight = 1.0f;
@@ -21,7 +21,7 @@ class SpeedScaleNode : public PassthroughNode
     }
 
   public:
-    struct Settings : public GraphNode::Settings
+    class Settings : public RuntimeGraphNode::Settings
     {
         float m_blendTime;
     };
@@ -41,7 +41,7 @@ class SpeedScaleNode : public PassthroughNode
 
                 if (m_blendWeight < 1.0f)
                 {
-                    auto pSettings = GetSettings<SpeedScaleNode>();
+                    auto pSettings = GetSettings<SpeedScaleRuntimeNode>();
                     assert(pSettings->m_blendTime >= 0.0f);
                     const float blendWeightDeltaTime = context.m_deltaTime / pSettings->m_blendTime;
                     m_blendWeight = Math::Clamp(m_blendWeight + blendWeightDeltaTime, 0.0f, 1.0f);
@@ -56,7 +56,7 @@ class SpeedScaleNode : public PassthroughNode
         }
 
         // Update the child node
-        PoseNodeResult result = PassthroughNode::Update(context);
+        PoseNodeResult result = PassthroughRuntimeNode::Update(context);
 
         // Reset the delta time
         context.m_deltaTime = deltaTime;
@@ -66,8 +66,8 @@ class SpeedScaleNode : public PassthroughNode
     PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) override
     {
         // TODO: Log warning: animation -> attempting to run a speed scale node in a synchronized manner, invalid op
-        m_blendWeight = (Math::IsNearZero(GetSettings<SpeedScaleNode>()->m_blendTime)) ? 1.0f : 0.0f;
-        return PassthroughNode::Update(context, updateRange);
+        m_blendWeight = (Math::IsNearZero(GetSettings<SpeedScaleRuntimeNode>()->m_blendTime)) ? 1.0f : 0.0f;
+        return PassthroughRuntimeNode::Update(context, updateRange);
     }
 };
 
