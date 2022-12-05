@@ -23,6 +23,16 @@ class AssetID
     inline const AssetTypeID& GetAssetTypeID() const { return m_typeID; }
     inline const std::string& GetAssetPath() const { return m_path; }
 
+    /// @brief Returns a string containing only the asset file name (for display purpose only)
+    /// @todo Disable out of editor modes ?
+    inline const std::string GetAssetName() const
+    {
+        assert(IsValid());
+        auto start = m_path.find_last_of("/\\") + 1;
+        auto end = m_path.find_last_of('.') - start;
+        return m_path.substr(start, end);
+    }
+
     bool operator==(const AssetID& other) const { return m_path == other.m_path; }
     bool operator!=(const AssetID& other) const { return m_path != other.m_path; }
     bool operator<(const AssetID& other) const { return m_path < other.m_path; }
