@@ -8,7 +8,7 @@ add_library(${LIB_NAME}
     src/assets_browser.cpp
     
     src/animation_graph/animation_graph_editor.cpp
-
+    src/animation_graph/editor_graph_node.cpp
     src/animation_graph/nodes/pose_editor_node.cpp
     src/animation_graph/nodes/animation_clip_editor_node.cpp
 

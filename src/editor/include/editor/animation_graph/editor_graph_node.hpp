@@ -1,18 +1,26 @@
 #pragma once
 
 #include <common/uuid.hpp>
+#include <reflection/reflection.hpp>
 
 #include "pin.hpp"
 
 namespace aln
 {
+
+// fwd
+class AnimationGraphCompilationContext;
+class AnimationGraphDefinition;
+
 class EditorGraphNode
 {
+
+    ALN_REGISTER_TYPE();
+
     friend class AnimationGraphEditor;
 
   private:
     const UUID m_id = UUID::Generate();
-    EditorGraphNode* m_pParentNode = nullptr;
 
     std::vector<Pin> m_inputPins;
     std::vector<Pin> m_outputPins;
@@ -38,10 +46,24 @@ class EditorGraphNode
     const UUID& GetID() const { return m_id; }
     const std::string& GetName() const { return m_name; }
 
+    const Pin& GetInputPin(size_t pinIdx) const
+    {
+        assert(pinIdx >= 0 && pinIdx <= m_inputPins.size());
+        return m_inputPins[pinIdx];
+    }
+
+    const Pin& GetOutputPin(size_t pinIdx) const
+    {
+        assert(pinIdx >= 0 && pinIdx <= m_outputPins.size());
+        return m_outputPins[pinIdx];
+    }
+
     virtual void Initialize() = 0;
     virtual void Serialize() = 0; // TODO
 
-    bool IsRoot() const { return m_pParentNode == nullptr; }
+    /// @brief Compile the node and add it to a graph definition
+    /// @param context Context for the running compilation
+    virtual void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
 
     bool operator==(const EditorGraphNode& other) { return m_id == other.m_id; }
     bool operator!=(const EditorGraphNode& other) { return m_id != other.m_id; }

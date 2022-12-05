@@ -7,8 +7,10 @@
 #include <imnodes.h>
 
 #include <anim/graph/runtime_graph_instance.hpp>
+#include <reflection/reflection.hpp>
 
 #include "editor_graph_node.hpp"
+#include "editor_window.hpp"
 #include "link.hpp"
 
 namespace aln
@@ -17,10 +19,12 @@ namespace aln
 /// @brief A stateful representation of an animation graph, which contains all of its data.
 /// During serialization its node are translated into the runtime format, and their data stored in a runtime graph definition
 /// so that multiple instances of the same graph can share it.
-class AnimationGraphEditor
+/// @todo: Separate data/view
+class AnimationGraphEditor : public IEditorWindow
 {
   private:
-    std::vector<EditorGraphNode*> m_graphNodes; // TODO: Replace with actual graph
+    // TODO: graphNodes and lookup map might be redundant
+    std::vector<EditorGraphNode*> m_graphNodes;
     std::vector<Link> m_links;
 
     std::map<UUID, EditorGraphNode*> m_nodeLookupMap;
@@ -29,139 +33,9 @@ class AnimationGraphEditor
     UUID m_contextPopupElementID;
 
   public:
-    void Draw()
-    {
-        UUID hoveredNodeID, hoveredPinID, hoveredLinkID;
-        bool nodeHovered = ImNodes::IsNodeHovered(&hoveredNodeID);
-        bool pinHovered = ImNodes::IsPinHovered(&hoveredPinID);
-        bool linkHovered = ImNodes::IsLinkHovered(&hoveredLinkID);
+    void Draw() override;
 
-        ImNodes::BeginNodeEditor();
-
-        // Open contextual popups and register context ID
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
-        {
-            if (pinHovered)
-            {
-                m_contextPopupElementID = hoveredPinID;
-                ImGui::OpenPopup("graph_editor_pin_popup");
-            }
-            else if (nodeHovered)
-            {
-                m_contextPopupElementID = hoveredNodeID;
-                ImGui::OpenPopup("graph_editor_node_popup");
-            }
-            else if (linkHovered)
-            {
-                m_contextPopupElementID = hoveredLinkID;
-                ImGui::OpenPopup("graph_editor_link_popup");
-            }
-            else
-            {
-                m_contextPopupElementID = UUID::InvalidID();
-                ImGui::OpenPopup("graph_editor_canvas_popup");
-            }
-        }
-
-        if (ImGui::BeginPopup("graph_editor_canvas_popup"))
-        {
-            const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
-
-            if (ImGui::BeginMenu("Add Node"))
-            {
-                auto& animGraphNodeTypes = aln::reflect::GetTypesInScope("ANIM_GRAPH_NODE");
-                for (auto& pAnimGraphNodeType : animGraphNodeTypes)
-                {
-                    if (ImGui::Selectable(pAnimGraphNodeType->GetPrettyName().c_str()))
-                    {
-                        auto pNode = pAnimGraphNodeType->typeHelper->CreateType<EditorGraphNode>();
-                        pNode->Initialize();
-
-                        AddGraphNode(pNode);
-
-                        ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
-                    }
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::BeginPopup("graph_editor_pin_popup"))
-        {
-            ImGui::MenuItem("Pin !");
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::BeginPopup("graph_editor_node_popup"))
-        {
-            if (ImGui::MenuItem("Remove node"))
-            {
-                RemoveGraphNode(m_contextPopupElementID);
-            }
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::BeginPopup("graph_editor_link_popup"))
-        {
-            if (ImGui::MenuItem("Remove link"))
-            {
-                RemoveLink(m_contextPopupElementID);
-            }
-            ImGui::EndPopup();
-        }
-
-        // Draw nodes
-        for (auto pNode : m_graphNodes)
-        {
-            ImNodes::BeginNode(pNode->GetID());
-
-            ImNodes::BeginNodeTitleBar();
-            ImGui::Text(pNode->GetName().c_str());
-            ImNodes::EndNodeTitleBar();
-
-            for (auto& inputPin : pNode->m_inputPins)
-            {
-                ImNodes::BeginInputAttribute(inputPin.GetID());
-                ImGui::Text(inputPin.GetName().c_str());
-                ImNodes::EndInputAttribute();
-            }
-
-            // TODO: Display reflected fields
-
-            for (auto& outputPin : pNode->m_outputPins)
-            {
-                ImNodes::BeginOutputAttribute(outputPin.GetID());
-                ImGui::Text(outputPin.GetName().c_str());
-                ImNodes::EndOutputAttribute();
-            }
-
-            ImNodes::EndNode();
-        }
-
-        // Draw links
-        for (auto& link : m_links)
-        {
-            ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
-        }
-
-        ImNodes::EndNodeEditor();
-
-        // Handle link creation
-        UUID startPinID, endPinID, startNodeID, endNodeID;
-        if (ImNodes::IsLinkCreated(&startNodeID, &startPinID, &endNodeID, &endPinID))
-        {
-            AddLink(startNodeID, startPinID, endNodeID, endPinID);
-        }
-
-        UUID linkID;
-        if (ImNodes::IsLinkDestroyed(&linkID))
-        {
-            RemoveLink(linkID);
-        }
-    }
-
-    EditorGraphNode* FindNode(UUID& nodeID)
+    EditorGraphNode* FindNode(const UUID& nodeID)
     {
         assert(nodeID.IsValid());
         // TODO : Use actual graph
@@ -217,7 +91,7 @@ class AnimationGraphEditor
     }
 
     /// @brief Create a link between two pins
-    void AddLink(UUID& inputNodeID, UUID& inputPinID, UUID& outputNodeID, UUID& outputPinID)
+    void AddLink(UUID inputNodeID, UUID inputPinID, UUID outputNodeID, UUID outputPinID)
     {
         assert(inputNodeID.IsValid() && inputPinID.IsValid() && outputNodeID.IsValid() && outputPinID.IsValid());
 
@@ -246,7 +120,7 @@ class AnimationGraphEditor
         link.m_outputPinID = pOutputPin->GetID();
     }
 
-    void RemoveLink(UUID& linkID)
+    void RemoveLink(const UUID& linkID)
     {
         assert(linkID.IsValid());
         std::erase_if(m_links, [&](Link& link)
@@ -257,6 +131,51 @@ class AnimationGraphEditor
     void Serialize()
     {
         // TODO
+    }
+
+    /// @brief
+    AnimationGraphDefinition* Compile();
+
+    const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const
+    {
+        for (auto& link : m_links)
+        {
+            if (link.m_inputPinID == inputPinID)
+            {
+                return link.m_pOutputNode;
+            }
+        }
+        return nullptr;
+    }
+
+    const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const
+    {
+        for (auto& link : m_links)
+        {
+            if (link.m_outputPinID == outputPinID)
+            {
+                return link.m_pInputNode;
+            }
+        }
+        return nullptr;
+    }
+
+    template <typename T>
+    std::vector<T*> GetAllNodesOfType()
+    {
+        static_assert(std::is_base_of_v<EditorGraphNode, T>);
+
+        std::vector<T*> matchingTypeNodes;
+        for (auto& [id, pNode] : m_nodeLookupMap)
+        {
+            auto pTypedNode = dynamic_cast<T*>(pNode);
+            if (pTypedNode != nullptr)
+            {
+                matchingTypeNodes.push_back(pTypedNode);
+            }
+        }
+
+        return matchingTypeNodes;
     }
 };
 } // namespace aln

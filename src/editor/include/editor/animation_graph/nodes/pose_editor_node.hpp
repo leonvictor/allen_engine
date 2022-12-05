@@ -8,7 +8,6 @@
 
 namespace aln
 {
-
 /// @brief Output node, receives the final pose to use in the frame
 class PoseEditorNode : public EditorGraphNode
 {
@@ -20,10 +19,7 @@ class PoseEditorNode : public EditorGraphNode
         // TODO
     }
 
-    virtual void Initialize() override
-    {
-        m_name = "Output Pose";
-        AddInputPin(PinValueType::Pose);
-    }
+    virtual void Initialize() override;
+    virtual void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
 };
 } // namespace aln

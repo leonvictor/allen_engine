@@ -29,7 +29,11 @@ void SetImGuiContext(const EditorImGuiContext& context)
     ImNodes::SetImGuiContext(context.m_pImGuiContext);
 }
 
-Editor::Editor(WorldEntity& worldEntity) : m_worldEntity(worldEntity), m_assetsBrowser(DEFAULT_ASSETS_DIR) {}
+Editor::Editor(WorldEntity& worldEntity) : m_worldEntity(worldEntity), m_assetsBrowser(DEFAULT_ASSETS_DIR)
+{
+    // TODO: Move that to the initialization function
+    m_animationGraphEditor.Initialize(&m_typeEditorService);
+}
 
 void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, float deltaTime)
 {
