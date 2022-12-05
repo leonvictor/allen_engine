@@ -13,6 +13,8 @@ add_library(${LIB_NAME}
     src/asset_service.cpp
     
     src/type_descriptors/handle.cpp
+
+    src/reflection/types.cpp
     )
 
 set(LIB_DEPENDENCIES

@@ -1,12 +1,17 @@
 set(LIB_NAME editor)
 
 add_library(${LIB_NAME}
+    src/types_editor.cpp
+
     src/editor.cpp
+    
+    src/assets_browser.cpp
+    
+    src/animation_graph/animation_graph_editor.cpp
 
     src/animation_graph/nodes/pose_editor_node.cpp
     src/animation_graph/nodes/animation_clip_editor_node.cpp
 
-    # src/type_descriptors/asset_handle.cpp
     ${IMGUI_SOURCE}
 )
 

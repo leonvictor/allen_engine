@@ -29,6 +29,8 @@
 #include <entities/world_entity.hpp>
 
 #include "animation_graph/animation_graph_editor.hpp"
+#include "assets_browser.hpp"
+#include "types_editor.hpp"
 
 namespace aln::editor
 {
@@ -51,24 +53,15 @@ class Editor
     Entity* m_pSelectedEntity = nullptr;
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
 
-    AnimationGraphEditor* m_pAnimationGraphEditor = nullptr;
+    TypeEditorService m_typeEditorService;
+
+    // TODO: Handle widget lifetime. For now they're always here !
+    AnimationGraphEditor m_animationGraphEditor;
+    AssetsBrowser m_assetsBrowser;
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
 
-    std::unordered_map<std::type_index, std::function<void(void*, const char*)>> m_displayFuncs;
-
-    template <typename T>
-    void RegisterType();
-
-    template <typename T>
-    void Display(void* obj, const char* label);
-    void Display(std::type_index typeIndex, void* obj, const char* label);
-
-    template <typename T>
-    void InInspector(T* obj, const char* label) { Display<T>(obj, label); }
-
-    void DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void* obj);
     void EntityOutlinePopup(Entity* pEntity = nullptr);
     void RecurseEntityTree(Entity* pEntity);
 
