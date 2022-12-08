@@ -145,9 +145,4 @@ void WorldEntity::DeactivateEntity(Entity* pEntity)
     m_entityMap.DeactivateEntity(pEntity);
 }
 
-// std::map<aln::utils::UUID, Entity>& WorldEntity::GetEntitiesCollection()
-// {
-//     return m_entityMap.Collection();
-// }
-
 } // namespace aln

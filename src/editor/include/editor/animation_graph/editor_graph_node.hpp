@@ -15,7 +15,7 @@ class AnimationGraphDefinition;
 class EditorGraphNode
 {
 
-    ALN_REGISTER_TYPE();
+    ALN_REGISTER_ABSTRACT_TYPE();
 
     friend class AnimationGraphEditor;
 

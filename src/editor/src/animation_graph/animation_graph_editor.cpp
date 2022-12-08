@@ -7,6 +7,7 @@
 #include <anim/graph/animation_graph_dataset.hpp>
 
 #include <assert.h>
+#include <reflection/reflection.hpp>
 
 namespace aln
 {
@@ -84,7 +85,7 @@ void AnimationGraphEditor::Draw()
             {
                 if (ImGui::Selectable(pAnimGraphNodeType->GetPrettyName().c_str()))
                 {
-                    auto pNode = pAnimGraphNodeType->typeHelper->CreateType<EditorGraphNode>();
+                    auto pNode = pAnimGraphNodeType->CreateType<EditorGraphNode>();
                     pNode->Initialize();
 
                     AddGraphNode(pNode);

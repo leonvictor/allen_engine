@@ -32,8 +32,4 @@ void IComponent::ShutdownComponent()
     Shutdown();
     m_status = Status::Loaded;
 }
-
-ALN_REGISTER_IMPL_BEGIN(BASE, IComponent)
-ALN_REGISTER_IMPL_END()
-
 } // namespace aln

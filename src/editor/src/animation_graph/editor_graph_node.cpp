@@ -2,6 +2,4 @@
 
 namespace aln
 {
-ALN_REGISTER_IMPL_BEGIN(BASE, EditorGraphNode)
-ALN_REGISTER_IMPL_END()
 } // namespace aln

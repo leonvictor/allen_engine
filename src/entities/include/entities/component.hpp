@@ -13,6 +13,8 @@ namespace aln
 /// @note https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
 class IComponent
 {
+    ALN_REGISTER_ABSTRACT_TYPE();
+
     friend class Entity;
     // TODO: Serialization
 
@@ -77,7 +79,5 @@ class IComponent
 
     bool operator==(const IComponent& other) const { return m_ID == other.GetID(); }
     bool operator!=(const IComponent& other) const { return !operator==(other); }
-
-    ALN_REGISTER_TYPE()
 };
 } // namespace aln

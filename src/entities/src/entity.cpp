@@ -246,8 +246,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
         }
     }
 
-    // TODO: new and shared_ptr(...) are not good.
-    auto pSystem = pSystemTypeInfo->typeHelper->CreateType<IEntitySystem>();
+    auto pSystem = pSystemTypeInfo->CreateType<IEntitySystem>();
 
     if (IsActivated())
     {
@@ -275,7 +274,7 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const al
 void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
 {
     assert(std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
-               { return pSystem->GetType()->m_ID == pTypeDescriptor->m_ID; }) != m_systems.end());
+               { return pSystem->GetType() == pTypeDescriptor; }) != m_systems.end());
 
     if (IsUnloaded())
     {
@@ -294,7 +293,7 @@ void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
 void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
 {
     auto it = std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
-        { return pSystem->GetType()->m_ID == pSystemTypeInfo->m_ID; });
+        { return pSystem->GetType() == pSystemTypeInfo; });
 
     assert(it != m_systems.end());
     aln::Delete(*it);

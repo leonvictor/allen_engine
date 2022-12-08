@@ -19,14 +19,11 @@ namespace aln
 class Entity;
 class IComponent;
 
-namespace impl
-{
-
 /// @brief Abstract base class for systems operating on entities. Systems are singletons (only one of each type associated to an entity).
 /// Systems are added to a single entity an can only operate on its components.
 class IEntitySystem
 {
-    ALN_REGISTER_TYPE();
+    ALN_REGISTER_ABSTRACT_TYPE();
 
     friend Entity;
 
@@ -55,6 +52,4 @@ class IEntitySystem
     virtual ~IEntitySystem() {}
     std::string GetName() const { return m_name; }
 };
-} // namespace impl
-using impl::IEntitySystem;
 } // namespace aln

@@ -3,9 +3,42 @@
 
 namespace aln::reflect
 {
+
+// Type registry. When they are instanciated, type descriptors register themselves in a global map, which
+// allows us to look them up and use them to instanciate their described types, during deserialization for example
+/// @todo : Using a global is bad, find something else !
+/// @note We might be able to register them in a dll-local map, then gather all the maps
+// during the engine's initialization, in a "module" fashion
+const TypeDescriptor* GetType(const std::type_index& typeIndex)
+{
+    return RegisteredTypes()[typeIndex];
+}
+
+void RegisterType(std::type_index typeIndex, TypeDescriptor* pTypeDescriptor)
+{
+
+    auto& registry = RegisteredTypes();
+    registry.try_emplace(typeIndex, pTypeDescriptor);
+}
+
+std::map<std::type_index, TypeDescriptor*>& RegisteredTypes()
+{
+    static std::map<std::type_index, TypeDescriptor*> types;
+    return types;
+}
+
+// -------------
+// Type Descriptors
+// -------------
+TypeDescriptor::TypeDescriptor(const char* name, size_t size, std::type_index typeIndex)
+    : name{name}, size{size}, m_typeIndex(typeIndex)
+{
+    RegisterType(typeIndex, this);
+}
+
 bool operator==(const TypeDescriptor& a, const TypeDescriptor& b)
 {
-    return a.m_ID == b.m_ID;
+    return a.m_typeIndex == b.m_typeIndex;
 }
 
 bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b)
@@ -13,9 +46,12 @@ bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b)
     return !(a == b);
 }
 
+// ---------------
+// TypeDescriptor_Struct
+// ---------------
 void TypeDescriptor_Struct::Dump(const void* obj, int indentLevel) const
 {
-    std::cout << name << " {" << std::endl;
+    std::cout << GetFullName() << " {" << std::endl;
     for (const Member& member : members)
     {
         std::cout << std::string(4 * (indentLevel + 1), ' ') << member.name << " = ";
