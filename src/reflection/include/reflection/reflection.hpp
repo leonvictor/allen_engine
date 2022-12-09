@@ -24,24 +24,34 @@ void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc*
 
 /// @brief A type that has been manually marked for reflection
 template <typename T>
-concept Reflected = requires(T a) {
-                        T::Reflection;
-                    };
+concept Reflected = requires(T a) { T::Reflection; };
 
 /// @brief Base class of all type descriptors
 struct TypeDescriptor
 {
     const char* name;
     size_t size;
+    size_t alignment;
     std::type_index m_typeIndex;
 
     std::function<void*()> m_createType;
+    std::function<void*(void*)> m_createTypeInPlace;
 
     TypeDescriptor(const char* name, size_t size, std::type_index typeIndex);
     virtual ~TypeDescriptor() {}
 
+    /// @brief Create an instance of the described type
+    /// @tparam T: Type to cast the instanciated object to
+    /// @return A pointer to the instanciated object
     template <typename T>
     T* CreateType() const { return (T*) m_createType(); }
+
+    /// @brief Placement-new an instance of the described type in pre-allocated memory
+    /// @param ptr: Pointer to the allocated memory block
+    /// @tparam T: Type to cast the instanciated object to
+    /// @return A pointer to the instanciated object
+    template <typename T>
+    T* CreateTypeInPlace(void* ptr) const { return (T*) m_createTypeInPlace(ptr); }
 
     /// @brief Return the full type name.
     virtual std::string GetFullName() const { return name; }
@@ -135,6 +145,7 @@ struct TypeDescriptor_Struct : TypeDescriptor
     TypeDescriptor_Struct(const char* name, size_t size, const std::initializer_list<Member>& init)
         : TypeDescriptor(nullptr, 0, std::type_index(typeid(nullptr))), members(init) {}
 
+    /// @todo Not needed. Remove ?
     virtual void Dump(const void* obj, int indentLevel) const override;
 };
 
@@ -169,18 +180,20 @@ struct TypeDescriptor_Struct : TypeDescriptor
         using T = type;                                                                                        \
         typeDesc->name = #type;                                                                                \
         typeDesc->size = sizeof(T);                                                                            \
+        typeDesc->alignment = alignof(T);                                                                      \
         typeDesc->m_typeIndex = std::type_index(typeid(T));                                                    \
         typeDesc->members = {
 
 #define ALN_REFLECT_MEMBER(name, displayName) \
     {#name, #displayName, offsetof(T, name), aln::reflect::TypeResolver<decltype(T::name)>::get()},
 
-#define ALN_REGISTER_IMPL_END()                              \
-    }                                                        \
-    ;                                                        \
-    typeDesc->m_createType = []() { return aln::New<T>(); }; \
-    scopedTypes.push_back(typeDesc);                         \
-    } //
+#define ALN_REGISTER_IMPL_END()                                                          \
+    }                                                                                    \
+    ;                                                                                    \
+    typeDesc->m_createType = []() { return aln::New<T>(); };                             \
+    typeDesc->m_createTypeInPlace = [](void* ptr) { return aln::PlacementNew<T>(ptr); }; \
+    scopedTypes.push_back(typeDesc);                                                     \
+    }
 
 /// @brief Abstract types are not actually reflected, but they can be marked to declare the reflection system's functions as virtual.
 // This allows us to dynamically get the type descriptor of a derived type

@@ -4,6 +4,7 @@ add_library(${LIB_NAME} SHARED
     src/transform.cpp
     src/colors.cpp
     src/serialization/binary_archive.cpp
+    src/memory.cpp
 )
 
 include(GenerateExportHeader)
