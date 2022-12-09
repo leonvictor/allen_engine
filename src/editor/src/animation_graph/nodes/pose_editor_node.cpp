@@ -23,5 +23,5 @@ void PoseEditorNode::Compile(AnimationGraphCompilationContext& context, Animatio
     return pInputNode->Compile(context, pGraphDefinition); // The result is just a pointer to the previous node
 };
 } // namespace aln
-ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_NODE, aln::PoseEditorNode)
+ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, aln::PoseEditorNode)
 ALN_REGISTER_IMPL_END()

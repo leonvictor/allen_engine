@@ -21,6 +21,8 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
   public:
     class Settings : public RuntimeGraphNode::Settings
     {
+        ALN_REGISTER_TYPE();
+
         friend class AnimationClipEditorNode;
 
       private:
@@ -37,6 +39,20 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
             auto pSettings = pNode->GetSettings<AnimationClipRuntimeNode>();
             pNode->m_pAnimationClip = pDataSet->GetAnimationClip(pSettings->m_dataSlotIdx);
         }
+
+        virtual void Serialize(BinaryMemoryArchive& archive) const override
+        {
+            RuntimeGraphNode::Settings::Serialize(archive);
+            archive << m_dataSlotIdx;
+            archive << m_playInReverseValueNodeIdx;
+        }
+
+        virtual void Deserialize(BinaryMemoryArchive& archive) override
+        {
+            RuntimeGraphNode::Settings::Deserialize(archive);
+            archive >> m_dataSlotIdx;
+            archive >> m_playInReverseValueNodeIdx;
+        };
     };
 
     PoseNodeResult Update(GraphContext& context) override

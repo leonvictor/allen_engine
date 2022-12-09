@@ -19,7 +19,7 @@ void AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context,
     }
 };
 
-ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_NODE, AnimationClipEditorNode)
+ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, AnimationClipEditorNode)
 ALN_REFLECT_MEMBER(m_animationClipID, Clip)
 ALN_REGISTER_IMPL_END()
 

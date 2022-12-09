@@ -3,6 +3,8 @@ set(LIB_NAME anim)
 add_library(${LIB_NAME} SHARED
     src/pose.cpp
     src/track.cpp
+    
+    src/graph/nodes/animation_clip_runtime_node.cpp
 )
 
 set(LIB_DEPENDENCIES  )

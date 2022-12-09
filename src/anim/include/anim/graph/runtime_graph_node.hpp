@@ -2,6 +2,9 @@
 
 #include <assert.h>
 
+#include <common/serialization/binary_archive.hpp>
+#include <reflection/reflection.hpp>
+
 #include "animation_graph_dataset.hpp"
 #include "graph_context.hpp"
 
@@ -40,6 +43,8 @@ class RuntimeGraphNode
   public:
     class Settings
     {
+        ALN_REGISTER_ABSTRACT_TYPE();
+
         friend class AnimationGraphCompilationContext;
 
       private:
@@ -82,6 +87,18 @@ class RuntimeGraphNode
       public:
         /// @brief Instanciate a node and all its data. Override in derived nodes
         virtual void InstanciateNode(/* todo: const */ std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const = 0;
+
+        virtual void Serialize(BinaryMemoryArchive& archive) const
+        {
+            assert(archive.IsWriting());
+            archive << m_nodeIndex;
+        }
+
+        virtual void Deserialize(BinaryMemoryArchive& archive)
+        {
+            assert(archive.IsReading());
+            archive >> m_nodeIndex;
+        };
     };
 
   private:
