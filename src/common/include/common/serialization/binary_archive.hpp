@@ -28,6 +28,35 @@ concept ContiguousContainer = requires(T a)
     std::contiguous_iterator<typename T::iterator>;
 };
 
+/// @brief Access point for types whose serialization methods need to be private. Set as friend in class definitions
+/// to allow the serialization system to access them.
+/// @todo This is not functionnal ! I haven't found a good way to restrict access AND keep the constrained concept specialization
+/// @note Not functionnal ! Serialization function need to be public for now
+struct ArchiveAccess
+{
+    template <typename T, typename Archive>
+    static void Serialize(const T& a, Archive& archive)
+    {
+        a.Serialize(archive);
+    }
+
+    template <typename T, typename Archive>
+    static void Deserialize(T& a, Archive& archive)
+    {
+        a.Deserialize(archive);
+    }
+};
+
+template<typename T>
+concept CustomSerializable = requires(T a, BinaryMemoryArchive archive)
+{
+    a.Serialize<BinaryMemoryArchive>(archive);
+    a.Deserialize<BinaryMemoryArchive>(archive);
+};
+
+template<typename T>
+concept Serializable = TriviallyCopyableType<T> || CustomSerializable<T>;
+
 /// @brief Base class for binary archives
 /// @note Supports IO operations for trivially copyable types and contiguous containers of trivially copyable types.
 /// "Recursive" containers are also supported
@@ -186,7 +215,7 @@ class BinaryFileArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    requires ContiguousContainer<T> && Serializable<typename T::value_type>
         BinaryFileArchive& operator<<(const T& container)
     {
         assert(IsWriting());
@@ -200,7 +229,7 @@ class BinaryFileArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    requires ContiguousContainer<T> && Serializable<typename T::value_type>
     const BinaryFileArchive& operator>>(T& container) const
     {
         assert(IsReading());
@@ -212,6 +241,26 @@ class BinaryFileArchive : public IBinaryArchive
         container.resize(size);
         pFileStream->read(reinterpret_cast<char*>(container.data()), size * sizeof(T::value_type));
 
+        return *this;
+    }
+
+    // --------------------------
+    //  Custom serializable types
+    // --------------------------
+    template <CustomSerializable T>
+    BinaryFileArchive& operator<<(const T& object)
+    {
+
+        assert(IsWriting());
+        ArchiveAccess::Serialize(object, *this);
+        return *this;
+    }
+
+    template <CustomSerializable T>
+    const BinaryFileArchive& operator>>(T& object)
+    {
+        assert(IsReading());
+        ArchiveAccess::Deserialize(object, *this);
         return *this;
     }
 
@@ -306,7 +355,7 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    requires ContiguousContainer<T> && Serializable<typename T::value_type>
         BinaryMemoryArchive& operator<<(const T& container)
     {
         assert(IsWriting());
@@ -321,7 +370,7 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    requires ContiguousContainer<T> && Serializable<typename T::value_type>
     const BinaryMemoryArchive& operator>>(T& container) const
     {
         assert(IsReading());
@@ -334,6 +383,26 @@ class BinaryMemoryArchive : public IBinaryArchive
         container.assign(pDataTypePtr, pDataTypePtr + containerSize);
 
         m_pReader += (containerSize * sizeof(T::value_type));
+        return *this;
+    }
+
+    // --------------------------
+    //  Custom serializable types
+    // --------------------------
+    template <CustomSerializable T>
+    BinaryMemoryArchive& operator<<(const T& object)
+    {
+
+        assert(IsWriting());
+        ArchiveAccess::Serialize(object, *this);
+        return *this;
+    }
+
+    template <CustomSerializable T>
+    const BinaryMemoryArchive& operator>>(T& object)
+    {
+        assert(IsReading());
+        ArchiveAccess::Deserialize(object, *this);
         return *this;
     }
 

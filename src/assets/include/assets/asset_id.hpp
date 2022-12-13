@@ -8,6 +8,22 @@ namespace aln
 /// @todo Internally use a uint identifier to avoid costly string comparisons
 class AssetID
 {
+  public:
+    friend struct ArchiveAccess;
+
+    template <class Archive>
+    void Serialize(Archive& archive) const
+    {
+        archive << m_path;
+    }
+
+    template <class Archive>
+    void Deserialize(Archive& archive)
+    {
+        archive >> m_path;
+        m_typeID = m_path.substr(m_path.size() - 4);
+    }
+
   private:
     // TODO: change to a hash ?
     std::string m_path;

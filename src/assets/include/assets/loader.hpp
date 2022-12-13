@@ -18,8 +18,11 @@ class IAssetLoader
     friend class AssetRequest;
 
   private:
+    // Concrete loading functions called by the asset service
     bool LoadAsset(AssetRecord* pRecord)
     {
+        assert(pRecord->IsUnloaded());
+
         assets::AssetFile file;
         auto loaded = assets::LoadBinaryFile(pRecord->GetAssetPath(), file);
         if (!loaded)
@@ -40,10 +43,15 @@ class IAssetLoader
     void UnloadAsset(AssetRecord* pRecord)
     {
         assert(pRecord->IsLoaded());
+
         Unload(pRecord);
+
+        auto pAsset = pRecord->GetAsset();
+        aln::Delete(pAsset);
+        pRecord->m_pAsset = nullptr;
     }
 
-    virtual void InstallAsset(const AssetID& assetID, AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies)
+    void InstallAsset(const AssetID& assetID, AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies)
     {
         assert(pRecord->IsUnloaded());
         assert(assetID.IsValid());
@@ -53,15 +61,9 @@ class IAssetLoader
     }
 
   protected:
+    // Virtual loading functions, overload in specialized loader classes to implement asset-specific behavior
     virtual bool Load(AssetRecord* pRecord, const assets::AssetFile& file) = 0;
-
-    virtual void Unload(AssetRecord* pRecord)
-    {
-        auto pAsset = pRecord->GetAsset();
-        aln::Delete(pAsset);
-        pRecord->m_pAsset = nullptr;
-    };
-
+    virtual void Unload(AssetRecord* pRecord){};
     virtual void InstallDependencies(AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies) {}
 
     const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
