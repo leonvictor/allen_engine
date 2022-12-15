@@ -1,7 +1,7 @@
 #include "asset_system/skeleton_asset.hpp"
 
-#include <json/json.hpp>
 #include <lz4.h>
+#include <nlohmann/json.hpp>
 
 namespace aln::assets
 {

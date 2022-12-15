@@ -18,12 +18,11 @@ add_library(${LIB_NAME}
     )
 
 set(LIB_DEPENDENCIES
-    ${JSON_INCLUDE_DIRS}
     ${STB_INCLUDE_DIR}
     common
     )
 
-set(LIB_LINK_DEPENDENCIES reflection common lz4_static)
+set(LIB_LINK_DEPENDENCIES reflection common lz4_static nlohmann_json::nlohmann_json)
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
