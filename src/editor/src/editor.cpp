@@ -17,9 +17,11 @@
 
 #include <config/path.h>
 
-namespace aln::editor
+namespace aln
 {
 
+namespace editor
+{
 void SetImGuiContext(const EditorImGuiContext& context)
 {
     ImGui::SetAllocatorFunctions(*context.m_pAllocFunc, *context.m_pFreeFunc, context.m_pUserData);
@@ -28,14 +30,13 @@ void SetImGuiContext(const EditorImGuiContext& context)
     ImNodes::SetCurrentContext(context.m_pImNodesContext);
     ImNodes::SetImGuiContext(context.m_pImGuiContext);
 }
+} // namespace editor
 
 Editor::Editor(WorldEntity& worldEntity) : m_worldEntity(worldEntity), m_assetsBrowser(DEFAULT_ASSETS_DIR)
 {
-    // TODO: Move that to the initialization function
-    m_animationGraphEditor.Initialize(&m_typeEditorService);
 }
 
-void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, float deltaTime)
+void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context)
 {
     // Draw ImGUI components
     ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
@@ -74,7 +75,7 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
         {
             // Compute current FPS
             // Use std::format (C++20). Not available in most compilers as of 04/06/2021
-            ImGui::Text(fmt::format("{:.0f} FPS", 1.0f / deltaTime).c_str());
+            ImGui::Text(fmt::format("{:.0f} FPS", 1.0f / context.GetDeltaTime()).c_str());
             ImGui::EndMenuBar();
         }
     }
@@ -89,15 +90,6 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
         m_scenePreviewHeight = dim.y;
         ImGui::Image((ImTextureID) renderedSceneImageDescriptorSet, {m_scenePreviewWidth, m_scenePreviewHeight});
     }
-    ImGui::End();
-
-    if (ImGui::Begin("Animation Graph", nullptr))
-    {
-        m_animationGraphEditor.Draw();
-    }
-
-    m_assetsBrowser.Draw();
-
     ImGui::End();
 
     if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
@@ -115,181 +107,178 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
     ImGui::End();
 
     // Inspector panel
-    if (m_pSelectedEntity != nullptr)
+    if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr) && m_pSelectedEntity != nullptr)
     {
-        if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr))
+        ImGui::PushID(m_pSelectedEntity->GetID().ToString().c_str());
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text(ICON_FA_CUBES);
+        ImGui::SameLine();
+        ImGui::InputText("", &m_pSelectedEntity->GetName());
+        ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+
+        if (m_pSelectedEntity->IsActivated())
         {
-            ImGui::PushID(m_pSelectedEntity->GetID().ToString().c_str());
-
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text(ICON_FA_CUBES);
-            ImGui::SameLine();
-            ImGui::InputText("", &m_pSelectedEntity->GetName());
-            ImGui::SameLine(ImGui::GetWindowWidth() - 30);
-
-            if (m_pSelectedEntity->IsActivated())
+            ImGui::Text(ICON_FA_EYE);
+            if (ImGui::IsItemHovered())
             {
-                ImGui::Text(ICON_FA_EYE);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Disable entity");
-                }
-                if (ImGui::IsItemClicked())
-                {
-                    m_worldEntity.DeactivateEntity(m_pSelectedEntity);
-                }
+                ImGui::SetTooltip("Disable entity");
             }
-            else
+            if (ImGui::IsItemClicked())
             {
-                ImGui::Text(ICON_FA_EYE_SLASH);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Enable entity");
-                }
-                if (ImGui::IsItemClicked())
-                {
-                    m_worldEntity.ActivateEntity(m_pSelectedEntity);
-                }
+                m_worldEntity.DeactivateEntity(m_pSelectedEntity);
             }
-
-            if (m_pSelectedEntity->IsSpatialEntity())
+        }
+        else
+        {
+            ImGui::Text(ICON_FA_EYE_SLASH);
+            if (ImGui::IsItemHovered())
             {
-                if (ImGui::CollapsingHeader("Transform"))
-                {
-                    ImGui::PushItemWidth(60);
-
-                    // TODO: vec3 might deserve a helper function to create ui for the 3 components...
-                    // Position
-                    bool changed = false;
-                    auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetTranslation();
-                    ImGui::Text("Position");
-                    changed |= ImGui::DragFloat("x##Position", &pos.x, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("y##Position", &pos.y, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("z##Position", &pos.z, 1.0f);
-
-                    if (changed)
-                        m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformPosition(pos);
-
-                    // Rotation
-                    changed = false;
-                    ImGui::Text("Rotation");
-                    changed |= ImGui::DragFloat("x##Rotation", &m_currentEulerRotation.x, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("y##Rotation", &m_currentEulerRotation.y, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("z##Rotation", &m_currentEulerRotation.z, 1.0f);
-
-                    if (changed)
-                        m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(m_currentEulerRotation);
-
-                    // Scale
-                    auto scale = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetScale();
-                    changed = false;
-                    ImGui::Text("Scale");
-                    changed |= ImGui::DragFloat("x##Scale", &scale.x, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("y##Scale", &scale.y, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("z##Scale", &scale.z, 1.0f);
-
-                    if (changed)
-                        m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformScale(scale);
-
-                    ImGui::PopItemWidth();
-                }
+                ImGui::SetTooltip("Enable entity");
             }
-
-            for (auto pComponent : m_pSelectedEntity->GetComponents())
+            if (ImGui::IsItemClicked())
             {
-                ImGui::PushID(pComponent->GetID().ToString().c_str());
+                m_worldEntity.ActivateEntity(m_pSelectedEntity);
+            }
+        }
 
-                auto typeDesc = pComponent->GetType();
-                // TODO: This should happen through the partial template specialization for components
+        if (m_pSelectedEntity->IsSpatialEntity())
+        {
+            if (ImGui::CollapsingHeader("Transform"))
+            {
+                ImGui::PushItemWidth(60);
 
-                if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
-                {
-                    m_typeEditorService.Display(pComponent, "");
-                }
+                // TODO: vec3 might deserve a helper function to create ui for the 3 components...
+                // Position
+                bool changed = false;
+                auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetTranslation();
+                ImGui::Text("Position");
+                changed |= ImGui::DragFloat("x##Position", &pos.x, 1.0f);
+                ImGui::SameLine();
+                changed |= ImGui::DragFloat("y##Position", &pos.y, 1.0f);
+                ImGui::SameLine();
+                changed |= ImGui::DragFloat("z##Position", &pos.z, 1.0f);
 
-                if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
-                {
-                    if (ImGui::MenuItem("Remove Component", "", false, true))
-                    {
-                        m_pSelectedEntity->DestroyComponent(pComponent->GetID());
-                    }
-                    ImGui::EndPopup();
-                }
+                if (changed)
+                    m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformPosition(pos);
 
-                ImGui::PopID();
+                // Rotation
+                changed = false;
+                ImGui::Text("Rotation");
+                changed |= ImGui::DragFloat("x##Rotation", &m_currentEulerRotation.x, 1.0f);
+                ImGui::SameLine();
+                changed |= ImGui::DragFloat("y##Rotation", &m_currentEulerRotation.y, 1.0f);
+                ImGui::SameLine();
+                changed |= ImGui::DragFloat("z##Rotation", &m_currentEulerRotation.z, 1.0f);
+
+                if (changed)
+                    m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(m_currentEulerRotation);
+
+                // Scale
+                auto scale = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetScale();
+                changed = false;
+                ImGui::Text("Scale");
+                changed |= ImGui::DragFloat("x##Scale", &scale.x, 1.0f);
+                ImGui::SameLine();
+                changed |= ImGui::DragFloat("y##Scale", &scale.y, 1.0f);
+                ImGui::SameLine();
+                changed |= ImGui::DragFloat("z##Scale", &scale.z, 1.0f);
+
+                if (changed)
+                    m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformScale(scale);
+
+                ImGui::PopItemWidth();
+            }
+        }
+
+        for (auto pComponent : m_pSelectedEntity->GetComponents())
+        {
+            ImGui::PushID(pComponent->GetID().ToString().c_str());
+
+            auto typeDesc = pComponent->GetType();
+            // TODO: This should happen through the partial template specialization for components
+
+            if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
+            {
+                m_typeEditorService.Display(pComponent, "");
             }
 
-            for (auto pSystem : m_pSelectedEntity->GetSystems())
+            if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
             {
-                auto typeDesc = pSystem->GetType();
-
-                ImGui::PushID(typeDesc->GetPrettyName().c_str());
-                if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
+                if (ImGui::MenuItem("Remove Component", "", false, true))
                 {
-                    m_typeEditorService.Display(pSystem, "");
-                }
-
-                if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
-                {
-                    if (ImGui::MenuItem("Remove System", "", false, true))
-                    {
-                        m_pSelectedEntity->DestroySystem(pSystem->GetType());
-                    }
-                    ImGui::EndPopup();
-                }
-
-                ImGui::PopID();
-            }
-
-            if (ImGui::Button("Add Component"))
-            {
-                // Open a dropdown with all components types
-                ImGui::OpenPopup("add_component_popup");
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button("Add System"))
-            {
-                ImGui::OpenPopup("add_system_popup");
-            }
-
-            if (ImGui::BeginPopup("add_system_popup"))
-            {
-                auto& systemTypes = aln::reflect::GetTypesInScope("SYSTEMS");
-                for (auto& sys : systemTypes)
-                {
-                    if (ImGui::Selectable(sys->GetPrettyName().c_str()))
-                    {
-                        m_pSelectedEntity->CreateSystem(sys);
-                    }
-                }
-                ImGui::EndPopup();
-            }
-
-            if (ImGui::BeginPopup("add_component_popup"))
-            {
-                auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
-                for (auto& comp : componentTypes)
-                {
-                    if (ImGui::Selectable(comp->GetPrettyName().c_str()))
-                    {
-                        auto newComp = comp->typeHelper->CreateType<IComponent>();
-                        m_pSelectedEntity->AddComponent(newComp);
-                    }
+                    m_pSelectedEntity->DestroyComponent(pComponent->GetID());
                 }
                 ImGui::EndPopup();
             }
 
             ImGui::PopID();
         }
-        ImGui::End();
+
+        for (auto pSystem : m_pSelectedEntity->GetSystems())
+        {
+            auto typeDesc = pSystem->GetType();
+
+            ImGui::PushID(typeDesc->GetPrettyName().c_str());
+            if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
+            {
+                m_typeEditorService.Display(pSystem, "");
+            }
+
+            if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
+            {
+                if (ImGui::MenuItem("Remove System", "", false, true))
+                {
+                    m_pSelectedEntity->DestroySystem(pSystem->GetType());
+                }
+                ImGui::EndPopup();
+            }
+
+            ImGui::PopID();
+        }
+
+        if (ImGui::Button("Add Component"))
+        {
+            // Open a dropdown with all components types
+            ImGui::OpenPopup("add_component_popup");
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Add System"))
+        {
+            ImGui::OpenPopup("add_system_popup");
+        }
+
+        if (ImGui::BeginPopup("add_system_popup"))
+        {
+            auto& systemTypes = aln::reflect::GetTypesInScope("SYSTEMS");
+            for (auto& sys : systemTypes)
+            {
+                if (ImGui::Selectable(sys->GetPrettyName().c_str()))
+                {
+                    m_pSelectedEntity->CreateSystem(sys);
+                }
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopup("add_component_popup"))
+        {
+            auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
+            for (auto& comp : componentTypes)
+            {
+                if (ImGui::Selectable(comp->GetPrettyName().c_str()))
+                {
+                    auto newComp = comp->CreateType<IComponent>();
+                    m_pSelectedEntity->AddComponent(newComp);
+                }
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopID();
     }
+    ImGui::End();
 
     // Outline panel
     if (ImGui::Begin(ICON_FA_LIST " Outline"))
@@ -322,6 +311,15 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
     ImGui::End();
 
     ImGui::ShowDemoWindow();
+
+    // Windows
+    // m_animationGraphEditor.Update(context);
+    m_assetsBrowser.Update(context);
+
+    for (auto& [id, pWindow] : m_assetWindows)
+    {
+        pWindow->Update(context);
+    }
 }
 
 void Editor::RecurseEntityTree(Entity* pEntity)
@@ -437,4 +435,4 @@ void Editor::EntityOutlinePopup(Entity* pEntity)
         ImGui::EndPopup();
     }
 }
-} // namespace aln::editor
+} // namespace aln

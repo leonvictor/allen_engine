@@ -1,6 +1,6 @@
 #include "assets_browser.hpp"
 
-namespace aln::editor
+namespace aln
 {
 
 // TODO: This should be infered automatically from registered asset types
@@ -29,17 +29,19 @@ void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entr
             ImGui::TreeNodeEx(directoryEntry.path().filename().string().c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
             if (ImGui::BeginDragDropSource())
             {
-                m_draggedAssetID = AssetID(directoryEntry.path().string());
-
-                ImGui::SetDragDropPayload("AssetID", &m_draggedAssetID, sizeof(AssetID*));
+                // Dragged tooltip
                 ImGui::Text(directoryEntry.path().string().c_str());
+
+                m_draggedAssetID = AssetID(directoryEntry.path().string());
+                ImGui::SetDragDropPayload("AssetID", &m_draggedAssetID, sizeof(AssetID));
+
                 ImGui::EndDragDropSource();
             }
         }
     }
 }
 
-void AssetsBrowser::Draw()
+void AssetsBrowser::Update(const UpdateContext& context)
 {
     ImGui::Begin("Assets Browser");
     ImGui::Text(m_currentFilePath.string().c_str());
@@ -53,4 +55,4 @@ void AssetsBrowser::Draw()
     ImGui::End();
 }
 
-} // namespace aln::editor
+} // namespace aln

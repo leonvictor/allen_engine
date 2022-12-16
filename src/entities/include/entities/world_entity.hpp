@@ -13,17 +13,12 @@
 
 namespace aln
 {
-class Engine;
-namespace editor
-{
-class Editor;
-}
 
 /// @brief The one entity that represents the world. Holds entities and world systems.
 class WorldEntity
 {
-    friend class aln::Engine;
-    friend class aln::editor::Editor;
+    friend class Engine;
+    friend class Editor;
 
   private:
     EntityMap m_entityMap;

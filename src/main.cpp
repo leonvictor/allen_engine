@@ -158,6 +158,17 @@ class Engine
         Update();
     }
 
+    void Initialize()
+    {
+        // TODO
+    }
+
+    void Shutdown()
+    {
+        // TODO
+        m_editor.Shutdown();
+    }
+
   private:
     vkg::Instance m_instance;
     vkg::Window m_window;
@@ -174,7 +185,7 @@ class Engine
 
     ServiceProvider m_serviceProvider;
 
-    editor::Editor m_editor;
+    Editor m_editor;
     vkg::ImGUI m_imgui;
 
     WorldEntity m_worldEntity;
@@ -183,7 +194,7 @@ class Engine
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
     {
-        editor::EditorImGuiContext context;
+        EditorImGuiContext context;
         context.m_pImGuiContext = ImGui::GetCurrentContext();
         context.m_pImNodesContext = ImNodes::GetCurrentContext();
 
@@ -238,6 +249,8 @@ class Engine
         pCube->CreateSystem<AnimationSystem>();
         pCube->AddComponent(pMesh);
         pCube->AddComponent(pAnim);
+
+        m_editor.Initialize(m_serviceProvider);
     }
 
     void Update()
@@ -277,12 +290,11 @@ class Engine
             for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
             {
                 m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
-
                 m_worldEntity.Update(m_updateContext);
             }
 
             auto desc = m_sceneRenderer.GetActiveImage()->GetDescriptorSet();
-            m_editor.DrawUI(desc, m_timeService.GetDeltaTime());
+            m_editor.Update(desc, m_updateContext);
 
             m_imgui.Render(m_renderer.GetActiveRenderTarget().commandBuffer.get());
 
@@ -302,8 +314,10 @@ int main()
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
     std::unique_ptr<aln::Engine> app = std::make_unique<aln::Engine>();
-    app->run();
 
+    app->run();
+    app->Shutdown();
     app.reset();
+
     return EXIT_SUCCESS;
 };

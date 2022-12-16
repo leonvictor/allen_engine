@@ -4,15 +4,17 @@
 
 #include <assets/asset_id.hpp>
 
+#include "editor_window.hpp"
+
 #include <filesystem>
 #include <string>
 #include <vector>
 
-namespace aln::editor
+namespace aln
 {
 /// @brief Folder browser for assets
 /// @note This is pretty basic for now but it does the job.
-class AssetsBrowser
+class AssetsBrowser : public IEditorWindow
 {
   private:
     static const std::vector<std::string> AssetExtensionsFilter;
@@ -24,6 +26,6 @@ class AssetsBrowser
 
   public:
     AssetsBrowser(std::string folderPath) : m_currentFilePath(folderPath) {}
-    void Draw();
+    void Update(const UpdateContext& context) override;
 };
-} // namespace aln::editor
+} // namespace aln
