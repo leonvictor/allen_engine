@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
         auto extension = file.path().extension();
         if (extension == ".png" || extension == ".jpg" || extension == ".TGA")
         {
-            exportPath.replace_extension(".tx");
+            exportPath.replace_extension(".text");
 
             std::cout << "Texture found, saving to " << exportPath << std::endl;
             ConvertImage(file.path(), exportPath);

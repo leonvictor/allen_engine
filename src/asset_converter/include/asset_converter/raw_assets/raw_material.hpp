@@ -1,42 +1,24 @@
 #pragma once
 
-#include <assets/asset_id.hpp>
-
-#include "assimp_scene_context.hpp"
-
 #include <assert.h>
+
+#include <assets/asset_archive_header.hpp>
+#include <common/serialization/binary_archive.hpp>
+
+#include "../assimp_scene_context.hpp"
+#include "raw_asset.hpp"
 
 namespace aln::assets::converter
 {
-/// @todo : Should be approx. the same as the runtime Material class
-/// @todo : Better conversion to disk format
-class AssimpMaterial
+class RawMaterial : public IRawAsset
 {
     friend class AssimpMaterialReader;
 
-  private:
-    AssetID m_id;
-    std::string m_name;
-
     AssetID m_albedoMapID;
 
-  public:
-    const std::string& GetName() { return m_name; }
-
-    bool SaveToBinary(const AssimpSceneContext& sceneContext)
+    void Serialize(BinaryMemoryArchive& archive) final override
     {
-        assert(!m_id.IsValid());
-        m_id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + m_name + ".mtrl");
-
-        // TODO: Replace with proper serialization
-        MaterialInfo materialInfo;
-        materialInfo.m_name = m_name;
-        materialInfo.m_albedoMapID = m_albedoMapID;
-
-        auto file = PackMaterial(&materialInfo);
-        file.m_dependencies.push_back(m_albedoMapID);
-
-        return SaveBinaryFile(m_id.GetAssetPath(), file);
+        archive << m_albedoMapID;
     }
 };
 
@@ -45,11 +27,11 @@ class AssimpMaterialReader
   public:
     static void ReadMaterial(const AssimpSceneContext& sceneContext, const aiMaterial* pMaterial)
     {
-        AssimpMaterial material;
-        material.m_name = std::string(pMaterial->GetName().C_Str());
+        RawMaterial material;
+        auto name = std::string(pMaterial->GetName().C_Str());
 
         // TODO: What are those empty materials ?
-        if (material.m_name.empty())
+        if (name.empty())
         {
             return;
         }
@@ -72,8 +54,18 @@ class AssimpMaterialReader
             material.m_albedoMapID = AssetID(textureExportPath.string());
         }
 
-        material.SaveToBinary(sceneContext);
+        auto id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + name + ".mtrl");
 
+        AssetArchiveHeader header(id.GetAssetTypeID()); // TODO: Use Material::GetStaticAssetType
+        header.AddDependency(material.m_albedoMapID);
+
+        std::vector<std::byte> data;
+        auto dataStream = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+
+        material.Serialize(dataStream);
+
+        auto archive = BinaryFileArchive(std::filesystem::path(id.GetAssetPath()), BinaryFileArchive::IOMode::Write);
+        archive << header << data;
         // TODO: Other textures
         // TODO: Material properties
     }

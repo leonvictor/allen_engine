@@ -1,14 +1,6 @@
 set(LIB_NAME assets)
 
 add_library(${LIB_NAME}
-    src/asset_system/asset_system.cpp
-    src/asset_system/texture_asset.cpp
-    src/asset_system/mesh_asset.cpp
-    src/asset_system/material_asset.cpp
-    src/asset_system/animation_clip_asset.cpp
-    src/asset_system/skeletal_mesh_asset.cpp
-    src/asset_system/skeleton_asset.cpp
-
     src/request.cpp
     src/asset_service.cpp
     

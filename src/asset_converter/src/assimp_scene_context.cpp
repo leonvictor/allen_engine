@@ -91,7 +91,7 @@ glm::vec3 AssimpSceneContext::RevertSceneTransform(const glm::vec3& vector) cons
     return reverted;
 }
 
-bool AssimpSceneContext::TryGetSkeleton(const std::string& skeletonName, AssimpSkeleton*& pOutSkeleton) const
+bool AssimpSceneContext::TryGetSkeleton(const std::string& skeletonName, RawSkeleton*& pOutSkeleton) const
 {
     auto [it, emplaced] = m_skeletons.try_emplace(skeletonName);
     pOutSkeleton = &(it->second);

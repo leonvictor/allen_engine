@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../asset_id.hpp"
-#include "../asset_type_id.hpp"
+#include "asset_id.hpp"
+#include "asset_type_id.hpp"
 
 #include <vector>
 
@@ -23,7 +23,7 @@ class AssetArchiveHeader
 
   private:
     // System info
-    uint32_t m_version = AssetConverterVersion;
+    uint32_t m_version = AssetArchiveVersion;
 
     // Asset info
     AssetTypeID m_assetTypeID;

@@ -1,17 +1,20 @@
-#include "assimp_skeleton.hpp"
+#include "raw_assets/raw_skeleton.hpp"
 
 #include "assimp_scene_context.hpp"
 
-#include <assets/asset_system/skeleton_asset.hpp>
+#include <assets/asset_archive_header.hpp>
+#include <common/serialization/binary_archive.hpp>
+#include <common/serialization/compression.hpp>
 
 namespace aln::assets::converter
 {
 
-uint32_t AssimpSkeleton::GetBoneIndex(const std::string& boneName) const
+uint32_t RawSkeleton::GetBoneIndex(const std::string& boneName) const
 {
-    for (size_t boneIndex = 0; boneIndex < m_boneData.size(); ++boneIndex)
+    auto boneCount = m_boneNames.size();
+    for (auto boneIndex = 0; boneIndex < boneCount; ++boneIndex)
     {
-        if (boneName == m_boneData[boneIndex].m_name)
+        if (boneName == m_boneNames[boneIndex])
         {
             return boneIndex;
         }
@@ -19,57 +22,33 @@ uint32_t AssimpSkeleton::GetBoneIndex(const std::string& boneName) const
     return InvalidIndex;
 }
 
-bool AssimpSkeleton::SaveToBinary(std::string outputDirectory)
+void RawSkeleton::Serialize(BinaryMemoryArchive& archive)
 {
-    assert(!HasPathOnDisk());
-    assert(!GetAssetID().IsValid());
-    m_id = AssetID(outputDirectory + "/" + m_name + ".skel");
-
-    std::vector<Transform> referencePose;
-    referencePose.reserve(GetBoneCount());
-
-    // TODO: This is a duplicate now
-    SkeletonInfo skeletonInfo;
-    skeletonInfo.assetPath = outputDirectory + "/" + m_name + ".skel";
-
-    for (auto& bone : m_boneData)
-    {
-        skeletonInfo.boneNames.push_back(bone.m_name);
-        skeletonInfo.boneParentIndices.push_back(bone.m_parentIndex);
-        referencePose.push_back(bone.m_localTransform);
-    }
-
-    auto file = SkeletonConverter::Pack(&skeletonInfo, referencePose);
-    if (SaveBinaryFile(skeletonInfo.assetPath, file))
-    {
-        m_pathOnDisk = skeletonInfo.assetPath;
-        return true;
-    }
-
-    return false;
+    archive << m_boneNames;
+    archive << m_parentBoneIndices;
+    archive << m_globalReferencePose;
+    archive << m_localReferencePose;
 }
 
-void AssimpSkeleton::CalculateLocalTransforms()
+void RawSkeleton::CalculateLocalTransforms()
 {
-    m_boneData[0].m_localTransform = m_boneData[0].m_globalTransform;
+    m_localReferencePose.resize(m_boneNames.size());
+    m_localReferencePose[0] = m_globalReferencePose[0];
     for (auto boneIdx = GetBoneCount() - 1; boneIdx > 0; --boneIdx)
     {
-        auto& bone = m_boneData[boneIdx];
-        auto& parentBone = m_boneData[bone.m_parentIndex];
-
-        bone.m_localTransform = parentBone.m_globalTransform.GetInverse() * bone.m_globalTransform;
+        auto& parentBoneIdx = m_parentBoneIndices[boneIdx];
+        m_localReferencePose[boneIdx] = m_globalReferencePose[parentBoneIdx].GetInverse() * m_globalReferencePose[boneIdx];
     }
 }
 
-void AssimpSkeleton::CalculateGlobalTransforms()
+void RawSkeleton::CalculateGlobalTransforms()
 {
-    m_boneData[0].m_globalTransform = m_boneData[0].m_localTransform;
+    m_globalReferencePose.resize(m_boneNames.size());
+    m_globalReferencePose[0] = m_localReferencePose[0];
     for (auto boneIdx = 0; boneIdx < GetBoneCount(); ++boneIdx)
     {
-        auto& bone = m_boneData[boneIdx];
-        auto& parentBone = m_boneData[bone.m_parentIndex];
-
-        bone.m_globalTransform = parentBone.m_globalTransform * bone.m_localTransform;
+        auto& parentBoneIdx = m_parentBoneIndices[boneIdx];
+        m_globalReferencePose[boneIdx] = m_globalReferencePose[parentBoneIdx] * m_localReferencePose[boneIdx];
     }
 }
 
@@ -77,7 +56,7 @@ void AssimpSkeleton::CalculateGlobalTransforms()
 /// Skeleton reader
 /// ---------------
 
-const AssimpSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, const aiAnimation* pAnimation)
+const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, const aiAnimation* pAnimation)
 {
     auto skeletonRoot = GetSkeletonRootNode(sceneContext, pAnimation);
     assert(skeletonRoot.m_pNode != nullptr);
@@ -85,27 +64,31 @@ const AssimpSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContex
     auto skeletonName = std::string(skeletonRoot.m_pNode->mName.C_Str());
 
     // Look for an existing skeleton with this root
-    AssimpSkeleton* pSkeleton = nullptr;
+    RawSkeleton* pSkeleton = nullptr;
     if (!sceneContext.TryGetSkeleton(skeletonName, pSkeleton))
     {
-        // Add the root
         pSkeleton->m_name = skeletonName;
         pSkeleton->m_rootNodeGlobalTransform = sceneContext.DecomposeMatrix(skeletonRoot.m_globalTransform);
 
-        auto& rootData = pSkeleton->m_boneData.emplace_back();
-        rootData.m_name = skeletonName;
-        rootData.m_globalTransform = Transform::Identity;
-        rootData.m_localTransform = Transform::Identity;
-        rootData.m_parentIndex = InvalidIndex;
+        // Add root data
+        pSkeleton->m_boneNames.push_back(skeletonName);
+        pSkeleton->m_parentBoneIndices.push_back(InvalidIndex);
+        pSkeleton->m_globalReferencePose.push_back(Transform::Identity);
+        pSkeleton->m_localReferencePose.push_back(Transform::Identity);
 
         // Traverse the hierarchy to build the skeleton
         ReadAnimationBoneHierarchy(pSkeleton, sceneContext, pAnimation, skeletonRoot.m_pNode, skeletonRoot.m_globalTransform, 0);
 
         // Save the skeleton
-        if (!pSkeleton->SaveToBinary(sceneContext.GetOutputDirectory().string()))
-        {
-            throw std::runtime_error("Failed to save skeleton asset.");
-        }
+        std::vector<std::byte> data;
+        auto dataStream = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+
+        pSkeleton->Serialize(dataStream);
+
+        // TODO: Use skeleton static asset type
+        auto header = AssetArchiveHeader("skel");
+        auto archive = BinaryFileArchive(pSkeleton->m_id.GetAssetPath(), IBinaryArchive::IOMode::Write);
+        archive << header << data;
     }
     return pSkeleton;
 }
@@ -158,7 +141,7 @@ AssimpSkeletonReader::SkeletonRoot AssimpSkeletonReader::GetSkeletonRootNode(con
     return rootFinder.m_skeletonRoot;
 }
 
-void AssimpSkeletonReader::ReadAnimationBoneHierarchy(AssimpSkeleton* pSkeleton, const AssimpSceneContext& sceneContext, const aiAnimation* pAnimation, const aiNode* pNode, const aiMatrix4x4& parentNodeTransform, uint32_t parentBoneIndex)
+void AssimpSkeletonReader::ReadAnimationBoneHierarchy(RawSkeleton* pSkeleton, const AssimpSceneContext& sceneContext, const aiAnimation* pAnimation, const aiNode* pNode, const aiMatrix4x4& parentNodeTransform, uint32_t parentBoneIndex)
 {
     auto nodeLocalTransform = pNode->mTransformation;
     auto globalNodeTransform = nodeLocalTransform * parentNodeTransform; // inv
@@ -169,14 +152,12 @@ void AssimpSkeletonReader::ReadAnimationBoneHierarchy(AssimpSkeleton* pSkeleton,
         auto pChannel = pAnimation->mChannels[channelIndex];
         if (pNode->mName == pChannel->mNodeName)
         {
-            auto& data = pSkeleton->m_boneData.emplace_back();
+            pSkeleton->m_boneNames.push_back(std::string(pNode->mName.C_Str()));
+            pSkeleton->m_parentBoneIndices.push_back(parentBoneIndex);
+            pSkeleton->m_globalReferencePose.push_back(sceneContext.DecomposeMatrix(globalNodeTransform));
+            pSkeleton->m_localReferencePose.push_back(sceneContext.DecomposeMatrix(nodeLocalTransform));
 
-            data.m_name = std::string(pNode->mName.C_Str());
-            data.m_parentIndex = parentBoneIndex;
-            data.m_localTransform = sceneContext.DecomposeMatrix(nodeLocalTransform);
-            data.m_globalTransform = sceneContext.DecomposeMatrix(globalNodeTransform);
-
-            parentBoneIndex = pSkeleton->m_boneData.size() - 1;
+            parentBoneIndex = pSkeleton->m_boneNames.size() - 1;
             boneFound = true;
         }
     }
@@ -187,7 +168,7 @@ void AssimpSkeletonReader::ReadAnimationBoneHierarchy(AssimpSkeleton* pSkeleton,
     }
 }
 
-const AssimpSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, const aiMesh* pSkeletalMesh)
+const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, const aiMesh* pSkeletalMesh)
 {
     assert(pSkeletalMesh->HasBones());
 
@@ -195,19 +176,24 @@ const AssimpSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContex
     auto pRootBone = pSkeletalMesh->mBones[0]->mArmature;
     auto skeletonName = std::string(pRootBone->mName.C_Str());
 
-    AssimpSkeleton* pSkeleton = nullptr;
+    RawSkeleton* pSkeleton = nullptr;
     if (!sceneContext.TryGetSkeleton(skeletonName, pSkeleton))
     {
         pSkeleton->m_name = skeletonName;
+        pSkeleton->m_id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + pSkeleton->m_name + ".skel");
         pSkeleton->m_rootNodeGlobalTransform = sceneContext.GetGlobalTransform(pRootBone);
 
-        pSkeleton->m_boneData.reserve(pSkeletalMesh->mNumBones + 1);
+        auto numBones = pSkeletalMesh->mNumBones + 1;
+        pSkeleton->m_boneNames.reserve(numBones);
+        pSkeleton->m_parentBoneIndices.reserve(numBones);
+        pSkeleton->m_globalReferencePose.reserve(numBones);
+        pSkeleton->m_localReferencePose.reserve(numBones);
 
-        auto& rootData = pSkeleton->m_boneData.emplace_back();
-        rootData.m_localTransform = Transform::Identity;
-        rootData.m_globalTransform = Transform::Identity;
-        rootData.m_name = skeletonName;
-        rootData.m_parentIndex = InvalidIndex;
+        // Add root data
+        pSkeleton->m_localReferencePose.push_back(Transform::Identity);
+        pSkeleton->m_globalReferencePose.push_back(Transform::Identity);
+        pSkeleton->m_boneNames.push_back(skeletonName);
+        pSkeleton->m_parentBoneIndices.push_back(InvalidIndex);
 
         // Initialize the rest of the bones
         for (size_t meshBoneIndex = 0; meshBoneIndex < pSkeletalMesh->mNumBones; ++meshBoneIndex)
@@ -218,23 +204,27 @@ const AssimpSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContex
             auto parentBoneName = std::string(pBone->mNode->mParent->mName.C_Str());
             auto parentBoneIndex = pSkeleton->GetBoneIndex(parentBoneName);
 
+            // TODO: Choose the right one !
             auto inverseBindPose = sceneContext.DecomposeMatrix(pBone->mOffsetMatrix);
             auto bindPose = Transform(glm::inverse(sceneContext.ToGLM(pBone->mOffsetMatrix)));
 
-            auto& data = pSkeleton->m_boneData.emplace_back();
-            data.m_name = boneName;
-            data.m_parentIndex = parentBoneIndex;
-            data.m_globalTransform = bindPose;
+            // Add bone data
+            pSkeleton->m_boneNames.push_back(boneName);
+            pSkeleton->m_parentBoneIndices.push_back(parentBoneIndex);
+            pSkeleton->m_globalReferencePose.push_back(bindPose);
         }
-
         pSkeleton->CalculateLocalTransforms();
 
         // Save skeleton
-        // TODO: Use skeleton static asset type for extension
-        if (!pSkeleton->SaveToBinary(sceneContext.GetOutputDirectory().string()))
-        {
-            throw std::runtime_error("Failed to save skeleton asset.");
-        }
+        std::vector<std::byte> data;
+        auto dataStream = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+
+        pSkeleton->Serialize(dataStream);
+
+        // TODO: Use skeleton static asset type
+        auto header = AssetArchiveHeader("skel");
+        auto archive = BinaryFileArchive(pSkeleton->m_id.GetAssetPath(), IBinaryArchive::IOMode::Write);
+        archive << header << data;
     }
 
     assert(pSkeleton != nullptr);

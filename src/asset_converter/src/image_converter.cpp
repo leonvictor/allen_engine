@@ -3,7 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <assets/asset_system/texture_asset.hpp>
+#include <assets/asset_archive_header.hpp>
+#include <common/serialization/binary_archive.hpp>
 
 #include <iostream>
 
@@ -31,34 +32,25 @@ bool ConvertImage(const fs::path& input, const fs::path& output)
         return false;
     }
 
-    uint32_t size = width * height * desiredChannels;
-    TextureFormat format;
-    if (desiredChannels == 3)
-    {
-        format = TextureFormat::RGB8;
-    }
-    else if (desiredChannels == 4)
-    {
-        format = TextureFormat::RGBA8;
-    }
-    else
-    {
-        stbi_image_free(pixels);
-        std::cout << "Unsupported file format" << std::endl;
-        return false;
-    }
+    size_t size = width * height * desiredChannels;
+    // Only RGBA8 format supported for now
+    assert(desiredChannels == 4);
 
-    TextureInfo info =
-        {
-            .size = size,
-            .format = format,
-            .pixelSize = {(uint32_t) width, (uint32_t) height, (uint32_t) desiredChannels},
-            .originalFile = input.string(),
-        };
+    std::vector<std::byte> data;
+    BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
 
-    AssetFile image = PackTexture(&info, pixels);
+    dataStream << width;
+    dataStream << height;
+    dataStream << size;
+    dataStream.Write(pixels, size);
+
+    // TODO: Compress again
+    AssetArchiveHeader header("text"); // TODO: Use Texture::GetStaticAssetType();
+
+    auto archive = BinaryFileArchive(output, IBinaryArchive::IOMode::Write);
+    archive << header << data;
+
     stbi_image_free(pixels);
-    SaveBinaryFile(output.string(), image);
     return true;
 }
 } // namespace aln::assets::converter
