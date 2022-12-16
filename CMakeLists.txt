@@ -144,10 +144,10 @@ set_property(TARGET shaderc PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}
 set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/gsl)
 
 # GLFW
-set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
-set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
+set(GLFW_BUILD_EXAMPLES OFF)
+set(GLFW_BUILD_TESTS OFF)
+set(GLFW_BUILD_DOCS OFF)
+set(GLFW_BUILD_INSTALL OFF)
 
 FetchContent_Declare(
     glfw
@@ -187,7 +187,7 @@ SET(JSON_BuildTests OFF)
 
 FetchContent_Declare(
     json
-    GIT_URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
 )
 
 FetchContent_MakeAvailable(json)
