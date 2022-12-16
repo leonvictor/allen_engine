@@ -1,7 +1,6 @@
 #pragma once
 
 #include <assets/asset.hpp>
-#include <assets/asset_system/material_asset.hpp>
 #include <assets/loader.hpp>
 
 #include "../material.hpp"
@@ -22,25 +21,27 @@ class MaterialLoader : public IAssetLoader
         m_pDevice = pDevice;
     }
 
-    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
+    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
-        assert(file.m_assetTypeID == Material::GetStaticAssetTypeID());
+        assert(pRecord->GetAssetTypeID() == Material::GetStaticAssetTypeID());
 
-        Material* pMat = aln::New<Material>();
+        Material* pMaterial = aln::New<Material>();
 
-        auto info = assets::ReadMaterialInfo(&file);
-        pMat->m_albedoMap = AssetHandle<Texture>(info.m_albedoMapID);
+        // TODO: Extract directly to asset handles
+        AssetID id;
+        archive >> id;
+        pMaterial->m_albedoMap = AssetHandle<Texture>(id);
 
         // TMP while materials are poopy
-        pMat->m_buffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        pMaterial->m_buffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
 
         auto material = MaterialBufferObject();
-        pMat->m_buffer.Map(0, sizeof(material));
-        pMat->m_buffer.Copy(&material, sizeof(material));
-        pMat->m_buffer.Unmap();
+        pMaterial->m_buffer.Map(0, sizeof(material));
+        pMaterial->m_buffer.Copy(&material, sizeof(material));
+        pMaterial->m_buffer.Unmap();
 
-        pRecord->SetAsset(pMat);
+        pRecord->SetAsset(pMaterial);
 
         return true;
     }

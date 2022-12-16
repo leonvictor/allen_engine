@@ -1,7 +1,5 @@
 #pragma once
 
-#include <assets/asset_system/animation_clip_asset.hpp>
-#include <assets/asset_system/asset_system.hpp>
 #include <assets/loader.hpp>
 
 #include <anim/animation_clip.hpp>
@@ -23,42 +21,27 @@ class AnimationLoader : public IAssetLoader
         m_pDevice = pDevice;
     }
 
-    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
+    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
-        assert(file.m_assetTypeID == AnimationClip::GetStaticAssetTypeID());
 
         AnimationClip* pAnim = aln::New<AnimationClip>();
 
-        auto info = assets::ReadAnimationClipInfo(&file);
-        pAnim->m_ticksPerSecond = info.framesPerSecond;
-        pAnim->m_duration = (float) info.duration;
+        archive >> pAnim->m_duration;
+        archive >> pAnim->m_framesPerSecond;
 
-        // TODO: Stream directly to the tracks
-        std::vector<float> buffer;
-        buffer.resize(info.binaryBufferSize / sizeof(float));
-        assets::UnpackAnimationClip(&info, file.m_binary, buffer);
+        size_t trackCount;
+        archive >> trackCount;
 
-        float* dataPtr = buffer.data();
-        for (auto& trackInfo : info.tracks)
+        pAnim->m_tracks.reserve(trackCount);
+        for (auto trackIndex = 0; trackIndex < trackCount; ++trackIndex)
         {
             auto& track = pAnim->m_tracks.emplace_back();
-            track.m_boneName = trackInfo.boneName;
-
-            track.m_translationKeys.resize(trackInfo.numTranslationKeys);
-            memcpy(track.m_translationKeys.data(), dataPtr, (trackInfo.numTranslationKeys * 4) * sizeof(float));
-            dataPtr += (trackInfo.numTranslationKeys * 4);
-
-            track.m_rotationKeys.resize(trackInfo.numRotationKeys);
-            memcpy(track.m_rotationKeys.data(), dataPtr, (trackInfo.numRotationKeys * 5) * sizeof(float));
-            dataPtr += (trackInfo.numRotationKeys * 5);
-
-            track.m_scaleKeys.resize(trackInfo.numScaleKeys);
-            memcpy(track.m_scaleKeys.data(), dataPtr, (trackInfo.numScaleKeys * 4) * sizeof(float));
-            dataPtr += (trackInfo.numScaleKeys * 4);
+            archive >> track.m_transforms;
         }
 
         // TODO: Add a dependency on the skeleton, and ensure it is loaded correctly
+
         pRecord->SetAsset(pAnim);
         return true;
     }

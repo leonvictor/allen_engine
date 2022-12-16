@@ -1,9 +1,7 @@
 #pragma once
 
 #include <assets/asset.hpp>
-#include <assets/asset_system/texture_asset.hpp>
 #include <assets/loader.hpp>
-
 #include <graphics/resources/buffer.hpp>
 #include <graphics/resources/image.hpp>
 
@@ -13,19 +11,6 @@
 
 namespace aln
 {
-
-vk::Format MapAssetFormatToVulkan(assets::TextureFormat& format)
-{
-    switch (format)
-    {
-    case assets::TextureFormat::RGBA8:
-        return vk::Format::eR8G8B8A8Srgb;
-    case assets::TextureFormat::RGB8:
-        return vk::Format::eR8G8B8Srgb;
-    default:
-        throw; // TODO
-    }
-}
 
 class TextureLoader : public IAssetLoader
 {
@@ -38,26 +23,30 @@ class TextureLoader : public IAssetLoader
         m_pDevice = pDevice;
     }
 
-    bool Load(AssetRecord* pRecord, const assets::AssetFile& file) override
+    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
-        assert(file.m_assetTypeID == Texture::GetStaticAssetTypeID());
+        assert(pRecord->GetAssetTypeID() == Texture::GetStaticAssetTypeID());
 
         Texture* pTex = aln::New<Texture>();
 
-        auto info = assets::ReadTextureInfo(&file);
-        auto format = MapAssetFormatToVulkan(info.format);
-        auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(info.pixelSize[0], info.pixelSize[1])))) + 1;
-
+        int width, height;
         std::vector<std::byte> data;
-        assets::UnpackTexture(&info, file.m_binary, data);
+
+        archive >> width;
+        archive >> height;
+        archive >> data;
+
+        // TODO: only RGBA8 supported for now
+        auto vkFormat = vk::Format::eR8G8B8A8Srgb;
+        auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 
         // Copy data to staging buffer
         // TODO: Skip the temporary buffer and stream directly to a vk::Buffer
-        vkg::resources::Buffer stagingBuffer(m_pDevice, (vk::DeviceSize) info.size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data.data());
+        vkg::resources::Buffer stagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data);
         data.clear();
 
-        pTex->m_image = vkg::resources::Image::FromBuffer(m_pDevice, stagingBuffer, info.pixelSize[0], info.pixelSize[1], mipLevels, format);
+        pTex->m_image = vkg::resources::Image::FromBuffer(m_pDevice, stagingBuffer, width, height, mipLevels, vkFormat);
 
         // TODO: Abstract io to another lib
         // TODO: Split image loading and vulkan texture creation
