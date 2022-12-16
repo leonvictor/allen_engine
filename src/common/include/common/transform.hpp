@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glm/gtx/compatibility.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -15,9 +16,9 @@ namespace aln
 class ALN_COMMON_EXPORT Transform
 {
   private:
-    glm::vec3 m_translation = glm::vec3(0.0f);
-    glm::quat m_rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    glm::vec3 m_scale = glm::vec3(1.0f);
+    glm::vec3 m_translation;
+    glm::quat m_rotation;
+    glm::vec3 m_scale;
 
     /// @brief Helper function to check if a quaternion is normalized.
     /// @note Very ineficient, it's only use is for assertions which will be stripped in release.
@@ -29,7 +30,9 @@ class ALN_COMMON_EXPORT Transform
     };
 
   public:
-    Transform() = default;
+    Transform() : m_translation(0.0f),
+                  m_rotation(1.0f, 0.0f, 0.0f, 0.0f),
+                  m_scale(1.0f){};
     Transform(const glm::mat4x4& matrix);
     Transform(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale)
         : m_translation(translation), m_rotation(rotation), m_scale(scale)
@@ -61,6 +64,15 @@ class ALN_COMMON_EXPORT Transform
 
     bool operator==(const Transform& b) const;
     bool operator!=(const Transform& b) const;
+
+    static Transform Interpolate(const Transform& a, const Transform& b, float factor)
+    {
+        auto translation = glm::lerp(a.m_translation, b.m_translation, factor);
+        auto rotation = glm::slerp(a.m_rotation, b.m_rotation, factor);
+        auto scale = glm::lerp(a.m_scale, b.m_scale, factor);
+
+        return Transform(translation, rotation, scale);
+    };
 
     /// @brief Transform composition (right-to-left)
     Transform& operator*=(const Transform& b);
