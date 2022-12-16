@@ -15,12 +15,11 @@ void AnimationPlayerComponent::Update(Seconds deltaTime)
     // TODO switch on play mode
     m_previousAnimTime = m_animTime;
     m_animTime += deltaTime;
-    m_animTime = std::fmod(m_animTime, m_pAnimationClip->GetDuration() / m_pAnimationClip->GetTicksPerSecond());
 
-    auto timeInTicks = m_animTime * m_pAnimationClip->GetTicksPerSecond();
+    // Loop
+    m_animTime = std::fmod(m_animTime, m_pAnimationClip->GetDuration());
 
-    // TODO: No longer use ticks
-    m_pAnimationClip->GetPose(timeInTicks, m_pPose);
+    m_pAnimationClip->GetPose(m_animTime, m_pPose);
     m_pPose->CalculateGlobalTransforms();
 }
 } // namespace aln

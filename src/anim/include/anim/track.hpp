@@ -47,33 +47,11 @@ class Track
     friend class AnimationLoader;
 
   public:
-    const std::string& GetBoneName() const { return m_boneName; }
-
-    Transform Sample(float time) const;
+    Transform Sample(uint32_t frameIndex, float frameProgress) const;
 
   private:
-    std::string m_boneName;
-
-    std::vector<TrackKey<glm::vec3>> m_translationKeys;
-    std::vector<TrackKey<glm::quat>> m_rotationKeys;
-    std::vector<TrackKey<glm::vec3>> m_scaleKeys;
-
     // TODO: Compress !!
     // TrackCompressionSettings m_compressionSettings;
-
-    /// @brief Find the next frame after a specified time in a track.
-    /// If the time is before the first key, return 0, if it is after the last, return InvalidIndex
-    template <typename T>
-    uint32_t FindNextFrameIndex(const std::vector<TrackKey<T>>& track, float time) const
-    {
-        for (uint64_t i = 0; i < track.size() - 1; i++)
-        {
-            if (time < track[i + 1].m_time)
-            {
-                return i;
-            }
-        }
-        assert(0);
-    }
+    std::vector<Transform> m_transforms;
 };
 } // namespace aln

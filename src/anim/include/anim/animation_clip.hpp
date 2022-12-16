@@ -8,6 +8,7 @@
 #include <assets/handle.hpp>
 #include <common/types.hpp>
 
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -27,31 +28,31 @@ class AnimationClip : public IAsset
     /// @param pOutPose: Buffer to populate with the sampled pose
     void GetPose(float time, Pose* pOutPose) const
     {
+        assert(time <= m_duration);
         // TODO: Assert pose->skeleton == animClip->skeleton
         // TODO: Only sample tracks related to the pose's skeleton
         const auto pSkeleton = pOutPose->GetSkeleton();
         const auto boneCount = pSkeleton->GetBonesCount();
+
+        float frameIndex;
+        float frameProgress = std::modf(time / GetFramesPerSecond(), &frameIndex);
+
         for (BoneIndex boneIndex = 0; boneIndex < boneCount; ++boneIndex)
         {
             const auto& track = m_tracks[boneIndex];
-
-            assert(pSkeleton->GetBoneName(boneIndex) == track.GetBoneName());
-
-            pOutPose->SetTransform(boneIndex, track.Sample(time));
+            pOutPose->SetTransform(boneIndex, track.Sample((uint32_t) frameIndex, frameProgress));
         }
-        // TODO
     }
 
     inline Seconds GetDuration() const { return m_duration; }
     inline size_t GetFrameCount() const { return m_tracks.size(); }
-    inline uint32_t GetTicksPerSecond() const { return m_ticksPerSecond; }
+    inline float GetFramesPerSecond() const { return m_framesPerSecond; }
 
   private:
     // Track components are in local bone space
     std::vector<Track> m_tracks;
 
-    // TODO: Those are assimp values. Move them back to assimp converter and use Seconds/Frames here
-    uint32_t m_ticksPerSecond = 0; // Ticks per second
-    Seconds m_duration = 0.0f;     // Duration in ticks
+    float m_framesPerSecond = 0.0f;
+    Seconds m_duration = 0.0f; // Duration in seconds
 };
 } // namespace aln
