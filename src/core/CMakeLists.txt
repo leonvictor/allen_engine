@@ -21,7 +21,6 @@ add_library(${LIB_NAME} SHARED
 )
 
 set(LIB_DEPENDENCIES 
-    ${Vulkan_INCLUDE_DIRS}
     TracyClient
 )
 

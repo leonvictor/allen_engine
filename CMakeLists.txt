@@ -134,12 +134,13 @@ target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 find_package(Vulkan REQUIRED)
 target_include_directories(main PUBLIC ${Vulkan_INCLUDE_DIRS})
-file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_SDK) # Translate env path to CMake style 
 
 # shaderc
-add_library(shaderc UNKNOWN IMPORTED)
-set_target_properties(shaderc PROPERTIES IMPORTED_LOCATION ${VULKAN_SDK}/Lib/shaderc_shared.lib)
-set_property(TARGET shaderc PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}/Include)
+add_library(Vulkan::shaderc UNKNOWN IMPORTED)
+file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_SDK) # Translate env path to CMake style 
+set_target_properties(Vulkan::shaderc PROPERTIES 
+    IMPORTED_LOCATION ${VULKAN_SDK}/Lib/shaderc_shared.lib
+    INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}/Include)
 
 # GSL
 set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/gsl)
@@ -258,8 +259,6 @@ target_link_libraries(main PUBLIC
     common 
     reflection 
     glfw 
-    shaderc 
-    ${Vulkan_LIBRARIES} 
     imm32 
     utils 
     input 
@@ -268,7 +267,10 @@ target_link_libraries(main PUBLIC
     core
     editor
     anim
-    assimp::assimp)
+    assimp::assimp
+    Vulkan::Vulkan
+    Vulkan::shaderc
+    )
 
 set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
 message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})
