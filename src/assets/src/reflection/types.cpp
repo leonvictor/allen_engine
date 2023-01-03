@@ -11,11 +11,7 @@ namespace aln::reflect
 /// @brief A type descriptor for RGBAColor
 struct TypeDescriptor_AssetID : TypeDescriptor
 {
-    TypeDescriptor_AssetID() : TypeDescriptor{"aln::AssetID", sizeof(aln::AssetID), std::type_index(typeid(aln::AssetID))} {}
-
-    virtual void Dump(const void* obj, int) const override
-    {
-    }
+    TypeDescriptor_AssetID() : TypeDescriptor{std::type_index(typeid(aln::AssetID))} {}
 };
 
 template <>

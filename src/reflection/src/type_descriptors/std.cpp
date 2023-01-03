@@ -10,11 +10,7 @@ namespace aln::reflect
 /// @brief A type descriptor for std::string
 struct TypeDescriptor_StdString : TypeDescriptor
 {
-    TypeDescriptor_StdString() : TypeDescriptor{"std::string", sizeof(std::string), std::type_index(typeid(std::string))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        std::cout << "std::string{\"" << *(const std::string*) obj << "\"}";
-    }
+    TypeDescriptor_StdString() : TypeDescriptor{std::type_index(typeid(std::string))} {}
 };
 
 template <>
@@ -51,27 +47,6 @@ struct TypeDescriptor_StdVector : TypeDescriptor
     virtual std::string GetFullName() const override
     {
         return std::string("std::vector<") + itemType->GetFullName() + ">";
-    }
-
-    virtual void Dump(const void* obj, int indentLevel) const override
-    {
-        size_t numItems = getSize(obj);
-        std::cout << GetFullName();
-        if (numItems == 0)
-        {
-            std::cout << "{}";
-        }
-        else
-        {
-            std::cout << "{" << std::endl;
-            for (size_t index = 0; index < numItems; index++)
-            {
-                std::cout << std::string(4 * (indentLevel + 1), ' ') << "[" << index << "] ";
-                itemType->Dump(getItem(obj, index), indentLevel + 1);
-                std::cout << std::endl;
-            }
-            std::cout << std::string(4 * indentLevel, ' ') << "}";
-        }
     }
 };
 

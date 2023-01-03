@@ -16,11 +16,7 @@ namespace aln::reflect
 //--------------------------------------------------------
 struct TypeDescriptor_Mesh : TypeDescriptor
 {
-    TypeDescriptor_Mesh() : TypeDescriptor{"Mesh", sizeof(Mesh), std::type_index(typeid(Mesh))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        // std::cout << "std::string{\"" << *(const std::string*) obj << "\"}";
-    }
+    TypeDescriptor_Mesh() : TypeDescriptor{std::type_index(typeid(Mesh))} {}
 };
 
 template <>
@@ -35,11 +31,7 @@ TypeDescriptor* GetPrimitiveDescriptor<Mesh>()
 //--------------------------------------------------------
 struct TypeDescriptor_Texture : TypeDescriptor
 {
-    TypeDescriptor_Texture() : TypeDescriptor{"Texture", sizeof(Texture), std::type_index(typeid(Texture))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        // std::cout << "std::string{\"" << *(const std::string*) obj << "\"}";
-    }
+    TypeDescriptor_Texture() : TypeDescriptor{std::type_index(typeid(Texture))} {}
 };
 
 template <>
@@ -54,8 +46,7 @@ TypeDescriptor* GetPrimitiveDescriptor<Texture>()
 //--------------------------------------------------------
 struct TypeDescriptor_Material : TypeDescriptor
 {
-    TypeDescriptor_Material() : TypeDescriptor{"Material", sizeof(Material), std::type_index(typeid(Material))} {}
-    virtual void Dump(const void* obj, int) const override {}
+    TypeDescriptor_Material() : TypeDescriptor{std::type_index(typeid(Material))} {}
 };
 
 template <>
@@ -68,11 +59,7 @@ TypeDescriptor* GetPrimitiveDescriptor<Material>()
 /// @brief Type descriptor for animation clips
 struct TypeDescriptor_AnimationClip : TypeDescriptor
 {
-    TypeDescriptor_AnimationClip() : TypeDescriptor{"AnimationClip", sizeof(AnimationClip), std::type_index(typeid(AnimationClip))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        // std::cout << "std::string{\"" << *(const std::string*) obj << "\"}";
-    }
+    TypeDescriptor_AnimationClip() : TypeDescriptor{std::type_index(typeid(AnimationClip))} {}
 };
 
 template <>

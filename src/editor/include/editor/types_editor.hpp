@@ -51,7 +51,7 @@ class TypeEditorService
 
     void DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void* obj) const
     {
-        for (auto& member : pType->members)
+        for (auto& member : pType->m_members)
         {
             Display(member.type->m_typeIndex, (char*) obj + member.offset, member.displayName);
         }

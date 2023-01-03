@@ -4,8 +4,6 @@ add_library(${LIB_NAME}
     src/request.cpp
     src/asset_service.cpp
     
-    src/type_descriptors/handle.cpp
-
     src/reflection/types.cpp
     )
 

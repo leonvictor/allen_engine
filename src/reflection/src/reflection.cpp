@@ -9,31 +9,30 @@ namespace aln::reflect
 /// @todo : Using a global is bad, find something else !
 /// @note We might be able to register them in a dll-local map, then gather all the maps
 // during the engine's initialization, in a "module" fashion
-const TypeDescriptor* GetType(const std::type_index& typeIndex)
+TypeInfo* GetTypeInfo(const std::type_index& typeIndex)
 {
-    return RegisteredTypes()[typeIndex];
+    return RegisteredTypeInfos()[typeIndex];
 }
 
-void RegisterType(std::type_index typeIndex, TypeDescriptor* pTypeDescriptor)
+void RegisterType(std::type_index typeIndex, TypeInfo* pTypeInfo)
 {
 
-    auto& registry = RegisteredTypes();
-    registry.try_emplace(typeIndex, pTypeDescriptor);
+    auto& registry = RegisteredTypeInfos();
+    registry.try_emplace(typeIndex, pTypeInfo);
 }
 
-std::map<std::type_index, TypeDescriptor*>& RegisteredTypes()
+std::map<std::type_index, TypeInfo*>& RegisteredTypeInfos()
 {
-    static std::map<std::type_index, TypeDescriptor*> types;
+    static std::map<std::type_index, TypeInfo*> types;
     return types;
 }
 
 // -------------
 // Type Descriptors
 // -------------
-TypeDescriptor::TypeDescriptor(const char* name, size_t size, std::type_index typeIndex)
-    : name{name}, size{size}, m_typeIndex(typeIndex)
+TypeDescriptor::TypeDescriptor(std::type_index typeIndex) : m_typeIndex(typeIndex)
 {
-    RegisterType(typeIndex, this);
+    RegisterType(typeIndex, nullptr);
 }
 
 bool operator==(const TypeDescriptor& a, const TypeDescriptor& b)
@@ -49,17 +48,6 @@ bool operator!=(const TypeDescriptor& a, const TypeDescriptor& b)
 // ---------------
 // TypeDescriptor_Struct
 // ---------------
-void TypeDescriptor_Struct::Dump(const void* obj, int indentLevel) const
-{
-    std::cout << GetFullName() << " {" << std::endl;
-    for (const Member& member : members)
-    {
-        std::cout << std::string(4 * (indentLevel + 1), ' ') << member.name << " = ";
-        member.type->Dump((char*) obj + member.offset, indentLevel + 1);
-        std::cout << std::endl;
-    }
-    std::cout << std::string(4 * indentLevel, ' ') << "}";
-}
 
 std::vector<TypeDescriptor*>& GetTypesInScope(const std::string& scopeName)
 {

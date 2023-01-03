@@ -11,13 +11,7 @@ namespace aln::reflect
 /// @brief A type descriptor for glm::vec3
 struct TypeDescriptor_GlmVec3 : TypeDescriptor
 {
-    TypeDescriptor_GlmVec3() : TypeDescriptor{"glm::vec3", sizeof(glm::vec3), std::type_index(typeid(glm::vec3))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        glm::vec3* vec = (glm::vec3*) obj;
-
-        std::cout << "glm::vec3{" << glm::to_string(*vec) << "}";
-    }
+    TypeDescriptor_GlmVec3() : TypeDescriptor{std::type_index(typeid(glm::vec3))} {}
 };
 
 template <>

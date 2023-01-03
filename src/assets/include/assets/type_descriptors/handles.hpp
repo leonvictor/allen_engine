@@ -24,8 +24,6 @@ struct TypeDescriptor_AssetHandle : TypeDescriptor
             return ((AssetHandle<T>*) ptr)->get();
         };
     }
-
-    virtual void Dump(const void* obj, int) const override;
 };
 
 template <AssetType T>

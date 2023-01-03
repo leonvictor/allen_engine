@@ -8,11 +8,7 @@ namespace aln::reflect
 /// @brief  A type descriptor for int
 struct TypeDescriptor_Int : TypeDescriptor
 {
-    TypeDescriptor_Int() : TypeDescriptor{"int", sizeof(int), std::type_index(typeid(int))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        std::cout << "int{" << *(const int*) obj << "}";
-    }
+    TypeDescriptor_Int() : TypeDescriptor{std::type_index(typeid(int))} {}
 };
 
 template <>
@@ -25,11 +21,7 @@ TypeDescriptor* GetPrimitiveDescriptor<int>()
 /// @brief A type descriptor for float
 struct TypeDescriptor_Float : TypeDescriptor
 {
-    TypeDescriptor_Float() : TypeDescriptor{"float", sizeof(float), std::type_index(typeid(float))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        std::cout << "int{" << *(const float*) obj << "}";
-    }
+    TypeDescriptor_Float() : TypeDescriptor{std::type_index(typeid(float))} {}
 };
 
 template <>
@@ -42,11 +34,7 @@ TypeDescriptor* GetPrimitiveDescriptor<float>()
 /// @brief A type descriptor for bool
 struct TypeDescriptor_Bool : TypeDescriptor
 {
-    TypeDescriptor_Bool() : TypeDescriptor{"Bool", sizeof(bool), std::type_index(typeid(bool))} {}
-    virtual void Dump(const void* obj, int) const override
-    {
-        std::cout << "bool{" << *(const bool*) obj << "}";
-    }
+    TypeDescriptor_Bool() : TypeDescriptor{std::type_index(typeid(bool))} {}
 };
 
 template <>
