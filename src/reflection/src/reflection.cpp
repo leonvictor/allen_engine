@@ -9,28 +9,28 @@ namespace aln::reflect
 /// @todo : Using a global is bad, find something else !
 /// @note We might be able to register them in a dll-local map, then gather all the maps
 // during the engine's initialization, in a "module" fashion
-TypeInfo* GetTypeInfo(const std::type_index& typeIndex)
+TypeInfo* GetTypeInfo(const TypeIndex& typeIndex)
 {
     return RegisteredTypeInfos()[typeIndex];
 }
 
-void RegisterType(std::type_index typeIndex, TypeInfo* pTypeInfo)
+void RegisterType(TypeIndex typeIndex, TypeInfo* pTypeInfo)
 {
 
     auto& registry = RegisteredTypeInfos();
     registry.try_emplace(typeIndex, pTypeInfo);
 }
 
-std::map<std::type_index, TypeInfo*>& RegisteredTypeInfos()
+std::map<TypeIndex, TypeInfo*>& RegisteredTypeInfos()
 {
-    static std::map<std::type_index, TypeInfo*> types;
+    static std::map<TypeIndex, TypeInfo*> types;
     return types;
 }
 
 // -------------
 // Type Descriptors
 // -------------
-TypeDescriptor::TypeDescriptor(std::type_index typeIndex) : m_typeIndex(typeIndex)
+TypeDescriptor::TypeDescriptor(TypeIndex typeIndex) : m_typeIndex(typeIndex)
 {
     RegisterType(typeIndex, nullptr);
 }
@@ -56,7 +56,7 @@ std::vector<TypeDescriptor*>& GetTypesInScope(const std::string& scopeName)
     return it.first->second;
 }
 
-std::string TypeDescriptor_Struct::Member::GetPrettyName() const
+std::string ClassMemberDescriptor::GetPrettyName() const
 {
     std::string prettyName = std::string(name);
 

@@ -18,7 +18,6 @@
 
 #include <assets/asset_service.hpp>
 #include <assets/handle.hpp>
-#include <assets/type_descriptors/handles.hpp>
 
 namespace aln
 {

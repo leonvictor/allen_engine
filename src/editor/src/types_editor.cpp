@@ -3,6 +3,9 @@
 
 #include <assets/asset_id.hpp>
 
+#include <core/skeletal_mesh.hpp>
+#include <core/static_mesh.hpp>
+
 namespace aln
 {
 
@@ -14,6 +17,8 @@ TypeEditorService::TypeEditorService()
     RegisterType<float>();
     RegisterType<bool>();
     RegisterType<AssetHandle<Mesh>>();
+    RegisterType<AssetHandle<StaticMesh>>();
+    RegisterType<AssetHandle<SkeletalMesh>>();
     RegisterType<AssetHandle<Material>>();
     RegisterType<AssetHandle<AnimationClip>>();
     RegisterType<RGBColor>();
@@ -24,9 +29,10 @@ TypeEditorService::TypeEditorService()
 }
 
 template <typename T>
-void TypeEditorService::Display(T* ptr, const char* label) const
+void TypeEditorService::RegisterType()
 {
-    m_displayFuncs.at(std::type_index(typeid(T)))(ptr, label);
+    auto pDesc = aln::reflect::TypeResolver<T>::get();
+    m_displayFuncs[pDesc->m_typeIndex] = std::bind(&TypeEditorService::RegisteredDisplay<T>, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 template <>
@@ -65,6 +71,28 @@ void TypeEditorService::Display<bool>(bool* b, const char* label) const
 
 template <>
 void TypeEditorService::Display<AssetHandle<Mesh>>(AssetHandle<Mesh>* pHandle, const char* label) const
+{
+    auto pMesh = pHandle->get();
+    if (ImGui::CollapsingHeader("Mesh"))
+    {
+        // TODO: Edition
+        ImGui::Text(pMesh->GetID().GetAssetPath().c_str());
+    }
+}
+
+template <>
+void TypeEditorService::Display(AssetHandle<StaticMesh>* pHandle, const char* label) const
+{
+    auto pMesh = pHandle->get();
+    if (ImGui::CollapsingHeader("Mesh"))
+    {
+        // TODO: Edition
+        ImGui::Text(pMesh->GetID().GetAssetPath().c_str());
+    }
+}
+
+template <>
+void TypeEditorService::Display(AssetHandle<SkeletalMesh>* pHandle, const char* label) const
 {
     auto pMesh = pHandle->get();
     if (ImGui::CollapsingHeader("Mesh"))

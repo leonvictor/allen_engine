@@ -6,19 +6,18 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <typeindex>
-#include <typeinfo>
 #include <vector>
 
 #include <imgui.h>
 
 #include <common/memory.hpp>
-#include <iostream>
+#include <common/string_id.hpp>
 
 namespace aln::reflect
 {
 
 // ImGui method to set the context and allocator functions in case reflection is in a separate library.
+// TODO: This shouldn't be needed
 void SetImGuiContext(ImGuiContext* pContext);
 void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData);
 
@@ -37,18 +36,20 @@ struct TypeInfo
     std::function<void*(void*)> m_createTypeInPlace;
 };
 
+using TypeIndex = aln::StringID;
+
 // Static type map, pretty bad !
-std::map<std::type_index, TypeInfo*>& RegisteredTypeInfos();
-void RegisterType(std::type_index typeIndex, TypeInfo* pTypeInfo);
-TypeInfo* GetTypeInfo(const std::type_index& typeIndex);
+std::map<TypeIndex, TypeInfo*>& RegisteredTypeInfos();
+void RegisterType(TypeIndex typeIndex, TypeInfo* pTypeInfo);
+TypeInfo* GetTypeInfo(const TypeIndex& typeIndex);
 
 /// @brief Base class of all type descriptors. Descriptors are serializable
 struct TypeDescriptor
 {
-    std::type_index m_typeIndex;
+    TypeIndex m_typeIndex;
     TypeInfo* m_pTypeInfo = nullptr;
 
-    TypeDescriptor(std::type_index typeIndex);
+    TypeDescriptor(TypeIndex typeIndex);
     virtual ~TypeDescriptor() {}
 
     // Serialization
@@ -155,29 +156,30 @@ struct TypeResolver
     }
 };
 
+class ClassMemberDescriptor
+{
+  public:
+    const char* name;
+    const char* displayName;
+    size_t offset;
+    TypeDescriptor* type;
+
+    std::string GetPrettyName() const;
+};
+
 /// @brief Type descriptors for user-defined structs/classes
 struct TypeDescriptor_Struct : public TypeDescriptor
 {
-    struct Member
-    {
-        const char* name;
-        const char* displayName;
-        size_t offset;
-        TypeDescriptor* type;
+    std::vector<ClassMemberDescriptor> m_members;
 
-        std::string GetPrettyName() const;
-    };
-
-    std::vector<Member> m_members;
-
-    TypeDescriptor_Struct(void (*init)(TypeDescriptor_Struct*), std::type_index typeIndex)
+    TypeDescriptor_Struct(void (*init)(TypeDescriptor_Struct*), TypeIndex typeIndex)
         : TypeDescriptor(typeIndex)
     {
         init(this);
     }
 
-    TypeDescriptor_Struct(const std::initializer_list<Member>& init)
-        : TypeDescriptor(std::type_index(typeid(nullptr))), m_members(init) {}
+        TypeDescriptor_Struct(const std::initializer_list<ClassMemberDescriptor>& init)
+            : TypeDescriptor(TypeIndex()), m_members(init) {}
 };
 
 /// @brief Register the current type for class reflection.
@@ -192,30 +194,30 @@ struct TypeDescriptor_Struct : public TypeDescriptor
     static aln::reflect::TypeDescriptor_Struct Reflection;              \
     static void InitReflection(aln::reflect::TypeDescriptor_Struct*);
 
-#define ALN_REGISTER_IMPL_BEGIN(scope, type)                                                                   \
-    aln::reflect::TypeDescriptor_Struct type::Reflection(type::InitReflection, std::type_index(typeid(type))); \
-    const aln::reflect::TypeDescriptor_Struct* type::GetType() const                                           \
-    {                                                                                                          \
-        return &Reflection;                                                                                    \
-    }                                                                                                          \
-                                                                                                               \
-    const aln::reflect::TypeDescriptor_Struct* type::GetStaticType()                                           \
-    {                                                                                                          \
-        return &Reflection;                                                                                    \
-    }                                                                                                          \
-                                                                                                               \
-    void type::InitReflection(aln::reflect::TypeDescriptor_Struct* typeDesc)                                   \
-    {                                                                                                          \
-        auto& scopedTypes = aln::reflect::GetTypesInScope(#scope);                                             \
-                                                                                                               \
-        using T = type;                                                                                        \
-        typeDesc->m_typeIndex = std::type_index(typeid(T));                                                    \
-        typeDesc->m_pTypeInfo = aln::New<aln::reflect::TypeInfo>();                                            \
-        typeDesc->m_pTypeInfo->m_name = #type;                                                                 \
-        typeDesc->m_pTypeInfo->m_size = sizeof(T);                                                             \
-        typeDesc->m_pTypeInfo->m_alignment = alignof(T);                                                       \
-        typeDesc->m_pTypeInfo->m_createType = []() { return aln::New<T>(); };                                  \
-        typeDesc->m_pTypeInfo->m_createTypeInPlace = [](void* ptr) { return aln::PlacementNew<T>(ptr); };      \
+#define ALN_REGISTER_IMPL_BEGIN(scope, type)                                                              \
+    aln::reflect::TypeDescriptor_Struct type::Reflection(type::InitReflection, aln::StringID(#type));     \
+    const aln::reflect::TypeDescriptor_Struct* type::GetType() const                                      \
+    {                                                                                                     \
+        return &Reflection;                                                                               \
+    }                                                                                                     \
+                                                                                                          \
+    const aln::reflect::TypeDescriptor_Struct* type::GetStaticType()                                      \
+    {                                                                                                     \
+        return &Reflection;                                                                               \
+    }                                                                                                     \
+                                                                                                          \
+    void type::InitReflection(aln::reflect::TypeDescriptor_Struct* typeDesc)                              \
+    {                                                                                                     \
+        auto& scopedTypes = aln::reflect::GetTypesInScope(#scope);                                        \
+                                                                                                          \
+        using T = type;                                                                                   \
+        typeDesc->m_typeIndex = aln::StringID(#type);                                                     \
+        typeDesc->m_pTypeInfo = aln::New<aln::reflect::TypeInfo>();                                       \
+        typeDesc->m_pTypeInfo->m_name = #type;                                                            \
+        typeDesc->m_pTypeInfo->m_size = sizeof(T);                                                        \
+        typeDesc->m_pTypeInfo->m_alignment = alignof(T);                                                  \
+        typeDesc->m_pTypeInfo->m_createType = []() { return aln::New<T>(); };                             \
+        typeDesc->m_pTypeInfo->m_createTypeInPlace = [](void* ptr) { return aln::PlacementNew<T>(ptr); }; \
         typeDesc->m_members = {
 
 #define ALN_REFLECT_MEMBER(name, displayName) \
@@ -234,5 +236,20 @@ struct TypeDescriptor_Struct : public TypeDescriptor
     virtual const aln::reflect::TypeDescriptor_Struct* GetType() const = 0; \
                                                                             \
   private:
+
+#define ALN_REGISTER_PRIMITIVE(primitiveType)                                                          \
+    struct TypeDescriptor_##primitiveType : public aln::reflect::TypeDescriptor                        \
+    {                                                                                                  \
+        TypeDescriptor_##primitiveType() : aln::reflect::TypeDescriptor(aln::StringID(#primitiveType)) \
+        {                                                                                              \
+        }                                                                                              \
+    };                                                                                                 \
+                                                                                                       \
+    template <>                                                                                        \
+    aln::reflect::TypeDescriptor* aln::reflect::GetPrimitiveDescriptor<primitiveType>()                \
+    {                                                                                                  \
+        static TypeDescriptor_##primitiveType typeDesc;                                                \
+        return &typeDesc;                                                                              \
+    }
 
 } // namespace aln::reflect

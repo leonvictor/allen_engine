@@ -6,6 +6,8 @@
 #include <common/memory.hpp>
 #include <memory>
 
+#include <reflection/reflection.hpp>
+
 namespace aln
 {
 
@@ -75,4 +77,26 @@ class AssetHandle : public IAssetHandle
         return m_pAssetRecord != nullptr && other.m_pAssetRecord != nullptr && m_pAssetRecord == other.m_pAssetRecord;
     }
 };
+
+namespace reflect
+{
+struct TypeDescriptor_AssetHandle : TypeDescriptor
+{
+    TypeDescriptor* assetType;
+
+    template <AssetType T>
+    TypeDescriptor_AssetHandle(T*) : TypeDescriptor(aln::StringID(std::string("AssetHandle:") + std::string(typeid(T).name()))),
+                                     assetType{TypeResolver<T>::get()} {}
+};
+
+template <AssetType T>
+struct TypeResolver<AssetHandle<T>>
+{
+    static TypeDescriptor* get()
+    {
+        static TypeDescriptor_AssetHandle typeDesc{(T*) nullptr};
+        return &typeDesc;
+    }
+};
+} // namespace reflect
 } // namespace aln

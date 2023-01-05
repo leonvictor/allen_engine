@@ -10,7 +10,7 @@ namespace aln::reflect
 /// @brief A type descriptor for std::string
 struct TypeDescriptor_StdString : TypeDescriptor
 {
-    TypeDescriptor_StdString() : TypeDescriptor{std::type_index(typeid(std::string))} {}
+    TypeDescriptor_StdString() : TypeDescriptor(aln::StringID("std::string")) {}
 };
 
 template <>
@@ -52,7 +52,7 @@ struct TypeDescriptor_StdVector : TypeDescriptor
 
 // Partially specialize TypeResolver<> for std::vectors:
 template <typename T>
-class TypeResolver<std::vector<T>>
+struct TypeResolver<std::vector<T>>
 {
   public:
     static TypeDescriptor* get()

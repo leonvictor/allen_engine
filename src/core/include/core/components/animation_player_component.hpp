@@ -7,8 +7,6 @@
 #include <assets/handle.hpp>
 #include <entities/component.hpp>
 
-#include <assets/type_descriptors/handles.hpp>
-
 #include <common/types.hpp>
 
 #include <math.h>
