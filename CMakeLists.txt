@@ -229,6 +229,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(lz4)
 
+# xxhash
+FetchContent_Declare(
+    xxhash
+    URL https://github.com/Cyan4973/xxHash/archive/refs/tags/v0.8.1.tar.gz
+    SOURCE_SUBDIR cmake_unofficial
+)
+
+FetchContent_MakeAvailable(xxhash)
+
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})

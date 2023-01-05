@@ -17,7 +17,7 @@ set(LIB_INCLUDE_DIRS
     ${STDUUID_INCLUDE_DIRS}
 )
 
-set(LIB_LINK_DEPENDENCIES glm utils enkiTS lz4_static)
+set(LIB_LINK_DEPENDENCIES glm utils enkiTS lz4_static xxHash::xxhash)
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
