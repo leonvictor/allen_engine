@@ -4,7 +4,7 @@ add_library(${LIB_NAME}
     src/request.cpp
     src/asset_service.cpp
     
-    src/reflection/types.cpp
+    src/module/module.cpp
     )
 
 set(LIB_DEPENDENCIES

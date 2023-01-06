@@ -10,8 +10,6 @@
 
 #include <editor/editor.hpp>
 
-#include <reflection/reflection.hpp>
-
 #include <graphics/device.hpp>
 #include <graphics/imgui.hpp>
 #include <graphics/instance.hpp>
@@ -26,7 +24,10 @@
 #include <crtdbg.h>
 #endif
 
+#include <assets/asset_service.hpp>
+#include <core/services/time_service.hpp>
 #include <input/input_service.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
 #include <entities/entity.hpp>
 #include <entities/world_entity.hpp>
@@ -47,8 +48,10 @@
 
 #include <core/world_systems/render_system.hpp>
 
-#include <assets/asset_service.hpp>
-#include <core/services/time_service.hpp>
+#include <anim/module/module.hpp>
+#include <assets/module/module.hpp>
+#include <core/module/module.hpp>
+#include <editor/module/module.hpp>
 
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
@@ -101,6 +104,37 @@ static constexpr glm::vec3 WORLD_DOWN = -WORLD_UP;
 
 class Engine
 {
+  private:
+    // Rendering
+    vkg::Instance m_instance;
+    vkg::Window m_window;
+    vkg::Device m_device;
+    vkg::Swapchain m_swapchain;
+    vkg::render::SwapchainRenderer m_renderer;
+    vkg::render::OfflineRenderer m_sceneRenderer;
+
+    // Services
+    TaskService m_taskService;
+    AssetService m_assetService;
+    TimeService m_timeService;
+    InputService m_inputService;
+    TypeRegistryService m_typeRegistryService;
+
+    ServiceProvider m_serviceProvider;
+
+    // Editor
+    Editor m_editor;
+    vkg::ImGUI m_imgui;
+
+    WorldEntity m_worldEntity;
+    UpdateContext m_updateContext;
+
+    // Modules
+    Assets::Module m_assetsModule;
+    Core::Module m_coreModule;
+    Anim::Module m_animModule;
+    Tooling::Module m_toolingModule;
+
   public:
     Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity)
     {
@@ -146,11 +180,18 @@ class Engine
         m_serviceProvider.RegisterService(&m_assetService);
         m_serviceProvider.RegisterService(&m_timeService);
         m_serviceProvider.RegisterService(&m_inputService);
+        m_serviceProvider.RegisterService(&m_typeRegistryService);
 
         m_updateContext.m_pServiceProvider = &m_serviceProvider;
 
         CreateWorld();
         ShareImGuiContext();
+
+        // Initialize modules
+        m_coreModule.RegisterTypes(&m_typeRegistryService);
+        m_assetsModule.RegisterTypes(&m_typeRegistryService);
+        m_animModule.RegisterTypes(&m_typeRegistryService);
+        m_toolingModule.RegisterTypes(&m_typeRegistryService);
     }
 
     void run()
@@ -168,28 +209,6 @@ class Engine
         // TODO
         m_editor.Shutdown();
     }
-
-  private:
-    vkg::Instance m_instance;
-    vkg::Window m_window;
-    vkg::Device m_device;
-    vkg::Swapchain m_swapchain;
-    vkg::render::SwapchainRenderer m_renderer;
-    vkg::render::OfflineRenderer m_sceneRenderer;
-
-    // Services
-    TaskService m_taskService;
-    AssetService m_assetService;
-    TimeService m_timeService;
-    InputService m_inputService;
-
-    ServiceProvider m_serviceProvider;
-
-    Editor m_editor;
-    vkg::ImGUI m_imgui;
-
-    WorldEntity m_worldEntity;
-    UpdateContext m_updateContext;
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()

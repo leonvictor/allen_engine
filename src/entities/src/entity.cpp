@@ -6,6 +6,7 @@
 #include "spatial_component.hpp"
 
 #include <future>
+#include <reflection/services/type_registry_service.hpp>
 
 namespace aln
 {
@@ -211,24 +212,24 @@ void Entity::GenerateSystemUpdateList()
 // -------------------------------------------------
 // Systems
 // -------------------------------------------------
-void Entity::CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+void Entity::CreateSystem(const aln::reflect::TypeInfo* pTypeInfo)
 {
     if (IsUnloaded())
     {
-        CreateSystemImmediate(pTypeDescriptor);
+        CreateSystemImmediate(pTypeInfo);
     }
     else
     {
         // Delegate the action to whoever is in charge
         auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
         action.m_type = EntityInternalStateAction::Type::CreateSystem;
-        action.m_ptr = pTypeDescriptor;
+        action.m_ptr = pTypeInfo;
 
         EntityStateUpdatedEvent.Execute(this);
     }
 }
 
-void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::CreateSystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     assert(pSystemTypeInfo != nullptr);
     // TODO: assert that pSystemTypeInfo describes a type that is derived from IEntitySystem
@@ -237,7 +238,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
     // Make sure we only have one system of this type
     for (auto pExistingSystem : m_systems)
     {
-        auto const pExistingSystemTypeInfo = pExistingSystem->GetType();
+        auto const pExistingSystemTypeInfo = pExistingSystem->GetTypeInfo();
         // TODO: Add inheritance info to the reflection system and put back the test.
         // if (pSystemTypeInfo->IsDerivedFrom(pExistingSystemTypeInfo->m_ID) || pSystemTypeInfo == pExistingSystemTypeInfo)
         if (pSystemTypeInfo == pExistingSystemTypeInfo)
@@ -246,7 +247,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
         }
     }
 
-    auto pSystem = pSystemTypeInfo->CreateType<IEntitySystem>();
+    auto pSystem = pSystemTypeInfo->CreateTypeInstance<IEntitySystem>();
 
     if (IsActivated())
     {
@@ -259,7 +260,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
     m_systems.push_back(std::move(pSystem));
 }
 
-void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -271,36 +272,36 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const al
         loadingContext.m_registerEntityUpdate(this);
     }
 }
-void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+void Entity::DestroySystem(const aln::reflect::TypeInfo* pTypeInfo)
 {
     assert(std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
-               { return pSystem->GetType() == pTypeDescriptor; }) != m_systems.end());
+               { return pSystem->GetTypeInfo() == pTypeInfo; }) != m_systems.end());
 
     if (IsUnloaded())
     {
-        DestroySystemImmediate(pTypeDescriptor);
+        DestroySystemImmediate(pTypeInfo);
     }
     else
     {
         auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
         action.m_type = EntityInternalStateAction::Type::DestroySystem;
-        action.m_ptr = pTypeDescriptor;
+        action.m_ptr = pTypeInfo;
 
         EntityStateUpdatedEvent.Execute(this);
     }
 }
 
-void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::DestroySystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     auto it = std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
-        { return pSystem->GetType() == pSystemTypeInfo; });
+        { return pSystem->GetTypeInfo() == pSystemTypeInfo; });
 
     assert(it != m_systems.end());
     aln::Delete(*it);
     m_systems.erase(it);
 }
 
-void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();

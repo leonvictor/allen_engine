@@ -22,6 +22,7 @@ namespace aln
 // fwd
 class IComponent;
 class SpatialComponent;
+class TypeRegistryService;
 
 class EntityInternalStateAction
 {

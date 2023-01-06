@@ -1,7 +1,6 @@
 #pragma once
 
 #include <anim/animation_clip.hpp>
-#include <anim/graph/graph.hpp>
 #include <anim/pose.hpp>
 #include <anim/skeleton.hpp>
 
@@ -9,7 +8,6 @@
 #include <entities/component.hpp>
 
 #include <assets/asset_service.hpp>
-#include <assets/type_descriptors/handles.hpp>
 
 #include <memory>
 
@@ -31,7 +29,7 @@ struct PlaceHolderAnimationGraphInstance
     }
 };
 
-class AnimationGraphComponent : public entities::IComponent
+class AnimationGraphComponent : public IComponent
 {
     ALN_REGISTER_TYPE();
 
@@ -56,13 +54,13 @@ class AnimationGraphComponent : public entities::IComponent
     //     m_pGraphInstance->m_pAnimationClip = AssetHandle<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
     // }
 
-    void Load(const entities::LoadingContext& loadingContext) override
+    void Load(const LoadingContext& loadingContext) override
     {
         loadingContext.m_pAssetService->Load(m_pGraphInstance->m_pAnimationClip);
         loadingContext.m_pAssetService->Load(m_pSkeleton);
     }
 
-    void Unload(const entities::LoadingContext& loadingContext) override
+    void Unload(const LoadingContext& loadingContext) override
     {
         loadingContext.m_pAssetService->Unload(m_pGraphInstance->m_pAnimationClip);
         loadingContext.m_pAssetService->Unload(m_pSkeleton);

@@ -8,6 +8,7 @@
 #include <core/material.hpp>
 #include <core/mesh.hpp>
 #include <core/texture.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
 #include <anim/animation_clip.hpp>
 
@@ -38,6 +39,9 @@ Editor::Editor(WorldEntity& worldEntity) : m_worldEntity(worldEntity), m_assetsB
 
 void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context)
 {
+    // TODO: Save service on initialization
+    const auto pTypeRegistryService = context.GetService<TypeRegistryService>();
+
     // Draw ImGUI components
     ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
@@ -52,18 +56,35 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
         {
             if (ImGui::BeginMenu("File"))
             {
-                ImGui::MenuItem("Item");
+                if (ImGui::MenuItem("New Project"))
+                {
+                }
+                if (ImGui::MenuItem("Open Project"))
+                {
+                }
+                if (ImGui::MenuItem("Save..."))
+                {
+                    // TODO: Save the current state of the editor and scenes
+                }
+                if (ImGui::MenuItem("Export..."))
+                {
+                    // TODO: Export a portable folder with everything we need to run a game
+                }
+
                 ImGui::EndMenu();
             }
+
             if (ImGui::BeginMenu("View"))
             {
                 ImGui::MenuItem("Item");
                 ImGui::EndMenu();
             }
+
             if (ImGui::BeginMenu("Debug"))
             {
                 ImGui::EndMenu();
             }
+
             ImGui::EndMenuBar();
         }
     }
@@ -195,10 +216,10 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
         {
             ImGui::PushID(pComponent->GetID().ToString().c_str());
 
-            auto typeDesc = pComponent->GetType();
+            auto typeInfo = pComponent->GetTypeInfo();
             // TODO: This should happen through the partial template specialization for components
 
-            if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
+            if (ImGui::CollapsingHeader(typeInfo->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
             {
                 m_typeEditorService.Display(pComponent, "");
             }
@@ -217,10 +238,10 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
 
         for (auto pSystem : m_pSelectedEntity->GetSystems())
         {
-            auto typeDesc = pSystem->GetType();
+            auto typeInfo = pSystem->GetTypeInfo();
 
-            ImGui::PushID(typeDesc->GetPrettyName().c_str());
-            if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
+            ImGui::PushID(typeInfo->GetName().c_str());
+            if (ImGui::CollapsingHeader(typeInfo->GetPrettyName().c_str()))
             {
                 m_typeEditorService.Display(pSystem, "");
             }
@@ -229,7 +250,7 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
             {
                 if (ImGui::MenuItem("Remove System", "", false, true))
                 {
-                    m_pSelectedEntity->DestroySystem(pSystem->GetType());
+                    m_pSelectedEntity->DestroySystem(pSystem->GetTypeInfo());
                 }
                 ImGui::EndPopup();
             }
@@ -251,10 +272,10 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
 
         if (ImGui::BeginPopup("add_system_popup"))
         {
-            auto& systemTypes = aln::reflect::GetTypesInScope("SYSTEMS");
+            auto& systemTypes = pTypeRegistryService->GetTypesInScope("SYSTEMS");
             for (auto& sys : systemTypes)
             {
-                if (ImGui::Selectable(sys->GetPrettyName().c_str()))
+                if (ImGui::Selectable(sys->m_prettyName.c_str()))
                 {
                     m_pSelectedEntity->CreateSystem(sys);
                 }
@@ -264,12 +285,12 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
 
         if (ImGui::BeginPopup("add_component_popup"))
         {
-            auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
+            auto& componentTypes = pTypeRegistryService->GetTypesInScope("COMPONENTS");
             for (auto& comp : componentTypes)
             {
-                if (ImGui::Selectable(comp->GetPrettyName().c_str()))
+                if (ImGui::Selectable(comp->m_prettyName.c_str()))
                 {
-                    auto newComp = comp->CreateType<IComponent>();
+                    auto newComp = comp->CreateTypeInstance<IComponent>();
                     m_pSelectedEntity->AddComponent(newComp);
                 }
             }
@@ -313,13 +334,15 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
     ImGui::ShowDemoWindow();
 
     // Windows
-    // m_animationGraphEditor.Update(context);
     m_assetsBrowser.Update(context);
 
     for (auto& [id, pWindow] : m_assetWindows)
     {
         pWindow->Update(context);
     }
+
+    // Process requests by child windows
+    ResolveAssetWindowRequests();
 }
 
 void Editor::RecurseEntityTree(Entity* pEntity)
