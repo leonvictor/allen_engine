@@ -127,11 +127,25 @@ class TypeInfo
     inline static std::map<std::string, std::vector<const TypeInfo*>> Scopes;
 
     /// @brief Register a type to the dll-local maps. Polled from each dlls during module initialization
-    static void RegisterTypeInfo(const TypeInfo* pTypeInfo, const std::string& scopeName = "");
+    static void RegisterTypeInfo(const TypeInfo* pTypeInfo, const std::string& scopeName = "")
+    {
+        assert(pTypeInfo != nullptr);
+        TypeInfo::LookUpMap.emplace(pTypeInfo->m_typeID, pTypeInfo);
+
+        if (!scopeName.empty())
+        {
+            const auto& it = TypeInfo::Scopes.try_emplace(scopeName);
+            it.first->second.push_back(pTypeInfo);
+        }
+    }
 
   public:
     TypeInfo() = default;
-    TypeInfo(void (*initFunction)(TypeInfo*), const char* scopeName);
+    TypeInfo(void (*initFunction)(TypeInfo*), const char* scopeName)
+    {
+        initFunction(this);
+        RegisterTypeInfo(this, scopeName);
+    }
 
     bool IsValid() const { return m_typeID.IsValid(); }
     bool operator==(const TypeInfo& other) const { return m_typeID == other.m_typeID; }
