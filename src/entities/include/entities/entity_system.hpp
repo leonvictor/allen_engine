@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 namespace aln
 {

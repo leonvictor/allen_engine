@@ -1,7 +1,7 @@
 #pragma once
 
 #include <common/uuid.hpp>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include "pin.hpp"
 
@@ -14,7 +14,6 @@ class AnimationGraphDefinition;
 
 class EditorGraphNode
 {
-
     ALN_REGISTER_ABSTRACT_TYPE();
 
     friend class AnimationGraphEditor;

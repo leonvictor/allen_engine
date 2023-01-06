@@ -20,4 +20,6 @@ class Texture : public IAsset
   public:
     inline const vk::DescriptorImageInfo GetDescriptor() const { return m_image.GetDescriptor(); }
 };
+
+ALN_REGISTER_PRIMITIVE(Texture);
 } // namespace aln

@@ -2,7 +2,7 @@
 
 #include <common/uuid.hpp>
 #include <future>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include "loading_context.hpp"
 

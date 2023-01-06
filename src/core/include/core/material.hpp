@@ -40,4 +40,6 @@ struct MaterialBufferObject
     alignas(16) glm::vec3 specular = glm::vec3(0.5f, 0.5f, 0.5);
     alignas(4) glm::vec1 shininess = glm::vec1(8.0f);
 };
+
+ALN_REGISTER_PRIMITIVE(Material);
 } // namespace aln

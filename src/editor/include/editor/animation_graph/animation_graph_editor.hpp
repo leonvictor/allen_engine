@@ -7,7 +7,6 @@
 #include <imnodes.h>
 
 #include <anim/graph/runtime_graph_instance.hpp>
-#include <reflection/reflection.hpp>
 
 #include "asset_editor_window.hpp"
 #include "editor_graph_node.hpp"

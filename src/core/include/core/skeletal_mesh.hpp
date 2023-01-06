@@ -3,6 +3,7 @@
 #include "mesh.hpp"
 
 #include <common/transform.hpp>
+#include <reflection/type_info.hpp>
 
 namespace aln
 {
@@ -22,4 +23,6 @@ class SkeletalMesh : public Mesh
     const std::vector<Transform>& GetBindPose() const { return m_bindPose; }
     const std::vector<Transform>& GetInverseBindPose() const { return m_inverseBindPose; }
 };
+
+ALN_REGISTER_PRIMITIVE(SkeletalMesh);
 } // namespace aln

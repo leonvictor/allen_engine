@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include "../editor_graph_node.hpp"
 

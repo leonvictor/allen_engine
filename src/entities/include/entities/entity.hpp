@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <common/uuid.hpp>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include <Tracy.hpp>
 
@@ -82,11 +82,11 @@ class Entity
 
     /// @brief Create a new system and add it to this Entity.
     /// An Entity can only have one system of a given type (subtypes included).
-    void CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void CreateSystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo);
 
-    void CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
-    void DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
-    void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo);
+    void DestroySystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo);
+    void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo);
 
     void DestroyComponentImmediate(IComponent* pComponent);
     void DestroyComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent);
@@ -153,10 +153,10 @@ class Entity
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
-        CreateSystem(T::GetStaticType());
+        CreateSystem(T::GetStaticTypeInfo());
     }
 
-    void CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
+    void CreateSystem(const aln::reflect::TypeInfo* pTypeInfo);
 
     /// @brief Destroy the system of type T of this Entity. The destruction is effective
     /// immediately if the entity is unloaded, otherwise it will be effective in the next frame.
@@ -164,12 +164,12 @@ class Entity
     inline void DestroySystem()
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>);
-        DestroySystem(T::GetStaticType());
+        DestroySystem(T::GetStaticTypeInfo());
     }
 
     /// @brief Destroy a system.
     /// @todo used by the editor, should this be public ?
-    void DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
+    void DestroySystem(const aln::reflect::TypeInfo* pTypeInfo);
 
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context) const;

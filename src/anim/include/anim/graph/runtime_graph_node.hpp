@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #include <common/serialization/binary_archive.hpp>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include "animation_graph_dataset.hpp"
 #include "graph_context.hpp"

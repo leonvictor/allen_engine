@@ -1,7 +1,7 @@
 #pragma once
 
 #include <assets/asset_id.hpp>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include <anim/graph/nodes/animation_clip_node.hpp>
 

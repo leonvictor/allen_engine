@@ -2,7 +2,7 @@
 
 #include <entities/entity_system.hpp>
 #include <entities/spatial_component.hpp>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include "../components/animation_graph.hpp"
 #include "../components/animation_player_component.hpp"

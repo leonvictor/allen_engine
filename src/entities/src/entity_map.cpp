@@ -5,7 +5,7 @@
 #include "update_context.hpp"
 
 #include <common/threading/task_service.hpp>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 #include <algorithm>
 #include <array>
@@ -125,13 +125,13 @@ void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
 
             case EntityInternalStateAction::Type::CreateSystem:
             {
-                pEntity->CreateSystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
+                pEntity->CreateSystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
                 break;
             }
 
             case EntityInternalStateAction::Type::DestroySystem:
             {
-                pEntity->DestroySystemDeferred(loadingContext, (aln::reflect::TypeDescriptor*) action.m_ptr);
+                pEntity->DestroySystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
                 break;
             }
 

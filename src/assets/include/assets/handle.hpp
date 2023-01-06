@@ -6,7 +6,7 @@
 #include <common/memory.hpp>
 #include <memory>
 
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
 namespace aln
 {
@@ -80,22 +80,29 @@ class AssetHandle : public IAssetHandle
 
 namespace reflect
 {
-struct TypeDescriptor_AssetHandle : TypeDescriptor
+template <typename T>
+struct TypeInfoResolver<AssetHandle<T>>
 {
-    TypeDescriptor* assetType;
-
-    template <AssetType T>
-    TypeDescriptor_AssetHandle(T*) : TypeDescriptor(aln::StringID(std::string("AssetHandle:") + std::string(typeid(T).name()))),
-                                     assetType{TypeResolver<T>::get()} {}
-};
-
-template <AssetType T>
-struct TypeResolver<AssetHandle<T>>
-{
-    static TypeDescriptor* get()
+    static const TypeInfo* Get()
     {
-        static TypeDescriptor_AssetHandle typeDesc{(T*) nullptr};
-        return &typeDesc;
+        static TypeInfo typeInfo;
+        if (!typeInfo.IsValid())
+        {
+            auto pTemplateTypeInfo = TypeInfoResolver<T>::Get();
+
+            typeInfo.m_name = "AssetHandle<" + pTemplateTypeInfo->m_name + ">";
+            typeInfo.m_typeID = StringID(typeInfo.m_name);
+            typeInfo.m_alignment = alignof(AssetHandle<T>);
+            typeInfo.m_size = sizeof(AssetHandle<T>);
+            typeInfo.m_createType = []()
+            { return aln::New<AssetHandle<T>>(); };
+            typeInfo.m_createTypeInPlace = [](void* pMemory)
+            { return aln::PlacementNew<AssetHandle<T>>(pMemory); };
+
+            TypeInfo::RegisterTypeInfo(&typeInfo);
+        }
+
+        return &typeInfo;
     }
 };
 } // namespace reflect

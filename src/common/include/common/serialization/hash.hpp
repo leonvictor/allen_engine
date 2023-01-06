@@ -2,6 +2,9 @@
 
 #include <xxhash.h>
 
+#include <cctype>
+#include <string>
+
 namespace aln
 {
 namespace hash

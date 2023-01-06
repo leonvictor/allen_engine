@@ -10,7 +10,7 @@ class StringID
     uint32_t m_hash;
 
   public:
-    StringID() : m_hash(0) {}
+    StringID() = default;
     StringID(const std::string& str) : m_hash(Hash32(str)) {}
     StringID(const char* str) : m_hash(Hash32(str)) {}
     StringID(uint32_t hash) : m_hash(hash) {}

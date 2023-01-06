@@ -1,11 +1,7 @@
 set(LIB_NAME reflection)
 
 add_library(${LIB_NAME} SHARED
-    src/type_descriptors/primitives.cpp
-    src/type_descriptors/std.cpp
-    src/type_descriptors/glm.cpp
-    src/type_descriptors/colors.cpp
-    src/reflection.cpp
+    src/type_info.cpp
     )
 
 set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})
