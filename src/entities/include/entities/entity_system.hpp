@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include <reflection/type_info.hpp>
+#include <reflection/reflected_type.hpp>
 
 namespace aln
 {
@@ -21,10 +21,8 @@ class IComponent;
 
 /// @brief Abstract base class for systems operating on entities. Systems are singletons (only one of each type associated to an entity).
 /// Systems are added to a single entity an can only operate on its components.
-class IEntitySystem
+class IEntitySystem : public reflect::IReflected
 {
-    ALN_REGISTER_ABSTRACT_TYPE();
-
     friend Entity;
 
   protected:

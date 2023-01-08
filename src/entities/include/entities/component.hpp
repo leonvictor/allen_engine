@@ -2,7 +2,7 @@
 
 #include <common/uuid.hpp>
 #include <future>
-#include <reflection/type_info.hpp>
+#include <reflection/reflected_type.hpp>
 
 #include "loading_context.hpp"
 
@@ -11,10 +11,8 @@ namespace aln
 
 /// @brief Data storage attached to Entities.
 /// @note https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
-class IComponent
+class IComponent : public reflect::IReflected
 {
-    ALN_REGISTER_ABSTRACT_TYPE();
-
     friend class Entity;
     // TODO: Serialization
 

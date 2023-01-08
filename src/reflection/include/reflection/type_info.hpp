@@ -175,13 +175,13 @@ class TypeInfo
 // -----------------------
 
 /// @brief Register the current type for class reflection.
-#define ALN_REGISTER_TYPE()                                    \
-  public:                                                      \
-    static const aln::reflect::TypeInfo* GetStaticTypeInfo();  \
-    virtual const aln::reflect::TypeInfo* GetTypeInfo() const; \
-                                                               \
-  private:                                                     \
-    static aln::reflect::TypeInfo Reflection;                  \
+#define ALN_REGISTER_TYPE()                                             \
+  public:                                                               \
+    static const aln::reflect::TypeInfo* GetStaticTypeInfo();           \
+    virtual const aln::reflect::TypeInfo* GetTypeInfo() const override; \
+                                                                        \
+  private:                                                              \
+    static aln::reflect::TypeInfo Reflection;                           \
     static void InitReflection(aln::reflect::TypeInfo*);
 
 #define ALN_REGISTER_IMPL_BEGIN(scope, type)                               \
@@ -213,14 +213,6 @@ class TypeInfo
 
 #define ALN_REGISTER_IMPL_END() \
     }
-
-/// @brief Abstract types are not actually reflected, but they can be marked to declare the reflection system's functions as virtual.
-// This allows us to dynamically get the type descriptor of a derived type
-#define ALN_REGISTER_ABSTRACT_TYPE()                               \
-  public:                                                          \
-    virtual const aln::reflect::TypeInfo* GetTypeInfo() const = 0; \
-                                                                   \
-  private:
 
 #define ALN_REGISTER_PRIMITIVE(primitiveType)                                                                           \
     namespace reflect                                                                                                   \

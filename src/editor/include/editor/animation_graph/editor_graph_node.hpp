@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common/uuid.hpp>
+#include <reflection/reflected_type.hpp>
 #include <reflection/type_info.hpp>
 
 #include "pin.hpp"
@@ -12,10 +13,8 @@ namespace aln
 class AnimationGraphCompilationContext;
 class AnimationGraphDefinition;
 
-class EditorGraphNode
+class EditorGraphNode : public reflect::IReflected
 {
-    ALN_REGISTER_ABSTRACT_TYPE();
-
     friend class AnimationGraphEditor;
 
   private:

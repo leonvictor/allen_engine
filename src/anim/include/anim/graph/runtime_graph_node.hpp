@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #include <common/serialization/binary_archive.hpp>
-#include <reflection/type_info.hpp>
+#include <reflection/reflected_type.hpp>
 
 #include "animation_graph_dataset.hpp"
 #include "graph_context.hpp"
@@ -41,10 +41,8 @@ class RuntimeGraphNode
     friend class Settings;
 
   public:
-    class Settings
+    class Settings : public reflect::IReflected
     {
-        ALN_REGISTER_ABSTRACT_TYPE();
-
         friend class AnimationGraphCompilationContext;
 
       private:
