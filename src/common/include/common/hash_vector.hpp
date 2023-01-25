@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -27,6 +28,12 @@ class HashVector
     {
         m_vector.clear();
         m_lookupMap.clear();
+    }
+
+    void PushBack(ValueType& value)
+    {
+        m_vector.push_back(value);
+        m_lookupMap.emplace(hasher(value), m_vector.size() - 1);
     }
 
     template <typename... Args>
@@ -63,11 +70,12 @@ template <typename T>
 struct IDCompare
 {
     auto operator()(const T& t) { return t.GetID(); }
+    auto operator()(const T* ptr) { return ptr->GetID(); }
 };
 }; // namespace
 
 /// @brief Specialization of HashVector for ID'ed types. Expects the contained type to have a GetID() method returning a unique identifier
 template <typename T>
-using IDVector = HashVector<T, IDCompare<T>>;
+using IDVector = HashVector<T, IDCompare<std::remove_pointer_t<T>>>;
 
 } // namespace aln

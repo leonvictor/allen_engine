@@ -7,7 +7,10 @@
 
 #include <graphics/resources/buffer.hpp>
 
-#include <entities/components_registry.hpp>
+#include "../components/light.hpp"
+#include "../components/skeletal_mesh_component.hpp"
+#include "../components/static_mesh_component.hpp"
+
 #include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
 
@@ -21,9 +24,6 @@
 namespace aln
 {
 
-class StaticMeshComponent;
-class SkeletalMeshComponent;
-class Light;
 class Camera;
 
 class Entity;
@@ -47,8 +47,7 @@ class GraphicsSystem : public IWorldSystem
 
     // Lights use a shared buffer and descriptorSet, so it's held in the system
     /// @todo: Bundle in a specific class
-    /// @todo: ComponentsRegistry is not necessary
-    ComponentsRegistry<Light> m_lightComponents;
+    IDVector<Light*> m_lightComponents;
     vkg::resources::Buffer m_lightsBuffer;
     vk::UniqueDescriptorSet m_lightsVkDescriptorSet;
 
@@ -61,7 +60,7 @@ class GraphicsSystem : public IWorldSystem
     struct SkeletalMeshRenderInstance
     {
         const SkeletalMesh* m_pMesh;
-        std::vector<SkeletalMeshComponent*> m_components;
+        IDVector<SkeletalMeshComponent*> m_components;
         vkg::resources::Buffer m_skinningBuffer;
         vk::UniqueDescriptorSet m_descriptorSet;
 
@@ -72,7 +71,7 @@ class GraphicsSystem : public IWorldSystem
     struct StaticMeshRenderInstance
     {
         const StaticMesh* m_pMesh;
-        std::vector<StaticMeshComponent*> m_components;
+        IDVector<StaticMeshComponent*> m_components;
         vk::UniqueDescriptorSet m_descriptorSet;
 
         StaticMeshRenderInstance(vkg::Device* pDevice, const StaticMesh* pMesh, vkg::resources::Buffer* pUniformBuffer);

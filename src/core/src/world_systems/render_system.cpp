@@ -4,9 +4,6 @@
 
 #include "components/camera.hpp"
 #include "components/light.hpp"
-#include "components/mesh_component.hpp"
-#include "components/skeletal_mesh_component.hpp"
-#include "components/static_mesh_component.hpp"
 
 #include <entities/entity.hpp>
 #include <entities/update_context.hpp>
@@ -125,7 +122,7 @@ void GraphicsSystem::Update(const UpdateContext& context)
     staticMeshesPipeline.Bind(cb);
 
     // Update the lights buffer
-    int nLights = m_lightComponents.GetRegisterComponentsCount();
+    int nLights = m_lightComponents.Size();
     m_lightsBuffer.Map(0, sizeof(int)); // TODO: Respect spec alignment for int
     m_lightsBuffer.Copy(&nLights, sizeof(int));
     m_lightsBuffer.Unmap();
@@ -240,7 +237,7 @@ void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pCompo
     if (pStaticMeshComponent != nullptr)
     {
         auto& meshInstance = m_StaticMeshRenderInstances.TryEmplace(pStaticMeshComponent->GetMesh()->GetID(), m_pRenderer->GetDevice(), pStaticMeshComponent->GetMesh(), &m_cameraUBO);
-        meshInstance.m_components.push_back(pStaticMeshComponent);
+        meshInstance.m_components.PushBack(pStaticMeshComponent);
         return;
     }
 
@@ -248,14 +245,14 @@ void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pCompo
     if (pSkeletalMeshComponent != nullptr)
     {
         auto& meshInstance = m_SkeletalMeshRenderInstances.TryEmplace(pSkeletalMeshComponent->GetMesh()->GetID(), m_pRenderer->GetDevice(), pSkeletalMeshComponent->GetMesh(), &m_cameraUBO);
-        meshInstance.m_components.push_back(pSkeletalMeshComponent);
+        meshInstance.m_components.PushBack(pSkeletalMeshComponent);
         return;
     }
 
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        m_lightComponents.AddRecordEntry(pEntity->GetID(), pLight);
+        m_lightComponents.PushBack(pLight);
         return;
     }
 }
@@ -278,9 +275,8 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     if (pStaticMeshComponent != nullptr)
     {
         auto& meshInstance = m_StaticMeshRenderInstances.Get(pStaticMeshComponent->GetMesh()->GetID());
-        auto pComp = std::find(meshInstance.m_components.begin(), meshInstance.m_components.end(), pStaticMeshComponent);
-        meshInstance.m_components.erase(pComp);
-        if (meshInstance.m_components.empty())
+        meshInstance.m_components.Erase(pStaticMeshComponent);
+        if (meshInstance.m_components.Empty())
         {
             m_StaticMeshRenderInstances.Erase(meshInstance);
         }
@@ -291,9 +287,8 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     if (pSkeletalMeshComponent != nullptr)
     {
         auto& meshInstance = m_SkeletalMeshRenderInstances.Get(pStaticMeshComponent->GetMesh()->GetID());
-        auto pComp = std::find(meshInstance.m_components.begin(), meshInstance.m_components.end(), pSkeletalMeshComponent);
-        meshInstance.m_components.erase(pComp);
-        if (meshInstance.m_components.empty())
+        meshInstance.m_components.Erase(pSkeletalMeshComponent);
+        if (meshInstance.m_components.Empty())
         {
             m_SkeletalMeshRenderInstances.Erase(meshInstance);
         }
@@ -303,7 +298,7 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        m_lightComponents.RemoveRecordEntry(pEntity->GetID(), pLight);
+        m_lightComponents.Erase(pLight);
         return;
     }
 }

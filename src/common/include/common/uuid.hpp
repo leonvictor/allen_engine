@@ -11,6 +11,8 @@ namespace aln
 {
 class UUID
 {
+    friend struct std::hash<UUID>;
+
   private:
     uuids::uuid m_ID;
 
@@ -52,5 +54,13 @@ class UUID
         return os;
     }
 };
-
 } // namespace aln
+
+namespace std
+{
+template <>
+struct hash<aln::UUID>
+{
+    size_t operator()(const aln::UUID& id) const { return std::hash<uuids::uuid>{}(id.m_ID); }
+};
+} // namespace std
