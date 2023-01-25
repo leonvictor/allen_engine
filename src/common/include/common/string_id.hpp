@@ -15,13 +15,19 @@ class StringID
     StringID(const char* str) : m_hash(Hash32(str)) {}
     StringID(uint32_t hash) : m_hash(hash) {}
 
-    inline bool IsValid() const { return m_hash != 0; }
     inline uint32_t GetHash() const { return m_hash; }
+    bool IsValid() const { return m_hash != 0; }
 
     bool operator==(const StringID& id) const { return m_hash == id.m_hash; }
     bool operator!=(const StringID& id) const { return m_hash != id.m_hash; }
     bool operator<(const StringID& id) const { return m_hash < id.m_hash; }
+
+    static StringID InvalidID() { return StringID((uint32_t) 0); };
 };
+
+// StringID must be trivial to easily be serialized
+static_assert(std::is_trivial_v<StringID>);
+
 } // namespace aln
 
 namespace std

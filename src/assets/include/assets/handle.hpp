@@ -44,6 +44,18 @@ class IAssetHandle
     inline bool IsLoaded() const { return GetStatus() == AssetStatus::Loaded; }
     inline bool IsUnloaded() const { return GetStatus() == AssetStatus::Unloaded; }
     operator bool() const { return m_pAssetRecord != nullptr; }
+
+    template <class Archive>
+    void Serialize(Archive& archive) const
+    {
+        archive << m_assetID;
+    }
+
+    template <class Archive>
+    void Deserialize(Archive& archive)
+    {
+        archive >> m_assetID;
+    }
 };
 
 template <AssetType T>
@@ -85,12 +97,10 @@ struct TypeInfoResolver<AssetHandle<T>>
 {
     static const TypeInfo* Get()
     {
-        static TypeInfo typeInfo;
+        static PrimitiveTypeInfo typeInfo;
         if (!typeInfo.IsValid())
         {
-            auto pTemplateTypeInfo = TypeInfoResolver<T>::Get();
-
-            typeInfo.m_name = "AssetHandle<" + pTemplateTypeInfo->m_name + ">";
+            typeInfo.m_name = "AssetHandle";
             typeInfo.m_typeID = StringID(typeInfo.m_name);
             typeInfo.m_alignment = alignof(AssetHandle<T>);
             typeInfo.m_size = sizeof(AssetHandle<T>);
@@ -98,6 +108,10 @@ struct TypeInfoResolver<AssetHandle<T>>
             { return aln::New<AssetHandle<T>>(); };
             typeInfo.m_createTypeInPlace = [](void* pMemory)
             { return aln::PlacementNew<AssetHandle<T>>(pMemory); };
+            typeInfo.m_serialize = [](BinaryMemoryArchive& archive, const void* pTypeInstance)
+            { archive << *((IAssetHandle*) pTypeInstance); };
+            typeInfo.m_deserialize = [](BinaryMemoryArchive& archive, void* pTypeInstance)
+            { archive >> *((IAssetHandle*) pTypeInstance); };
 
             TypeInfo::RegisterTypeInfo(&typeInfo);
         }
