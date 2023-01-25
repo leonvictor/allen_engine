@@ -5,8 +5,11 @@
 #include <vector>
 
 #include <assets/asset.hpp>
+#include <assets/handle.hpp>
 #include <common/vertex.hpp>
 #include <graphics/resources/buffer.hpp>
+
+#include "material.hpp"
 
 namespace aln
 {
@@ -37,7 +40,10 @@ class Mesh : public IAsset
     vkg::resources::Buffer m_vertexBuffer;
     vkg::resources::Buffer m_indexBuffer;
 
+    AssetHandle<Material> m_pMaterial;
+
   public:
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
+    const AssetHandle<Material>& GetMaterial() const {return m_pMaterial;}
 };
 } // namespace aln

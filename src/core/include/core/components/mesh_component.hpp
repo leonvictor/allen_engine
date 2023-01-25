@@ -36,8 +36,6 @@ class MeshComponent : public SpatialComponent
   protected:
     vkg::Device* m_pDevice;
 
-    AssetHandle<Material> m_pMaterial;
-
     vk::UniqueDescriptorSet m_vkDescriptorSet;
     vkg::resources::Buffer m_uniformBuffer;
 
@@ -50,11 +48,6 @@ class MeshComponent : public SpatialComponent
 
   public:
     virtual void SetMesh(const std::string& path) = 0;
-    virtual void SetMaterial(const std::string& path)
-    {
-        assert(IsUnloaded());
-        m_pMaterial = AssetHandle<Material>(path);
-    }
 
     /// @todo: pDevice should be passed when we build/update the buffers and not be a member
     void SetRenderDevice(vkg::Device* pDevice)
@@ -69,14 +62,13 @@ class MeshComponent : public SpatialComponent
 
   protected:
     MeshComponent() = default;
+
     // -------------------------------------------------
     // Components Methods
     // -------------------------------------------------
 
     virtual void Initialize() override;
     virtual void Shutdown() override;
-    virtual void Load(const LoadingContext& loadingContext) override;
-    virtual void Unload(const LoadingContext& loadingContext) override;
 
     virtual bool UpdateLoadingStatus() override = 0;
 };

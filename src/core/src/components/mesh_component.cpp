@@ -26,7 +26,6 @@ vk::DescriptorSet& MeshComponent::GetDescriptorSet() { return m_vkDescriptorSet.
 
 void MeshComponent::Initialize()
 {
-    assert(m_pMaterial.IsLoaded());
     CreateUniformBuffer();
     CreateDescriptorSet();
 }
@@ -35,15 +34,5 @@ void MeshComponent::Shutdown()
 {
     m_vkDescriptorSet.reset();
     m_uniformBuffer = vkg::resources::Buffer();
-}
-
-void MeshComponent::Load(const LoadingContext& loadingContext)
-{
-    loadingContext.m_pAssetService->Load(m_pMaterial);
-}
-
-void MeshComponent::Unload(const LoadingContext& loadingContext)
-{
-    loadingContext.m_pAssetService->Unload(m_pMaterial);
 }
 } // namespace aln

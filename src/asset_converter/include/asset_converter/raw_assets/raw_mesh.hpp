@@ -165,6 +165,7 @@ struct AssimpMeshReader
             meshPath += ".smsh";
 
             AssetArchiveHeader header("smsh"); // TODO: Use SkeletalMesh::GetStaticAssetType();
+            header.AddDependency(context.GetMaterial(pMesh->mMaterialIndex));
 
             std::vector<std::byte> data;
             BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
@@ -187,6 +188,7 @@ struct AssimpMeshReader
             ReadMeshData(mesh.m_vertices, mesh.m_indices, pMesh, context);
 
             AssetArchiveHeader header("mesh"); // TODO: Use StaticMesh::GetStaticAssetType();
+            header.AddDependency(context.GetMaterial(pMesh->mMaterialIndex));
 
             std::vector<std::byte> data;
             BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);

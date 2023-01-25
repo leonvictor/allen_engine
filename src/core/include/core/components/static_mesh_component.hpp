@@ -48,7 +48,7 @@ class StaticMeshComponent : public MeshComponent
         writeDescriptors[1].dstArrayElement = 0;
         writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
         writeDescriptors[1].descriptorCount = 1;
-        auto textureDescriptor = m_pMaterial->GetAlbedoMap()->GetDescriptor();
+        auto textureDescriptor = m_pMesh->GetMaterial()->GetAlbedoMap()->GetDescriptor();
         writeDescriptors[1].pImageInfo = &textureDescriptor;
 
         // TODO: Materials presumably don't change so they don't need a binding
@@ -57,7 +57,7 @@ class StaticMeshComponent : public MeshComponent
         writeDescriptors[2].dstArrayElement = 0;
         writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
         writeDescriptors[2].descriptorCount = 1;
-        auto materialDescriptor = m_pMaterial->GetBuffer().GetDescriptor();
+        auto materialDescriptor = m_pMesh->GetMaterial()->GetBuffer().GetDescriptor();
         writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
 
         m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
@@ -99,18 +99,16 @@ class StaticMeshComponent : public MeshComponent
     void Load(const LoadingContext& loadingContext) override
     {
         loadingContext.m_pAssetService->Load(m_pMesh);
-        MeshComponent::Load(loadingContext);
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
         loadingContext.m_pAssetService->Unload(m_pMesh);
-        MeshComponent::Unload(loadingContext);
     }
 
     bool UpdateLoadingStatus() override
     {
-        if (m_pMesh.IsLoaded() && m_pMaterial.IsLoaded())
+        if (m_pMesh.IsLoaded())
         {
             m_status = Status::Loaded;
         }

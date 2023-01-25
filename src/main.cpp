@@ -257,7 +257,6 @@ class Engine
         auto pMesh = aln::New<SkeletalMeshComponent>();
         pMesh->SetMesh(MODEL_PATH);
         pMesh->SetSkeleton(TEST_SKELETON_PATH);
-        pMesh->SetMaterial(MATERIAL_PATH);
         pMesh->SetRenderDevice(&m_device);
 
         auto pAnim = aln::New<AnimationPlayerComponent>();

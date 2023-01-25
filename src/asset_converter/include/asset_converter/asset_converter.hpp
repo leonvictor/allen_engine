@@ -64,7 +64,8 @@ class AssetConverter
             for (auto materialIndex = 0; materialIndex < pScene->mNumMaterials; ++materialIndex)
             {
                 auto pMaterial = pScene->mMaterials[materialIndex];
-                AssimpMaterialReader::ReadMaterial(m_sceneContext, pMaterial);
+                auto id = AssimpMaterialReader::ReadMaterial(m_sceneContext, pMaterial);
+                m_sceneContext.m_materials.push_back(id);
             }
         }
     }

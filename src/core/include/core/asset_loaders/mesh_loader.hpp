@@ -39,8 +39,6 @@ class MeshLoader : public IAssetLoader
                 pSkeletalMesh->m_bindPose.push_back(pSkeletalMesh->m_inverseBindPose[i].GetInverse());
             }
 
-            // pSkeletalMesh->m_pSkeleton = AssetHandle<Skeleton>(info.assetPath)
-
             pMesh = pSkeletalMesh;
         }
         else
@@ -74,6 +72,15 @@ class MeshLoader : public IAssetLoader
         pRecord->SetAsset(pMesh);
 
         return true;
+    }
+
+    void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) override
+    {
+        assert(dependencies.size() == 1);
+        auto pMesh = pAssetRecord->GetAsset<Mesh>();
+
+        auto pMaterialRecord = GetDependencyRecord(dependencies, 0);
+        pMesh->m_pMaterial.m_pAssetRecord = pMaterialRecord;
     }
 };
 } // namespace aln

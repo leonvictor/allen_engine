@@ -10,6 +10,7 @@
 
 #include <common/transform.hpp>
 
+#include <assert.h>
 #include <filesystem>
 #include <map>
 
@@ -20,6 +21,8 @@ namespace aln::assets::converter
 
 class AssimpSceneContext
 {
+    friend class AssetConverter;
+
   private:
     static constexpr int AssimpPostProcessFlags =
         aiProcess_GenNormals |
@@ -35,6 +38,7 @@ class AssimpSceneContext
     Transform m_inverseSceneTransform = Transform::Identity;
 
     mutable std::map<std::string, RawSkeleton> m_skeletons;
+    std::vector<AssetID> m_materials;
 
     const std::filesystem::path m_sourceFilePath;
     const std::filesystem::path m_outputDirectoryPath;
@@ -63,6 +67,11 @@ class AssimpSceneContext
     /// @param pOutSkeleton: a pointer to the existing or newly created skeleton
     /// @return true if the skeleton already existed
     bool TryGetSkeleton(const std::string& skeletonName, RawSkeleton*& pOutSkeleton) const;
+    const AssetID& GetMaterial(size_t materialIndex)
+    {
+        assert(materialIndex >= 0 && materialIndex < m_materials.size());
+        return m_materials[materialIndex];
+    }
 
     Transform GetGlobalTransform(const aiNode* pNode) const;
 

@@ -25,7 +25,7 @@ class RawMaterial : public IRawAsset
 class AssimpMaterialReader
 {
   public:
-    static void ReadMaterial(const AssimpSceneContext& sceneContext, const aiMaterial* pMaterial)
+    static AssetID ReadMaterial(const AssimpSceneContext& sceneContext, const aiMaterial* pMaterial)
     {
         RawMaterial material;
         auto name = std::string(pMaterial->GetName().C_Str());
@@ -33,7 +33,7 @@ class AssimpMaterialReader
         // TODO: What are those empty materials ?
         if (name.empty())
         {
-            return;
+            return AssetID();
         }
 
         // Diffuse
@@ -68,6 +68,8 @@ class AssimpMaterialReader
         archive << header << data;
         // TODO: Other textures
         // TODO: Material properties
+
+        return id;
     }
 };
 } // namespace aln::assets::converter

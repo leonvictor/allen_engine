@@ -76,6 +76,12 @@ class IAssetLoader
     virtual void Unload(AssetRecord* pRecord){};
     virtual void InstallDependencies(AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies) {}
 
+    const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, size_t dependencyIndex)
+    {
+        assert(dependencyIndex >= 0 && dependencyIndex < dependencies.size());
+        return dependencies[dependencyIndex].GetRecord();
+    }
+
     const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
     {
         for (auto& dependencyHandle : dependencies)
