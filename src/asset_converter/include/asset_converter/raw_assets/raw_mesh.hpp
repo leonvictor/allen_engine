@@ -27,7 +27,7 @@ class RawStaticMesh : public IRawAsset
         archive << m_indices;
 
         // Vertices need to be extracted in a std::vector<std::byte> format
-        size_t byteSize = m_vertices.size() * sizeof(SkinnedVertex);
+        size_t byteSize = m_vertices.size() * sizeof(Vertex);
         archive << byteSize;
         archive.Write(m_vertices.data(), byteSize);
     }
