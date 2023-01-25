@@ -14,7 +14,7 @@ namespace aln
 
 class TypeRegistryService : public IService
 {
-    friend struct reflect::TypeInfo;
+    friend class reflect::TypeInfo;
 
     std::map<StringID, const reflect::TypeInfo*> m_typeInfos;
     std::map<std::string, std::vector<const reflect::TypeInfo*>> m_scopes;

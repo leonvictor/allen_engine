@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common/memory.hpp>
+#include <common/serialization/binary_archive.hpp>
 #include <common/string_id.hpp>
 
 #include <assert.h>
@@ -85,6 +86,7 @@ class ClassMemberInfo
     StringID m_typeID;
     std::string m_name;
     size_t m_offset;
+    size_t m_size;
 
     // TODO: Editor only
     std::string m_prettyName;
@@ -97,6 +99,7 @@ class ClassMemberInfo
     const std::string& GetName() const { return m_name; }
     const std::string& GetPrettyName() const { return m_prettyName; }
     size_t GetOffset() const { return m_offset; }
+    size_t GetSize() const { return m_size; }
 };
 
 class TypeInfo
@@ -108,20 +111,22 @@ class TypeInfo
     // TODO: Members are public since they are initialized in custom reflected types bodies
     // Find a good way to avoid that
   public:
-    StringID m_typeID;
+    StringID m_typeID = StringID::InvalidID();
     std::string m_name;
-    size_t m_size;
-    size_t m_alignment;
+    size_t m_size = 0;
+    size_t m_alignment = 0;
     std::vector<ClassMemberInfo> m_members;
 
     // Bound lifetime functions
     std::function<void*()> m_createType;
     std::function<void*(void*)> m_createTypeInPlace;
 
+    std::function<void(BinaryMemoryArchive&, void*)> m_serialize;
+
     // TODO: Editor only
     std::string m_prettyName;
 
-  private:
+  protected:
     // Registry
     inline static std::map<StringID, const TypeInfo*> LookUpMap;
     inline static std::map<std::string, std::vector<const TypeInfo*>> Scopes;
@@ -150,11 +155,15 @@ class TypeInfo
     bool IsValid() const { return m_typeID.IsValid(); }
     bool operator==(const TypeInfo& other) const { return m_typeID == other.m_typeID; }
 
+    const StringID& GetTypeID() const { return m_typeID; }
     const std::string& GetName() const { return m_name; }
     const std::string& GetPrettyName() const { return m_prettyName; }
     size_t GetSize() const { return m_size; }
     size_t GetAlignment() const { return m_alignment; }
     const std::vector<ClassMemberInfo>& GetMembers() const { return m_members; }
+    size_t GetMemberCount() const { return m_members.size(); }
+    const ClassMemberInfo* GetMemberInfo(size_t memberIdx) const { return &m_members[memberIdx]; }
+    virtual bool IsPrimitive() const { return false; }
 
     /// @brief Create an instance of the described type
     /// @tparam T: Type to cast the instanciated object to
@@ -168,6 +177,33 @@ class TypeInfo
     /// @return A pointer to the instanciated object
     template <typename T>
     T* CreateTypeInstanceInPlace(void* pMemory) const { return (T*) m_createTypeInPlace(pMemory); }
+};
+
+class PrimitiveTypeInfo : public TypeInfo
+{
+    template <typename T>
+    friend struct TypeInfoResolver;
+
+    // TODO: These should be generic
+    std::function<void(BinaryMemoryArchive&, const void*)> m_serialize;
+    std::function<void(BinaryMemoryArchive&, void*)> m_deserialize;
+
+  public:
+    void Serialize(BinaryMemoryArchive& archive, const void* pTypeInstance) const
+    {
+        assert(archive.IsWriting());
+        assert(m_serialize);
+        m_serialize(archive, pTypeInstance);
+    }
+
+    void Deserialize(BinaryMemoryArchive& archive, void* pTypeInstance) const
+    {
+        assert(archive.IsReading());
+        assert(m_deserialize);
+        m_deserialize(archive, pTypeInstance);
+    }
+
+    virtual bool IsPrimitive() const override { return true; }
 };
 
 // -----------------------
@@ -209,35 +245,36 @@ class TypeInfo
         pTypeInfo->m_createTypeInPlace = [](void* pMemory) { return aln::PlacementNew<T>(pMemory); };
 
 #define ALN_REFLECT_MEMBER(name, displayName) \
-    pTypeInfo->m_members.emplace_back(aln::reflect::TypeInfoResolver<decltype(T::name)>::Get()->m_typeID, #name, offsetof(T, name));
+    pTypeInfo->m_members.emplace_back(aln::reflect::TypeInfoResolver<decltype(T::name)>::Get()->m_typeID, #name, offsetof(T, name), sizeof(decltype(T::name)));
 
 #define ALN_REGISTER_IMPL_END() \
     }
 
-#define ALN_REGISTER_PRIMITIVE(primitiveType)                                                                           \
-    namespace reflect                                                                                                   \
-    {                                                                                                                   \
-    template <>                                                                                                         \
-    struct TypeInfoResolver<primitiveType>                                                                              \
-    {                                                                                                                   \
-        static const TypeInfo* Get()                                                                                    \
-        {                                                                                                               \
-            static TypeInfo typeInfo;                                                                                   \
-            if (!typeInfo.IsValid())                                                                                    \
-            {                                                                                                           \
-                typeInfo.m_typeID = StringID(#primitiveType);                                                           \
-                typeInfo.m_name = #primitiveType;                                                                       \
-                typeInfo.m_prettyName = PrettifyName(#primitiveType);                                                   \
-                typeInfo.m_alignment = alignof(primitiveType);                                                          \
-                typeInfo.m_size = sizeof(primitiveType);                                                                \
-                typeInfo.m_createType = []() { return aln::New<primitiveType>(); };                                     \
-                typeInfo.m_createTypeInPlace = [](void* pMemory) { return aln::PlacementNew<primitiveType>(pMemory); }; \
-                                                                                                                        \
-                TypeInfo::RegisterTypeInfo(&typeInfo);                                                                  \
-            }                                                                                                           \
-            return &typeInfo;                                                                                           \
-        }                                                                                                               \
-    };                                                                                                                  \
+#define ALN_REGISTER_PRIMITIVE(primitiveType)                                                                                                 \
+    namespace reflect                                                                                                                         \
+    {                                                                                                                                         \
+    template <>                                                                                                                               \
+    struct TypeInfoResolver<primitiveType>                                                                                                    \
+    {                                                                                                                                         \
+        static const TypeInfo* Get()                                                                                                          \
+        {                                                                                                                                     \
+            static PrimitiveTypeInfo typeInfo;                                                                                                \
+            if (!typeInfo.IsValid())                                                                                                          \
+            {                                                                                                                                 \
+                typeInfo.m_typeID = StringID(#primitiveType);                                                                                 \
+                typeInfo.m_name = #primitiveType;                                                                                             \
+                typeInfo.m_prettyName = PrettifyName(#primitiveType);                                                                         \
+                typeInfo.m_alignment = alignof(primitiveType);                                                                                \
+                typeInfo.m_size = sizeof(primitiveType);                                                                                      \
+                typeInfo.m_createType = []() { return aln::New<primitiveType>(); };                                                           \
+                typeInfo.m_createTypeInPlace = [](void* pMemory) { return aln::PlacementNew<primitiveType>(pMemory); };                       \
+                typeInfo.m_serialize = [](BinaryMemoryArchive& archive, const void* pInstance) { archive << *((primitiveType*) pInstance); }; \
+                typeInfo.m_deserialize = [](BinaryMemoryArchive& archive, void* pInstance) { archive >> *((primitiveType*) pInstance); };     \
+                TypeInfo::RegisterTypeInfo(&typeInfo);                                                                                        \
+            }                                                                                                                                 \
+            return &typeInfo;                                                                                                                 \
+        }                                                                                                                                     \
+    };                                                                                                                                        \
     }
 
 } // namespace aln::reflect
