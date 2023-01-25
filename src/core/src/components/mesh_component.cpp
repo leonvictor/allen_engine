@@ -5,34 +5,15 @@
 namespace aln
 {
 
-void MeshComponent::CreateUniformBuffer()
-{
-    m_uniformBuffer = vkg::resources::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-}
-
-void MeshComponent::UpdateUniformBuffers(vkg::UniformBufferObject& ubo)
-{
-    // TODO: We should only map once and unmap right before deletion
-    m_uniformBuffer.Map(0, sizeof(ubo));
-    m_uniformBuffer.Copy(&ubo, sizeof(ubo));
-    m_uniformBuffer.Unmap();
-}
-
-vk::DescriptorSet& MeshComponent::GetDescriptorSet() { return m_vkDescriptorSet.get(); }
-
 // -------------------------------------------------
 // Components Methods
 // -------------------------------------------------
 
 void MeshComponent::Initialize()
 {
-    CreateUniformBuffer();
-    CreateDescriptorSet();
 }
 
 void MeshComponent::Shutdown()
 {
-    m_vkDescriptorSet.reset();
-    m_uniformBuffer = vkg::resources::Buffer();
 }
 } // namespace aln

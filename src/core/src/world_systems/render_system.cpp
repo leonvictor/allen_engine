@@ -88,9 +88,14 @@ void GraphicsSystem::Shutdown()
 
 void GraphicsSystem::Initialize()
 {
+    // Lights resources
     m_lightsBuffer = vkg::resources::Buffer(m_pRenderer->GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     CreateLightsDescriptorSet();
 
+    // Per-view resources
+    m_cameraUBO = vkg::resources::Buffer(m_pRenderer->GetDevice(), sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    // Debug resources
     m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
 }
 
@@ -150,41 +155,66 @@ void GraphicsSystem::Update(const UpdateContext& context)
     ubo.projection[1][1] *= -1;
 
     // Loop over the registered static meshes
-    for (const auto& pStaticMesh : m_staticMeshComponents)
+    for (auto& meshInstance : m_StaticMeshRenderInstances)
     {
-        // Compute this mesh's model matrix
-        ubo.model = pStaticMesh->GetWorldTransform().ToMatrix();
+        for (const auto& pStaticMesh : meshInstance.m_components)
+        {
+            // Compute this mesh's model matrix
+            ubo.model = pStaticMesh->GetWorldTransform().ToMatrix();
 
-        // Update the ubo
-        pStaticMesh->UpdateUniformBuffers(ubo);
+            // Update the ubo
+            // pStaticMesh->UpdateUniformBuffers(ubo);
+            // TODO: We should only map once and unmap right before deletion
+            // TODO: For now we still copy the whole UBO for each object. Camera data should be split up and copied only once
+            m_cameraUBO.Map(0, sizeof(ubo));
+            m_cameraUBO.Copy(&ubo, sizeof(ubo));
+            m_cameraUBO.Unmap();
 
-        // Bind the mesh buffers
-        staticMeshesPipeline.BindDescriptorSet(cb, pStaticMesh->GetDescriptorSet(), 1);
-        vk::DeviceSize offset = 0;
-        pStaticMesh->GetMesh()->Bind(cb, offset);
+            // Bind the mesh buffers
+            staticMeshesPipeline.BindDescriptorSet(cb, meshInstance.m_descriptorSet.get(), 1);
+            vk::DeviceSize offset = 0;
+            pStaticMesh->GetMesh()->Bind(cb, offset);
+        }
     }
 
     m_pRenderer->GetSkeletalMeshesPipeline().Bind(cb);
-    for (auto pSkeletalMesh : m_skeletalMeshComponents)
+    for (auto& meshInstance : m_SkeletalMeshRenderInstances)
     {
-        pSkeletalMesh->UpdateSkinningBuffer();
+        for (auto pSkeletalMeshComponent : meshInstance.m_components)
+        {
+            pSkeletalMeshComponent->UpdateSkinningTransforms();
 
-        ubo.model = pSkeletalMesh->GetWorldTransform().ToMatrix();
-        pSkeletalMesh->UpdateUniformBuffers(ubo);
+            // Upload the new data to gpu
+            // TODO: the buffer is host visible for now, which is not optimal
+            // TODO: Only map once
+            meshInstance.m_skinningBuffer.Map(0, sizeof(glm::mat4x4) * pSkeletalMeshComponent->m_skinningTransforms.size());
+            meshInstance.m_skinningBuffer.Copy(pSkeletalMeshComponent->m_skinningTransforms);
+            meshInstance.m_skinningBuffer.Unmap();
 
-        m_pRenderer->GetSkeletalMeshesPipeline().BindDescriptorSet(cb, pSkeletalMesh->GetDescriptorSet(), 1);
-        pSkeletalMesh->GetMesh()->Bind(cb, 0);
+            ubo.model = pSkeletalMeshComponent->GetWorldTransform().ToMatrix();
+            // TODO: We should only map once and unmap right before deletion
+            // TODO: For now we still copy the whole UBO for each object. Camera data should be split up and copied only once
+            m_cameraUBO.Map(0, sizeof(ubo));
+            m_cameraUBO.Copy(&ubo, sizeof(ubo));
+            m_cameraUBO.Unmap();
+
+            m_pRenderer->GetSkeletalMeshesPipeline().BindDescriptorSet(cb, meshInstance.m_descriptorSet.get(), 1);
+            pSkeletalMeshComponent->GetMesh()->Bind(cb, 0);
+        }
     }
 
     // Debug drawing
     DrawingContext drawingContext;
-    for (const auto& pSkeletalMeshComponent : m_skeletalMeshComponents)
+    for (auto& meshInstance : m_SkeletalMeshRenderInstances)
     {
-        if (pSkeletalMeshComponent->m_drawDebugSkeleton)
+        for (const auto& pSkeletalMeshComponent : meshInstance.m_components)
         {
-            pSkeletalMeshComponent->DrawPose(drawingContext);
+            if (pSkeletalMeshComponent->m_drawDebugSkeleton)
+            {
+                pSkeletalMeshComponent->DrawPose(drawingContext);
+            }
+            // pSkeletalMeshComponent->DrawBindPose(drawingContext);
         }
-        // pSkeletalMeshComponent->DrawBindPose(drawingContext);
     }
 
     RenderDebugLines(cb, drawingContext);
@@ -206,17 +236,19 @@ void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pCompo
         return;
     }
 
-    auto pStaticMesh = dynamic_cast<StaticMeshComponent*>(pComponent);
-    if (pStaticMesh != nullptr)
+    auto pStaticMeshComponent = dynamic_cast<StaticMeshComponent*>(pComponent);
+    if (pStaticMeshComponent != nullptr)
     {
-        m_staticMeshComponents.AddRecordEntry(pEntity->GetID(), pStaticMesh);
+        auto& meshInstance = m_StaticMeshRenderInstances.TryEmplace(pStaticMeshComponent->GetMesh()->GetID(), m_pRenderer->GetDevice(), pStaticMeshComponent->GetMesh(), &m_cameraUBO);
+        meshInstance.m_components.push_back(pStaticMeshComponent);
         return;
     }
 
-    auto pSkeletalMesh = dynamic_cast<SkeletalMeshComponent*>(pComponent);
-    if (pSkeletalMesh != nullptr)
+    auto pSkeletalMeshComponent = dynamic_cast<SkeletalMeshComponent*>(pComponent);
+    if (pSkeletalMeshComponent != nullptr)
     {
-        m_skeletalMeshComponents.AddRecordEntry(pEntity->GetID(), pSkeletalMesh);
+        auto& meshInstance = m_SkeletalMeshRenderInstances.TryEmplace(pSkeletalMeshComponent->GetMesh()->GetID(), m_pRenderer->GetDevice(), pSkeletalMeshComponent->GetMesh(), &m_cameraUBO);
+        meshInstance.m_components.push_back(pSkeletalMeshComponent);
         return;
     }
 
@@ -242,17 +274,29 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
         return;
     }
 
-    auto pStaticMesh = dynamic_cast<StaticMeshComponent*>(pComponent);
-    if (pStaticMesh != nullptr)
+    auto pStaticMeshComponent = dynamic_cast<StaticMeshComponent*>(pComponent);
+    if (pStaticMeshComponent != nullptr)
     {
-        m_staticMeshComponents.RemoveRecordEntry(pEntity->GetID(), pStaticMesh);
+        auto& meshInstance = m_StaticMeshRenderInstances.Get(pStaticMeshComponent->GetMesh()->GetID());
+        auto pComp = std::find(meshInstance.m_components.begin(), meshInstance.m_components.end(), pStaticMeshComponent);
+        meshInstance.m_components.erase(pComp);
+        if (meshInstance.m_components.empty())
+        {
+            m_StaticMeshRenderInstances.Erase(meshInstance);
+        }
         return;
     }
 
-    auto pSkeletalMesh = dynamic_cast<SkeletalMeshComponent*>(pComponent);
-    if (pSkeletalMesh != nullptr)
+    auto pSkeletalMeshComponent = dynamic_cast<SkeletalMeshComponent*>(pComponent);
+    if (pSkeletalMeshComponent != nullptr)
     {
-        m_skeletalMeshComponents.RemoveRecordEntry(pEntity->GetID(), pSkeletalMesh);
+        auto& meshInstance = m_SkeletalMeshRenderInstances.Get(pStaticMeshComponent->GetMesh()->GetID());
+        auto pComp = std::find(meshInstance.m_components.begin(), meshInstance.m_components.end(), pSkeletalMeshComponent);
+        meshInstance.m_components.erase(pComp);
+        if (meshInstance.m_components.empty())
+        {
+            m_SkeletalMeshRenderInstances.Erase(meshInstance);
+        }
         return;
     }
 
@@ -274,5 +318,95 @@ const UpdatePriorities& GraphicsSystem::GetUpdatePriorities()
 GraphicsSystem::GraphicsSystem(vkg::render::IRenderer* pRenderer)
 {
     m_pRenderer = pRenderer;
+}
+
+GraphicsSystem::StaticMeshRenderInstance::StaticMeshRenderInstance(vkg::Device* pDevice, const StaticMesh* pMesh, vkg::resources::Buffer* pUniformBuffer) : m_pMesh(pMesh)
+{
+    assert(pDevice != nullptr && pMesh != nullptr);
+
+    m_descriptorSet = pDevice->AllocateDescriptorSet<StaticMeshComponent>();
+    pDevice->SetDebugUtilsObjectName(m_descriptorSet.get(), "StaticMeshComponent Descriptor Set");
+
+    std::array<vk::WriteDescriptorSet, 3> writeDescriptors = {};
+
+    writeDescriptors[0].dstSet = m_descriptorSet.get();
+    writeDescriptors[0].dstBinding = 0;
+    writeDescriptors[0].dstArrayElement = 0;
+    writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+    writeDescriptors[0].descriptorCount = 1;
+    auto uniformDescriptor = pUniformBuffer->GetDescriptor();
+    writeDescriptors[0].pBufferInfo = &uniformDescriptor;
+
+    writeDescriptors[1].dstSet = m_descriptorSet.get();
+    writeDescriptors[1].dstBinding = 1;
+    writeDescriptors[1].dstArrayElement = 0;
+    writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+    writeDescriptors[1].descriptorCount = 1;
+    auto textureDescriptor = m_pMesh->GetMaterial()->GetAlbedoMap()->GetDescriptor();
+    writeDescriptors[1].pImageInfo = &textureDescriptor;
+
+    // TODO: Materials presumably don't change so they don't need a binding
+    writeDescriptors[2].dstSet = m_descriptorSet.get();
+    writeDescriptors[2].dstBinding = 2;
+    writeDescriptors[2].dstArrayElement = 0;
+    writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
+    writeDescriptors[2].descriptorCount = 1;
+    auto materialDescriptor = m_pMesh->GetMaterial()->GetBuffer().GetDescriptor();
+    writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
+
+    pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+}
+
+GraphicsSystem::SkeletalMeshRenderInstance::SkeletalMeshRenderInstance(vkg::Device* pDevice, const SkeletalMesh* pMesh, vkg::resources::Buffer* pUniformBuffer) : m_pMesh(pMesh)
+{
+    assert(pDevice != nullptr && pMesh != nullptr);
+
+    // TODO: The buffer should be device-local
+    m_skinningBuffer = vkg::resources::Buffer(
+        pDevice,
+        m_pMesh->GetBoneCount() * sizeof(glm::mat4x4),
+        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    // Create the descriptor set
+    m_descriptorSet = pDevice->AllocateDescriptorSet<SkeletalMeshComponent>();
+    pDevice->SetDebugUtilsObjectName(m_descriptorSet.get(), "SkeletalMeshComponent Descriptor Set");
+
+    std::array<vk::WriteDescriptorSet, 4> writeDescriptors = {};
+
+    writeDescriptors[0].dstSet = m_descriptorSet.get();
+    writeDescriptors[0].dstBinding = 0;
+    writeDescriptors[0].dstArrayElement = 0;
+    writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+    writeDescriptors[0].descriptorCount = 1;
+    auto uniformDescriptor = pUniformBuffer->GetDescriptor();
+    writeDescriptors[0].pBufferInfo = &uniformDescriptor;
+
+    writeDescriptors[1].dstSet = m_descriptorSet.get();
+    writeDescriptors[1].dstBinding = 1;
+    writeDescriptors[1].dstArrayElement = 0;
+    writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+    writeDescriptors[1].descriptorCount = 1;
+    auto textureDescriptor = m_pMesh->GetMaterial()->GetAlbedoMap()->GetDescriptor();
+    writeDescriptors[1].pImageInfo = &textureDescriptor;
+
+    // TODO: Materials presumably don't change so they don't need a binding
+    writeDescriptors[2].dstSet = m_descriptorSet.get();
+    writeDescriptors[2].dstBinding = 2;
+    writeDescriptors[2].dstArrayElement = 0;
+    writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
+    writeDescriptors[2].descriptorCount = 1;
+    auto materialDescriptor = m_pMesh->GetMaterial()->GetBuffer().GetDescriptor();
+    writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
+
+    writeDescriptors[3].dstSet = m_descriptorSet.get();
+    writeDescriptors[3].dstBinding = 3;
+    writeDescriptors[3].dstArrayElement = 0;
+    writeDescriptors[3].descriptorType = vk::DescriptorType::eStorageBuffer;
+    writeDescriptors[3].descriptorCount = 1;
+    auto skinningBufferDescriptor = m_skinningBuffer.GetDescriptor();
+    writeDescriptors[3].pBufferInfo = &skinningBufferDescriptor; // TODO: Replace w/ push constants ?
+
+    pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
 }
 } // namespace aln

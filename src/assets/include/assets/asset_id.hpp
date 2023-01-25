@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset_type_id.hpp"
+#include <common/serialization/hash.hpp>
 #include <reflection/type_info.hpp>
 
 namespace aln
@@ -53,6 +54,7 @@ class AssetID
     bool operator==(const AssetID& other) const { return m_path == other.m_path; }
     bool operator!=(const AssetID& other) const { return m_path != other.m_path; }
     bool operator<(const AssetID& other) const { return m_path < other.m_path; }
+    operator uint32_t() const { return aln::Hash32(m_path); }
 
     bool IsValid() const { return m_typeID.IsValid() && !m_path.empty(); }
 };

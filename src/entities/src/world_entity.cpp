@@ -42,14 +42,12 @@ WorldEntity::~WorldEntity()
 
 void WorldEntity::Cleanup()
 {
-    m_entityMap.Clear(m_loadingContext);
-
     for (auto& [id, system] : m_systems)
     {
         system->Shutdown();
     }
-
     m_systems.clear();
+    m_entityMap.Clear(m_loadingContext);
 }
 
 void WorldEntity::Update(const UpdateContext& context)

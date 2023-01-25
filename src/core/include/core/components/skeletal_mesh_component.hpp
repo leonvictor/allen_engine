@@ -31,12 +31,10 @@ class SkeletalMeshComponent : public MeshComponent
     std::vector<Transform> m_boneTransforms; // Bone transforms, in global character space
 
     std::vector<glm::mat4x4> m_skinningTransforms;
-    vkg::resources::Buffer m_skinningBuffer;
-    vk::UniqueDescriptorSet m_vkSkinDescriptorSet;
 
     // AssetHandle<Skeleton> m_pSkeleton; // Rendering skeleton
 
-    // // TODO: Runtime state:
+    // TODO: Runtime state:
     // Bone mapping between animation and render skeletons
     std::vector<BoneIndex> m_animToRenderBonesMap;
 
@@ -120,51 +118,8 @@ class SkeletalMeshComponent : public MeshComponent
         return bindings;
     }
 
-    void CreateDescriptorSet() override
-    {
-        m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<SkeletalMeshComponent>();
-        m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), "SkeletalMeshComponent Descriptor Set");
-
-        std::array<vk::WriteDescriptorSet, 4> writeDescriptors = {};
-
-        writeDescriptors[0].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[0].dstBinding = 0;
-        writeDescriptors[0].dstArrayElement = 0;
-        writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
-        writeDescriptors[0].descriptorCount = 1;
-        auto uniformDescriptor = m_uniformBuffer.GetDescriptor();
-        writeDescriptors[0].pBufferInfo = &uniformDescriptor;
-
-        writeDescriptors[1].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[1].dstBinding = 1;
-        writeDescriptors[1].dstArrayElement = 0;
-        writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-        writeDescriptors[1].descriptorCount = 1;
-        auto textureDescriptor = m_pMesh->GetMaterial()->GetAlbedoMap()->GetDescriptor();
-        writeDescriptors[1].pImageInfo = &textureDescriptor;
-
-        // TODO: Materials presumably don't change so they don't need a binding
-        writeDescriptors[2].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[2].dstBinding = 2;
-        writeDescriptors[2].dstArrayElement = 0;
-        writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
-        writeDescriptors[2].descriptorCount = 1;
-        auto materialDescriptor = m_pMesh->GetMaterial()->GetBuffer().GetDescriptor();
-        writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
-
-        writeDescriptors[3].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[3].dstBinding = 3;
-        writeDescriptors[3].dstArrayElement = 0;
-        writeDescriptors[3].descriptorType = vk::DescriptorType::eStorageBuffer;
-        writeDescriptors[3].descriptorCount = 1;
-        auto skinningBufferDescriptor = m_skinningBuffer.GetDescriptor();
-        writeDescriptors[3].pBufferInfo = &skinningBufferDescriptor; // TODO: Replace w/ push constants ?
-
-        m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
-    }
-
   private:
-    void UpdateSkinningBuffer();
+    void UpdateSkinningTransforms();
 
     void Initialize() override
     {
@@ -173,8 +128,6 @@ class SkeletalMeshComponent : public MeshComponent
 
         // TODO:
         m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
-        // TODO: The buffer should be device-local
-        m_skinningBuffer = vkg::resources::Buffer(m_pDevice, m_pMesh->m_inverseBindPose.size() * sizeof(glm::mat4x4), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
         // Initialize the bone mapping
         /// @todo: For now skeletal meshes don't have a specific skeleton

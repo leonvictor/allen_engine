@@ -44,6 +44,6 @@ class Mesh : public IAsset
 
   public:
     void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
-    const AssetHandle<Material>& GetMaterial() const {return m_pMaterial;}
+    const AssetHandle<Material>& GetMaterial() const { return m_pMaterial; }
 };
 } // namespace aln

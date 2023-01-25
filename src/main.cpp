@@ -257,7 +257,6 @@ class Engine
         auto pMesh = aln::New<SkeletalMeshComponent>();
         pMesh->SetMesh(MODEL_PATH);
         pMesh->SetSkeleton(TEST_SKELETON_PATH);
-        pMesh->SetRenderDevice(&m_device);
 
         auto pAnim = aln::New<AnimationPlayerComponent>();
         pAnim->SetSkeleton(std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Armature.skel");
