@@ -30,6 +30,7 @@ class Mesh : public IAsset
     ALN_REGISTER_ASSET_TYPE("mesh");
 
     friend class MeshLoader;
+    friend class GraphicsSystem;
 
   private:
     std::vector<std::byte> m_vertices;
@@ -43,7 +44,6 @@ class Mesh : public IAsset
     AssetHandle<Material> m_pMaterial;
 
   public:
-    void Bind(vk::CommandBuffer& cb, vk::DeviceSize offset) const;
     const AssetHandle<Material>& GetMaterial() const { return m_pMaterial; }
 };
 } // namespace aln

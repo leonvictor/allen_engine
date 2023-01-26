@@ -71,9 +71,8 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     auto& pipeline = m_linesRenderState.m_pipeline;
     pipeline.Bind(cb);
 
-    vk::DeviceSize offset = 0;
     pipeline.BindDescriptorSet(cb, m_linesRenderState.m_descriptorSet.get(), 0);
-    cb.bindVertexBuffers(0, m_linesRenderState.m_vertexBuffer.GetVkBuffer(), offset);
+    cb.bindVertexBuffers(0, m_linesRenderState.m_vertexBuffer.GetVkBuffer(), (vk::DeviceSize) 0);
     cb.draw(vertexBuffer.size(), 1, 0, 0);
 }
 
@@ -154,6 +153,10 @@ void GraphicsSystem::Update(const UpdateContext& context)
     // Loop over the registered static meshes
     for (auto& meshInstance : m_StaticMeshRenderInstances)
     {
+        auto pMesh = meshInstance.m_pMesh;
+        cb.bindVertexBuffers(0, pMesh->m_vertexBuffer.GetVkBuffer(), (vk::DeviceSize) 0);
+        cb.bindIndexBuffer(pMesh->m_indexBuffer.GetVkBuffer(), 0, vk::IndexType::eUint32);
+
         for (const auto& pStaticMesh : meshInstance.m_components)
         {
             // Compute this mesh's model matrix
@@ -169,14 +172,18 @@ void GraphicsSystem::Update(const UpdateContext& context)
 
             // Bind the mesh buffers
             staticMeshesPipeline.BindDescriptorSet(cb, meshInstance.m_descriptorSet.get(), 1);
-            vk::DeviceSize offset = 0;
-            pStaticMesh->GetMesh()->Bind(cb, offset);
+
+            cb.drawIndexed(pMesh->m_indices.size(), 1, 0, 0, 0);
         }
     }
 
     m_pRenderer->GetSkeletalMeshesPipeline().Bind(cb);
     for (auto& meshInstance : m_SkeletalMeshRenderInstances)
     {
+        auto pMesh = meshInstance.m_pMesh;
+        cb.bindVertexBuffers(0, pMesh->m_vertexBuffer.GetVkBuffer(), vk::DeviceSize(0));
+        cb.bindIndexBuffer(pMesh->m_indexBuffer.GetVkBuffer(), 0, vk::IndexType::eUint32);
+
         for (auto pSkeletalMeshComponent : meshInstance.m_components)
         {
             pSkeletalMeshComponent->UpdateSkinningTransforms();
@@ -196,7 +203,8 @@ void GraphicsSystem::Update(const UpdateContext& context)
             m_cameraUBO.Unmap();
 
             m_pRenderer->GetSkeletalMeshesPipeline().BindDescriptorSet(cb, meshInstance.m_descriptorSet.get(), 1);
-            pSkeletalMeshComponent->GetMesh()->Bind(cb, 0);
+
+            cb.drawIndexed(pMesh->m_indices.size(), 1, 0, 0, 0);
         }
     }
 
