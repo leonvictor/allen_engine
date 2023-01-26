@@ -92,8 +92,8 @@ class ClassMemberInfo
     std::string m_prettyName;
 
   public:
-    ClassMemberInfo(const StringID& typeID, const char* name, size_t offset)
-        : m_typeID(typeID), m_name(name), m_offset(offset), m_prettyName(PrettifyName(name)) {}
+    ClassMemberInfo(const StringID& typeID, const char* name, size_t offset, size_t size)
+        : m_typeID(typeID), m_name(name), m_offset(offset), m_size(size), m_prettyName(PrettifyName(name)) {}
 
     const StringID& GetTypeID() const { return m_typeID; }
     const std::string& GetName() const { return m_name; }
