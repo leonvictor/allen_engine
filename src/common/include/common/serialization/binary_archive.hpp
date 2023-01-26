@@ -1,7 +1,5 @@
 #pragma once
 
-#include <lz4.h>
-
 #include <assert.h>
 #include <concepts>
 #include <filesystem>
@@ -87,6 +85,7 @@ class BinaryFileArchive : public IBinaryArchive
     const std::filesystem::path& m_path;
 
   public:
+    BinaryFileArchive(BinaryFileArchive&) = delete;
     BinaryFileArchive(const std::filesystem::path& path, IOMode mode) : IBinaryArchive(mode), m_path(path)
     {
         if (IsReading())
@@ -293,6 +292,7 @@ class BinaryMemoryArchive : public IBinaryArchive
     std::vector<std::byte>::iterator m_pReader;
 
   public:
+    BinaryMemoryArchive(BinaryMemoryArchive&) = delete;
     BinaryMemoryArchive(std::vector<std::byte>& memory, IOMode mode) : IBinaryArchive(mode), m_memory(memory)
     {
         if (IsReading())
@@ -306,7 +306,7 @@ class BinaryMemoryArchive : public IBinaryArchive
     void Write(const void* pData, size_t size)
     {
         assert(IsWriting());
-        auto pBytes = reinterpret_cast<const std::byte*>(pData); 
+        auto pBytes = reinterpret_cast<const std::byte*>(pData);
         m_memory.insert(m_memory.end(), pBytes, pBytes + size);
     }
 
@@ -323,7 +323,6 @@ class BinaryMemoryArchive : public IBinaryArchive
     template <TriviallyCopyableType T>
     BinaryMemoryArchive& operator<<(const T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsWriting());
 
         auto pData = reinterpret_cast<const std::byte*>(&data);
