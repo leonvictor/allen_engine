@@ -24,6 +24,4 @@ class SkeletalMesh : public Mesh
     const std::vector<Transform>& GetInverseBindPose() const { return m_inverseBindPose; }
     size_t GetBoneCount() const { return m_bindPose.size(); }
 };
-
-ALN_REGISTER_PRIMITIVE(SkeletalMesh);
 } // namespace aln

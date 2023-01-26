@@ -14,8 +14,6 @@
 namespace aln
 {
 
-using StringID = std::string; // todo: tmp
-
 template <typename T>
 struct ValueTypeValidation
 {

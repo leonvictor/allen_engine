@@ -3,6 +3,8 @@
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::AnimationPlayerComponent)
 ALN_REFLECT_MEMBER(m_animTime, Animation Time)
 ALN_REFLECT_MEMBER(m_pause, Pause)
+ALN_REFLECT_MEMBER(m_pAnimationClip, Clip)
+ALN_REFLECT_MEMBER(m_pSkeleton, Skeleton)
 ALN_REGISTER_IMPL_END()
 
 namespace aln

@@ -48,7 +48,7 @@ class Entity
 {
     friend Command;
     friend class EntityMap;
-    friend class std::set<Entity>;
+    friend class EntityDescriptor;
 
     enum class Status
     {

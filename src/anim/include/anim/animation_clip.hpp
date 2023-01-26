@@ -55,6 +55,4 @@ class AnimationClip : public IAsset
     float m_framesPerSecond = 0.0f;
     Seconds m_duration = 0.0f; // Duration in seconds
 };
-
-ALN_REGISTER_PRIMITIVE(AnimationClip);
 } // namespace aln

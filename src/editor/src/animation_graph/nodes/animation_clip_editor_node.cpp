@@ -3,6 +3,11 @@
 
 namespace aln
 {
+
+ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, AnimationClipEditorNode)
+ALN_REFLECT_MEMBER(m_animationClipID, Clip)
+ALN_REGISTER_IMPL_END()
+
 void AnimationClipEditorNode::Initialize()
 {
     m_name = "Animation Clip";
@@ -18,9 +23,5 @@ void AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context,
         pSettings->m_dataSlotIdx = context.RegisterDataSlot(GetID());
     }
 };
-
-ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, AnimationClipEditorNode)
-ALN_REFLECT_MEMBER(m_animationClipID, Clip)
-ALN_REGISTER_IMPL_END()
 
 } // namespace aln
