@@ -65,7 +65,6 @@ class Allocation
 
     vk::DeviceSize GetSize() const { return m_size; }
 
-    // TODO: Default to own size attribute
     template <typename T = void>
     inline T* Map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE)
     {
@@ -84,11 +83,11 @@ class Allocation
         memcpy(static_cast<uint8_t*>(m_mapped) + offset, data, size);
     }
 
-    // template <typename T>
-    // inline void Copy(const T& data, vk::DeviceSize offset = 0) const
-    // {
-    //     Copy(&data, sizeof(T), offset);
-    // }
+    template <typename T>
+    inline void Copy(const T& data, vk::DeviceSize offset = 0) const
+    {
+        Copy(&data, sizeof(T), offset);
+    }
 
     template <typename T>
     inline void Copy(const std::vector<T>& data, vk::DeviceSize offset = 0) const

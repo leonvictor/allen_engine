@@ -18,9 +18,11 @@
 
 namespace aln
 {
+
 class SkeletalMeshComponent : public MeshComponent
 {
     friend class GraphicsSystem;
+    friend class SceneRenderer;
 
     ALN_REGISTER_TYPE();
 
@@ -79,44 +81,7 @@ class SkeletalMeshComponent : public MeshComponent
         m_boneTransforms = m_pMesh->GetBindPose();
     }
 
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
-    {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings{
-            {
-                // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
-                // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)
-
-                // UBO
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-                .pImmutableSamplers = nullptr,
-            },
-            {
-                // Sampler
-                .binding = 1,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                .pImmutableSamplers = nullptr,
-            },
-            {
-                // Material
-                .binding = 2,
-                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-            },
-            {
-                .binding = 3,
-                .descriptorType = vk::DescriptorType::eStorageBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex,
-            }};
-
-        return bindings;
-    }
+    size_t GetBonesCount() const { return m_pSkeleton->GetBonesCount(); }
 
   private:
     void UpdateSkinningTransforms();
@@ -176,7 +141,7 @@ class SkeletalMeshComponent : public MeshComponent
     }
 
     /// @brief Draw this skeletal mesh's skeleton
-    void DrawPose(DrawingContext& drawingContext)
+    void DrawPose(DrawingContext& drawingContext) const
     {
         const Transform& worldTransform = GetWorldTransform();
         Transform boneWorldTransform = worldTransform * m_boneTransforms[0];
@@ -197,7 +162,7 @@ class SkeletalMeshComponent : public MeshComponent
     }
 
     /// @brief Draw the bind pose
-    void DrawBindPose(DrawingContext& drawingContext)
+    void DrawBindPose(DrawingContext& drawingContext) const
     {
         // Debug: Draw a single line from 0 to somewhere
         drawingContext.DrawCoordinateAxis(Transform::Identity);

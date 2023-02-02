@@ -38,12 +38,41 @@ class Mesh : public IAsset
 
     std::vector<PrimitiveComponent> m_primitives;
 
+    AssetHandle<Material> m_pMaterial;
+
+    // Rendering resources
     vkg::resources::Buffer m_vertexBuffer;
     vkg::resources::Buffer m_indexBuffer;
-
-    AssetHandle<Material> m_pMaterial;
+    vk::UniqueDescriptorSet m_descriptorSet;
 
   public:
     const AssetHandle<Material>& GetMaterial() const { return m_pMaterial; }
+    const vkg::resources::Buffer& GetVertexBuffer() const { return m_vertexBuffer; }
+    const vkg::resources::Buffer& GetIndexBuffer() const { return m_indexBuffer; }
+    size_t GetIndicesCount() const { return m_indices.size(); }
+    const vk::DescriptorSet& GetDescriptorSet() const { return m_descriptorSet.get(); }
+
+    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
+    {
+        std::vector<vk::DescriptorSetLayoutBinding> bindings =
+            {
+                {
+                    // Sampler
+                    .binding = 0,
+                    .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                    .descriptorCount = 1,
+                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                },
+                {
+                    // Material
+                    .binding = 1,
+                    .descriptorType = vk::DescriptorType::eUniformBuffer,
+                    .descriptorCount = 1,
+                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                },
+            };
+
+        return bindings;
+    }
 };
 } // namespace aln

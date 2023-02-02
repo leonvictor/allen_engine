@@ -90,15 +90,21 @@ class Pipeline
         m_vertexBindingDescription = VertexDescriptor<T>::GetBindingDescription();
     }
 
+    void AddPushConstant(vk::ShaderStageFlagBits stage, uint32_t offset, uint32_t size)
+    {
+        m_pushConstants.push_back({stage, offset, size});
+    }
+
     void Bind(vk::CommandBuffer& cb);
 
     /// @brief Bind a descriptor set to this pipeline.
     /// @todo: automatically handle the descriptor index
     /// We bind every frame, when are sets unbound ?
-    void BindDescriptorSet(vk::CommandBuffer& cb, vk::DescriptorSet& descriptorSet, uint32_t index);
+    void BindDescriptorSet(vk::CommandBuffer& cb, const vk::DescriptorSet& descriptorSet, uint32_t index);
 
     inline bool IsInitialized() const { return m_status == State::Initialized; }
-    inline vk::Pipeline& GetVkPipeline() { return m_vkPipeline.get(); }
+    inline const vk::Pipeline& GetVkPipeline() const { return m_vkPipeline.get(); }
+    inline const vk::PipelineLayout& GetLayout() const { return m_layout.get(); }
 
   private:
     Device* m_pDevice;
@@ -107,6 +113,7 @@ class Pipeline
     std::vector<shaders::ShaderInfo> m_shaderStages;
     std::vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
     std::vector<vk::DynamicState> m_dynamicStates;
+    std::vector<vk::PushConstantRange> m_pushConstants;
 
     // Pipeline Input Assembly State
     vk::PrimitiveTopology m_primitiveTopology;

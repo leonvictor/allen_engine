@@ -5,6 +5,9 @@ include(FetchContent)
 project(ALLEN VERSION 0.1)
 cmake_policy(SET CMP0077 NEW)
 
+set(CMAKE_CXX_STANDARD 20) 
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 set(SOURCE 
     src/main.cpp)
 
@@ -255,10 +258,7 @@ add_subdirectory(src/asset_converter)
 add_subdirectory(src/editor)
 add_subdirectory(src/anim)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 20) 
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-target_compile_features(main PUBLIC cxx_std_20)
+# target_compile_features(main PUBLIC cxx_std_20)
 
 # target_include_directories(main PUBLIC TracyClient)
 target_link_libraries(main PUBLIC 

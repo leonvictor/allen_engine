@@ -80,6 +80,34 @@ class MeshLoader : public IAssetLoader
 
         auto pMaterialRecord = GetDependencyRecord(dependencies, 0);
         pMesh->m_pMaterial.m_pAssetRecord = pMaterialRecord;
+
+        auto descriptorSet = m_pDevice->AllocateDescriptorSet<Mesh>();
+
+        auto textureDescriptor = pMesh->m_pMaterial->GetAlbedoMap()->GetDescriptor();
+        auto materialDescriptor = pMesh->GetMaterial()->GetBuffer().GetDescriptor();
+
+        std::vector<vk::WriteDescriptorSet> writeDescriptors = {
+            {
+                .dstSet = descriptorSet.get(),
+                .dstBinding = 0,
+                .descriptorCount = 1,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .pImageInfo = &textureDescriptor,
+            },
+            {
+                .dstSet = descriptorSet.get(),
+                .dstBinding = 1,
+                .descriptorCount = 1,
+                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                .pBufferInfo = &materialDescriptor,
+            },
+        };
+
+        m_pDevice->GetVkDevice().updateDescriptorSets(writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
+        
+        pMesh->m_descriptorSet = std::move(descriptorSet);
+        m_pDevice->SetDebugUtilsObjectName(pMesh->m_descriptorSet.get(), "Mesh Descriptor Set");
+
     }
 };
 } // namespace aln

@@ -73,7 +73,7 @@ class Device
     static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, std::vector<const char*> requiredExtensions);
 
   public:
-    Device() {};
+    Device(){};
     void Initialize(vkg::Instance* pInstance, const vk::SurfaceKHR& surface);
 
     SwapchainSupportDetails GetSwapchainSupport(const vk::SurfaceKHR& surface);
@@ -132,6 +132,11 @@ class Device
     vk::UniqueDescriptorSet AllocateDescriptorSet()
     {
         return std::move(m_descriptorAllocator.Allocate(&GetDescriptorSetLayout<T>()));
+    }
+
+    vk::UniqueDescriptorSet AllocateDescriptorSet(const vk::DescriptorSetLayout* pDescriptorSetLayout)
+    {
+        return std::move(m_descriptorAllocator.Allocate(pDescriptorSetLayout));
     }
 
     /// @brief Get the descriptor set layout associated with type T. If the layout doesn't exist it will be created.

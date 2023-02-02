@@ -13,9 +13,10 @@
 #include <graphics/device.hpp>
 #include <graphics/imgui.hpp>
 #include <graphics/instance.hpp>
-#include <graphics/rendering/offline_renderer.hpp>
-#include <graphics/rendering/swapchain_renderer.hpp>
 #include <graphics/window.hpp>
+
+#include <core/renderers/scene_renderer.hpp>
+#include <core/renderers/ui_renderer.hpp>
 
 #ifdef ALN_DEBUG
 #define _CRTDBG_MAP_ALLOC
@@ -110,8 +111,9 @@ class Engine
     vkg::Window m_window;
     vkg::Device m_device;
     vkg::Swapchain m_swapchain;
-    vkg::render::SwapchainRenderer m_renderer;
-    vkg::render::OfflineRenderer m_sceneRenderer;
+
+    aln::UIRenderer m_uiRenderer;
+    aln::SceneRenderer m_sceneRenderer;
 
     // Services
     TaskService m_taskService;
@@ -148,7 +150,7 @@ class Engine
         m_device.Initialize(&m_instance, m_window.GetVkSurface());
         m_swapchain = vkg::Swapchain(&m_device, &m_window);
 
-        m_renderer.Create(&m_swapchain);
+        m_uiRenderer.Create(&m_swapchain);
 
         m_sceneRenderer.Create(
             &m_device,
@@ -156,7 +158,7 @@ class Engine
             2,
             m_swapchain.GetImageFormat());
 
-        m_imgui.Initialize(m_window.GetGLFWWindow(), &m_device, m_renderer.GetRenderPass(), m_renderer.GetNumberOfImages());
+        m_imgui.Initialize(m_window.GetGLFWWindow(), &m_device, m_uiRenderer.GetRenderPass(), m_uiRenderer.GetNumberOfImages());
 
         // Register callbacks to transfer events from the window to the input system
         // TODO: Ideally this would be managed entirelly by the input system, without a dependency on the window
@@ -285,7 +287,7 @@ class Engine
 
             // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
             m_window.NewFrame();
-            m_renderer.BeginFrame(aln::vkg::render::RenderContext());
+            m_uiRenderer.BeginFrame(aln::vkg::render::RenderContext());
             m_imgui.NewFrame();
 
             // Populate update context
@@ -313,9 +315,9 @@ class Engine
             auto desc = m_sceneRenderer.GetActiveImage()->GetDescriptorSet();
             m_editor.Update(desc, m_updateContext);
 
-            m_imgui.Render(m_renderer.GetActiveRenderTarget().commandBuffer.get());
+            m_imgui.Render(m_uiRenderer.GetActiveRenderTarget().commandBuffer.get());
 
-            m_renderer.EndFrame();
+            m_uiRenderer.EndFrame();
         }
 
         m_device.GetVkDevice().waitIdle();

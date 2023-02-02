@@ -1,23 +1,18 @@
 #pragma once
 
-#include "../device.hpp"
-#include "../resources/image.hpp"
-#include "../swapchain.hpp"
-#include "render_target.hpp"
-#include "renderer.hpp"
-
-#include <Tracy.hpp>
-#include <functional>
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg::render
-{
-using vkg::resources::Image;
+#include <graphics/rendering/render_target.hpp>
+#include <graphics/rendering/renderer.hpp>
+#include <graphics/resources/image.hpp>
 
-class SwapchainRenderer : public IRenderer
+namespace aln
+{
+
+class UIRenderer : public vkg::render::IRenderer
 {
   private:
-    Swapchain* m_pSwapchain;
+    vkg::Swapchain* m_pSwapchain;
 
     void CreateTargetImages() override
     {
@@ -27,33 +22,33 @@ class SwapchainRenderer : public IRenderer
 
         for (size_t i = 0; i < images.size(); i++)
         {
-            auto target = std::make_shared<Image>(m_pDevice, images[i], m_colorImageFormat);
+            auto target = std::make_shared<vkg::resources::Image>(m_pDevice, images[i], m_colorImageFormat);
             target->AddView(vk::ImageAspectFlagBits::eColor);
             target->SetDebugName("Swapchain Target");
             m_targetImages.push_back(target);
         };
     }
 
-    RenderTarget& GetNextTarget() override
+    vkg::render::RenderTarget& GetNextTarget() override
     {
         m_activeImageIndex = m_pSwapchain->AcquireNextImage(m_frames[m_currentFrameIndex].imageAvailable.get());
         return m_renderTargets[m_activeImageIndex];
     }
 
   public:
-    SwapchainRenderer() {}
+    UIRenderer() {}
 
-    void Create(Swapchain* pSwapchain)
+    void Create(vkg::Swapchain* pSwapchain)
     {
         m_pSwapchain = pSwapchain;
 
         // Hook a callback that will trigger when the associated swapchain is resized
-        m_pSwapchain->AddResizeCallback(std::bind(&SwapchainRenderer::Resize, this, std::placeholders::_1, std::placeholders::_2));
+        m_pSwapchain->AddResizeCallback(std::bind(&UIRenderer::Resize, this, std::placeholders::_1, std::placeholders::_2));
         CreateInternal(pSwapchain->GetDevice(),
             pSwapchain->GetWidth(),
             pSwapchain->GetHeight(),
             pSwapchain->GetImageFormat());
-        CreatePipelines();
+        // CreatePipelines();
     }
 
     void Resize(uint32_t width, uint32_t height)
@@ -65,7 +60,7 @@ class SwapchainRenderer : public IRenderer
             m_pSwapchain->GetImageFormat());
     }
 
-    // TODO: De-duplicate
+    // TODO: Signal the semaphore manually
     void EndFrame()
     {
         ZoneScoped;
@@ -97,4 +92,4 @@ class SwapchainRenderer : public IRenderer
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 };
-} // namespace aln::vkg::render
+} // namespace aln

@@ -29,42 +29,16 @@ class Camera;
 class Entity;
 class IComponent;
 
-namespace vkg::render
-{
-class IRenderer;
-}
-
 class GraphicsSystem : public IWorldSystem
 {
-    vkg::render::IRenderer* m_pRenderer = nullptr;
-
-    Camera* m_pCameraComponent = nullptr;
-    vkg::resources::Buffer m_cameraUBO;
-
-    // Viewport info
-    /// @todo: Move to a specific Viewport class that get passed around
-    float m_aspectRatio = 1.0f;
-
-    // Lights use a shared buffer and descriptorSet, so it's held in the system
-    /// @todo: Bundle in a specific class
-    IDVector<Light*> m_lightComponents;
-    vkg::resources::Buffer m_lightsBuffer;
-    vk::UniqueDescriptorSet m_lightsVkDescriptorSet;
-
-    // Debuging render state(s)
-    LinesRenderState m_linesRenderState;
-
     // Mesh components are grouped by mesh instance so that we can have one descriptor per mesh instance
     // This also allows us to decouple rendering stuff from the base mesh classes
-    /// @todo The state could be held by the renderer so that it could be swapped easily. Not useful yet tho !
     struct SkeletalMeshRenderInstance
     {
         const SkeletalMesh* m_pMesh;
         IDVector<SkeletalMeshComponent*> m_components;
-        vkg::resources::Buffer m_skinningBuffer;
-        vk::UniqueDescriptorSet m_descriptorSet;
 
-        SkeletalMeshRenderInstance(vkg::Device* pDevice, const SkeletalMesh* pMesh, vkg::resources::Buffer* pUniformBuffer);
+        SkeletalMeshRenderInstance(const SkeletalMesh* pMesh) : m_pMesh(pMesh) {}
         uint32_t GetID() const { return m_pMesh->GetID(); }
     };
 
@@ -72,16 +46,28 @@ class GraphicsSystem : public IWorldSystem
     {
         const StaticMesh* m_pMesh;
         IDVector<StaticMeshComponent*> m_components;
-        vk::UniqueDescriptorSet m_descriptorSet;
 
-        StaticMeshRenderInstance(vkg::Device* pDevice, const StaticMesh* pMesh, vkg::resources::Buffer* pUniformBuffer);
+        StaticMeshRenderInstance(const StaticMesh* pMesh) : m_pMesh(pMesh) {}
         uint32_t GetID() const { return m_pMesh->GetID(); }
     };
 
-    IDVector<SkeletalMeshRenderInstance> m_SkeletalMeshRenderInstances;
-    IDVector<StaticMeshRenderInstance> m_StaticMeshRenderInstances;
+    SceneRenderer* m_pRenderer = nullptr;
 
-    void CreateLightsDescriptorSet();
+    // Viewport info
+    /// @todo: Move to a specific Viewport class that get passed around
+    float m_aspectRatio = 1.0f;
+
+    // Debuging render state(s)
+    LinesRenderState m_linesRenderState;
+
+    // Registered components
+    Camera* m_pCameraComponent = nullptr;
+    IDVector<SkeletalMeshRenderInstance> m_skeletalMeshRenderInstances;
+    IDVector<StaticMeshRenderInstance> m_staticMeshRenderInstances;
+    IDVector<Light*> m_lightComponents;
+
+    std::vector<const SkeletalMeshComponent*> m_visibleSkeletalMeshComponents;
+    std::vector<const StaticMeshComponent*> m_visibleStaticMeshComponents;
 
     // -------------------------------------------------
     // System Methods
@@ -97,6 +83,6 @@ class GraphicsSystem : public IWorldSystem
     void RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext);
 
   public:
-    GraphicsSystem(vkg::render::IRenderer* pRenderer);
+    GraphicsSystem(SceneRenderer* pRenderer) : m_pRenderer(pRenderer) {}
 };
 } // namespace aln
