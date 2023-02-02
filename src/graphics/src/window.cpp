@@ -78,7 +78,7 @@ void Window::KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int act
     auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(pGlfwWindow));
     for (auto& callback : window->m_keyCallbacks)
     {
-        callback(scancode, action);
+        callback(key, action);
     }
 }
 
