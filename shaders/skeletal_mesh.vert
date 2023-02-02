@@ -1,4 +1,4 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_debug_printf : enable
 #pragma shader_stage(vertex)
@@ -45,11 +45,12 @@ void main()
 	// debugPrintfEXT("out_pos (%f, %f, %f)", out_pos.x, out_pos.y, out_pos.z);
 
 	// Calculate skinned matrix from weights and joint indices of the current vertex
+	uint instance_bones_start_index = pushConstants.bones_start_index + ((gl_InstanceIndex - gl_BaseInstance) * pushConstants.bones_count);
 	mat4 skinMat = 
-		in_weights.x * jointMatrices[pushConstants.bones_start_index + int(in_bone_indices.x)] +
-		in_weights.y * jointMatrices[pushConstants.bones_start_index + int(in_bone_indices.y)] +
-		in_weights.z * jointMatrices[pushConstants.bones_start_index + int(in_bone_indices.z)] +
-		in_weights.w * jointMatrices[pushConstants.bones_start_index + int(in_bone_indices.w)];
+		in_weights.x * jointMatrices[instance_bones_start_index + int(in_bone_indices.x)] +
+		in_weights.y * jointMatrices[instance_bones_start_index + int(in_bone_indices.y)] +
+		in_weights.z * jointMatrices[instance_bones_start_index + int(in_bone_indices.z)] +
+		in_weights.w * jointMatrices[instance_bones_start_index + int(in_bone_indices.w)];
 
 	gl_Position = sceneData.projection * sceneData.view * modelMatrices[gl_InstanceIndex] * skinMat * vec4(in_pos.xyz, 1.0);
 	
