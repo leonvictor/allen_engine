@@ -514,22 +514,21 @@ class SceneRenderer : public vkg::render::IRenderer
 
         // ---- Upload all transforms to the GPU storage buffer
         // TODO: Only upload transforms that changed ? It would require keeping the same index between render passes
-        auto pBufferMemory = m_modelTransformsBuffer.Map<glm::mat4x4>();
         glm::mat4x4 modelMatrix;
+        auto pBufferMemory = m_modelTransformsBuffer.Map<glm::mat4x4>();
         for (const auto pSkeletalMeshComponent : data.m_skeletalMeshComponents)
         {
             modelMatrix = pSkeletalMeshComponent->GetWorldTransform().ToMatrix();
             memcpy(pBufferMemory, &modelMatrix, sizeof(glm::mat4x4));
-            pBufferMemory += sizeof(glm::mat4x4);
+            pBufferMemory++;
         }
 
         for (const auto pStaticMeshComponent : data.m_staticMeshComponents)
         {
             modelMatrix = pStaticMeshComponent->GetWorldTransform().ToMatrix();
             memcpy(pBufferMemory, &modelMatrix, sizeof(glm::mat4x4));
-            pBufferMemory += sizeof(glm::mat4x4);
+            pBufferMemory++;
         }
-
         m_modelTransformsBuffer.Unmap();
 
         // ---- Upload skeletal mesh's transform matrices
@@ -538,7 +537,7 @@ class SceneRenderer : public vkg::render::IRenderer
         {
             auto boneCount = pSkeletalMeshComponent->GetBonesCount();
             memcpy(pBufferMemory, pSkeletalMeshComponent->m_skinningTransforms.data(), boneCount * sizeof(glm::mat4x4));
-            pBufferMemory += boneCount * sizeof(glm::mat4x4);
+            pBufferMemory += boneCount;
         }
         m_skinningBuffer.Unmap();
 
