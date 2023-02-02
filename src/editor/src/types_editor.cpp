@@ -1,4 +1,6 @@
 #include "types_editor.hpp"
+
+#include <imgui/imgui.h>
 #include <imgui_stdlib.h>
 
 #include <assets/asset_id.hpp>
@@ -16,7 +18,6 @@ TypeEditorService::TypeEditorService()
     RegisterType<int>();
     RegisterType<float>();
     RegisterType<bool>();
-    RegisterType<AssetHandle<Mesh>>();
     RegisterType<AssetHandle<StaticMesh>>();
     RegisterType<AssetHandle<SkeletalMesh>>();
     RegisterType<AssetHandle<Material>>();
@@ -31,15 +32,15 @@ TypeEditorService::TypeEditorService()
 template <typename T>
 void TypeEditorService::RegisterType()
 {
-    auto pDesc = aln::reflect::TypeResolver<T>::get();
-    m_displayFuncs[pDesc->m_typeIndex] = std::bind(&TypeEditorService::RegisteredDisplay<T>, this, std::placeholders::_1, std::placeholders::_2);
+    auto pDesc = aln::reflect::TypeInfoResolver<T>::Get();
+    m_displayFuncs[pDesc->m_typeID] = std::bind(&TypeEditorService::RegisteredDisplay<T>, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 template <>
 void TypeEditorService::Display<IComponent>(IComponent* pComponent, const char* label) const
 {
     ImGui::Indent();
-    DisplayTypeStruct(pComponent->GetType(), pComponent);
+    DisplayTypeStruct(pComponent->GetTypeInfo(), pComponent);
     ImGui::Unindent();
 }
 
@@ -47,7 +48,7 @@ template <>
 void TypeEditorService::Display<IEntitySystem>(IEntitySystem* pSystem, const char* label) const
 {
     ImGui::Indent();
-    DisplayTypeStruct(pSystem->GetType(), pSystem);
+    DisplayTypeStruct(pSystem->GetTypeInfo(), pSystem);
     ImGui::Unindent();
 }
 
