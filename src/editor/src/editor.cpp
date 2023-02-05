@@ -12,6 +12,7 @@
 
 #include <anim/animation_clip.hpp>
 
+#include <entities/entity_descriptors.hpp>
 #include <entities/entity_system.hpp>
 
 #include <glm/vec3.hpp>
@@ -64,6 +65,10 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
                 }
                 if (ImGui::MenuItem("Save..."))
                 {
+                    EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_worldEntity.m_entityMap, *pTypeRegistryService);
+                    BinaryFileArchive archive("scene.aln", IBinaryArchive::IOMode::Write);
+                    archive << mapDescriptor;
+
                     // TODO: Save the current state of the editor and scenes
                 }
                 if (ImGui::MenuItem("Export..."))

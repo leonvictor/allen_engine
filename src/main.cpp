@@ -31,6 +31,7 @@
 #include <reflection/services/type_registry_service.hpp>
 
 #include <entities/entity.hpp>
+#include <entities/entity_descriptors.hpp>
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
@@ -79,7 +80,7 @@
 #include <Tracy.hpp>
 
 // Test anim graph
-#include <anim/graph/graph.hpp>
+// #include <anim/graph/graph.hpp>
 #include <anim/graph/nodes/animation_clip_node.hpp>
 
 namespace aln
@@ -232,45 +233,10 @@ class Engine
         m_worldEntity.Initialize(m_serviceProvider);
         m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
 
-        // Create some entities
-        {
-            // TODO: Refine how the editor accesses the map
-            Entity* pCameraEntity = m_worldEntity.m_entityMap.CreateEntity("MainCamera");
-            auto pCameraComponent = aln::New<Camera>();
-            pCameraComponent->SetLocalTransformPosition(glm::vec3(0.0f, 0.0f, -20.0f));
-            pCameraEntity->AddComponent(pCameraComponent);
-
-            pCameraEntity->CreateSystem<EditorCameraController>();
-        }
-
-        {
-            Entity* pLightEntity = m_worldEntity.m_entityMap.CreateEntity("DirectionalLight");
-            Light* pLightComponent = aln::New<Light>();
-            pLightComponent->direction = WORLD_RIGHT;
-            pLightComponent->type = Light::Type::Directional;
-            pLightComponent->SetLocalTransformPosition(glm::vec3(-4.5f));
-            pLightEntity->AddComponent(pLightComponent);
-
-            Entity* pPointLightEntity = m_worldEntity.m_entityMap.CreateEntity("PointLight");
-            Light* pPLightComponent = aln::New<Light>();
-            pPLightComponent->direction = WORLD_RIGHT;
-            pPLightComponent->type = Light::Type::Point;
-            pPLightComponent->SetLocalTransformPosition(glm::vec3(-4.5f));
-            pPointLightEntity->AddComponent(pPLightComponent);
-        }
-
-        auto pMesh = aln::New<SkeletalMeshComponent>();
-        pMesh->SetMesh(MODEL_PATH);
-        pMesh->SetSkeleton(TEST_SKELETON_PATH);
-
-        auto pAnim = aln::New<AnimationPlayerComponent>();
-        pAnim->SetSkeleton(std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Armature.skel");
-        pAnim->SetAnimationClip(std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Default.anim");
-
-        Entity* pCube = m_worldEntity.m_entityMap.CreateEntity("Cesium Man");
-        pCube->CreateSystem<AnimationSystem>();
-        pCube->AddComponent(pMesh);
-        pCube->AddComponent(pAnim);
+        EntityMapDescriptor mapDescriptor;
+        BinaryFileArchive archive("scene.aln", IBinaryArchive::IOMode::Read);
+        archive >> mapDescriptor;
+        mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, m_typeRegistryService);
 
         m_editor.Initialize(m_serviceProvider);
     }

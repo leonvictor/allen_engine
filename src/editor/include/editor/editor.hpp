@@ -21,7 +21,6 @@
 #include <fmt/core.h>
 
 #include <common/memory.hpp>
-#include <reflection/reflection.hpp>
 
 #include <entities/component.hpp>
 #include <entities/entity.hpp>
