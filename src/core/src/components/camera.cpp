@@ -6,6 +6,7 @@ namespace aln
 {
 
 ALN_REGISTER_IMPL_BEGIN(COMPONENTS, Camera)
+ALN_REFLECT_BASE(SpatialComponent)
 ALN_REFLECT_MEMBER(fov, Field of View)
 ALN_REFLECT_MEMBER(nearPlane, Near Plane)
 ALN_REFLECT_MEMBER(farPlane, Far Plane)

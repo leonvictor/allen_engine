@@ -4,6 +4,7 @@
 
 #include <common/transform.hpp>
 #include <common/uuid.hpp>
+#include <reflection/type_info.hpp>
 
 #include <vector>
 
@@ -14,8 +15,11 @@ namespace aln
 /// They can be attached to other spatial entities to form hierarchies.
 class SpatialComponent : public IComponent
 {
+    ALN_REGISTER_TYPE()
+
   private:
-      friend class Entity;
+    friend class Entity;
+    friend class EntityDescriptor;
 
     /// @brief List of attached children components.
     std::vector<SpatialComponent*> m_spatialChildren;

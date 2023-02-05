@@ -31,6 +31,8 @@ struct UniformBufferObject;
 // representing them on the GPU.
 class MeshComponent : public SpatialComponent
 {
+    ALN_REGISTER_TYPE()
+
     friend class GraphicsSystem;
 
   protected:

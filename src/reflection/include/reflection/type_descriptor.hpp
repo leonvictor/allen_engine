@@ -49,6 +49,7 @@ class ClassMemberDescriptor
     }
 };
 
+/// @brief Serializable description of a class instance. Can be used to save to/load from disk.
 class TypeDescriptor
 {
     StringID m_typeID;
@@ -70,10 +71,45 @@ class TypeDescriptor
         archive >> m_members;
     }
 
-    bool IsValid() const { return m_typeID.IsValid(); }
+  private:
+    uint32_t InstanciateSubobject(const TypeInfo* pTypeInfo, uint32_t startingMemberIndex, void* pInstance, const TypeRegistryService* pTypeRegistryService)
+    {
+        if (pTypeInfo->m_pBaseTypeInfo != nullptr)
+        {
+            startingMemberIndex += InstanciateSubobject(pTypeInfo->m_pBaseTypeInfo, startingMemberIndex, pInstance, pTypeRegistryService);
+        }
+
+        auto memberCount = pTypeInfo->GetMemberCount();
+        for (auto memberIdx = 0; memberIdx < memberCount; ++memberIdx)
+        {
+            auto pMemberInfo = pTypeInfo->GetMemberInfo(memberIdx);
+            auto pMemberTypeInfo = pTypeRegistryService->GetTypeInfo(pMemberInfo->GetTypeID());
+
+            if (pMemberTypeInfo->IsPrimitive())
+            {
+                auto pMemberPrimitiveTypeInfo = dynamic_cast<const PrimitiveTypeInfo*>(pMemberTypeInfo);
+
+                auto archive = BinaryMemoryArchive(m_members[startingMemberIndex + memberIdx].m_value, IBinaryArchive::IOMode::Read);
+                auto pMemberMemory = (std::byte*) pInstance + pMemberInfo->GetOffset();
+                pMemberPrimitiveTypeInfo->Deserialize(archive, pMemberMemory);
+            }
+            else
+            {
+                // TODO
+                assert(false);
+            }
+        }
+
+        return startingMemberIndex + memberCount;
+    }
 
     static void DescribeType(const IReflected* pTypeInstance, TypeDescriptor& typeDesc, const TypeRegistryService* pTypeRegistryService, const reflect::TypeInfo* pTypeInfo)
     {
+        if (pTypeInfo->m_pBaseTypeInfo != nullptr)
+        {
+            DescribeType(pTypeInstance, typeDesc, pTypeRegistryService, pTypeInfo->m_pBaseTypeInfo);
+        }
+
         for (auto& memberInfo : pTypeInfo->GetMembers())
         {
             auto& memberDescriptor = typeDesc.m_members.emplace_back();
@@ -101,7 +137,10 @@ class TypeDescriptor
         }
     }
 
-    /// @brief Describe a type instance by reflecting its value(s)
+  public:
+    bool IsValid() const { return m_typeID.IsValid(); }
+
+    /// @brief Describe a type instance by reflecting its member value(s)
     virtual void DescribeTypeInstance(const IReflected* pTypeInstance, const TypeRegistryService* pTypeRegistryService, const reflect::TypeInfo* pTypeInfo)
     {
         assert(!IsValid() && pTypeInstance != nullptr);
@@ -111,7 +150,7 @@ class TypeDescriptor
         DescribeType(pTypeInstance, *this, pTypeRegistryService, pTypeInfo);
     }
 
-    /// @brief Instanciate this type with members values set as the original described instance's
+    /// @brief Create an instance of this type with members values set as the original described instance's
     template <typename T>
     T* Instanciate(const TypeRegistryService* pTypeRegistryService)
     {
@@ -119,31 +158,9 @@ class TypeDescriptor
         assert(IsValid());
 
         auto pTypeInfo = pTypeRegistryService->GetTypeInfo(m_typeID);
-
-        auto memberCount = m_members.size();
-        assert(memberCount == pTypeInfo->GetMemberCount());
-
         auto pInstance = pTypeInfo->CreateTypeInstance<T>();
 
-        for (auto memberIdx = 0; memberIdx < memberCount; ++memberIdx)
-        {
-            auto pMemberInfo = pTypeInfo->GetMemberInfo(memberIdx);
-            auto pMemberTypeInfo = pTypeRegistryService->GetTypeInfo(pMemberInfo->GetTypeID());
-
-            if (pMemberTypeInfo->IsPrimitive())
-            {
-                auto pMemberPrimitiveTypeInfo = dynamic_cast<const PrimitiveTypeInfo*>(pMemberTypeInfo);
-
-                auto archive = BinaryMemoryArchive(m_members[memberIdx].m_value, IBinaryArchive::IOMode::Read);
-                auto pMemberMemory = (std::byte*) pInstance + pMemberInfo->GetOffset();
-                pMemberPrimitiveTypeInfo->Deserialize(archive, pMemberMemory);
-            }
-            else
-            {
-                // TODO
-                assert(false);
-            }
-        }
+        InstanciateSubobject(pTypeInfo, 0, pInstance, pTypeRegistryService);
 
         return pInstance;
     }

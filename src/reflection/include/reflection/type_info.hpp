@@ -116,6 +116,7 @@ class TypeInfo
     size_t m_size = 0;
     size_t m_alignment = 0;
     std::vector<ClassMemberInfo> m_members;
+    const TypeInfo* m_pBaseTypeInfo = nullptr;
 
     // Bound lifetime functions
     std::function<void*()> m_createType;
@@ -244,6 +245,31 @@ class PrimitiveTypeInfo : public TypeInfo
         pTypeInfo->m_createType = []() { return aln::New<T>(); };          \
         pTypeInfo->m_createTypeInPlace = [](void* pMemory) { return aln::PlacementNew<T>(pMemory); };
 
+#define ALN_REGISTER_ABSTRACT_IMPL_BEGIN(type)                                 \
+    aln::reflect::TypeInfo type::Reflection(type::InitReflection, "ABSTRACT"); \
+                                                                               \
+    const aln::reflect::TypeInfo* type::GetTypeInfo() const                    \
+    {                                                                          \
+        return &Reflection;                                                    \
+    }                                                                          \
+                                                                               \
+    const aln::reflect::TypeInfo* type::GetStaticTypeInfo()                    \
+    {                                                                          \
+        return &Reflection;                                                    \
+    }                                                                          \
+                                                                               \
+    void type::InitReflection(aln::reflect::TypeInfo* pTypeInfo)               \
+    {                                                                          \
+        using T = type;                                                        \
+        pTypeInfo->m_typeID = aln::StringID(#type);                            \
+        pTypeInfo->m_name = #type;                                             \
+        pTypeInfo->m_prettyName = aln::reflect::PrettifyName(#type);           \
+        pTypeInfo->m_size = sizeof(T);                                         \
+        pTypeInfo->m_alignment = alignof(T);
+
+#define ALN_REFLECT_BASE(baseClass) \
+    pTypeInfo->m_pBaseTypeInfo = baseClass::GetStaticTypeInfo();
+
 #define ALN_REFLECT_MEMBER(name, displayName) \
     pTypeInfo->m_members.emplace_back(aln::reflect::TypeInfoResolver<decltype(T::name)>::Get()->m_typeID, #name, offsetof(T, name), sizeof(decltype(T::name)));
 
@@ -282,6 +308,7 @@ class PrimitiveTypeInfo : public TypeInfo
 // Register primitives
 // TODO: Move colors/glm out
 #include <common/colors.hpp>
+#include <common/transform.hpp>
 #include <glm/vec3.hpp>
 
 namespace aln
@@ -292,5 +319,6 @@ ALN_REGISTER_PRIMITIVE(glm::vec3)
 ALN_REGISTER_PRIMITIVE(int)
 ALN_REGISTER_PRIMITIVE(float)
 ALN_REGISTER_PRIMITIVE(bool)
+ALN_REGISTER_PRIMITIVE(Transform)
 ALN_REGISTER_PRIMITIVE(std::string)
 } // namespace aln

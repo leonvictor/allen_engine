@@ -6,6 +6,10 @@
 namespace aln
 {
 
+ALN_REGISTER_ABSTRACT_IMPL_BEGIN(SpatialComponent)
+ALN_REFLECT_MEMBER(m_localTransform, Transform)
+ALN_REGISTER_IMPL_END()
+
 void SpatialComponent::CalculateWorldTransform(bool callback)
 {
     if (m_pSpatialParent == nullptr)
