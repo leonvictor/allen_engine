@@ -53,6 +53,7 @@
 #include <assets/module/module.hpp>
 #include <core/module/module.hpp>
 #include <editor/module/module.hpp>
+#include <entities/module/module.hpp>
 
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
@@ -136,6 +137,7 @@ class Engine
     Core::Module m_coreModule;
     Anim::Module m_animModule;
     Tooling::Module m_toolingModule;
+    Entities::Module m_entitiesModule;
 
   public:
     Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity)
@@ -186,14 +188,15 @@ class Engine
 
         m_updateContext.m_pServiceProvider = &m_serviceProvider;
 
-        CreateWorld();
-        ShareImGuiContext();
-
         // Initialize modules
         m_coreModule.RegisterTypes(&m_typeRegistryService);
         m_assetsModule.RegisterTypes(&m_typeRegistryService);
         m_animModule.RegisterTypes(&m_typeRegistryService);
         m_toolingModule.RegisterTypes(&m_typeRegistryService);
+        m_entitiesModule.RegisterTypes(&m_typeRegistryService);
+
+        CreateWorld();
+        ShareImGuiContext();
     }
 
     void run()

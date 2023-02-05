@@ -10,6 +10,8 @@ add_library(
     src/world_entity.cpp
     src/world_system.cpp
     src/entity_system.cpp
+
+    src/module/module.cpp
     )
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
