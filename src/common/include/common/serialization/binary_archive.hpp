@@ -167,7 +167,6 @@ class BinaryFileArchive : public IBinaryArchive
     template <TriviallyCopyableType T>
     BinaryFileArchive& operator<<(const T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsWriting());
 
         auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
@@ -179,7 +178,6 @@ class BinaryFileArchive : public IBinaryArchive
     template <TriviallyCopyableType T>
     BinaryFileArchive& operator>>(T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsReading());
 
         auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
@@ -334,7 +332,6 @@ class BinaryMemoryArchive : public IBinaryArchive
     template <TriviallyCopyableType T>
     BinaryMemoryArchive& operator>>(T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsReading());
 
         memcpy(&data, &*m_pReader, sizeof(T));
