@@ -49,6 +49,7 @@ class Entity
     friend Command;
     friend class EntityMap;
     friend class EntityDescriptor;
+    friend class EntityMapDescriptor;
 
     enum class Status
     {

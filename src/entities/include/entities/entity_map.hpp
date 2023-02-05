@@ -14,6 +14,7 @@ class Entity;
 class EntityMap
 {
     friend class WorldEntity;
+    friend class EntityMapDescriptor;
 
     enum class Status
     {
