@@ -210,7 +210,7 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     auto pSkeletalMeshComponent = dynamic_cast<SkeletalMeshComponent*>(pComponent);
     if (pSkeletalMeshComponent != nullptr)
     {
-        auto& meshInstance = m_skeletalMeshRenderInstances.Get(pStaticMeshComponent->GetMesh()->GetID());
+        auto& meshInstance = m_skeletalMeshRenderInstances.Get(pSkeletalMeshComponent->GetMesh()->GetID());
         meshInstance.m_components.Erase(pSkeletalMeshComponent);
         if (meshInstance.m_components.Empty())
         {
