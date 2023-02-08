@@ -6,6 +6,11 @@
 #include <common/string_id.hpp>
 #include <reflection/type_descriptor.hpp>
 
+#include "component.hpp"
+#include "entity.hpp"
+#include "entity_map.hpp"
+#include "spatial_component.hpp"
+
 namespace aln
 {
 // We can't use the default serialization system for entities
@@ -149,6 +154,8 @@ class EntityDescriptor
             pEntity->CreateSystem(pSystemTypeInfo);
         }
     }
+
+    bool IsValid() const { return !m_name.empty(); }
 
   public:
     template <class Archive>

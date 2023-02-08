@@ -450,15 +450,47 @@ void Editor::EntityOutlinePopup(Entity* pEntity)
                 m_worldEntity.m_entityMap.RemoveEntity(pEntity);
             }
         }
-        if (ImGui::MenuItem("Add Empty Entity", "", false, pEntity == nullptr))
+
+        if (ImGui::MenuItem("Create Empty Entity", "", false, pEntity == nullptr))
         {
-            auto* pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
-            // TODO: This will be useful with other options, but empty entities are not spatial so they can't be attached to others.
-            // if (pEntity != nullptr)
-            // {
-            //     pNewEntity->SetParentEntity(pEntity);
-            // }
+            auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
         }
+
+        ImGui::Separator();
+
+        // Clipboard management
+        // TODO: Handle keyboard shortcuts
+        // TODO: Handle removing, copying, pasting, hierarchies of entities
+        // TODO: Handle removing, copying, pasting, multiple selected entities
+        if (pEntity != nullptr)
+        {
+            if (ImGui::MenuItem("Cut", "Ctrl + X"))
+            {
+                m_entityClipboard = EntityDescriptor(pEntity, m_pTypeRegistryService);
+                if (m_pSelectedEntity == pEntity)
+                {
+                    m_pSelectedEntity = nullptr;
+                }
+                m_worldEntity.m_entityMap.RemoveEntity(pEntity);
+            }
+
+            if (ImGui::MenuItem("Copy", "Ctrl + C"))
+            {
+                m_entityClipboard = EntityDescriptor(pEntity, m_pTypeRegistryService);
+            }
+        }
+
+        if (ImGui::MenuItem("Paste", "Ctrl + V", false, m_entityClipboard.IsValid()))
+        {
+            // TODO: Disable paste on non-spatial entities
+            auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("");
+            m_entityClipboard.InstanciateEntity(pNewEntity, m_pTypeRegistryService);
+            if (pEntity != nullptr)
+            {
+                pNewEntity->SetParentEntity(pEntity);
+            }
+        }
+
         ImGui::EndPopup();
     }
 }

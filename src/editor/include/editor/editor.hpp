@@ -64,6 +64,7 @@ class Editor
     WorldEntity& m_worldEntity;
     Entity* m_pSelectedEntity = nullptr;
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
+    EntityDescriptor m_entityClipboard;
 
     TypeEditorService m_typeEditorService;
     const TypeRegistryService* m_pTypeRegistryService;
