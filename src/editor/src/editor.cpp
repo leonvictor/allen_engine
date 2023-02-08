@@ -65,15 +65,14 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
                 }
                 if (ImGui::MenuItem("Save..."))
                 {
-                    EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_worldEntity.m_entityMap, *pTypeRegistryService);
-                    BinaryFileArchive archive("scene.aln", IBinaryArchive::IOMode::Write);
-                    archive << mapDescriptor;
-
-                    // TODO: Save the current state of the editor and scenes
+                    SaveScene();
+                    SaveState();
+                    // TODO: Save assets !
                 }
                 if (ImGui::MenuItem("Export..."))
                 {
                     // TODO: Export a portable folder with everything we need to run a game
+                    // Compile assets / Recompile paths
                 }
 
                 ImGui::EndMenu();

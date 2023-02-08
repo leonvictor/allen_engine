@@ -2,9 +2,11 @@
 
 #include <assert.h>
 #include <concepts>
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <typeindex>
+
 #include <vulkan/vulkan.hpp>
 
 #include <imgui.h>
@@ -24,9 +26,12 @@
 
 #include <entities/component.hpp>
 #include <entities/entity.hpp>
+#include <entities/entity_descriptors.hpp>
 #include <entities/spatial_component.hpp>
 #include <entities/update_context.hpp>
 #include <entities/world_entity.hpp>
+
+#include <reflection/services/type_registry_service.hpp>
 
 #include "animation_graph/animation_graph_editor.hpp"
 #include "asset_editor_window.hpp"
@@ -54,11 +59,15 @@ void SetImGuiContext(const EditorImGuiContext& context);
 class Editor
 {
   private:
+    std::filesystem::path m_scenePath;
+
     WorldEntity& m_worldEntity;
     Entity* m_pSelectedEntity = nullptr;
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
 
     TypeEditorService m_typeEditorService;
+    const TypeRegistryService* m_pTypeRegistryService;
+
     EditorWindowContext m_editorWindowContext;
 
     AssetEditorWindowsFactories m_assetWindowsFactory;
@@ -122,15 +131,21 @@ class Editor
     // -------------------
     // Editor Lifetime
     //--------------------
-    void Initialize(ServiceProvider& serviceProvider)
+    void Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath)
     {
+        m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+
         // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
         m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
         m_editorWindowContext.m_pTypeEditorService = &m_typeEditorService;
-
         m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>();
 
         m_assetsBrowser.Initialize(&m_editorWindowContext);
+
+        // TODO: Usability stuff: automatically load last used scene etc
+        m_scenePath = scenePath;
+        LoadScene();
+        LoadState();
     }
 
     void Shutdown()
@@ -143,9 +158,36 @@ class Editor
         m_assetWindows.clear();
     }
 
-    const glm::vec2& GetScenePreviewSize() const
+    const glm::vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
+
+    void SaveScene() const
     {
-        return {m_scenePreviewWidth, m_scenePreviewHeight};
+        EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_worldEntity.m_entityMap, *m_pTypeRegistryService);
+        BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Write);
+        archive << mapDescriptor;
+    }
+
+    void LoadScene()
+    {
+        // TODO
+        EntityMapDescriptor mapDescriptor;
+        BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Read);
+        archive >> mapDescriptor;
+
+        mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, *m_pTypeRegistryService);
+    }
+
+    void SaveState() const
+    {
+        // TODO: Save the current state of the editor
+        // including all subwindows
+        for (auto& [assetID, pWindow] : m_assetWindows)
+        {
+        }
+    }
+
+    void LoadState()
+    {
     }
 
     void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);

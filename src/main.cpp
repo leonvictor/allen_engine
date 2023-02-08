@@ -31,7 +31,6 @@
 #include <reflection/services/type_registry_service.hpp>
 
 #include <entities/entity.hpp>
-#include <entities/entity_descriptors.hpp>
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
@@ -233,12 +232,7 @@ class Engine
         m_worldEntity.Initialize(m_serviceProvider);
         m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
 
-        EntityMapDescriptor mapDescriptor;
-        BinaryFileArchive archive("scene.aln", IBinaryArchive::IOMode::Read);
-        archive >> mapDescriptor;
-        mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, m_typeRegistryService);
-
-        m_editor.Initialize(m_serviceProvider);
+        m_editor.Initialize(m_serviceProvider, "scene.aln");
     }
 
     void Update()
