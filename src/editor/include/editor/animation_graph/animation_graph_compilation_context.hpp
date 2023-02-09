@@ -38,6 +38,9 @@ class AnimationGraphCompilationContext
     template <typename T>
     bool GetSettings(const EditorGraphNode* pNode, AnimationGraphDefinition* pGraphDefinition, typename T::Settings*& pOutSettings)
     {
+        static_assert(std::is_base_of_v<RuntimeGraphNode, T>);
+        static_assert(std::is_base_of_v<RuntimeGraphNode::Settings, typename T::Settings>);
+
         auto it = std::find(m_compiledNodes.begin(), m_compiledNodes.end(), pNode);
         if (it != m_compiledNodes.end())
         {
@@ -46,7 +49,7 @@ class AnimationGraphCompilationContext
         }
 
         // Otherwise create the settings
-        pOutSettings = aln::New<T::Settings>();
+        pOutSettings = aln::New<typename T::Settings>();
         pOutSettings->m_nodeIndex = m_compiledNodes.size();
         pGraphDefinition->m_nodeSettings.push_back(pOutSettings);
 

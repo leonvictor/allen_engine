@@ -14,6 +14,8 @@ class AnimationGraphDataset : public IAsset
 {
     ALN_REGISTER_ASSET_TYPE("agds");
 
+    friend class AnimationGraphDatasetLoader;
+
   private:
     std::string m_name = "Default";
 

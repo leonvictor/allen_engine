@@ -55,6 +55,7 @@
 #include <editor/module/module.hpp>
 #include <entities/module/module.hpp>
 
+#include <core/asset_loaders/animation_graph_loader.hpp>
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
@@ -179,6 +180,8 @@ class Engine
         m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&m_device);
         m_assetService.RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
         m_assetService.RegisterAssetLoader<Skeleton, SkeletonLoader>();
+        m_assetService.RegisterAssetLoader<AnimationGraphDataset, AnimationGraphDatasetLoader>();
+        m_assetService.RegisterAssetLoader<AnimationGraphDefinition, AnimationGraphDefinitionLoader>();
 
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
