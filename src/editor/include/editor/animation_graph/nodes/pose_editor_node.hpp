@@ -19,6 +19,10 @@ class PoseEditorNode : public EditorGraphNode
         // TODO
     }
 
+    virtual void Deserialize()
+    {
+    }
+
     virtual void Initialize() override;
     virtual void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
 };

@@ -2,6 +2,7 @@
 
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
+#include <common/serialization/binary_archive.hpp>
 
 #include "../animation_clip.hpp"
 
@@ -31,6 +32,15 @@ class AnimationGraphDataset : public IAsset
     const AnimationClip* GetAnimationClip(uint32_t index) const
     {
         return m_animationClips[index].get();
+    }
+
+    void Serialize(BinaryMemoryArchive& archive) const
+    {
+        archive << m_animationClips.size();
+        for (auto& clipHandle : m_animationClips)
+        {
+            archive << clipHandle.GetAssetID();
+        }
     }
 
     // TODO: Instanciation:

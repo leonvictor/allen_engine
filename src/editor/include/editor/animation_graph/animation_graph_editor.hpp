@@ -32,11 +32,45 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     UUID m_contextPopupElementID;
 
+    bool m_waitingForAssetLoad = true;
+
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;
 
   public:
     void Update(const UpdateContext& context) override;
+
+    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id) override
+    {
+        // TODO: Could this be shared behavior with a parent class ?
+        IAssetEditorWindow::Initialize(pContext, id);
+
+        // Loading a graph definitions ends up with a runtime graph def which we don't need.
+        // Rather hand-load what we need from the archive
+        // m_pGraphDefinition = AssetHandle<AnimationGraphDefinition>(id);
+        // LoadAsset(m_pGraphDefinition);
+
+        auto archive = BinaryFileArchive(id.GetAssetPath(), IBinaryArchive::IOMode::Read);
+        AssetArchiveHeader header;
+
+        archive >> header;
+
+        // Deserialization
+        size_t nodeCount;
+        archive >> nodeCount;
+
+        // std::vector<std::type_index> nodeSettingsTypeIndices;
+        // archive >> nodeSettingsTypeIndices;
+    }
+
+    virtual void Shutdown() override
+    {
+        IAssetEditorWindow::Shutdown();
+        // if (m_pGraphDefinition.IsLoaded())
+        // {
+        //     UnloadAsset(m_pGraphDefinition);
+        // }
+    }
 
     bool IsDirty() { return m_dirty; }
 

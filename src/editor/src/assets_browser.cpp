@@ -4,7 +4,7 @@ namespace aln
 {
 
 // TODO: This should be infered automatically from registered asset types
-const std::vector<std::string> AssetsBrowser::AssetExtensionsFilter = {".anim", ".mesh", ".smsh", ".text", ".agdf", ".agds"};
+const std::vector<std::string> AssetsBrowser::AssetExtensionsFilter = {".anim", ".skel", ".mesh", ".smsh", ".text", ".agdf", ".agds"};
 
 void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entry& directoryEntry)
 {
@@ -27,6 +27,11 @@ void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entr
         if (it != AssetExtensionsFilter.end())
         {
             ImGui::TreeNodeEx(directoryEntry.path().filename().string().c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+            if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            {
+                AssetID id = AssetID(directoryEntry.path().string());
+                RequestAssetWindowCreation(id);
+            }
             if (ImGui::BeginDragDropSource())
             {
                 // Dragged tooltip

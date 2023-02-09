@@ -5,9 +5,14 @@
 #include "animation_graph/nodes/pose_editor_node.hpp"
 
 #include <anim/graph/animation_graph_dataset.hpp>
+#include <assets/asset_archive_header.hpp>
+#include <assets/asset_service.hpp>
+#include <config/path.h>
+#include <core/asset_loaders/animation_graph_loader.hpp>
+#include <reflection/services/type_registry_service.hpp>
+#include <reflection/type_info.hpp>
 
 #include <assert.h>
-#include <reflection/reflection.hpp>
 
 namespace aln
 {
@@ -15,13 +20,12 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
 {
     AnimationGraphCompilationContext context(this);
 
-    // Compile the graph definition
+    // Compile graph definition
+    AnimationGraphDefinition graphDefinition;
 
-    // Find the output node
     auto outputNodes = GetAllNodesOfType<PoseEditorNode>();
     assert(outputNodes.size() == 1);
 
-    AnimationGraphDefinition graphDefinition;
     outputNodes[0]->Compile(context, &graphDefinition);
 
     // Compile dataset
@@ -35,150 +39,229 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
         graphDataset.m_animationClips.emplace_back(clipID);
     }
 
-    // TODO: At this point we have both a definition and a dataset so we're good to go !
+    // TODO: Where does runtime asset serialization+saving occur ?
+
+    // Serialize graph definition
+    {
+        std::vector<std::byte> data;
+        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+        graphDefinition.Serialize(dataArchive);
+
+        auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
+
+        // TODO: Path
+        auto graphDefinitionPath = std::string(DEFAULT_ASSETS_DIR) + "/graph_definition." + AnimationGraphDefinition::GetStaticAssetTypeID().ToString();
+        auto fileArchive = BinaryFileArchive(graphDefinitionPath, IBinaryArchive::IOMode::Write);
+        fileArchive << header << data;
+    }
+
+    // Serialize graph dataset
+    {
+        std::vector<std::byte> data;
+        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+        graphDataset.Serialize(dataArchive);
+
+        auto header = AssetArchiveHeader(AnimationGraphDataset::GetStaticAssetTypeID());
+        for (auto& handle : graphDataset.m_animationClips)
+        {
+            header.AddDependency(handle.GetAssetID());
+        }
+
+        // TODO: Path
+        auto datasetPath = std::string(DEFAULT_ASSETS_DIR) + "/graph_dataset." + AnimationGraphDataset::GetStaticAssetTypeID().ToString();
+        auto fileArchive = BinaryFileArchive(datasetPath, IBinaryArchive::IOMode::Write);
+        fileArchive << header << data;
+    }
+
+    m_dirty = false;
     return nullptr;
 }
 
-void AnimationGraphEditor::Draw()
-
+void AnimationGraphEditor::Update(const UpdateContext& context)
 {
-    UUID hoveredNodeID, hoveredPinID, hoveredLinkID;
-    bool nodeHovered = ImNodes::IsNodeHovered(&hoveredNodeID);
-    bool pinHovered = ImNodes::IsPinHovered(&hoveredPinID);
-    bool linkHovered = ImNodes::IsLinkHovered(&hoveredLinkID);
+    // TODO: It might be better to save that during initialization
+    const auto pTypeRegistryService = context.GetService<TypeRegistryService>();
 
-    ImNodes::BeginNodeEditor();
-
-    // Open contextual popups and register context ID
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
+    std::string windowName = "Animation Graph";
+    if (IsDirty())
     {
-        if (pinHovered)
+        // TODO: Modifying a window name changes its ID and thus it loses its position
+        // windowName += "*";
+    }
+
+    if (m_waitingForAssetLoad)
+    {
+        if (m_pGraphDefinition.IsLoaded())
         {
-            m_contextPopupElementID = hoveredPinID;
-            ImGui::OpenPopup("graph_editor_pin_popup");
-        }
-        else if (nodeHovered)
-        {
-            m_contextPopupElementID = hoveredNodeID;
-            ImGui::OpenPopup("graph_editor_node_popup");
-        }
-        else if (linkHovered)
-        {
-            m_contextPopupElementID = hoveredLinkID;
-            ImGui::OpenPopup("graph_editor_link_popup");
+            // TODO: Initialize the editor from loaded graph data
+            m_waitingForAssetLoad = false;
         }
         else
         {
-            m_contextPopupElementID = UUID::InvalidID();
-            ImGui::OpenPopup("graph_editor_canvas_popup");
+            // ImGui::Text("Waiting for asset load");
+            // return; // TODO
         }
     }
 
-    if (ImGui::BeginPopup("graph_editor_canvas_popup"))
+    if (ImGui::Begin(windowName.c_str(), nullptr))
     {
-        const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
+        UUID hoveredNodeID, hoveredPinID, hoveredLinkID;
+        bool nodeHovered = ImNodes::IsNodeHovered(&hoveredNodeID);
+        bool pinHovered = ImNodes::IsPinHovered(&hoveredPinID);
+        bool linkHovered = ImNodes::IsLinkHovered(&hoveredLinkID);
 
-        if (ImGui::BeginMenu("Add Node"))
+        ImNodes::BeginNodeEditor();
+
+        // Open contextual popups and register context ID
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
         {
-            auto& animGraphNodeTypes = aln::reflect::GetTypesInScope("ANIM_GRAPH_NODE");
-            for (auto& pAnimGraphNodeType : animGraphNodeTypes)
+            if (pinHovered)
             {
-                if (ImGui::Selectable(pAnimGraphNodeType->GetPrettyName().c_str()))
-                {
-                    auto pNode = pAnimGraphNodeType->CreateType<EditorGraphNode>();
-                    pNode->Initialize();
-
-                    AddGraphNode(pNode);
-
-                    ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
-                }
+                m_contextPopupElementID = hoveredPinID;
+                ImGui::OpenPopup("graph_editor_pin_popup");
             }
-            ImGui::EndMenu();
+            else if (nodeHovered)
+            {
+                m_contextPopupElementID = hoveredNodeID;
+                ImGui::OpenPopup("graph_editor_node_popup");
+            }
+            else if (linkHovered)
+            {
+                m_contextPopupElementID = hoveredLinkID;
+                ImGui::OpenPopup("graph_editor_link_popup");
+            }
+            else
+            {
+                m_contextPopupElementID = UUID::InvalidID();
+                ImGui::OpenPopup("graph_editor_canvas_popup");
+            }
         }
 
-        if (ImGui::MenuItem("Debug: Compile Graph"))
+        if (ImGui::BeginPopup("graph_editor_canvas_popup"))
         {
-            Compile();
+            const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
+
+            if (ImGui::BeginMenu("Add Node"))
+            {
+                auto& animGraphNodeTypes = pTypeRegistryService->GetTypesInScope("ANIM_GRAPH_EDITOR_NODES");
+                for (auto& pAnimGraphNodeType : animGraphNodeTypes)
+                {
+                    if (ImGui::Selectable(pAnimGraphNodeType->m_name.c_str()))
+                    {
+                        auto pNode = pAnimGraphNodeType->CreateTypeInstance<EditorGraphNode>();
+                        pNode->Initialize();
+
+                        AddGraphNode(pNode);
+
+                        ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
+                    }
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::MenuItem("Compile & Save"))
+            {
+                Compile();
+            }
+            ImGui::EndPopup();
         }
-        ImGui::EndPopup();
-    }
 
-    if (ImGui::BeginPopup("graph_editor_pin_popup"))
-    {
-        ImGui::MenuItem("Pin !");
-        ImGui::EndPopup();
-    }
-
-    if (ImGui::BeginPopup("graph_editor_node_popup"))
-    {
-        if (ImGui::MenuItem("Remove node"))
+        if (ImGui::BeginPopup("graph_editor_pin_popup"))
         {
-            RemoveGraphNode(m_contextPopupElementID);
+            ImGui::MenuItem("Pin !");
+            ImGui::EndPopup();
         }
-        ImGui::EndPopup();
-    }
 
-    if (ImGui::BeginPopup("graph_editor_link_popup"))
-    {
-        if (ImGui::MenuItem("Remove link"))
+        if (ImGui::BeginPopup("graph_editor_node_popup"))
         {
-            RemoveLink(m_contextPopupElementID);
+            if (ImGui::MenuItem("Remove node"))
+            {
+                RemoveGraphNode(m_contextPopupElementID);
+            }
+            ImGui::EndPopup();
         }
-        ImGui::EndPopup();
-    }
 
-    // Draw nodes
-    for (auto pNode : m_graphNodes)
-    {
-        ImNodes::BeginNode(pNode->GetID());
-
-        ImNodes::BeginNodeTitleBar();
-        ImGui::Text(pNode->GetName().c_str());
-        ImNodes::EndNodeTitleBar();
-
-        for (auto& inputPin : pNode->m_inputPins)
+        if (ImGui::BeginPopup("graph_editor_link_popup"))
         {
-            ImNodes::BeginInputAttribute(inputPin.GetID());
-            ImGui::Text(inputPin.GetName().c_str());
-            ImNodes::EndInputAttribute();
+            if (ImGui::MenuItem("Remove link"))
+            {
+                RemoveLink(m_contextPopupElementID);
+            }
+            ImGui::EndPopup();
         }
 
-        // Display reflected fields
-        ImGui::PushItemWidth(100); // Max node width
-        auto pTypeDesc = pNode->GetType();
-        GetTypeEditorService()->DisplayTypeStruct(pTypeDesc, pNode);
-
-        for (auto& outputPin : pNode->m_outputPins)
+        // Draw nodes
+        for (auto pNode : m_graphNodes)
         {
-            ImNodes::BeginOutputAttribute(outputPin.GetID());
-            ImGui::Text(outputPin.GetName().c_str());
-            ImNodes::EndOutputAttribute();
+            ImNodes::BeginNode(pNode->GetID());
+
+            ImNodes::BeginNodeTitleBar();
+            ImGui::Text(pNode->GetName().c_str());
+            ImNodes::EndNodeTitleBar();
+
+            for (auto& inputPin : pNode->m_inputPins)
+            {
+                ImNodes::BeginInputAttribute(inputPin.GetID());
+                ImGui::Text(inputPin.GetName().c_str());
+                ImNodes::EndInputAttribute();
+            }
+
+            // Display reflected fields
+            ImGui::PushItemWidth(100); // Max node width
+            auto pTypeDesc = pNode->GetTypeInfo();
+            GetTypeEditorService()->DisplayTypeStruct(pTypeDesc, pNode);
+
+            for (auto& outputPin : pNode->m_outputPins)
+            {
+                ImNodes::BeginOutputAttribute(outputPin.GetID());
+                ImGui::Text(outputPin.GetName().c_str());
+                ImNodes::EndOutputAttribute();
+            }
+            ImGui::PopItemWidth();
+
+            ImNodes::EndNode();
         }
-        ImGui::PopItemWidth();
 
-        ImNodes::EndNode();
+        // Draw links
+        for (auto& link : m_links)
+        {
+            ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
+        }
+
+        ImNodes::EndNodeEditor();
+
+        // if (ImGui::BeginDragDropTarget())
+        // {
+        //     if (const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload("AssetID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
+        //     {
+        //         assert(pPayload->DataSize == sizeof(AssetID));
+        //         auto pID = (AssetID*) pPayload->Data;
+        //         if (pID->GetAssetTypeID() == AnimationGraphDefinition::GetStaticAssetTypeID())
+        //         {
+        //             auto pAssetService = context.GetService<AssetService>();
+        //             pAssetService->Load(m_)
+        //         }
+        //         if (pID->GetAssetTypeID() == AnimationGraphDataset::GetStaticAssetTypeID())
+        //         {
+        //         }
+        //     }
+        //     ImGui::EndDragDropTarget();
+        // }
+
+        // Handle link creation
+        UUID startPinID, endPinID, startNodeID, endNodeID;
+        if (ImNodes::IsLinkCreated(&startNodeID, &startPinID, &endNodeID, &endPinID))
+        {
+            AddLink(startNodeID, startPinID, endNodeID, endPinID);
+        }
+
+        UUID linkID;
+        if (ImNodes::IsLinkDestroyed(&linkID))
+        {
+            RemoveLink(linkID);
+        }
     }
-
-    // Draw links
-    for (auto& link : m_links)
-    {
-        ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
-    }
-
-    ImNodes::EndNodeEditor();
-
-    // Handle link creation
-    UUID startPinID, endPinID, startNodeID, endNodeID;
-    if (ImNodes::IsLinkCreated(&startNodeID, &startPinID, &endNodeID, &endPinID))
-    {
-        AddLink(startNodeID, startPinID, endNodeID, endPinID);
-    }
-
-    UUID linkID;
-    if (ImNodes::IsLinkDestroyed(&linkID))
-    {
-        RemoveLink(linkID);
-    }
+    ImGui::End();
 }
 
 } // namespace aln
