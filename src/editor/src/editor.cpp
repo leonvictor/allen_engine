@@ -34,9 +34,9 @@ void SetImGuiContext(const EditorImGuiContext& context)
 }
 } // namespace editor
 
-Editor::Editor(WorldEntity& worldEntity) : m_worldEntity(worldEntity), m_assetsBrowser(DEFAULT_ASSETS_DIR)
-{
-}
+Editor::Editor(WorldEntity& worldEntity)
+    : m_worldEntity(worldEntity),
+      m_assetsBrowser(DEFAULT_ASSETS_DIR) {}
 
 void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context)
 {
@@ -84,11 +84,27 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Assets"))
+            {
+                if (ImGui::BeginMenu("Create..."))
+                {
+                    for (auto pFactory : m_assetWindowsFactory.m_factories)
+                    {
+                        if (ImGui::MenuItem(pFactory->m_assetEditorName.c_str()))
+                        {
+                            AssetID id = AssetID("default" + pFactory->m_supportedAssetType.ToString());
+                            CreateAssetWindow(id, false);
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu("Debug"))
             {
                 ImGui::EndMenu();
             }
-
             ImGui::EndMenuBar();
         }
     }
@@ -441,6 +457,7 @@ void Editor::EntityOutlinePopup(Entity* pEntity)
         if (pEntity != nullptr)
         {
             ImGui::Text(pEntity->GetID().ToString().c_str());
+            ImGui::Separator();
             if (ImGui::MenuItem("Remove Entity"))
             {
                 if (m_pSelectedEntity == pEntity)

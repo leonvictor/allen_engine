@@ -94,7 +94,7 @@ class Editor
         for (auto& assetID : m_editorWindowContext.m_requestedAssetWindowsCreations)
         {
             // TODO: Find the right window type
-            CreateAssetWindow(assetID);
+            CreateAssetWindow(assetID, true);
         }
         m_editorWindowContext.m_requestedAssetWindowsCreations.clear();
     }
@@ -102,7 +102,7 @@ class Editor
   public:
     Editor(WorldEntity& worldEntity);
 
-    void CreateAssetWindow(const AssetID& id)
+    void CreateAssetWindow(const AssetID& id, bool readAssetFile)
     {
         assert(id.IsValid());
 
@@ -116,7 +116,7 @@ class Editor
         if (inserted)
         {
             it->second = m_assetWindowsFactory.CreateEditorWindow(id.GetAssetTypeID());
-            it->second->Initialize(&m_editorWindowContext, id);
+            it->second->Initialize(&m_editorWindowContext, id, readAssetFile);
         }
     }
 
@@ -139,7 +139,8 @@ class Editor
         // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
         m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
         m_editorWindowContext.m_pTypeEditorService = &m_typeEditorService;
-        m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>();
+        
+        m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
 
         m_assetsBrowser.Initialize(&m_editorWindowContext);
 

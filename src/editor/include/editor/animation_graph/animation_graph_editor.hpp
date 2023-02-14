@@ -40,7 +40,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
   public:
     void Update(const UpdateContext& context) override;
 
-    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id) override
+    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override
     {
         // TODO: Could this be shared behavior with a parent class ?
         IAssetEditorWindow::Initialize(pContext, id);
@@ -50,14 +50,17 @@ class AnimationGraphEditor : public IAssetEditorWindow
         // m_pGraphDefinition = AssetHandle<AnimationGraphDefinition>(id);
         // LoadAsset(m_pGraphDefinition);
 
-        auto archive = BinaryFileArchive(id.GetAssetPath(), IBinaryArchive::IOMode::Read);
-        AssetArchiveHeader header;
+        if (readAssetFile)
+        {
+            auto archive = BinaryFileArchive(id.GetAssetPath(), IBinaryArchive::IOMode::Read);
+            AssetArchiveHeader header;
 
-        archive >> header;
+            archive >> header;
 
-        // Deserialization
-        size_t nodeCount;
-        archive >> nodeCount;
+            // Deserialization
+            size_t nodeCount;
+            archive >> nodeCount;
+        }
 
         // std::vector<std::type_index> nodeSettingsTypeIndices;
         // archive >> nodeSettingsTypeIndices;
