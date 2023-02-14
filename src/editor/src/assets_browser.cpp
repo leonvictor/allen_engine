@@ -12,7 +12,30 @@ void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entr
     if (directoryEntry.is_directory())
     {
         auto nodeID = directoryEntry.path().filename().string() + "##" + directoryEntry.path().stem().string();
-        if (ImGui::TreeNodeEx(nodeID.c_str(), ImGuiTreeNodeFlags_SpanFullWidth))
+        bool nodeOpen = ImGui::TreeNodeEx(nodeID.c_str(), ImGuiTreeNodeFlags_SpanFullWidth);
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload("AssetID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
+            {
+                assert(pPayload->DataSize == sizeof(AssetID));
+                AssetID assetID = *((AssetID*) pPayload->Data);
+                std::filesystem::path originalAssetPath = std::filesystem::path(assetID.GetAssetPath());
+                std::filesystem::path newAssetPath = directoryEntry.path() / originalAssetPath.filename();
+
+                // TODO: Better error handling
+                assert(!std::filesystem::exists(newAssetPath));
+
+                std::filesystem::rename(originalAssetPath, newAssetPath);
+                // TODO: Update asset dependencies
+            }
+
+            // TODO: Also handle moving folder hierarchies
+
+            ImGui::EndDragDropTarget();
+        }
+
+        if (nodeOpen)
         {
             for (auto& childEntry : std::filesystem::directory_iterator(directoryEntry))
             {
