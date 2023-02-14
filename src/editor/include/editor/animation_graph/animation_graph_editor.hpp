@@ -36,6 +36,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;
+    bool m_shouldClose = false;
 
   public:
     void Update(const UpdateContext& context) override;

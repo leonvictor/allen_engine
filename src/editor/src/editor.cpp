@@ -92,7 +92,8 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
                     {
                         if (ImGui::MenuItem(pFactory->m_assetEditorName.c_str()))
                         {
-                            AssetID id = AssetID("default" + pFactory->m_supportedAssetType.ToString());
+                            // TODO: Handle default asset name better
+                            AssetID id = AssetID(std::string(DEFAULT_ASSETS_DIR) + "/default." + pFactory->m_supportedAssetType.ToString());
                             CreateAssetWindow(id, false);
                         }
                     }

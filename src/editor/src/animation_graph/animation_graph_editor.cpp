@@ -19,6 +19,7 @@ namespace aln
 AnimationGraphDefinition* AnimationGraphEditor::Compile()
 {
     AnimationGraphCompilationContext context(this);
+    auto assetPath = std::filesystem::path(GetID().GetAssetPath());
 
     // Compile graph definition
     AnimationGraphDefinition graphDefinition;
@@ -50,8 +51,7 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
         auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
 
         // TODO: Path
-        auto graphDefinitionPath = std::string(DEFAULT_ASSETS_DIR) + "/graph_definition." + AnimationGraphDefinition::GetStaticAssetTypeID().ToString();
-        auto fileArchive = BinaryFileArchive(graphDefinitionPath, IBinaryArchive::IOMode::Write);
+        auto fileArchive = BinaryFileArchive(assetPath, IBinaryArchive::IOMode::Write);
         fileArchive << header << data;
     }
 
@@ -68,8 +68,8 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
         }
 
         // TODO: Path
-        auto datasetPath = std::string(DEFAULT_ASSETS_DIR) + "/graph_dataset." + AnimationGraphDataset::GetStaticAssetTypeID().ToString();
-        auto fileArchive = BinaryFileArchive(datasetPath, IBinaryArchive::IOMode::Write);
+        assetPath.replace_extension(AnimationGraphDataset::GetStaticAssetTypeID().ToString());
+        auto fileArchive = BinaryFileArchive(assetPath, IBinaryArchive::IOMode::Write);
         fileArchive << header << data;
     }
 
@@ -103,7 +103,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         }
     }
 
-    if (ImGui::Begin(windowName.c_str(), nullptr))
+    if (ImGui::Begin(windowName.c_str(), &m_shouldClose))
     {
         UUID hoveredNodeID, hoveredPinID, hoveredLinkID;
         bool nodeHovered = ImNodes::IsNodeHovered(&hoveredNodeID);
@@ -262,6 +262,12 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         }
     }
     ImGui::End();
+
+    if (m_shouldClose)
+    {
+        // TODO: Ensure we've saved
+        RequestAssetWindowDeletion(GetID());
+    }
 }
 
 } // namespace aln

@@ -53,12 +53,12 @@ class IEditorWindow
         m_pEditorWindowContext->m_pAssetService->Unload(assetHandle);
     }
 
-    void RequestAssetWindowCreation(AssetID& id)
+    void RequestAssetWindowCreation(const AssetID& id)
     {
         m_pEditorWindowContext->m_requestedAssetWindowsCreations.emplace_back(id);
     }
 
-    void RequestAssetWindowDeletion(AssetID& id)
+    void RequestAssetWindowDeletion(const AssetID& id)
     {
         m_pEditorWindowContext->m_requestedAssetWindowsDeletions.emplace_back(id);
     }
