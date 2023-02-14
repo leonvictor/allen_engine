@@ -22,6 +22,9 @@ class AssetsBrowser : public IEditorWindow
     std::filesystem::path m_currentFilePath;
     AssetID m_draggedAssetID;
 
+    std::filesystem::path m_selectedAsset = "";
+    bool m_renaming = false;
+
     void RecursiveDrawDirectory(const std::filesystem::directory_entry& directoryEntry);
 
   public:

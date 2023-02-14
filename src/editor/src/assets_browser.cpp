@@ -1,4 +1,5 @@
 #include "assets_browser.hpp"
+#include "misc/cpp/imgui_stdlib.h"
 
 namespace aln
 {
@@ -11,7 +12,7 @@ void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entr
     if (directoryEntry.is_directory())
     {
         auto nodeID = directoryEntry.path().filename().string() + "##" + directoryEntry.path().stem().string();
-        if (ImGui::TreeNodeEx(nodeID.c_str()))
+        if (ImGui::TreeNodeEx(nodeID.c_str(), ImGuiTreeNodeFlags_SpanFullWidth))
         {
             for (auto& childEntry : std::filesystem::directory_iterator(directoryEntry))
             {
@@ -26,21 +27,81 @@ void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entr
         auto it = std::find(AssetExtensionsFilter.begin(), AssetExtensionsFilter.end(), ext);
         if (it != AssetExtensionsFilter.end())
         {
-            ImGui::TreeNodeEx(directoryEntry.path().filename().string().c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-            if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth;
+            if (directoryEntry.path() == m_selectedAsset)
             {
-                AssetID id = AssetID(directoryEntry.path().string());
-                RequestAssetWindowCreation(id);
+                nodeFlags = nodeFlags |= ImGuiTreeNodeFlags_Selected;
             }
-            if (ImGui::BeginDragDropSource())
+
+            // Renaming widget
+            if (directoryEntry.path() == m_selectedAsset && m_renaming)
             {
-                // Dragged tooltip
-                ImGui::Text(directoryEntry.path().string().c_str());
+                auto& style = ImGui::GetStyle();
+                ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing - style.FramePadding.x);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {style.FramePadding.x, 0});
+                ImGui::Indent();
 
-                m_draggedAssetID = AssetID(directoryEntry.path().string());
-                ImGui::SetDragDropPayload("AssetID", &m_draggedAssetID, sizeof(AssetID));
+                auto inputName = m_selectedAsset.stem().string();
+                if (ImGui::InputText("##rename", &inputName, ImGuiInputTextFlags_EnterReturnsTrue))
+                {
+                    // TODO: Validate user input
+                    auto newAbsolutePath = m_selectedAsset;
+                    newAbsolutePath.replace_filename(inputName);
+                    newAbsolutePath.replace_extension(m_selectedAsset.extension());
 
-                ImGui::EndDragDropSource();
+                    if (std::filesystem::exists(newAbsolutePath))
+                    {
+                        assert(false); // TODO
+                    }
+
+                    std::filesystem::rename(m_selectedAsset, newAbsolutePath);
+
+                    // TODO: Propagate change to all dependant assets
+
+                    m_selectedAsset = newAbsolutePath;
+                }
+
+                ImGui::Unindent();
+                ImGui::PopStyleVar();
+                ImGui::PopStyleVar();
+            }
+            else
+            {
+                ImGui::TreeNodeEx(directoryEntry.path().filename().string().c_str(), nodeFlags);
+
+                if (ImGui::IsItemClicked())
+                {
+                    m_selectedAsset = directoryEntry.path();
+                    m_renaming = false;
+                }
+
+                if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                {
+                    AssetID id = AssetID(directoryEntry.path().string());
+                    RequestAssetWindowCreation(id);
+                }
+
+                if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
+                {
+                    m_renaming = false;
+                    if (ImGui::MenuItem("Rename..."))
+                    {
+                        m_selectedAsset = directoryEntry.path();
+                        m_renaming = true;
+                    }
+                    ImGui::EndPopup();
+                }
+
+                if (ImGui::BeginDragDropSource())
+                {
+                    // Dragged tooltip
+                    ImGui::Text(directoryEntry.path().string().c_str());
+
+                    m_draggedAssetID = AssetID(directoryEntry.path().string());
+                    ImGui::SetDragDropPayload("AssetID", &m_draggedAssetID, sizeof(AssetID));
+
+                    ImGui::EndDragDropSource();
+                }
             }
         }
     }
