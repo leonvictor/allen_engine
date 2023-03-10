@@ -68,10 +68,12 @@ class IComponent : public reflect::IReflected
 
   public:
     virtual ~IComponent() {}
+
     inline bool IsInitialized() const { return m_status == Status::Initialized; }
     inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
     inline bool IsLoading() const { return m_status == Status::Loading; }
     inline bool IsLoaded() const { return m_status == Status::Loaded; }
+    inline bool HasFailedLoading() const { return m_status == Status::LoadingFailed; }
 
     const UUID& GetID() const { return m_ID; }
 

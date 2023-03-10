@@ -229,7 +229,7 @@ class EntityMapDescriptor
         }
     }
 
-    void InstanciateEntityMap(EntityMap& entityMap, const TypeRegistryService& typeRegistryService)
+    void InstanciateEntityMap(EntityMap& entityMap, const LoadingContext& loadingContext, const TypeRegistryService& typeRegistryService)
     {
         auto entityCount = m_entityDescriptors.size();
         entityMap.m_entities.reserve(entityCount);
@@ -240,9 +240,11 @@ class EntityMapDescriptor
         {
             auto pEntity = aln::New<Entity>();
             desc.InstanciateEntity(pEntity, &typeRegistryService);
+
             entityMap.m_entities.push_back(pEntity);
 
             // TODO: what if the map is not loaded yet ?
+            pEntity->LoadComponents(loadingContext);
             entityMap.m_loadingEntities.push_back(pEntity);
         }
 

@@ -56,6 +56,13 @@ void AssetService::Update()
     {
         assert(pendingRequest.IsValid());
 
+        if (pendingRequest.m_pAssetRecord->GetAssetPath().empty())
+        {
+            pendingRequest.m_status = AssetRequest::State::Complete;
+            pendingRequest.m_pAssetRecord->m_status = AssetStatus::LoadingFailed;
+            continue;
+        }
+
         auto pActiveRequest = FindActiveRequest(pendingRequest.m_pAssetRecord->GetAssetID());
         if (pendingRequest.IsLoadingRequest())
         {

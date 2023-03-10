@@ -22,11 +22,21 @@
 
 namespace aln
 {
+
+EntityMap::EntityMap(bool isTransient)
+    : m_isTransientMap(isTransient),
+      m_entityUpdateEventListenerID(Entity::EntityStateUpdatedEvent.BindListener([this](Entity* pEntity)
+          { OnEntityStateChanged(pEntity); })) {}
+
+EntityMap::~EntityMap()
+{
+    Entity::EntityStateUpdatedEvent.UnbindListener(m_entityUpdateEventListenerID);
+}
+
 void EntityMap::Clear(const LoadingContext& loadingContext)
 {
     m_entitiesToRemove.clear();
     m_loadingEntities.clear();
-    m_entitiesToReload.clear();
 
     // If this is the main map, deactivate and unload all entities,
     // then clear the collection.
@@ -101,51 +111,17 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
 
 void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
 {
-    // Manage the events registered by entities outside of the loading phase
-    // TODO: Where should this logic be ?
-    for (auto* pEntity : Entity::EntityStateUpdatedEvent.m_updatedEntities)
+    // --------- Added entities
+    for (auto pEntity : m_entitiesToAdd)
     {
-        // TODO: Maybe early out if the entity is in the "remove" list ?
-        for (auto action : pEntity->m_deferredActions)
-        {
-            switch (action.m_type)
-            {
-            case EntityInternalStateAction::Type::AddComponent:
-            {
-                auto pParentComponent = pEntity->GetSpatialComponent(action.m_ID);
-                pEntity->AddComponentDeferred(loadingContext, (IComponent*) action.m_ptr, pParentComponent);
-                break;
-            }
+        m_entities.push_back(pEntity);
 
-            case EntityInternalStateAction::Type::DestroyComponent:
-            {
-                pEntity->DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
-                break;
-            }
-
-            case EntityInternalStateAction::Type::CreateSystem:
-            {
-                pEntity->CreateSystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
-                break;
-            }
-
-            case EntityInternalStateAction::Type::DestroySystem:
-            {
-                pEntity->DestroySystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
-                break;
-            }
-
-            default:
-                throw std::runtime_error("Unsupported operation");
-            }
-        }
-        pEntity->m_deferredActions.clear();
+        pEntity->LoadComponents(loadingContext);
+        m_loadingEntities.push_back(pEntity);
     }
-    Entity::EntityStateUpdatedEvent.m_updatedEntities.clear();
+    m_entitiesToAdd.clear();
 
-    // ------------------
-    // Remove entities marked for removal
-    // ------------------
+    // --------- Removed entities
     for (auto pEntityToRemove : m_entitiesToRemove)
     {
         // Deactivate
@@ -156,17 +132,10 @@ void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
         else
         {
             // Remove from loading lists as we might still be loading this entity
-            // @todo: does vector::erase work ?
             auto itLoading = std::find(m_loadingEntities.begin(), m_loadingEntities.end(), pEntityToRemove);
             if (itLoading != m_loadingEntities.end())
             {
                 m_loadingEntities.erase(itLoading);
-            }
-
-            auto itReload = std::find(m_entitiesToReload.begin(), m_entitiesToReload.end(), pEntityToRemove);
-            if (itReload != m_entitiesToReload.end())
-            {
-                m_entitiesToReload.erase(itReload);
             }
         }
 
@@ -181,12 +150,11 @@ void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
         // Release memory
         aln::Delete(pEntityToRemove);
     }
-
     m_entitiesToRemove.clear();
 
-    // Entity loading
-    std::vector<Entity*> stillLoadingEntities;
+    // ------- Entities currently loading
     // TODO: Parallelize
+    std::vector<Entity*> stillLoadingEntities;
     for (auto pEntity : m_loadingEntities)
     {
         if (pEntity->UpdateLoadingAndEntityState(loadingContext))
@@ -227,10 +195,8 @@ Entity* EntityMap::CreateEntity(std::string name)
 
     auto pEntity = aln::New<Entity>();
     pEntity->m_name = name;
-    m_entities.push_back(pEntity);
-    // TODO: What's the condition ?
-    // if (IsActivated())
-    m_loadingEntities.push_back(pEntity);
+
+    m_entitiesToAdd.push_back(pEntity);
 
     return pEntity;
 }

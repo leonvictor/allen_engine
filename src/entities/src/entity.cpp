@@ -11,6 +11,8 @@
 namespace aln
 {
 
+Event<Entity*> Entity::EntityStateUpdatedEvent;
+
 Entity::~Entity()
 {
     assert(IsUnloaded());
@@ -34,10 +36,50 @@ Entity::~Entity()
 // State management
 // -------------------------------------------------
 
+void Entity::HandleDeferredActions(const LoadingContext& loadingContext)
+{
+    // TODO: Maybe early out if the entity is in the "remove" list ?
+    for (auto& action : m_deferredActions)
+    {
+        switch (action.m_type)
+        {
+        case EntityInternalStateAction::Type::AddComponent:
+        {
+            auto pParentComponent = GetSpatialComponent(action.m_ID);
+            AddComponentDeferred(loadingContext, (IComponent*) action.m_ptr, pParentComponent);
+            break;
+        }
+
+        case EntityInternalStateAction::Type::DestroyComponent:
+        {
+            DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
+            break;
+        }
+
+        case EntityInternalStateAction::Type::CreateSystem:
+        {
+            CreateSystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
+            break;
+        }
+
+        case EntityInternalStateAction::Type::DestroySystem:
+        {
+            DestroySystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
+            break;
+        }
+
+        default:
+            assert(false);
+        }
+    }
+
+    m_deferredActions.clear();
+}
+
 bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
 {
-    assert(m_status == Status::Unloaded);
-    bool allLoaded = true;
+    HandleDeferredActions(loadingContext);
+    // TODO: Maybe fire entity state updated event here rather than in each separate action
 
     for (auto pComponent : m_components)
     {
@@ -45,23 +87,29 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
         {
             pComponent->LoadComponent(loadingContext);
         }
+
         if (pComponent->IsLoading())
         {
             if (!pComponent->UpdateLoadingStatus())
             {
                 return false;
             }
-            else
-            {
-                pComponent->InitializeComponent();
-            }
         }
 
-        // For now ! We should register components with systems as they become loaded
-        assert(!IsActivated());
+        if (pComponent->IsLoaded())
+        {
+            pComponent->InitializeComponent();
+            if (IsActivated())
+            {
+                for (auto pSystem : m_systems)
+                {
+                    pSystem->RegisterComponent(pComponent);
+                }
+                loadingContext.m_registerWithWorldSystems(this, pComponent);
+            }
+        }
     }
 
-    m_status = Status::Loaded;
     return true;
 }
 
@@ -225,7 +273,7 @@ void Entity::CreateSystem(const aln::reflect::TypeInfo* pTypeInfo)
         action.m_type = EntityInternalStateAction::Type::CreateSystem;
         action.m_ptr = pTypeInfo;
 
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
@@ -272,6 +320,7 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const al
         loadingContext.m_registerEntityUpdate(this);
     }
 }
+
 void Entity::DestroySystem(const aln::reflect::TypeInfo* pTypeInfo)
 {
     assert(std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
@@ -287,7 +336,7 @@ void Entity::DestroySystem(const aln::reflect::TypeInfo* pTypeInfo)
         action.m_type = EntityInternalStateAction::Type::DestroySystem;
         action.m_ptr = pTypeInfo;
 
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
@@ -357,7 +406,7 @@ void Entity::DestroyComponent(const UUID& componentID)
         action.m_ptr = pComponent;
 
         // Notify the world system
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
@@ -439,7 +488,7 @@ void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialCompo
         action.m_ID = parentSpatialComponentID;
 
         // Send notification that the internal state changed
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
@@ -490,7 +539,6 @@ void Entity::AddComponentDeferred(const LoadingContext& loadingContext, ICompone
     {
         // TODO: Async ?
         pComponent->LoadComponent(loadingContext);
-        pComponent->InitializeComponent();
     }
 
     if (IsActivated())

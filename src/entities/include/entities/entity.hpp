@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <common/uuid.hpp>
+#include <common/event.hpp>
 #include <reflection/type_info.hpp>
 
 #include <Tracy.hpp>
@@ -76,8 +77,7 @@ class Entity
     aln::UUID m_parentAttachmentSocketID;     // TODO: ?
     bool m_isAttachedToParent = false;
 
-    // TODO:
-    inline static Command EntityStateUpdatedEvent;
+    static Event<Entity*> EntityStateUpdatedEvent;
     std::vector<EntityInternalStateAction> m_deferredActions;
 
     SpatialComponent* GetSpatialComponent(const UUID& spatialComponentID);
@@ -103,6 +103,8 @@ class Entity
     void RemoveChild(Entity* pEntity);
     void AddChild(Entity* pEntity);
     void RefreshEntityAttachments();
+
+    void HandleDeferredActions(const LoadingContext& loadingContext);
 
   public:
     /// @todo: Constructor is private to prevent extending this class

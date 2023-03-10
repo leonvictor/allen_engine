@@ -43,8 +43,10 @@ class IAssetHandle
     // ------------------------------
     inline bool IsLoaded() const { return GetStatus() == AssetStatus::Loaded; }
     inline bool IsUnloaded() const { return GetStatus() == AssetStatus::Unloaded; }
+    inline bool HasFailedLoading() const { return GetStatus() == AssetStatus::LoadingFailed; }
     operator bool() const { return m_pAssetRecord != nullptr; }
 
+    // --------- Serialization
     template <class Archive>
     void Serialize(Archive& archive) const
     {

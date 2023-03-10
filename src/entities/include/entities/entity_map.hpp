@@ -29,17 +29,16 @@ class EntityMap
     std::vector<Entity*> m_entitiesToAdd;
     std::vector<Entity*> m_entitiesToRemove;
     std::vector<Entity*> m_loadingEntities;
-    std::vector<Entity*> m_entitiesToReload; // TODO
     std::vector<Entity*> m_entitiesToActivate;
     std::vector<Entity*> m_entitiesToDeactivate;
+
+    UUID m_entityUpdateEventListenerID;
 
     // Mutex guarding the main entity collection
     std::recursive_mutex m_mutex;
 
     Status m_status = Status::Unloaded;
     bool m_isTransientMap = false;
-
-    EntityMap() {}
 
     /// @brief Clear this map. If it is the main one, deactivate and unload
     /// all entities in the underlying collection.
@@ -68,8 +67,17 @@ class EntityMap
     /// @brief Update the map's state, and process the state change requested for all entities
     void UpdateEntitiesState(const LoadingContext& loadingContext);
 
+    // --------- Event Handling
+
+    void OnEntityStateChanged(Entity* pEntity)
+    {
+        // TODO: Mutex guard ?
+        m_loadingEntities.push_back(pEntity);
+    }
+
   public:
-    EntityMap(bool isTransient) : m_isTransientMap(isTransient) {}
+    EntityMap(bool isTransient = false);
+    ~EntityMap();
 
     /// @brief Create an entity. The entity will be added to the world during the next loading phase.
     Entity* CreateEntity(std::string name = "");
