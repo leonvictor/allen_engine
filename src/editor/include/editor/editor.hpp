@@ -37,7 +37,7 @@
 #include "asset_editor_window.hpp"
 #include "assets_browser.hpp"
 #include "editor_window.hpp"
-#include "types_editor.hpp"
+#include "reflected_types/reflected_type_editor.hpp"
 
 namespace aln
 {
@@ -66,7 +66,6 @@ class Editor
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
     EntityDescriptor m_entityClipboard;
 
-    TypeEditorService m_typeEditorService;
     const TypeRegistryService* m_pTypeRegistryService;
 
     EditorWindowContext m_editorWindowContext;
@@ -158,6 +157,8 @@ class Editor
             aln::Delete(pWindow);
         }
         m_assetWindows.clear();
+
+        ReflectedTypeEditor::Shutdown();
     }
 
     const glm::vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }

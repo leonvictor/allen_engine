@@ -1,7 +1,5 @@
 #pragma once
 
-#include "types_editor.hpp"
-
 #include <assets/asset_id.hpp>
 #include <assets/asset_service.hpp>
 #include <assets/handle.hpp>
@@ -15,7 +13,7 @@ class EditorWindowContext
     friend class Editor;
     friend class IEditorWindow;
 
-    const TypeEditorService* m_pTypeEditorService = nullptr;
+    const TypeRegistryService* m_pTypeRegistryService = nullptr;
     // TODO: should be const
     AssetService* m_pAssetService = nullptr;
 
@@ -62,8 +60,6 @@ class IEditorWindow
     {
         m_pEditorWindowContext->m_requestedAssetWindowsDeletions.emplace_back(id);
     }
-
-    const TypeEditorService* GetTypeEditorService() const { return m_pEditorWindowContext->m_pTypeEditorService; }
 
   public:
     virtual void Update(const UpdateContext& context) = 0; // TODO: name ?

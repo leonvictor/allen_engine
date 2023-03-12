@@ -235,14 +235,13 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
 
         for (auto pComponent : m_pSelectedEntity->GetComponents())
         {
-            ImGui::PushID(pComponent->GetID().ToString().c_str());
+            auto pTypeInfo = pComponent->GetTypeInfo();
 
-            auto typeInfo = pComponent->GetTypeInfo();
-            // TODO: This should happen through the partial template specialization for components
-
-            if (ImGui::CollapsingHeader(typeInfo->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
+            if (ImGui::CollapsingHeader(pTypeInfo->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
             {
-                m_typeEditorService.Display(pComponent, "");
+                ImGui::Indent();
+                ReflectedTypeEditor::Draw(pTypeInfo, pComponent);
+                ImGui::Unindent();
             }
 
             if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
@@ -253,21 +252,20 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
                 }
                 ImGui::EndPopup();
             }
-
-            ImGui::PopID();
         }
 
         for (auto pSystem : m_pSelectedEntity->GetSystems())
         {
-            auto typeInfo = pSystem->GetTypeInfo();
+            auto pTypeInfo = pSystem->GetTypeInfo();
 
-            ImGui::PushID(typeInfo->GetName().c_str());
-            if (ImGui::CollapsingHeader(typeInfo->GetPrettyName().c_str()))
+            if (ImGui::CollapsingHeader(pTypeInfo->GetPrettyName().c_str()))
             {
-                m_typeEditorService.Display(pSystem, "");
+                ImGui::Indent();
+                ReflectedTypeEditor::Draw(pTypeInfo, pSystem);
+                ImGui::Unindent();
             }
 
-            if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
+            if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
             {
                 if (ImGui::MenuItem("Remove System", "", false, true))
                 {
@@ -275,8 +273,6 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
                 }
                 ImGui::EndPopup();
             }
-
-            ImGui::PopID();
         }
 
         if (ImGui::Button("Add Component"))
@@ -293,12 +289,12 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
 
         if (ImGui::BeginPopup("add_system_popup"))
         {
-            auto& systemTypes = pTypeRegistryService->GetTypesInScope("SYSTEMS");
-            for (auto& sys : systemTypes)
+            auto& typeInfos = pTypeRegistryService->GetTypesInScope("SYSTEMS");
+            for (auto& pTypeInfo : typeInfos)
             {
-                if (ImGui::Selectable(sys->m_prettyName.c_str()))
+                if (ImGui::Selectable(pTypeInfo->m_prettyName.c_str()))
                 {
-                    m_pSelectedEntity->CreateSystem(sys);
+                    m_pSelectedEntity->CreateSystem(pTypeInfo);
                 }
             }
             ImGui::EndPopup();
@@ -306,13 +302,13 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
 
         if (ImGui::BeginPopup("add_component_popup"))
         {
-            auto& componentTypes = pTypeRegistryService->GetTypesInScope("COMPONENTS");
-            for (auto& comp : componentTypes)
+            auto& componentTypeInfos = pTypeRegistryService->GetTypesInScope("COMPONENTS");
+            for (auto& pTypeInfo : componentTypeInfos)
             {
-                if (ImGui::Selectable(comp->m_prettyName.c_str()))
+                if (ImGui::Selectable(pTypeInfo->m_prettyName.c_str()))
                 {
-                    auto newComp = comp->CreateTypeInstance<IComponent>();
-                    m_pSelectedEntity->AddComponent(newComp);
+                    auto pComponent = pTypeInfo->CreateTypeInstance<IComponent>();
+                    m_pSelectedEntity->AddComponent(pComponent);
                 }
             }
             ImGui::EndPopup();

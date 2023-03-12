@@ -94,8 +94,8 @@ class AssetHandle : public IAssetHandle
 
 namespace reflect
 {
-template <typename T>
-struct TypeInfoResolver<AssetHandle<T>>
+template <>
+struct TypeInfoResolver<AssetHandle<IAsset>>
 {
     static const TypeInfo* Get()
     {
@@ -104,12 +104,12 @@ struct TypeInfoResolver<AssetHandle<T>>
         {
             typeInfo.m_name = "AssetHandle";
             typeInfo.m_typeID = StringID(typeInfo.m_name);
-            typeInfo.m_alignment = alignof(AssetHandle<T>);
-            typeInfo.m_size = sizeof(AssetHandle<T>);
+            typeInfo.m_alignment = alignof(AssetHandle<IAsset>);
+            typeInfo.m_size = sizeof(AssetHandle<IAsset>);
             typeInfo.m_createType = []()
-            { return aln::New<AssetHandle<T>>(); };
+            { return aln::New<AssetHandle<IAsset>>(); };
             typeInfo.m_createTypeInPlace = [](void* pMemory)
-            { return aln::PlacementNew<AssetHandle<T>>(pMemory); };
+            { return aln::PlacementNew<AssetHandle<IAsset>>(pMemory); };
             typeInfo.m_serialize = [](BinaryMemoryArchive& archive, const void* pTypeInstance)
             { archive << *((IAssetHandle*) pTypeInstance); };
             typeInfo.m_deserialize = [](BinaryMemoryArchive& archive, void* pTypeInstance)
@@ -119,6 +119,15 @@ struct TypeInfoResolver<AssetHandle<T>>
         }
 
         return &typeInfo;
+    }
+};
+
+template <typename T>
+struct TypeInfoResolver<AssetHandle<T>>
+{
+    static const TypeInfo* Get()
+    {
+        return TypeInfoResolver<AssetHandle<IAsset>>::Get();
     }
 };
 } // namespace reflect

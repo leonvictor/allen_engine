@@ -3,6 +3,7 @@
 #include "animation_graph/editor_graph_node.hpp"
 #include "animation_graph/nodes/animation_clip_editor_node.hpp"
 #include "animation_graph/nodes/pose_editor_node.hpp"
+#include "reflected_types/reflected_type_editor.hpp"
 
 #include <anim/graph/animation_graph_dataset.hpp>
 #include <assets/asset_archive_header.hpp>
@@ -194,7 +195,6 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         for (auto pNode : m_graphNodes)
         {
             ImNodes::BeginNode(pNode->GetID());
-
             ImNodes::BeginNodeTitleBar();
             ImGui::Text(pNode->GetName().c_str());
             ImNodes::EndNodeTitleBar();
@@ -206,10 +206,13 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
                 ImNodes::EndInputAttribute();
             }
 
+            ImGui::Spacing();
+
             // Display reflected fields
-            ImGui::PushItemWidth(100); // Max node width
-            auto pTypeDesc = pNode->GetTypeInfo();
-            GetTypeEditorService()->DisplayTypeStruct(pTypeDesc, pNode);
+            auto pTypeInfo = pNode->GetTypeInfo();
+            ReflectedTypeEditor::Draw(pTypeInfo, pNode, 100);
+
+            ImGui::Spacing();
 
             for (auto& outputPin : pNode->m_outputPins)
             {
@@ -217,7 +220,6 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
                 ImGui::Text(outputPin.GetName().c_str());
                 ImNodes::EndOutputAttribute();
             }
-            ImGui::PopItemWidth();
 
             ImNodes::EndNode();
         }
