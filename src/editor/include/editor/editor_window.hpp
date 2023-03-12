@@ -5,6 +5,9 @@
 #include <assets/handle.hpp>
 #include <entities/update_context.hpp>
 
+#include <entities/entity.hpp>
+#include <entities/world_entity.hpp>
+
 namespace aln
 {
 
@@ -12,6 +15,14 @@ class EditorWindowContext
 {
     friend class Editor;
     friend class IEditorWindow;
+
+    // TODO: Shouldnt be here
+    friend class AnimationGraphEditor;
+    friend class EntityInspector;
+
+    // TODO: Specific to entities-related windows ?
+    WorldEntity* m_pWorldEntity = nullptr;
+    Entity* m_pSelectedEntity = nullptr;
 
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
     // TODO: should be const
@@ -51,15 +62,13 @@ class IEditorWindow
         m_pEditorWindowContext->m_pAssetService->Unload(assetHandle);
     }
 
-    void RequestAssetWindowCreation(const AssetID& id)
-    {
-        m_pEditorWindowContext->m_requestedAssetWindowsCreations.emplace_back(id);
-    }
+    void RequestAssetWindowCreation(const AssetID& id) { m_pEditorWindowContext->m_requestedAssetWindowsCreations.emplace_back(id); }
+    void RequestAssetWindowDeletion(const AssetID& id) { m_pEditorWindowContext->m_requestedAssetWindowsDeletions.emplace_back(id); }
 
-    void RequestAssetWindowDeletion(const AssetID& id)
-    {
-        m_pEditorWindowContext->m_requestedAssetWindowsDeletions.emplace_back(id);
-    }
+    // Entity specific ?
+    void SetSelectedEntity(Entity* pEntity) { m_pEditorWindowContext->m_pSelectedEntity = pEntity; }
+    Entity* GetSelectedEntity() const { return m_pEditorWindowContext->m_pSelectedEntity; }
+    WorldEntity* GetWorldEntity() const { return m_pEditorWindowContext->m_pWorldEntity; }
 
   public:
     virtual void Update(const UpdateContext& context) = 0; // TODO: name ?

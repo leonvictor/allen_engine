@@ -11,6 +11,7 @@
 #include "asset_editor_window.hpp"
 #include "editor_graph_node.hpp"
 #include "link.hpp"
+#include "reflected_types/reflected_type_editor.hpp"
 
 namespace aln
 {
@@ -41,10 +42,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
   public:
     void Update(const UpdateContext& context) override;
 
-    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override
-    {
-        // TODO: Could this be shared behavior with a parent class ?
-        IAssetEditorWindow::Initialize(pContext, id);
+    ReflectedTypeEditor m_nodeInspector;
 
         // Loading a graph definitions ends up with a runtime graph def which we don't need.
         // Rather hand-load what we need from the archive

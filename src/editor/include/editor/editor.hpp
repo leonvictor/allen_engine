@@ -37,6 +37,7 @@
 #include "asset_editor_window.hpp"
 #include "assets_browser.hpp"
 #include "editor_window.hpp"
+#include "entity_inspector.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
 namespace aln
@@ -62,8 +63,6 @@ class Editor
     std::filesystem::path m_scenePath;
 
     WorldEntity& m_worldEntity;
-    Entity* m_pSelectedEntity = nullptr;
-    glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
     EntityDescriptor m_entityClipboard;
 
     const TypeRegistryService* m_pTypeRegistryService;
@@ -75,6 +74,7 @@ class Editor
 
     // TODO: Handle widget lifetime. For now they're always here !
     AssetsBrowser m_assetsBrowser;
+    EntityInspector m_entityInspector;
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
@@ -137,11 +137,14 @@ class Editor
 
         // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
         m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
-        m_editorWindowContext.m_pTypeEditorService = &m_typeEditorService;
-        
+        m_editorWindowContext.m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+        m_editorWindowContext.m_pWorldEntity = &m_worldEntity;
+
         m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
 
         m_assetsBrowser.Initialize(&m_editorWindowContext);
+        m_entityInspector.Initialize(&m_editorWindowContext);
+
 
         // TODO: Usability stuff: automatically load last used scene etc
         m_scenePath = scenePath;

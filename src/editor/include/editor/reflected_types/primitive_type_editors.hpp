@@ -12,7 +12,7 @@ namespace aln
 {
 
 /// @brief Base class for primitive type editor widgets.
-/// Use two-step editing: first draw the widget, then update the values
+/// Uses two-step editing: first draw the widget, then update the values
 class IPrimitiveTypeEditor
 {
     friend class ReflectedTypeEditor;

@@ -210,7 +210,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
             // Display reflected fields
             auto pTypeInfo = pNode->GetTypeInfo();
-            ReflectedTypeEditor::Draw(pTypeInfo, pNode, 100);
+            m_nodeInspector.Draw(pTypeInfo, pNode, 100);
 
             ImGui::Spacing();
 
