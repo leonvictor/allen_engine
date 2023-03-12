@@ -2,6 +2,7 @@ set(LIB_NAME editor)
 
 add_library(${LIB_NAME}
     src/reflected_types/reflected_type_editor.cpp
+    src/reflected_types/primitive_type_editors.cpp
 
     src/editor.cpp
     
