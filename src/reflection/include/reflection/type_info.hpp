@@ -34,6 +34,12 @@ static std::string PrettifyName(const char* originalName)
         prettyName = prettyName.substr(prettyName.find("_") + 1);
     }
 
+    // Remove leading "p" prefix for pointers
+    if (prettyName[0] == 'p' && std::isupper(prettyName[1]))
+    {
+        prettyName = prettyName.substr(1);
+    }
+
     // Add spaces before each upper case letter
     for (int i = 1; i < prettyName.length(); i++)
     {
