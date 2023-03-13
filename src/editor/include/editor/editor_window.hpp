@@ -40,7 +40,7 @@ class IEditorWindow
   protected:
     EditorWindowContext* m_pEditorWindowContext = nullptr;
 
-    void Initialize(EditorWindowContext* pEditorWindowContext)
+    virtual void Initialize(EditorWindowContext* pEditorWindowContext)
     {
         m_pEditorWindowContext = pEditorWindowContext;
     }

@@ -217,8 +217,14 @@ void Entity::Deactivate(const LoadingContext& loadingContext)
     // Unregister components from systems
     for (auto pComponent : m_components)
     {
-        UnregisterComponentWithLocalSystems(pComponent);
-        loadingContext.m_unregisterWithWorldSystems(this, pComponent);
+        if (pComponent->IsRegisteredWithEntitySystems())
+        {
+            UnregisterComponentWithLocalSystems(pComponent);
+        }
+        if (pComponent->IsRegisteredWithWorldSystems())
+        {
+            loadingContext.m_unregisterWithWorldSystems(this, pComponent);
+        }
     }
 
     m_status = Status::Loaded;

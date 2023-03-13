@@ -2,16 +2,32 @@
 
 #include "primitive_type_editors.hpp"
 
-#include <reflection/type_info.hpp>
+#include <common/event.hpp>
+
+#include <reflection/reflected_type.hpp>
 #include <unordered_map>
 
 namespace aln
 {
+
+struct TypeEditedEventDetails
+{
+    enum class Action : uint8_t
+    {
+        Invalid,
+        Edit,
+    };
+
+    Action m_action = Action::Invalid;
+    reflect::IReflected* m_pEditedTypeInstance;
+    const reflect::ClassMemberInfo* m_pEditedMemberInfo;
+};
+
 class ReflectedTypeEditor
 {
   private:
-    Event<ReflectedTypeEditor*> m_typeEditionStartedEvent;
-    Event<ReflectedTypeEditor*> m_typeEditionCompletedEvent;
+    Event<const TypeEditedEventDetails&> m_typeEditionStartedEvent;
+    Event<const TypeEditedEventDetails&> m_typeEditionCompletedEvent;
 
     static std::unordered_map<StringID, IPrimitiveTypeEditor*> PrimitiveTypeEditors;
 
@@ -21,8 +37,8 @@ class ReflectedTypeEditor
     static void Initialize() {}
     static void Shutdown();
 
-    Event<ReflectedTypeEditor*>& OnTypeEditingStarted() { return m_typeEditionStartedEvent;}
-    Event<ReflectedTypeEditor*>& OnTypeEditingCompleted() { return m_typeEditionCompletedEvent;}
+    Event<const TypeEditedEventDetails&>& OnTypeEditingStarted() { return m_typeEditionStartedEvent; }
+    Event<const TypeEditedEventDetails&>& OnTypeEditingCompleted() { return m_typeEditionCompletedEvent; }
 
     /// @brief Parse the reflected fields of a custom reflected class to display them in editor
     /// @param widgetColumnWidth Desired widget column width. Default behavior is to use two third of the available window width.

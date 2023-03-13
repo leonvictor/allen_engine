@@ -161,6 +161,9 @@ class Editor
         }
         m_assetWindows.clear();
 
+        m_assetsBrowser.Shutdown();
+        m_entityInspector.Shutdown();
+
         ReflectedTypeEditor::Shutdown();
     }
 
