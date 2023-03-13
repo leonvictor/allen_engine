@@ -59,6 +59,7 @@ class IComponent : public reflect::IReflected
     virtual void Unload(const LoadingContext& loadingContext) = 0;
 
     /// @brief Check the loading status of necessary resources and update the component status accordingly
+    /// @todo For now each component needs to override this and manually handle its status.
     virtual bool UpdateLoadingStatus()
     {
         m_status = Status::Loaded;

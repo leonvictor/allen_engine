@@ -73,6 +73,10 @@ class StaticMeshComponent : public MeshComponent
         {
             m_status = Status::Loaded;
         }
+        else if (m_pMesh.HasFailedLoading())
+        {
+            m_status = Status::LoadingFailed;
+        }
 
         return IsLoaded();
     }

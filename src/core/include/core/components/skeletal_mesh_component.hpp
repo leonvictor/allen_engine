@@ -136,7 +136,10 @@ class SkeletalMeshComponent : public MeshComponent
         {
             m_status = Status::Loaded;
         }
-
+        else if (m_pMesh.HasFailedLoading() || m_pSkeleton.HasFailedLoading())
+        {
+            m_status = Status::LoadingFailed;
+        }
         return IsLoaded();
     }
 

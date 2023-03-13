@@ -7,6 +7,12 @@ void AnimationSystem::Update(const UpdateContext& ctx)
     if (m_pAnimationGraphComponent == nullptr && m_pSkeletalMeshComponent == nullptr)
         return;
 
+    if (m_pSkeletalMeshComponent == nullptr)
+        return;
+
+    if (m_pSkeletalMeshComponent->GetSkeleton() != m_pAnimationPlayerComponent->GetPose()->GetSkeleton())
+        return;
+
     m_pAnimationPlayerComponent->Update(ctx.GetDeltaTime());
     m_pSkeletalMeshComponent->SetPose(m_pAnimationPlayerComponent->GetPose());
     // m_pSkeletalMeshComponent->ResetPoseSkeleton();
