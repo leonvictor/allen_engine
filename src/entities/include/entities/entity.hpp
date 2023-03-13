@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-#include <common/uuid.hpp>
 #include <common/event.hpp>
+#include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
 
 #include <Tracy.hpp>
@@ -94,6 +94,9 @@ class Entity
     void DestroyComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent);
     void AddComponentImmediate(IComponent* pComponent, SpatialComponent* pParentComponent);
     void AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent);
+
+    void RegisterComponentWithLocalSystems(IComponent* pComponent);
+    void UnregisterComponentWithLocalSystems(IComponent* pComponent);
 
     /// @brief Attach to the parent entity.
     void AttachToParent();
@@ -206,6 +209,12 @@ class Entity
 
     /// @brief Add a parent entity.
     void SetParentEntity(Entity* pEntity);
+
+    // -------- Editing
+    // TODO: Disable in prod
+
+    void StartComponentEditing(const LoadingContext& loadingContext, IComponent* pComponent);
+    void EndComponentEditing(const LoadingContext& loadingContext);
 
     inline bool operator==(const Entity& other) const { return other.GetID() == GetID(); }
     inline bool operator!=(const Entity& other) const { return !operator==(other); }

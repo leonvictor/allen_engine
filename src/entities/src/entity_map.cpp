@@ -35,8 +35,10 @@ EntityMap::~EntityMap()
 
 void EntityMap::Clear(const LoadingContext& loadingContext)
 {
+    m_editedEntities.clear();
     m_entitiesToRemove.clear();
     m_loadingEntities.clear();
+    m_entityLookupMap.clear();
 
     // If this is the main map, deactivate and unload all entities,
     // then clear the collection.
@@ -103,6 +105,7 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
 
     assert(IsLoaded());
 
+    // TODO:
     // auto activationTask = ActivationTask(m_entities, loadingContext);
     // loadingContext.m_pTaskService->ExecuteTask(&activationTask);
 
@@ -111,10 +114,19 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
 
 void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
 {
+    // --------- Edited entities
+    // TODO: Disable in prod
+    for (auto pEntity : m_editedEntities)
+    {
+        pEntity->EndComponentEditing(loadingContext);
+        m_loadingEntities.push_back(pEntity);
+    }
+
     // --------- Added entities
     for (auto pEntity : m_entitiesToAdd)
     {
         m_entities.push_back(pEntity);
+        m_entityLookupMap[pEntity->GetID()] = pEntity;
 
         pEntity->LoadComponents(loadingContext);
         m_loadingEntities.push_back(pEntity);
@@ -143,6 +155,8 @@ void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
         pEntityToRemove->UnloadComponents(loadingContext);
 
         // Remove from collection
+        m_entityLookupMap.erase(pEntityToRemove->GetID());
+
         auto itEntity = std::find(m_entities.begin(), m_entities.end(), pEntityToRemove);
         assert(itEntity != m_entities.end());
         m_entities.erase(itEntity);

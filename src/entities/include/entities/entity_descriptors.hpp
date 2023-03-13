@@ -234,6 +234,7 @@ class EntityMapDescriptor
         auto entityCount = m_entityDescriptors.size();
         entityMap.m_entities.reserve(entityCount);
         entityMap.m_loadingEntities.reserve(entityCount);
+        entityMap.m_entityLookupMap.reserve(entityCount);
 
         // TODO: Parallelize ?
         for (auto& desc : m_entityDescriptors)
@@ -242,6 +243,7 @@ class EntityMapDescriptor
             desc.InstanciateEntity(pEntity, &typeRegistryService);
 
             entityMap.m_entities.push_back(pEntity);
+            entityMap.m_entityLookupMap[pEntity->GetID()] = pEntity;
 
             // TODO: what if the map is not loaded yet ?
             pEntity->LoadComponents(loadingContext);

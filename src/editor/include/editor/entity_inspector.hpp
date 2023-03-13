@@ -9,7 +9,6 @@ class EntityInspector : public IEditorWindow
 {
     ReflectedTypeEditor m_entityComponentsSystemInspector;
     UUID m_entityStartedEditingEventID;
-    UUID m_entityCompletedEditingEventID;
 
     // TODO: Move to the quaternion widget directly
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
@@ -18,10 +17,19 @@ class EntityInspector : public IEditorWindow
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
 
   public:
-    void Initialize(EditorWindowContext* pEditorWindowContext)
+    void Initialize(EditorWindowContext* pEditorWindowContext) override
     {
         IEditorWindow::Initialize(pEditorWindowContext);
         m_pTypeRegistryService = pEditorWindowContext->m_pTypeRegistryService;
+
+        m_entityStartedEditingEventID = m_entityComponentsSystemInspector.OnTypeEditingStarted().BindListener([this](const TypeEditedEventDetails& eventDetails)
+            { BeginComponentEditing(eventDetails); });
+    }
+
+    void Shutdown() override
+    {
+        IEditorWindow::Shutdown();
+        m_entityComponentsSystemInspector.OnTypeEditingStarted().UnbindListener(m_entityStartedEditingEventID);
     }
 
     virtual void Update(const UpdateContext& context)
@@ -214,6 +222,14 @@ class EntityInspector : public IEditorWindow
             ImGui::PopID();
         }
         ImGui::End();
+    }
+
+    void BeginComponentEditing(const TypeEditedEventDetails& editingEventDetails)
+    {
+        auto pWorldEntity = GetWorldEntity();
+        auto pComponent = dynamic_cast<IComponent*>(editingEventDetails.m_pEditedTypeInstance);
+
+        pWorldEntity->StartComponentEditing(pComponent);
     }
 
     // ------- State management

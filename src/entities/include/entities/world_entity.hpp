@@ -14,11 +14,14 @@
 namespace aln
 {
 
+class IComponent;
+
 /// @brief The one entity that represents the world. Holds entities and world systems.
 class WorldEntity
 {
     friend class Engine;
     friend class Editor;
+    friend class EntityInspector;
 
   private:
     EntityMap m_entityMap;
@@ -83,5 +86,14 @@ class WorldEntity
     }
 
     const std::vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
+
+    // -------- Editing
+    // TODO: Disable in prod
+
+    void StartComponentEditing(IComponent* pComponent)
+    {
+        assert(pComponent != nullptr);
+        m_entityMap.StartComponentEditing(m_loadingContext, pComponent);
+    }
 };
 } // namespace aln

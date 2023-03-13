@@ -14,12 +14,15 @@ namespace aln
 class IComponent : public reflect::IReflected
 {
     friend class Entity;
-    // TODO: Serialization
+    friend class WorldEntity;
 
   private:
     const UUID m_ID = UUID::Generate();
-    bool m_isSingleton = false;          // Whether you can have multiple components of this type per entity
     UUID m_entityID = UUID::InvalidID(); // Entity this component is attached to.
+    bool m_isSingleton = false;          // Whether you can have multiple components of this type per entity
+
+    bool m_registeredWithEntitySystems = false;
+    bool m_registeredWithWorldSystems = false;
 
     std::future<bool> m_loadingTask;
 
@@ -75,7 +78,11 @@ class IComponent : public reflect::IReflected
     inline bool IsLoaded() const { return m_status == Status::Loaded; }
     inline bool HasFailedLoading() const { return m_status == Status::LoadingFailed; }
 
+    inline bool IsRegisteredWithEntitySystems() const { return m_registeredWithEntitySystems; }
+    inline bool IsRegisteredWithWorldSystems() const { return m_registeredWithWorldSystems; }
+
     const UUID& GetID() const { return m_ID; }
+    const UUID& GetEntityID() const { return m_entityID; }
 
     bool operator==(const IComponent& other) const { return m_ID == other.GetID(); }
     bool operator!=(const IComponent& other) const { return !operator==(other); }

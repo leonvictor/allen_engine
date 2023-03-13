@@ -1,15 +1,16 @@
 #pragma once
 
+#include "component.hpp"
 #include "entity.hpp"
 #include "loading_context.hpp"
 #include "update_context.hpp"
 
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
 namespace aln
 {
-class Entity;
 
 class EntityMap
 {
@@ -25,10 +26,12 @@ class EntityMap
 
     /// @todo: Entities live on the heap. Profile !
     std::vector<Entity*> m_entities;
+    std::unordered_map<UUID, Entity*> m_entityLookupMap;
 
     std::vector<Entity*> m_entitiesToAdd;
     std::vector<Entity*> m_entitiesToRemove;
     std::vector<Entity*> m_loadingEntities;
+    std::vector<Entity*> m_editedEntities;
     std::vector<Entity*> m_entitiesToActivate;
     std::vector<Entity*> m_entitiesToDeactivate;
 
@@ -84,5 +87,29 @@ class EntityMap
 
     /// @brief Permanently remove an entity from the collection.
     void RemoveEntity(Entity* pEntity);
+
+    /// @brief Find an entity by ID.
+    Entity* FindEntity(const UUID& entityID) const
+    {
+        auto it = m_entityLookupMap.find(entityID);
+        assert(it != m_entityLookupMap.end());
+        return it->second;
+    }
+
+    // -------- Editing
+    // TODO: Disable in prod
+
+    void StartComponentEditing(const LoadingContext& loadingContext, IComponent* pComponent)
+    {
+        assert(pComponent != nullptr);
+        auto pEntity = FindEntity(pComponent->GetEntityID());
+
+        pEntity->StartComponentEditing(loadingContext, pComponent);
+
+        if (std::find(m_editedEntities.begin(), m_editedEntities.end(), pEntity) == m_editedEntities.end())
+        {
+            m_editedEntities.push_back(pEntity);
+        }
+    }
 };
 } // namespace aln
