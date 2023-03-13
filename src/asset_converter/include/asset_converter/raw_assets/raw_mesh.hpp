@@ -55,7 +55,10 @@ class RawSkeletalMesh : public IRawAsset
 
     static void AddBoneData(SkinnedVertex& vertex, uint32_t boneIndex, float weight)
     {
-        /// @note Max influenced vertices is 4
+        /// @note Max influenced vertices is 4.
+        // TODO: For now if more weights are detected only the most influent one are kept.
+        uint8_t minIndex = 5;
+        float minWeight = 1;
         for (uint8_t idx = 0; idx < 4; ++idx)
         {
             if (vertex.weights[idx] == 0)
@@ -64,10 +67,21 @@ class RawSkeletalMesh : public IRawAsset
                 vertex.weights[idx] = weight;
                 return;
             }
+            else if (weight > vertex.weights[idx] && minWeight > vertex.weights[idx])
+            {
+                minIndex = idx;
+                minWeight = weight;
+            }
+        }
+
+        if (minIndex < 5)
+        {
+            vertex.weights[minIndex] = weight;
+            vertex.boneIndices[minIndex] = boneIndex;
         }
 
         // Too many weights for a single vertex
-        assert(false);
+        // assert(false);
     }
 };
 

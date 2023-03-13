@@ -34,7 +34,7 @@ void RawSkeleton::CalculateLocalTransforms()
 {
     m_localReferencePose.resize(m_boneNames.size());
     m_localReferencePose[0] = m_globalReferencePose[0];
-    for (auto boneIdx = GetBoneCount() - 1; boneIdx > 0; --boneIdx)
+    for (auto boneIdx = GetBoneCount() - 1; boneIdx > 1; --boneIdx)
     {
         auto& parentBoneIdx = m_parentBoneIndices[boneIdx];
         m_localReferencePose[boneIdx] = m_globalReferencePose[parentBoneIdx].GetInverse() * m_globalReferencePose[boneIdx];
@@ -45,7 +45,7 @@ void RawSkeleton::CalculateGlobalTransforms()
 {
     m_globalReferencePose.resize(m_boneNames.size());
     m_globalReferencePose[0] = m_localReferencePose[0];
-    for (auto boneIdx = 0; boneIdx < GetBoneCount(); ++boneIdx)
+    for (auto boneIdx = 1; boneIdx < GetBoneCount(); ++boneIdx)
     {
         auto& parentBoneIdx = m_parentBoneIndices[boneIdx];
         m_globalReferencePose[boneIdx] = m_globalReferencePose[parentBoneIdx] * m_localReferencePose[boneIdx];
@@ -68,6 +68,7 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
     if (!sceneContext.TryGetSkeleton(skeletonName, pSkeleton))
     {
         pSkeleton->m_name = skeletonName;
+        pSkeleton->m_id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + pSkeleton->m_name + ".skel");
         pSkeleton->m_rootNodeGlobalTransform = sceneContext.DecomposeMatrix(skeletonRoot.m_globalTransform);
 
         // Add root data
@@ -80,6 +81,7 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
         ReadAnimationBoneHierarchy(pSkeleton, sceneContext, pAnimation, skeletonRoot.m_pNode, skeletonRoot.m_globalTransform, 0);
 
         // Save the skeleton
+        // TODO: Check against existing skeletons
         std::vector<std::byte> data;
         auto dataStream = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
 
@@ -184,6 +186,9 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
         pSkeleton->m_rootNodeGlobalTransform = sceneContext.GetGlobalTransform(pRootBone);
 
         auto numBones = pSkeletalMesh->mNumBones + 1;
+        std::vector<std::string> parentBoneNames;
+
+        parentBoneNames.reserve(numBones);
         pSkeleton->m_boneNames.reserve(numBones);
         pSkeleton->m_parentBoneIndices.reserve(numBones);
         pSkeleton->m_globalReferencePose.reserve(numBones);
@@ -193,7 +198,7 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
         pSkeleton->m_localReferencePose.push_back(Transform::Identity);
         pSkeleton->m_globalReferencePose.push_back(Transform::Identity);
         pSkeleton->m_boneNames.push_back(skeletonName);
-        pSkeleton->m_parentBoneIndices.push_back(InvalidIndex);
+        parentBoneNames.push_back("");
 
         // Initialize the rest of the bones
         for (size_t meshBoneIndex = 0; meshBoneIndex < pSkeletalMesh->mNumBones; ++meshBoneIndex)
@@ -202,7 +207,7 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
             auto boneName = std::string(pBone->mName.C_Str());
 
             auto parentBoneName = std::string(pBone->mNode->mParent->mName.C_Str());
-            auto parentBoneIndex = pSkeleton->GetBoneIndex(parentBoneName);
+            parentBoneNames.push_back(parentBoneName);
 
             // TODO: Choose the right one !
             auto inverseBindPose = sceneContext.DecomposeMatrix(pBone->mOffsetMatrix);
@@ -210,9 +215,19 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
 
             // Add bone data
             pSkeleton->m_boneNames.push_back(boneName);
-            pSkeleton->m_parentBoneIndices.push_back(parentBoneIndex);
             pSkeleton->m_globalReferencePose.push_back(bindPose);
         }
+
+        // Find parent bone indices
+        pSkeleton->m_parentBoneIndices.push_back(InvalidIndex);
+        for (size_t boneIndex = 1; boneIndex < numBones; ++boneIndex)
+        {
+            auto parentBoneIndex = pSkeleton->GetBoneIndex(parentBoneNames[boneIndex]);
+            pSkeleton->m_parentBoneIndices.push_back(parentBoneIndex);
+        }
+
+        // TODO: Reorder so that parents appear before children
+
         pSkeleton->CalculateLocalTransforms();
 
         // Save skeleton

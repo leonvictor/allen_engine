@@ -90,8 +90,10 @@ struct AssimpAnimationReader
                 /// @note For now we only support animations where tracks have full transforms for each frame
                 // AND the frames are uniformely spaced
                 // (compression should happen later)
-                assert(pChannel->mNumPositionKeys == pChannel->mNumRotationKeys &&
-                       pChannel->mNumRotationKeys == pChannel->mNumScalingKeys);
+                assert(pChannel->mNumPositionKeys == pChannel->mNumRotationKeys);
+
+                bool uniformScaling = (pChannel->mNumScalingKeys == 1);
+                assert(uniformScaling || pChannel->mNumRotationKeys == pChannel->mNumScalingKeys);
 
                 const auto keyCount = pChannel->mNumPositionKeys;
                 maxKeyCount = std::max(maxKeyCount, keyCount);
@@ -103,7 +105,7 @@ struct AssimpAnimationReader
                 {
                     auto& translation = pChannel->mPositionKeys[keyIndex].mValue;
                     auto& rotation = pChannel->mRotationKeys[keyIndex].mValue;
-                    auto& scale = pChannel->mScalingKeys[keyIndex].mValue;
+                    auto& scale = uniformScaling ? pChannel->mScalingKeys[0].mValue : pChannel->mScalingKeys[keyIndex].mValue;
 
                     auto& transform = track.m_transforms.emplace_back(
                         sceneContext.ToGLM(translation),
