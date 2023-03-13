@@ -2,6 +2,7 @@
 
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
+#include <reflection/reflected_type.hpp>
 
 namespace aln
 {
@@ -50,11 +51,17 @@ void ReflectedTypeEditor::Draw(const reflect::TypeInfo* pTypeInfo, void* pTypeIn
 
             // TODO: Move Factory to a primitive-only class
             auto pEditor = GetOrCreatePrimitiveTypeEditor(memberInfo.GetTypeID());
+
             if (pEditor->DrawWidget(pMemberInstance))
             {
-                // TODO: Notify listeners that this property is changing
+                TypeEditedEventDetails details;
+                details.m_action = TypeEditedEventDetails::Action::Edit;
+                details.m_pEditedMemberInfo = &memberInfo;
+                details.m_pEditedTypeInstance = reinterpret_cast<reflect::IReflected*>(pTypeInstance);
+
+                m_typeEditionStartedEvent.Fire(details);
                 pEditor->UpdateValue();
-                // TODO: Notify listeners that this property has changed
+                m_typeEditionCompletedEvent.Fire(details);
             }
 
             ImGui::PopItemWidth();

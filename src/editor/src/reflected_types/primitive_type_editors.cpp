@@ -159,11 +159,12 @@ class AssetHandleEditor : public IPrimitiveTypeEditor
 
         // TODO: Reload as necessary
         // TODO: Notify the owning entity
-        return m_assetIDEditor.DrawWidget((std::byte*) const_cast<AssetID*>(&m_pInstanceValue->GetAssetID()));
+        return m_assetIDEditor.DrawWidget((std::byte*) const_cast<AssetID*>(&m_editingValue.GetAssetID()));
     }
 
     void UpdateValue() override
     {
+        m_assetIDEditor.UpdateValue();
         *m_pInstanceValue = m_editingValue;
     }
 };
