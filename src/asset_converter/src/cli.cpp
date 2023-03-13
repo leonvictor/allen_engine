@@ -1,9 +1,12 @@
 #include "asset_converter.hpp"
-#include "image_converter.hpp"
+#include "raw_assets/raw_texture.hpp"
 
+#include <filesystem>
 #include <iostream>
 
 using namespace aln::assets::converter;
+
+// TODO: Propagate a shared context so that we can detect when the same asset is used multiple times
 
 int main(int argc, char* argv[])
 {
@@ -13,20 +16,20 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    ConverterConfig config{fs::path(argv[1])}; // TODO: output arg
+    std::filesystem::path inputDirectory = std::filesystem::path(argv[1]);
 
-    std::cout << "Loaded asset directory: " << config.inputDirectory << std::endl;
+    std::cout << "Loaded asset directory: " << inputDirectory << std::endl;
 
-    for (auto& file : fs::recursive_directory_iterator(config.inputDirectory))
+    for (auto& file : std::filesystem::recursive_directory_iterator(inputDirectory))
     {
         std::cout << "File: " << file.path() << std::endl;
 
-        auto exportPath = config.rootOutputDirectory / file.path().lexically_proximate(config.inputDirectory);
+        auto exportPath = rootOutputDirectory / file.path().lexically_proximate(inputDirectory);
 
         // Create subdirectories if necessary
-        if (!fs::is_directory(exportPath.parent_path()))
+        if (!std::filesystem::is_directory(exportPath.parent_path()))
         {
-            fs::create_directory(exportPath.parent_path());
+            std::filesystem::create_directory(exportPath.parent_path());
         }
 
         auto extension = file.path().extension();
@@ -35,7 +38,7 @@ int main(int argc, char* argv[])
             exportPath.replace_extension(".text");
 
             std::cout << "Texture found, saving to " << exportPath << std::endl;
-            ConvertImage(file.path(), exportPath);
+            FileTextureReader::ReadTexture(file.path(), exportPath);
         }
 
         if (extension == ".fbx" || extension == ".obj" || extension == ".gltf")

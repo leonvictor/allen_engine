@@ -7,6 +7,7 @@
 
 #include "../assimp_scene_context.hpp"
 #include "raw_asset.hpp"
+#include "raw_texture.hpp"
 
 namespace aln::assets::converter
 {
@@ -41,17 +42,25 @@ class AssimpMaterialReader
         assert(textureCount <= 1); // We only support one texture for now
         for (auto textureIndex = 0; textureIndex < textureCount; ++textureIndex)
         {
+            // TODO: Use StaticAssetType
+            std::filesystem::path textureExportPath = sceneContext.GetOutputDirectory() / (name + "_Albedo" + ".text");
+
             aiString texturePath;
             pMaterial->GetTexture(aiTextureType_DIFFUSE, textureIndex, &texturePath, nullptr, nullptr, nullptr, nullptr, nullptr);
 
-            // Transfer texture path to its export equivalent
-            // TODO: Handle actual texture export here
-            /// @note we have to use .. for now as the exporter creates a new folder for each gltf/fbx file
-            auto textureExportPath = std::filesystem::path(std::string(texturePath.C_Str()));
-            textureExportPath = sceneContext.GetOutputDirectory() / ".." / textureExportPath;
-            textureExportPath.replace_extension("text");
-
-            material.m_albedoMapID = AssetID(textureExportPath.string());
+            AssetID textureID;
+            const auto pEmbeddedTexture = sceneContext.GetScene()->GetEmbeddedTexture(texturePath.C_Str());
+            if (pEmbeddedTexture != nullptr)
+            {
+                textureID = AssimpTextureReader::ReadTexture(sceneContext, pEmbeddedTexture, textureExportPath);
+            }
+            else
+            {
+                auto textureFilePath = sceneContext.GetSourceFile();
+                textureFilePath.replace_filename(texturePath.C_Str());
+                textureID = FileTextureReader::ReadTexture(textureFilePath, textureExportPath);
+            }
+            material.m_albedoMapID = textureID;
         }
 
         auto id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + name + ".mtrl");

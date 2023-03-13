@@ -4,7 +4,6 @@ message(STATUS "Building Asset Converter as a library (to be used in editor mode
 
 set(ASSET_CONVERT_LIB_SOURCE
     src/assimp_scene_context.cpp
-    src/image_converter.cpp
     
     src/raw_assets/raw_skeleton.cpp
     )
