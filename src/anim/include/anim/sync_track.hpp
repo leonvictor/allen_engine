@@ -8,7 +8,7 @@ using Percentage = float;
 
 struct SyncTrackTime
 {
-    Event event;
+    AnimationEvent event;
     Percentage percent;
 };
 

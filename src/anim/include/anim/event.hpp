@@ -6,7 +6,7 @@
 
 namespace aln
 {
-class Event
+class AnimationEvent
 {
     // Immediate or durable
     enum class Type : uint8_t
@@ -23,7 +23,7 @@ struct SampledEvent
     // TODO:
     // Source animation
     Animation* pAnimation;
-    Event* pEvent;
+    AnimationEvent* pEvent;
     float eventWeight = 1; // How important is this event for this update.
     // TODO: Is modified by any blend that occur. When blending away from the source anim, the weight is reduced
     float percent;                   // How long are we through the event (100% for immediate)
