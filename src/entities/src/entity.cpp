@@ -165,14 +165,7 @@ void Entity::Activate(const LoadingContext& loadingContext)
     {
         if (pComponent->IsInitialized())
         {
-            // Register each component with all local systems...
-            for (auto pSystem : m_systems)
-            {
-                pSystem->RegisterComponent(pComponent);
-            }
-
-            // ... and all global systems
-            // This is the non-parallelizable part
+            RegisterComponentWithLocalSystems(pComponent);
             loadingContext.m_registerWithWorldSystems(this, pComponent);
         }
     }

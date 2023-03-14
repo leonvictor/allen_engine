@@ -121,6 +121,7 @@ void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
         pEntity->EndComponentEditing(loadingContext);
         m_loadingEntities.push_back(pEntity);
     }
+    m_editedEntities.clear();
 
     // --------- Added entities
     for (auto pEntity : m_entitiesToAdd)
