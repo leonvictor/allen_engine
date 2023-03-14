@@ -13,6 +13,7 @@
 #include <common/string_id.hpp>
 
 #include "reflected_type.hpp"
+#include "services/type_registry_service.hpp"
 #include "type_info.hpp"
 
 namespace aln::reflect
@@ -139,13 +140,13 @@ class TypeDescriptor
 
   public:
     bool IsValid() const { return m_typeID.IsValid(); }
+    const StringID& GetTypeID() const { return m_typeID; }
 
     /// @brief Describe a type instance by reflecting its member value(s)
     virtual void DescribeTypeInstance(const IReflected* pTypeInstance, const TypeRegistryService* pTypeRegistryService, const reflect::TypeInfo* pTypeInfo)
     {
         assert(!IsValid() && pTypeInstance != nullptr);
 
-        // auto pTypeInfo = pTypeInstance->GetTypeInfo();
         m_typeID = pTypeInfo->GetTypeID();
         DescribeType(pTypeInstance, *this, pTypeRegistryService, pTypeInfo);
     }
@@ -163,6 +164,19 @@ class TypeDescriptor
         InstanciateSubobject(pTypeInfo, 0, pInstance, pTypeRegistryService);
 
         return pInstance;
+    }
+
+    template <typename T>
+    T* InstanciateInPlace(void* pMemory, const TypeRegistryService& typeRegistryService)
+    {
+        assert(IsValid());
+
+        auto pTypeInfo = typeRegistryService.GetTypeInfo(m_typeID);
+        auto pInstance = pTypeInfo->CreateTypeInstanceInPlace<T>(pMemory);
+
+        InstanciateSubobject(pTypeInfo, 0, pInstance, &typeRegistryService);
+
+        return (T*) pInstance;
     }
 };
 
@@ -182,60 +196,62 @@ struct TypeCollectionDescriptor
     void Deserialize(Archive& archive)
     {
         archive >> m_descriptors;
-        for (auto& descriptor : m_descriptors)
-        {
-            descriptor.Initialize();
-        }
     }
 
     /// @brief Instanciate the type collection in contiguous memory. Handling the memory is up to the user !
     /// @tparam T Base class of instanciated types
     /// @param outCollection
     template <typename T>
-    void InstanciateFixedSizeCollection(std::vector<T*>& outCollection)
+    void InstanciateFixedSizeCollection(std::vector<T*>& outCollection, const TypeRegistryService& typeRegistryService)
     {
-        // assert(!outCollection.empty());
-        // assert(!m_descriptors.empty());
+        assert(outCollection.empty());
+        assert(!m_descriptors.empty());
 
-        // size_t collectionSize = m_descriptors.size();
+        size_t collectionSize = m_descriptors.size();
+        std::vector<const TypeInfo*> elementTypeInfos;
 
-        // // Calculate the memory requirements for the settings array
+        // Calculate the memory requirements for the settings array
+        size_t requiredMemoryAlignment = 0;
+        size_t requiredMemorySize = 0;
+        std::vector<size_t> requiredPaddings;
 
-        // size_t requiredMemoryAlignment = 0;
-        // size_t requiredMemorySize = 0;
-        // std::vector<size_t> requiredPaddings;
+        // 1 - First loop to get the maximum required alignement
+        for (auto i = 0; i < collectionSize; ++i)
+        {
+            auto& descriptor = m_descriptors[i];
+            assert(descriptor.IsValid());
 
-        // // 1 - First loop to get the maximum required alignement
-        // for (auto& descriptor : m_descriptors)
-        // {
-        //     assert(descriptor.IsInitialized());
-        //     requiredMemoryAlignment = std::max(requiredMemoryAlignment, descriptor.m_pTypeInfo->m_alignment);
-        // }
+            auto pTypeInfo = typeRegistryService.GetTypeInfo(descriptor.GetTypeID());
+            elementTypeInfos.push_back(pTypeInfo);
 
-        // // 2 - Second one to calculate the total size + paddings
-        // /// @todo: How can we merge the first two loops ?
-        // requiredPaddings.reserve(collectionSize);
-        // for (auto& descriptor : m_descriptors)
-        // {
-        //     size_t requiredPadding = (requiredMemoryAlignment - (requiredMemorySize % requiredMemoryAlignment)) % requiredMemoryAlignment;
-        //     requiredPaddings.push_back(requiredPadding);
+            requiredMemoryAlignment = std::max(requiredMemoryAlignment, pTypeInfo->m_alignment);
+        }
 
-        //     requiredMemorySize += descriptor.m_pTypeInfo->m_size + requiredPadding;
-        // }
+        // 2 - Second one to calculate the total size + paddings
+        /// @todo: How can we merge the first two loops ?
+        requiredPaddings.reserve(collectionSize);
+        for (auto i = 0; i < collectionSize; ++i)
+        {
+            auto pTypeInfo = elementTypeInfos[i];
 
-        // // 3 - Allocate the memory for the actual settings data
-        // // /!\ The memory is not handled by the class but by the loader !
-        // auto pMemory = (std::byte*) aln::Allocate(requiredMemorySize, requiredMemoryAlignment);
+            size_t requiredPadding = (requiredMemoryAlignment - (requiredMemorySize % requiredMemoryAlignment)) % requiredMemoryAlignment;
+            requiredPaddings.push_back(requiredPadding);
 
-        // // 4 - Placement new each type in contiguous memory
-        // // and add a ptr to the definition's collection
-        // outCollection.reserve(collectionSize);
-        // for (auto i = 0; i < collectionSize; ++i)
-        // {
-        //     pMemory += requiredPaddings[i];
-        //     // outCollection.push_back(m_descriptors[i].CreateTypeInPlace<T>(pMemory));
-        //     // pMemory += m_descriptors[i].m_pTypeInfo->m_size;
-        // }
+            requiredMemorySize += pTypeInfo->m_size + requiredPadding;
+        }
+
+        // 3 - Allocate the memory for the actual elements data
+        // /!\ The memory is not handled by the class but by the loader !
+        auto pMemory = (std::byte*) aln::Allocate(requiredMemorySize, requiredMemoryAlignment);
+
+        // 4 - Placement new each type in contiguous memory and add a ptr to the collection
+        outCollection.reserve(collectionSize);
+        for (auto i = 0; i < collectionSize; ++i)
+        {
+            pMemory += requiredPaddings[i];
+            outCollection.push_back(m_descriptors[i].InstanciateInPlace<T>(pMemory, typeRegistryService));
+            pMemory += elementTypeInfos[i]->m_size;
+        }
     }
 
     template <typename T>
@@ -246,8 +262,10 @@ struct TypeCollectionDescriptor
             pInstance->~T();
         }
         aln::Free(collection[0]);
+        collection.clear();
     }
 
+    template <typename T>
     void InstanciateDynamicCollection()
     {
         // TODO
