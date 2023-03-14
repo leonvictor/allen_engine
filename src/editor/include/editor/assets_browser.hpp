@@ -29,6 +29,10 @@ class AssetsBrowser : public IEditorWindow
 
   public:
     AssetsBrowser(std::string folderPath) : m_currentFilePath(folderPath) {}
+
     void Update(const UpdateContext& context) override;
+
+    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override{};
+    virtual void SaveState(nlohmann::json& json) override{};
 };
 } // namespace aln

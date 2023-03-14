@@ -22,7 +22,6 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     assert(m_pTypeRegistryService != nullptr);
 
     AnimationGraphCompilationContext context(this);
-    auto assetPath = std::filesystem::path(GetID().GetAssetPath());
 
     // Compile graph definition
     AnimationGraphDefinition graphDefinition;
@@ -69,8 +68,7 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
 
         auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
 
-        // TODO: Path
-        auto fileArchive = BinaryFileArchive(assetPath, IBinaryArchive::IOMode::Write);
+        auto fileArchive = BinaryFileArchive(m_compiledDefinitionPath, IBinaryArchive::IOMode::Write);
         fileArchive << header << data;
     }
 
@@ -86,14 +84,62 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
             header.AddDependency(handle.GetAssetID());
         }
 
-        // TODO: Path
-        assetPath.replace_extension(AnimationGraphDataset::GetStaticAssetTypeID().ToString());
-        auto fileArchive = BinaryFileArchive(assetPath, IBinaryArchive::IOMode::Write);
+        auto fileArchive = BinaryFileArchive(m_compiledDatasetPath, IBinaryArchive::IOMode::Write);
         fileArchive << header << data;
     }
-
-    m_dirty = false;
     return nullptr;
+}
+
+void AnimationGraphEditor::SaveState(nlohmann::json& json)
+{
+    auto& nodes = json["nodes"];
+    for (auto pNode : m_graphNodes)
+    {
+        auto& nodeJson = nodes.emplace_back();
+        nodeJson["type"] = pNode->GetTypeInfo()->GetTypeID().GetHash();
+
+        auto position = ImNodes::GetNodeEditorSpacePos(pNode->GetID());
+        nodeJson["position"] = {position.x, position.y};
+
+        pNode->SaveNodeState(nodeJson);
+    }
+
+    auto& links = json["links"];
+    for (auto& link : m_links)
+    {
+        auto& linkJson = links.emplace_back();
+        linkJson["input_node"] = GetNodeIndex(link.m_pInputNode->GetID());
+        linkJson["input_pin"] = link.m_pInputNode->GetInputPinIndex(link.m_inputPinID);
+        linkJson["output_node"] = GetNodeIndex(link.m_pOutputNode->GetID());
+        linkJson["output_pin"] = link.m_pOutputNode->GetOutputPinIndex(link.m_outputPinID);
+    }
+}
+
+void AnimationGraphEditor::LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+{
+    assert(pTypeRegistryService != nullptr);
+
+    for (const auto& nodeJson : json["nodes"])
+    {
+        uint32_t typeID = nodeJson["type"];
+        auto pTypeInfo = pTypeRegistryService->GetTypeInfo(typeID);
+
+        auto pNode = pTypeInfo->CreateTypeInstance<EditorGraphNode>();
+        pNode->Initialize();
+        pNode->LoadNodeState(nodeJson, pTypeRegistryService);
+
+        AddGraphNode(pNode);
+
+        ImNodes::SetNodeEditorSpacePos(pNode->GetID(), {nodeJson["position"][0], nodeJson["position"][1]});
+    }
+
+    for (const auto& linkJson : json["links"])
+    {
+        auto pInputNode = m_graphNodes[linkJson["input_node"]];
+        auto pOutputNode = m_graphNodes[linkJson["output_node"]];
+
+        AddLink(pInputNode->GetID(), pInputNode->GetInputPin(linkJson["input_pin"]).GetID(), pOutputNode->GetID(), pOutputNode->GetOutputPin(linkJson["output_pin"]).GetID());
+    }
 }
 
 void AnimationGraphEditor::Update(const UpdateContext& context)
@@ -122,7 +168,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         }
     }
 
-    if (ImGui::Begin(windowName.c_str(), &m_shouldClose))
+    if (ImGui::Begin(windowName.c_str(), &m_isOpen))
     {
         UUID hoveredNodeID, hoveredPinID, hoveredLinkID;
         bool nodeHovered = ImNodes::IsNodeHovered(&hoveredNodeID);
@@ -181,6 +227,12 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
             if (ImGui::MenuItem("Compile & Save"))
             {
                 Compile();
+
+                // TODO: Save to a common folder with the rest of the editor ?
+                nlohmann::json json;
+                SaveState(json);
+                std::ofstream outputStream(m_statePath);
+                outputStream << json;
             }
             ImGui::EndPopup();
         }
@@ -283,11 +335,201 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
     }
     ImGui::End();
 
-    if (m_shouldClose)
+    if (!m_isOpen)
     {
         // TODO: Ensure we've saved
         RequestAssetWindowDeletion(GetID());
     }
 }
 
+void AnimationGraphEditor::Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile)
+{
+    // TODO: Which parts of this could be shared behavior with a parent class ?
+    IAssetEditorWindow::Initialize(pContext, id);
+
+    m_pTypeRegistryService = pContext->m_pTypeRegistryService;
+
+    // TODO: Shared behavior with other asset windows ?
+    m_compiledDefinitionPath = std::filesystem::path(id.GetAssetPath());
+
+    m_compiledDatasetPath = m_compiledDefinitionPath;
+    m_compiledDatasetPath.replace_extension(AnimationGraphDataset::GetStaticAssetTypeID().ToString());
+
+    // Generate state path from id
+    // TODO: state is saved in a separate directory
+    m_statePath = m_compiledDefinitionPath;
+    m_statePath.replace_filename(".json");
+
+    if (readAssetFile)
+    {
+        if (std::filesystem::exists(m_statePath))
+        {
+            // TODO: Weird API
+            std::ifstream inputStream(m_statePath);
+            nlohmann::json json;
+            inputStream >> json;
+
+            LoadState(json, pContext->m_pTypeRegistryService);
+        }
+        else
+        {
+            // TODO: Load from compiled definition
+        }
+    }
+}
+
+void AnimationGraphEditor::Shutdown()
+{
+    if (IsDirty() && !m_statePath.empty())
+    {
+        nlohmann::json json;
+        SaveState(json);
+        std::ofstream outputStream(m_statePath);
+        outputStream << json;
+    }
+
+    Clear();
+    IAssetEditorWindow::Shutdown();
+}
+
+void AnimationGraphEditor::Clear()
+{
+    m_pinLookupMap.clear();
+    m_links.clear();
+
+    for (auto pNode : m_graphNodes)
+    {
+        aln::Delete(pNode);
+    }
+
+    m_graphNodes.clear();
+    m_nodeLookupMap.clear();
+}
+
+uint32_t AnimationGraphEditor::GetNodeIndex(const UUID& nodeID)
+{
+    uint32_t nodeCount = m_graphNodes.size();
+    for (uint32_t nodeIndex = 0; nodeIndex < nodeCount; ++nodeIndex)
+    {
+        auto pNode = m_graphNodes[nodeIndex];
+        if (pNode->GetID() == nodeID)
+        {
+            return nodeIndex;
+        }
+    }
+    return InvalidIndex;
+}
+
+const EditorGraphNode* AnimationGraphEditor::GetNodeLinkedToInputPin(const UUID& inputPinID) const
+{
+    for (auto& link : m_links)
+    {
+        if (link.m_inputPinID == inputPinID)
+        {
+            return link.m_pOutputNode;
+        }
+    }
+    return nullptr;
+}
+
+const EditorGraphNode* AnimationGraphEditor::GetNodeLinkedToOutputPin(const UUID& outputPinID) const
+{
+    for (auto& link : m_links)
+    {
+        if (link.m_outputPinID == outputPinID)
+        {
+            return link.m_pInputNode;
+        }
+    }
+    return nullptr;
+}
+
+void AnimationGraphEditor::AddGraphNode(EditorGraphNode* pNode)
+{
+    assert(pNode != nullptr);
+
+    m_graphNodes.push_back(pNode);
+
+    // Populate lookup maps
+    m_nodeLookupMap[pNode->GetID()] = pNode;
+    for (auto& pin : pNode->m_inputPins)
+    {
+        m_pinLookupMap[pin.GetID()] = &pin;
+    }
+    for (auto& pin : pNode->m_outputPins)
+    {
+        m_pinLookupMap[pin.GetID()] = &pin;
+    }
+
+    SetDirty();
+}
+
+void AnimationGraphEditor::RemoveGraphNode(const UUID& nodeID)
+{
+    assert(nodeID.IsValid());
+
+    auto pNode = m_nodeLookupMap.at(nodeID);
+
+    // Clean up lookup maps
+    m_nodeLookupMap.erase(pNode->GetID());
+    for (auto& pin : pNode->m_inputPins)
+    {
+        m_pinLookupMap.erase(pin.GetID());
+    }
+    for (auto& pin : pNode->m_outputPins)
+    {
+        m_pinLookupMap.erase(pin.GetID());
+    }
+
+    // Remove the node's attached links
+    std::erase_if(m_links, [&](auto& link)
+        { return link.m_pInputNode == pNode || link.m_pOutputNode == pNode; });
+
+    // TODO: Actually remove the node from the graph
+    std::erase(m_graphNodes, pNode);
+    aln::Delete(pNode);
+
+    SetDirty();
+}
+
+void AnimationGraphEditor::AddLink(UUID inputNodeID, UUID inputPinID, UUID outputNodeID, UUID outputPinID)
+{
+    assert(inputNodeID.IsValid() && inputPinID.IsValid() && outputNodeID.IsValid() && outputPinID.IsValid());
+
+    auto pInputPin = m_pinLookupMap[inputPinID];
+    auto pOutputPin = m_pinLookupMap[outputPinID];
+
+    // Ensure matching pin types
+    if (pInputPin->GetValueType() != pOutputPin->GetValueType())
+    {
+        return;
+    }
+
+    // Ensure pins are input/output and in the right order
+    if (!pInputPin->IsInput())
+    {
+        std::swap(pInputPin, pOutputPin);
+        std::swap(inputNodeID, outputNodeID);
+    }
+
+    assert(pInputPin->IsInput() && pOutputPin->IsOutput());
+
+    auto& link = m_links.emplace_back();
+    link.m_pInputNode = m_nodeLookupMap[inputNodeID];
+    link.m_inputPinID = pInputPin->GetID();
+    link.m_pOutputNode = m_nodeLookupMap[outputNodeID];
+    link.m_outputPinID = pOutputPin->GetID();
+
+    SetDirty();
+}
+
+void AnimationGraphEditor::RemoveLink(const UUID& linkID)
+{
+    assert(linkID.IsValid());
+
+    std::erase_if(m_links, [&](Link& link)
+        { return link.m_id == linkID; });
+
+    SetDirty();
+}
 } // namespace aln

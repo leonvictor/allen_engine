@@ -145,11 +145,13 @@ class Editor
         m_assetsBrowser.Initialize(&m_editorWindowContext);
         m_entityInspector.Initialize(&m_editorWindowContext);
 
-
         // TODO: Usability stuff: automatically load last used scene etc
         m_scenePath = scenePath;
-        LoadScene();
-        LoadState();
+        if (std::filesystem::exists(m_scenePath))
+        {
+            LoadScene();
+            LoadState();
+        }
     }
 
     void Shutdown()
@@ -183,7 +185,7 @@ class Editor
         BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Read);
         archive >> mapDescriptor;
 
-        mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, *m_pTypeRegistryService);
+        mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, m_worldEntity.m_loadingContext, *m_pTypeRegistryService);
     }
 
     void SaveState() const

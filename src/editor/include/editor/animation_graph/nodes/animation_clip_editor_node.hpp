@@ -20,9 +20,15 @@ class AnimationClipEditorNode : public EditorGraphNode
   public:
     const AssetID& GetAnimationClipID() { return m_animationClipID; }
 
-    virtual void Serialize() override
+    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
     {
-        // TODO
+        std::string assetPath = json["animation_clip"];
+        m_animationClipID = AssetID(assetPath);
+    }
+
+    virtual void SaveState(nlohmann::json& json) override
+    {
+        json["animation_clip"] = m_animationClipID.GetAssetPath();
     }
 
     virtual void Initialize() override;

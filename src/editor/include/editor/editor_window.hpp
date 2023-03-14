@@ -5,6 +5,8 @@
 #include <assets/handle.hpp>
 #include <entities/update_context.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <entities/entity.hpp>
 #include <entities/world_entity.hpp>
 
@@ -72,5 +74,10 @@ class IEditorWindow
 
   public:
     virtual void Update(const UpdateContext& context) = 0; // TODO: name ?
+
+    // ------- State management
+    // The editor's state is saved to disk and loaded back
+    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) = 0;
+    virtual void SaveState(nlohmann::json& json) = 0;
 };
 } // namespace aln

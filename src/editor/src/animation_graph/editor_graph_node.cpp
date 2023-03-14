@@ -2,4 +2,6 @@
 
 namespace aln
 {
+ALN_REGISTER_ABSTRACT_IMPL_BEGIN(EditorGraphNode);
+ALN_REGISTER_IMPL_END();
 } // namespace aln

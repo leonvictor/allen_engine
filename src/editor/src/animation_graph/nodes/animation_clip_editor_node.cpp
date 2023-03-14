@@ -17,7 +17,7 @@ void AnimationClipEditorNode::Initialize()
 void AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
 {
     AnimationClipRuntimeNode::Settings* pSettings = nullptr;
-    auto compiled = context.GetSettings<AnimationClipRuntimeNode>(this, pGraphDefinition, pSettings);
+    bool compiled = context.GetSettings<AnimationClipRuntimeNode>(this, pGraphDefinition, pSettings);
     if (!compiled)
     {
         pSettings->m_dataSlotIdx = context.RegisterDataSlot(GetID());

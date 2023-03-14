@@ -25,7 +25,10 @@ class AnimationGraphEditor : public IAssetEditorWindow
   private:
     AssetHandle<AnimationGraphDefinition> m_pGraphDefinition;
 
-    // TODO: graphNodes and lookup map might be redundant
+    std::filesystem::path m_compiledDefinitionPath;
+    std::filesystem::path m_compiledDatasetPath;
+    std::filesystem::path m_statePath;
+
     std::vector<EditorGraphNode*> m_graphNodes;
     std::map<UUID, EditorGraphNode*> m_nodeLookupMap;
     std::map<UUID, const Pin*> m_pinLookupMap;
@@ -37,74 +40,37 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;
-    bool m_shouldClose = false;
+    bool m_isOpen = true;
 
-  public:
-    void Update(const UpdateContext& context) override;
+    const TypeRegistryService* m_pTypeRegistryService = nullptr;
 
     ReflectedTypeEditor m_nodeInspector;
 
-        // Loading a graph definitions ends up with a runtime graph def which we don't need.
-        // Rather hand-load what we need from the archive
-        // m_pGraphDefinition = AssetHandle<AnimationGraphDefinition>(id);
-        // LoadAsset(m_pGraphDefinition);
+  public:
+    // ----------- Window lifetime
 
-        if (readAssetFile)
-        {
-            auto archive = BinaryFileArchive(id.GetAssetPath(), IBinaryArchive::IOMode::Read);
-            AssetArchiveHeader header;
+    void Update(const UpdateContext& context) override;
 
-            archive >> header;
+    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
+    virtual void Shutdown() override;
+    void Clear();
 
-            // Deserialization
-            size_t nodeCount;
-            archive >> nodeCount;
-        }
+    bool IsDirty() const { return m_dirty; }
+    void SetDirty() { m_dirty = true; }
+    void SetClean() { m_dirty = false; }
 
-        // std::vector<std::type_index> nodeSettingsTypeIndices;
-        // archive >> nodeSettingsTypeIndices;
-    }
+    // ----------- Graph handling
 
-    virtual void Shutdown() override
-    {
-        IAssetEditorWindow::Shutdown();
-        // if (m_pGraphDefinition.IsLoaded())
-        // {
-        //     UnloadAsset(m_pGraphDefinition);
-        // }
-    }
-
-    bool IsDirty() { return m_dirty; }
-
+    // TODO: Const
     const EditorGraphNode* GetNode(const UUID& nodeID)
     {
         assert(nodeID.IsValid());
         return m_nodeLookupMap[nodeID];
     }
 
-    const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const
-    {
-        for (auto& link : m_links)
-        {
-            if (link.m_inputPinID == inputPinID)
-            {
-                return link.m_pOutputNode;
-            }
-        }
-        return nullptr;
-    }
-
-    const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const
-    {
-        for (auto& link : m_links)
-        {
-            if (link.m_outputPinID == outputPinID)
-            {
-                return link.m_pInputNode;
-            }
-        }
-        return nullptr;
-    }
+    uint32_t GetNodeIndex(const UUID& nodeID);
+    const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const;
+    const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const;
 
     template <typename T>
     std::vector<T*> GetAllNodesOfType()
@@ -124,102 +90,22 @@ class AnimationGraphEditor : public IAssetEditorWindow
         return matchingTypeNodes;
     }
 
-    /// @brief Create a graph node of a selected type
-    void AddGraphNode(EditorGraphNode* pNode)
-    {
-        assert(pNode != nullptr);
-        m_dirty = true;
-
-        // TODO: Add the node to the actual graph
-        m_graphNodes.push_back(pNode);
-
-        // Populate lookup maps
-        m_nodeLookupMap[pNode->GetID()] = pNode;
-        for (auto& pin : pNode->m_inputPins)
-        {
-            m_pinLookupMap[pin.GetID()] = &pin;
-        }
-        for (auto& pin : pNode->m_outputPins)
-        {
-            m_pinLookupMap[pin.GetID()] = &pin;
-        }
-    }
+    /// @brief Create a node to the graph
+    void AddGraphNode(EditorGraphNode* pNode);
 
     /// @brief Remove a node from the graph
-    void RemoveGraphNode(const UUID& nodeID)
-    {
-        assert(nodeID.IsValid());
-        m_dirty = true;
-
-        auto pNode = m_nodeLookupMap.at(nodeID);
-
-        // Clean up lookup maps
-        m_nodeLookupMap.erase(pNode->GetID());
-        for (auto& pin : pNode->m_inputPins)
-        {
-            m_pinLookupMap.erase(pin.GetID());
-        }
-        for (auto& pin : pNode->m_outputPins)
-        {
-            m_pinLookupMap.erase(pin.GetID());
-        }
-
-        // Remove the node's attached links
-        std::erase_if(m_links, [&](auto& link)
-            { return link.m_pInputNode == pNode || link.m_pOutputNode == pNode; });
-
-        // TODO: Actually remove the node from the graph
-        std::erase(m_graphNodes, pNode);
-
-        aln::Delete(pNode);
-    }
+    void RemoveGraphNode(const UUID& nodeID);
 
     /// @brief Create a link between two pins
-    void AddLink(UUID inputNodeID, UUID inputPinID, UUID outputNodeID, UUID outputPinID)
-    {
-        assert(inputNodeID.IsValid() && inputPinID.IsValid() && outputNodeID.IsValid() && outputPinID.IsValid());
-        m_dirty = true;
+    void AddLink(UUID inputNodeID, UUID inputPinID, UUID outputNodeID, UUID outputPinID);
+    void RemoveLink(const UUID& linkID);
 
-        auto pInputPin = m_pinLookupMap[inputPinID];
-        auto pOutputPin = m_pinLookupMap[outputPinID];
+    // -------------- Saving/Loading
 
-        // Ensure matching pin types
-        if (pInputPin->GetValueType() != pOutputPin->GetValueType())
-        {
-            return;
-        }
-
-        // Ensure pins are input/output and in the right order
-        if (!pInputPin->IsInput())
-        {
-            std::swap(pInputPin, pOutputPin);
-            std::swap(inputNodeID, outputNodeID);
-        }
-
-        assert(pInputPin->IsInput() && pOutputPin->IsOutput());
-
-        auto& link = m_links.emplace_back();
-        link.m_pInputNode = m_nodeLookupMap[inputNodeID];
-        link.m_inputPinID = pInputPin->GetID();
-        link.m_pOutputNode = m_nodeLookupMap[outputNodeID];
-        link.m_outputPinID = pOutputPin->GetID();
-    }
-
-    void RemoveLink(const UUID& linkID)
-    {
-        assert(linkID.IsValid());
-        m_dirty = true;
-
-        std::erase_if(m_links, [&](Link& link)
-            { return link.m_id == linkID; });
-    }
-
-    /// @brief
     AnimationGraphDefinition* Compile();
 
-    void LoadGraphDefinition(const AssetID& assetID)
-    {
-    }
+    virtual void SaveState(nlohmann::json& json) override;
+    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override;
 };
 
 ALN_ASSET_WINDOW_FACTORY(AnimationGraphDefinition, AnimationGraphEditor)

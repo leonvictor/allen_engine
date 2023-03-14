@@ -1,10 +1,14 @@
 #pragma once
 
+#include <common/types.hpp>
 #include <common/uuid.hpp>
+
 #include <reflection/reflected_type.hpp>
 #include <reflection/type_info.hpp>
 
 #include "pin.hpp"
+
+#include <nlohmann/json.hpp>
 
 namespace aln
 {
@@ -15,6 +19,8 @@ class AnimationGraphDefinition;
 
 class EditorGraphNode : public reflect::IReflected
 {
+    ALN_REGISTER_TYPE();
+
     friend class AnimationGraphEditor;
 
   private:
@@ -56,12 +62,54 @@ class EditorGraphNode : public reflect::IReflected
         return m_outputPins[pinIdx];
     }
 
+    uint32_t GetInputPinIndex(const UUID& pinID)
+    {
+        uint32_t pinCount = m_inputPins.size();
+        for (uint32_t pinIndex = 0; pinIndex < pinCount; ++pinIndex)
+        {
+            auto& pin = m_inputPins[pinIndex];
+            if (pin.GetID() == pinID)
+            {
+                return pinIndex;
+            }
+        }
+        return InvalidIndex;
+    }
+
+    uint32_t GetOutputPinIndex(const UUID& pinID)
+    {
+        uint32_t pinCount = m_outputPins.size();
+        for (uint32_t pinIndex = 0; pinIndex < pinCount; ++pinIndex)
+        {
+            auto& pin = m_outputPins[pinIndex];
+            if (pin.GetID() == pinID)
+            {
+                return pinIndex;
+            }
+        }
+        return InvalidIndex;
+    }
+
     virtual void Initialize() = 0;
-    virtual void Serialize() = 0; // TODO
 
     /// @brief Compile the node and add it to a graph definition
     /// @param context Context for the running compilation
     virtual void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
+
+    void SaveNodeState(nlohmann::json& jsonObject)
+    {
+        // Custom ...
+        SaveState(jsonObject);
+    }
+
+    void LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+    {
+        LoadState(json, pTypeRegistryService);
+    }
+
+    // Customizable parts
+    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) {}
+    virtual void SaveState(nlohmann::json& jsonObject) {}
 
     bool operator==(const EditorGraphNode& other) { return m_id == other.m_id; }
     bool operator!=(const EditorGraphNode& other) { return m_id != other.m_id; }
