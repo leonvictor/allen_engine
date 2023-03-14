@@ -392,7 +392,7 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     template <typename T>
-        requires ContiguousContainer<T> && Serializable<typename T::value_type>
+        requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
     BinaryMemoryArchive& operator>>(T& container)
     {
         assert(IsReading());
