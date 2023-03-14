@@ -4,6 +4,7 @@
 
 #include <anim/graph/animation_graph_dataset.hpp>
 #include <anim/graph/graph_definition.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
 #include <memory>
 #include <vector>
@@ -13,7 +14,13 @@ namespace aln
 
 class AnimationGraphDefinitionLoader : public IAssetLoader
 {
+  private:
+    const TypeRegistryService* m_pTypeRegistryService;
+
   public:
+    AnimationGraphDefinitionLoader(const TypeRegistryService* pTypeRegistryService)
+        : m_pTypeRegistryService(pTypeRegistryService) {}
+
     bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
@@ -21,8 +28,14 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
 
         AnimationGraphDefinition* pDefinition = aln::New<AnimationGraphDefinition>();
 
-        // TODO: Settings memory is handled in the loader, so maybe its creation should be here as well ?
-        pDefinition->Deserialize(archive);
+        // TODO: Settings memory is handled by the loader, so maybe its creation should be here as well ?
+        reflect::TypeCollectionDescriptor typeCollectionDesc;
+        archive >> typeCollectionDesc;
+        archive >> pDefinition->m_nodeOffsets;
+        archive >> pDefinition->m_requiredMemorySize;
+        archive >> pDefinition->m_requiredMemoryAlignement;
+
+        typeCollectionDesc.InstanciateFixedSizeCollection(pDefinition->m_nodeSettings, *m_pTypeRegistryService);
 
         pRecord->SetAsset(pDefinition);
         return true;
@@ -39,6 +52,7 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
             pSettings->~T();
         }
         aln::Free(pMemory);
+        pGraphDefinition->m_nodeSettings.clear();
     };
 };
 

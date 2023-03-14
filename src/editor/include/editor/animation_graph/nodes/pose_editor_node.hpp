@@ -14,15 +14,6 @@ class PoseEditorNode : public EditorGraphNode
     ALN_REGISTER_TYPE();
 
   public:
-    virtual void Serialize() override
-    {
-        // TODO
-    }
-
-    virtual void Deserialize()
-    {
-    }
-
     virtual void Initialize() override;
     virtual void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
 };

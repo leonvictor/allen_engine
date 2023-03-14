@@ -4,7 +4,7 @@ namespace aln
 {
 void AnimationSystem::Update(const UpdateContext& ctx)
 {
-    if (m_pAnimationGraphComponent == nullptr && m_pSkeletalMeshComponent == nullptr)
+    if (m_pAnimationGraphComponent == nullptr && m_pAnimationGraphComponent == nullptr)
         return;
 
     if (m_pSkeletalMeshComponent == nullptr)

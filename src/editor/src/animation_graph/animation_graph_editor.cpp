@@ -19,6 +19,8 @@ namespace aln
 {
 AnimationGraphDefinition* AnimationGraphEditor::Compile()
 {
+    assert(m_pTypeRegistryService != nullptr);
+
     AnimationGraphCompilationContext context(this);
     auto assetPath = std::filesystem::path(GetID().GetAssetPath());
 
@@ -29,6 +31,8 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     assert(outputNodes.size() == 1);
 
     outputNodes[0]->Compile(context, &graphDefinition);
+    graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
+    graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
 
     // Compile dataset
     AnimationGraphDataset graphDataset;
@@ -37,7 +41,7 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     {
         auto pOwnerNode = (AnimationClipEditorNode*) m_nodeLookupMap[slotOwnerNodeID];
         auto& clipID = pOwnerNode->GetAnimationClipID();
-        assert(clipID.IsValid());
+        assert(clipID.IsValid()); // TODO: Proper input validation
         graphDataset.m_animationClips.emplace_back(clipID);
     }
 
@@ -47,7 +51,21 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     {
         std::vector<std::byte> data;
         auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
-        graphDefinition.Serialize(dataArchive);
+
+        // TODO:
+        // Save the settings types information so that we can instanciate the settings array
+        reflect::TypeCollectionDescriptor typeCollectionDesc;
+        for (auto& pSettings : graphDefinition.m_nodeSettings)
+        {
+            auto pSettingsTypeInfo = pSettings->GetTypeInfo();
+            auto& descriptor = typeCollectionDesc.m_descriptors.emplace_back();
+            descriptor.DescribeTypeInstance(pSettings, m_pTypeRegistryService, pSettingsTypeInfo);
+        }
+
+        dataArchive << typeCollectionDesc;
+        dataArchive << graphDefinition.m_nodeOffsets;
+        dataArchive << graphDefinition.m_requiredMemorySize;
+        dataArchive << graphDefinition.m_requiredMemoryAlignement;
 
         auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
 

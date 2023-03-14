@@ -4,66 +4,76 @@
 #include <anim/pose.hpp>
 #include <anim/skeleton.hpp>
 
-#include <assets/handle.hpp>
-#include <entities/component.hpp>
+#include <anim/graph/animation_graph_dataset.hpp>
+#include <anim/graph/graph_definition.hpp>
+#include <anim/graph/runtime_graph_instance.hpp>
 
 #include <assets/asset_service.hpp>
+#include <assets/handle.hpp>
+#include <entities/component.hpp>
 
 #include <memory>
 
 namespace aln
 {
 
-/// @brief Temporary placeholder for an animation graph instance. Simulate running a simple graph that only samples a single animation
-struct PlaceHolderAnimationGraphInstance
-{
-    AssetHandle<AnimationClip> m_pAnimationClip; // Placeholder. TODO: Remove
-    Pose m_pose;
-
-    PlaceHolderAnimationGraphInstance(const Skeleton* pSkeleton) : m_pose(pSkeleton, Pose::InitialState::None) {}
-
-    const Pose* GetPose(float time)
-    {
-        m_pAnimationClip->GetPose(time, &m_pose);
-        return &m_pose;
-    }
-};
-
 class AnimationGraphComponent : public IComponent
 {
     ALN_REGISTER_TYPE();
 
   private:
-    AssetHandle<Skeleton> m_pSkeleton;                   // Animation skeleton
-    PlaceHolderAnimationGraphInstance* m_pGraphInstance; // TODO: AnimationGraphInstance
+    AssetHandle<Skeleton> m_pSkeleton; // Animation skeleton
+    AssetHandle<AnimationGraphDefinition> m_pGraphDefinition;
+    AssetHandle<AnimationGraphDataset> m_pGraphDataset;
+
+    RuntimeAnimationGraphInstance* m_pGraphInstance = nullptr;
 
   public:
-    // TODO
-    ~AnimationGraphComponent()
+    // ---------
+
+    void Evaluate()
     {
-        delete m_pGraphInstance;
+        // TODO
     }
 
-    // TODO: Replace with set methods
-    // void Construct(const entities::ComponentCreationContext& ctx) override
-    // {
-    //     m_pSkeleton = AssetHandle<Skeleton>("tmp.anim");
-
-    //     // TODO:
-    //     m_pGraphInstance = new PlaceHolderAnimationGraphInstance(m_pSkeleton.get());
-    //     m_pGraphInstance->m_pAnimationClip = AssetHandle<AnimationClip>("D:/Dev/allen_engine/assets/models/assets_export/Mike/Hello.anim");
-    // }
-
+    // --------- Component methods
     void Load(const LoadingContext& loadingContext) override
     {
-        loadingContext.m_pAssetService->Load(m_pGraphInstance->m_pAnimationClip);
         loadingContext.m_pAssetService->Load(m_pSkeleton);
+        loadingContext.m_pAssetService->Load(m_pGraphDefinition);
+        loadingContext.m_pAssetService->Load(m_pGraphDataset);
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
-        loadingContext.m_pAssetService->Unload(m_pGraphInstance->m_pAnimationClip);
+        loadingContext.m_pAssetService->Unload(m_pGraphDataset);
+        loadingContext.m_pAssetService->Unload(m_pGraphDefinition);
         loadingContext.m_pAssetService->Unload(m_pSkeleton);
+    }
+
+    bool UpdateLoadingStatus() override
+    {
+        if (m_pSkeleton.IsLoaded() && m_pGraphDataset.IsLoaded() && m_pGraphDefinition.IsLoaded())
+        {
+            m_status = Status::Loaded;
+        }
+        else if (m_pSkeleton.HasFailedLoading() || m_pGraphDataset.HasFailedLoading() || m_pGraphDefinition.HasFailedLoading())
+        {
+            m_status = Status::LoadingFailed;
+        }
+        return IsLoaded();
+    }
+
+    void Initialize() override
+    {
+        m_pGraphInstance = aln::New<RuntimeAnimationGraphInstance>(m_pGraphDefinition.get(), m_pGraphDataset.get());
+        // TODO ...
+    }
+
+    void Shutdown() override
+    {
+        aln::Delete(m_pGraphInstance);
+        // TODO ...
     }
 };
 } // namespace aln

@@ -6,6 +6,8 @@
 #include <anim/graph/graph_definition.hpp>
 #include <anim/graph/runtime_graph_node.hpp>
 
+#include <common/memory.hpp>
+
 namespace aln
 {
 
@@ -17,9 +19,11 @@ class AnimationGraphCompilationContext
   private:
     const AnimationGraphEditor* m_pAnimationGraphEditor; // The graph currently compiling
 
-    // std::vector<RuntimeGraphNode::Settings*> m_nodeSettings;
     std::vector<const EditorGraphNode*> m_compiledNodes;
     std::vector<UUID> m_registeredDataSlots;
+
+    size_t m_currentNodeMemoryOffset = 0;
+    size_t m_maxNodeMemoryAlignement = 0;
 
   public:
     AnimationGraphCompilationContext(const AnimationGraphEditor* pAnimationGraphEditor)
@@ -51,7 +55,13 @@ class AnimationGraphCompilationContext
         // Otherwise create the settings
         pOutSettings = aln::New<typename T::Settings>();
         pOutSettings->m_nodeIndex = m_compiledNodes.size();
+
         pGraphDefinition->m_nodeSettings.push_back(pOutSettings);
+        pGraphDefinition->m_nodeOffsets.push_back(m_currentNodeMemoryOffset);
+
+        m_maxNodeMemoryAlignement = std::max(m_maxNodeMemoryAlignement, alignof(T));
+        const auto requiredPadding = (alignof(T) - (m_currentNodeMemoryOffset % m_maxNodeMemoryAlignement)) % m_maxNodeMemoryAlignement;
+        m_currentNodeMemoryOffset += (sizeof(T) + requiredPadding);
 
         m_compiledNodes.push_back(pNode);
 
@@ -66,5 +76,8 @@ class AnimationGraphCompilationContext
     }
 
     const std::vector<UUID>& GetRegisteredDataSlots() const { return m_registeredDataSlots; }
+
+    size_t GetNodeMemoryOffset() const { return m_currentNodeMemoryOffset; }
+    size_t GetNodeMemoryAlignement() const { return m_maxNodeMemoryAlignement; }
 };
 } // namespace aln

@@ -172,17 +172,6 @@ class Engine
         // TODO: Get rid of all the references to m_device
         // They should not be part of this class
 
-        // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
-        // then register each of them with a single function.
-        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(&m_device);
-        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(&m_device);
-        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(&m_device);
-        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&m_device);
-        m_assetService.RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
-        m_assetService.RegisterAssetLoader<Skeleton, SkeletonLoader>();
-        m_assetService.RegisterAssetLoader<AnimationGraphDataset, AnimationGraphDatasetLoader>();
-        m_assetService.RegisterAssetLoader<AnimationGraphDefinition, AnimationGraphDefinitionLoader>();
-
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
         m_serviceProvider.RegisterService(&m_timeService);
@@ -197,6 +186,17 @@ class Engine
         m_animModule.RegisterTypes(&m_typeRegistryService);
         m_toolingModule.RegisterTypes(&m_typeRegistryService);
         m_entitiesModule.RegisterTypes(&m_typeRegistryService);
+
+        // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
+        // then register each of them with a single function.
+        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
+        m_assetService.RegisterAssetLoader<Skeleton, SkeletonLoader>();
+        m_assetService.RegisterAssetLoader<AnimationGraphDataset, AnimationGraphDatasetLoader>();
+        m_assetService.RegisterAssetLoader<AnimationGraphDefinition, AnimationGraphDefinitionLoader>(&m_typeRegistryService);
 
         CreateWorld();
         ShareImGuiContext();

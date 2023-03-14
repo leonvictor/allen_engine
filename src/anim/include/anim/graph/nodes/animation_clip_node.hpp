@@ -30,8 +30,7 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
         NodeIndex m_playInReverseValueNodeIdx = InvalidIndex;
 
       public:
-        // TODO: Put const back when we use placement-new in a pre allocated array
-        void InstanciateNode(/* todo: const */ std::vector<RuntimeGraphNode*>& nodePtrs, const AnimationGraphDataset* pDataSet, InitOptions options) const override
+        void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, const AnimationGraphDataset* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<AnimationClipRuntimeNode>(nodePtrs, options);
             SetOptionalNodePtrFromIndex(nodePtrs, m_playInReverseValueNodeIdx, pNode->m_pPlayInReverseValueNode);
@@ -39,20 +38,6 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
             auto pSettings = pNode->GetSettings<AnimationClipRuntimeNode>();
             pNode->m_pAnimationClip = pDataSet->GetAnimationClip(pSettings->m_dataSlotIdx);
         }
-
-        virtual void Serialize(BinaryMemoryArchive& archive) const override
-        {
-            RuntimeGraphNode::Settings::Serialize(archive);
-            archive << m_dataSlotIdx;
-            archive << m_playInReverseValueNodeIdx;
-        }
-
-        virtual void Deserialize(BinaryMemoryArchive& archive) override
-        {
-            RuntimeGraphNode::Settings::Deserialize(archive);
-            archive >> m_dataSlotIdx;
-            archive >> m_playInReverseValueNodeIdx;
-        };
     };
 
     PoseNodeResult Update(GraphContext& context) override

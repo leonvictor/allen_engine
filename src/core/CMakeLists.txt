@@ -12,6 +12,7 @@ add_library(${LIB_NAME} SHARED
     src/components/camera.cpp
     src/components/light.cpp
     src/components/animation_player_component.cpp
+    src/components/animation_graph.cpp
     
     src/entity_systems/script.cpp
     src/entity_systems/camera_controller.cpp

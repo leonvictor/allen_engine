@@ -43,6 +43,8 @@ class RuntimeGraphNode
   public:
     class Settings : public reflect::IReflected
     {
+        ALN_REGISTER_TYPE();
+
         friend class AnimationGraphCompilationContext;
 
       private:
@@ -53,20 +55,12 @@ class RuntimeGraphNode
         /// @param nodePtrs: Pointers to the allocated node memory, by index
         /// @param options: TODO: Optionally only initialize ptrs (avoid new)
         template <typename T>
-        T* CreateNode(/* todo: const */ std::vector<RuntimeGraphNode*>& nodePtrs, InitOptions options) const
+        T* CreateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, InitOptions options) const
         {
-            // TODO: What do we do with the options ?
-            // TODO: The vector should be pre-allocated. Placement-new a node of type T in there !
-            // TODO: Make sure we allocated the right amount of memory for this node instance here.
-            // This should be done when we compile the runtime graph
+            // TODO: Handle options
 
-            // The version we want:
-            // T* pNode = static_cast<T*> nodePtrs[m_nodeIndex];
-            // new (pNode) T();
-
-            // Temporary solution /!\ with a memory leak as this is never freed !
-            auto pNode = aln::New<T>();
-            nodePtrs[m_nodeIndex] = pNode;
+            T* pNode = static_cast<T*>(nodePtrs[m_nodeIndex]);
+            aln::PlacementNew<T>(pNode);
 
             pNode->m_pSettings = this;
 
@@ -84,19 +78,7 @@ class RuntimeGraphNode
 
       public:
         /// @brief Instanciate a node and all its data. Override in derived nodes
-        virtual void InstanciateNode(/* todo: const */ std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const = 0;
-
-        virtual void Serialize(BinaryMemoryArchive& archive) const
-        {
-            assert(archive.IsWriting());
-            archive << m_nodeIndex;
-        }
-
-        virtual void Deserialize(BinaryMemoryArchive& archive)
-        {
-            assert(archive.IsReading());
-            archive >> m_nodeIndex;
-        };
+        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const = 0;
     };
 
   private:

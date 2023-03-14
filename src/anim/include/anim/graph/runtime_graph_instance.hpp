@@ -12,34 +12,44 @@ namespace aln
 {
 
 /// @brief Represents an instance of the runtime state of a graph, associated with an animation dataset
-class RuntimeGraphInstance
+class RuntimeAnimationGraphInstance
 {
-    /// @brief Definition that this instance refers to
-    const AnimationGraphDefinition* m_pGraphDefinition = nullptr;
+    friend class AnimationGraphComponent;
 
-    // TODO: For now, this is an vector of nodes ptrs, and the actual data is *not* in contiguous memory
-    // This should instead be a contiguous array, but its made more complicated by the fact node instances are not all the same size.
-    // Its doable tho so do that !
+    const AnimationGraphDefinition* m_pGraphDefinition = nullptr;
+    const AnimationGraphDataset* m_pGraphDataset = nullptr;
+
+    std::byte* m_pNodeInstancesMemory = nullptr;
+
     std::vector<RuntimeGraphNode*> m_runtimeNodeInstances;
     std::set<std::string, ValueNode*> m_controlParameters;
 
-
   public:
-    RuntimeGraphInstance(AnimationGraphDefinition* pGraphDefinition) : m_pGraphDefinition(pGraphDefinition)
+    RuntimeAnimationGraphInstance(const AnimationGraphDefinition* pGraphDefinition, const AnimationGraphDataset* pGraphDataset)
+        : m_pGraphDefinition(pGraphDefinition), m_pGraphDataset(pGraphDataset)
     {
-        // TODO: Allocate a single block of memory for the whole graph (all nodes)
-        // TODO: Runtime graph nodes are placement new'd into that block, and reference their settings via ptr (so settings are shared between instances of the same graph)
-        // TODO: Runtime graph nodes are ordered by traversal order
-        // TODO: See Node::CreateNode and replace by placement new
-
-        m_runtimeNodeInstances.resize(m_pGraphDefinition->GetNumNodes());
-
-        for (auto& pSettings : m_pGraphDefinition->m_nodeSettings)
+        // Allocate a single block of memory for the whole graph
+        m_pNodeInstancesMemory = (std::byte*) aln::Allocate(pGraphDefinition->m_requiredMemorySize, pGraphDefinition->m_requiredMemoryAlignement);
+        m_runtimeNodeInstances.reserve(m_pGraphDefinition->GetNumNodes());
+        for (auto& nodeOffset : pGraphDefinition->m_nodeOffsets)
         {
-            pSettings->InstanciateNode(m_runtimeNodeInstances, m_pGraphDefinition->m_pDataset.get(), InitOptions::None);
+            m_runtimeNodeInstances.emplace_back(reinterpret_cast<RuntimeGraphNode*>(m_pNodeInstancesMemory + nodeOffset));
         }
 
-        // TODO ...
+        // Instanciate each node in the allocated memory
+        for (auto& pSettings : m_pGraphDefinition->m_nodeSettings)
+        {
+            pSettings->InstanciateNode(m_runtimeNodeInstances, m_pGraphDataset, InitOptions::None);
+        }
+    }
+
+    ~RuntimeAnimationGraphInstance()
+    {
+        for (auto& pNode : m_runtimeNodeInstances)
+        {
+            pNode->~RuntimeGraphNode();
+        }
+        aln::Free(m_pNodeInstancesMemory);
     }
 
     // Control parameters

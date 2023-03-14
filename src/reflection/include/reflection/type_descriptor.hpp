@@ -106,6 +106,10 @@ class TypeDescriptor
 
     static void DescribeType(const IReflected* pTypeInstance, TypeDescriptor& typeDesc, const TypeRegistryService* pTypeRegistryService, const reflect::TypeInfo* pTypeInfo)
     {
+        assert(pTypeInstance != nullptr);
+        assert(pTypeRegistryService != nullptr);
+        assert(pTypeInfo != nullptr);
+
         if (pTypeInfo->m_pBaseTypeInfo != nullptr)
         {
             DescribeType(pTypeInstance, typeDesc, pTypeRegistryService, pTypeInfo->m_pBaseTypeInfo);
@@ -146,6 +150,7 @@ class TypeDescriptor
     virtual void DescribeTypeInstance(const IReflected* pTypeInstance, const TypeRegistryService* pTypeRegistryService, const reflect::TypeInfo* pTypeInfo)
     {
         assert(!IsValid() && pTypeInstance != nullptr);
+        assert(pTypeRegistryService != nullptr);
 
         m_typeID = pTypeInfo->GetTypeID();
         DescribeType(pTypeInstance, *this, pTypeRegistryService, pTypeInfo);

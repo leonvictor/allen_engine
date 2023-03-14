@@ -5,6 +5,7 @@ add_library(${LIB_NAME} SHARED
     src/track.cpp
     
     src/graph/nodes/animation_clip_runtime_node.cpp
+    src/graph/nodes/runtime_graph_node.cpp
     
     src/module/module.cpp
 )
