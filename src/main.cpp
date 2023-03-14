@@ -31,6 +31,7 @@
 #include <reflection/services/type_registry_service.hpp>
 
 #include <entities/entity.hpp>
+#include <entities/entity_descriptors.hpp>
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
@@ -78,24 +79,13 @@
 #include <config/path.h>
 
 #include <Tracy.hpp>
+#include <nlohmann/json.hpp>
 
 // Test anim graph
-// #include <anim/graph/graph.hpp>
 #include <anim/graph/nodes/animation_clip_node.hpp>
 
 namespace aln
 {
-
-// Mike
-// const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/Cube.010.smsh";
-// const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike_Texture.text";
-// const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/models/assets_export/Mike/RobotArmature.skel";
-
-// Cesium man
-const std::string MODEL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Cesium_Man.smsh";
-const std::string TEXTURE_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan_img0.text";
-const std::string TEST_SKELETON_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Armature.skel";
-const std::string MATERIAL_PATH = std::string(DEFAULT_ASSETS_DIR) + "/assets_export/CesiumMan/Cesium_Man-effect.mtrl";
 
 static constexpr glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
 static constexpr glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -141,7 +131,18 @@ class Engine
     Entities::Module m_entitiesModule;
 
   public:
-    Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity)
+    Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity) {}
+
+    void Run()
+    {
+        while (!m_window.ShouldClose())
+        {
+            Update();
+            FrameMark;
+        }
+    }
+
+    void Initialize()
     {
         // Initialize the render engine
         // @todo: Improve API
@@ -181,6 +182,11 @@ class Engine
         m_updateContext.m_pServiceProvider = &m_serviceProvider;
 
         // Initialize modules
+        // TODO: Use Initialize fn + context
+        // ModuleContext moduleContext;
+        // moduleContext.m_pTypeRegistryService = &m_typeRegistryService;
+        // ...
+
         m_coreModule.RegisterTypes(&m_typeRegistryService);
         m_assetsModule.RegisterTypes(&m_typeRegistryService);
         m_animModule.RegisterTypes(&m_typeRegistryService);
@@ -202,19 +208,10 @@ class Engine
         ShareImGuiContext();
     }
 
-    void run()
-    {
-        Update();
-    }
-
-    void Initialize()
-    {
-        // TODO
-    }
-
     void Shutdown()
     {
         // TODO
+        m_device.GetVkDevice().waitIdle();
         m_editor.Shutdown();
     }
 
@@ -240,55 +237,48 @@ class Engine
 
     void Update()
     {
-        while (!m_window.ShouldClose())
+        // Update services
+
+        // todo: Move to InputService::Update. We need to associate the service with the window beforehand
+        m_inputService.UpdateMousePosition(m_window.GetCursorPosition());
+
+        m_inputService.Update();
+        m_timeService.Update();
+        m_assetService.Update();
+
+        // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
+        m_window.NewFrame();
+        m_uiRenderer.BeginFrame(aln::vkg::render::RenderContext());
+        m_imgui.NewFrame();
+
+        // Populate update context
+        m_updateContext.m_deltaTime = m_timeService.GetDeltaTime();
+
+        auto& dim = m_editor.GetScenePreviewSize();
+        m_updateContext.m_displayWidth = dim.x;
+        m_updateContext.m_displayHeight = dim.y;
+
+        // When out of editor
+        // context.displayWidth = m_window.GetWidth();
+        // context.displayHeight = m_window.GetHeight();
+
+        // Loading stage
+        m_worldEntity.UpdateLoading();
+
+        // Object model: Update systems at various points in the frame.
+        // TODO: Handle sync points here ?
+        for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
         {
-            // Update services
-
-            // todo: Move to InputService::Update. We need to associate the service with the window beforehand
-            m_inputService.UpdateMousePosition(m_window.GetCursorPosition());
-
-            m_inputService.Update();
-            m_timeService.Update();
-            m_assetService.Update();
-
-            // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
-            m_window.NewFrame();
-            m_uiRenderer.BeginFrame(aln::vkg::render::RenderContext());
-            m_imgui.NewFrame();
-
-            // Populate update context
-            m_updateContext.m_deltaTime = m_timeService.GetDeltaTime();
-
-            auto& dim = m_editor.GetScenePreviewSize();
-            m_updateContext.m_displayWidth = dim.x;
-            m_updateContext.m_displayHeight = dim.y;
-
-            // When out of editor
-            // context.displayWidth = m_window.GetWidth();
-            // context.displayHeight = m_window.GetHeight();
-
-            // Loading stage
-            m_worldEntity.UpdateLoading();
-
-            // Object model: Update systems at various points in the frame.
-            // TODO: Handle sync points here ?
-            for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
-            {
-                m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
-                m_worldEntity.Update(m_updateContext);
-            }
-
-            auto desc = m_sceneRenderer.GetActiveImage()->GetDescriptorSet();
-            m_editor.Update(desc, m_updateContext);
-
-            m_imgui.Render(m_uiRenderer.GetActiveRenderTarget().commandBuffer.get());
-
-            m_uiRenderer.EndFrame();
+            m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
+            m_worldEntity.Update(m_updateContext);
         }
 
-        m_device.GetVkDevice().waitIdle();
+        auto desc = m_sceneRenderer.GetActiveImage()->GetDescriptorSet();
+        m_editor.Update(desc, m_updateContext);
 
-        FrameMark;
+        m_imgui.Render(m_uiRenderer.GetActiveRenderTarget().commandBuffer.get());
+
+        m_uiRenderer.EndFrame();
     }
 };
 } // namespace aln
@@ -298,11 +288,13 @@ int main()
 #ifdef ALN_DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
-    std::unique_ptr<aln::Engine> app = std::make_unique<aln::Engine>();
+    aln::Engine* pApp = aln::New<aln::Engine>();
 
-    app->run();
-    app->Shutdown();
-    app.reset();
+    pApp->Initialize();
+    pApp->Run();
+    pApp->Shutdown();
+
+    aln::Delete(pApp); // Test deletion
 
     return EXIT_SUCCESS;
 };
