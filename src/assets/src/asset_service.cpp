@@ -174,6 +174,11 @@ void AssetService::Load(IAssetHandle& assetHandle)
 {
     std::lock_guard lock(m_mutex);
 
+    if (!assetHandle.GetAssetID().IsValid())
+    {
+        return;
+    }
+
     auto pRecord = GetOrCreateRecord(assetHandle.GetAssetID());
     // Update the handle
     assetHandle.m_pAssetRecord = pRecord;
@@ -192,6 +197,10 @@ void AssetService::Load(IAssetHandle& assetHandle)
 void AssetService::Unload(IAssetHandle& assetHandle)
 {
     std::lock_guard lock(m_mutex);
+
+    if (!assetHandle.GetAssetID().IsValid())
+        return;
+
     assetHandle.m_pAssetRecord = nullptr;
 
     auto pRecord = FindRecord(assetHandle.GetAssetID());

@@ -80,7 +80,8 @@ class AnimationPlayerComponent : public IComponent
         {
             m_status = Status::Loaded;
         }
-        else if (m_pAnimationClip.HasFailedLoading() || m_pSkeleton.HasFailedLoading())
+        else if (!m_pAnimationClip.IsValid() || m_pAnimationClip.HasFailedLoading() ||
+                 !m_pSkeleton.IsValid() || m_pSkeleton.HasFailedLoading())
         {
             m_status = Status::LoadingFailed;
         }

@@ -41,6 +41,7 @@ class IAssetHandle
     // ------------------------------
     // Status management
     // ------------------------------
+    inline bool IsValid() const { return m_assetID.IsValid(); }
     inline bool IsLoaded() const { return GetStatus() == AssetStatus::Loaded; }
     inline bool IsUnloaded() const { return GetStatus() == AssetStatus::Unloaded; }
     inline bool HasFailedLoading() const { return GetStatus() == AssetStatus::LoadingFailed; }

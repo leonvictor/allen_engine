@@ -521,18 +521,7 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
 void Entity::AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     AddComponentImmediate(pComponent, pParentComponent);
-
-    if (IsLoaded())
-    {
-        // TODO: Async ?
-        pComponent->LoadComponent(loadingContext);
-    }
-
-    // if (IsActivated())
-    // {
-    //     RegisterComponentWithLocalSystems(pComponent);
-    //     loadingContext.m_registerWithWorldSystems(this, pComponent);
-    // }
+    pComponent->LoadComponent(loadingContext);
 }
 
 void Entity::RegisterComponentWithLocalSystems(IComponent* pComponent)
@@ -664,21 +653,8 @@ void Entity::AttachToParent()
     }
 
     // Perform attachment
-    // TODO: Recompute local transform so as not to move if we change root component
+    assert(pParentRootComponent != nullptr);
     m_pRootSpatialComponent->AttachTo(pParentRootComponent, m_parentAttachmentSocketID);
-
-    // assert(pParentRootComponent != nullptr);
-
-    // Set component hierarchy values
-    // m_pRootSpatialComponent->m_pSpatialParent = pParentRootComponent;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = m_parentAttachmentSocketID;
-
-    // TODO: should we calculate world transform everytime a component is attached to another ?
-    // Or only here ?
-    // m_pRootSpatialComponent->CalculateWorldTransform();
-
-    // Add to the list of child components on the component to attach to
-    // pParentRootComponent->m_spatialChildren.emplace_back(m_pRootSpatialComponent);
 
     m_isAttachedToParent = true;
 }
@@ -688,18 +664,7 @@ void Entity::DetachFromParent()
     assert(IsSpatialEntity());
     assert(m_pParentSpatialEntity != nullptr && m_isAttachedToParent);
 
-    // TODO: Is there a reason *not* to use component.Detach() ?
-    // Remove from parent component child list
     m_pRootSpatialComponent->Detach();
-    // auto pParentComponent = m_pRootSpatialComponent->m_pSpatialParent;
-    // auto foundIter = std::find(pParentComponent->m_spatialChildren.begin(), pParentComponent->m_spatialChildren.end(), m_pRootSpatialComponent);
-    // assert(foundIter != pParentComponent->m_spatialChildren.end());
-    // pParentComponent->m_spatialChildren.erase(foundIter);
-
-    // Remove component hierarchy values
-    // m_pRootSpatialComponent->m_pSpatialParent = nullptr;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = UUID::InvalidID;
-
     m_isAttachedToParent = false;
 }
 
