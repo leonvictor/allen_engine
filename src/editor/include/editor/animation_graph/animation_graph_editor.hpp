@@ -9,12 +9,13 @@
 #include <anim/graph/runtime_graph_instance.hpp>
 
 #include "asset_editor_window.hpp"
-#include "editor_graph_node.hpp"
 #include "link.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
 namespace aln
 {
+
+class EditorGraphNode;
 
 /// @brief A stateful representation of an animation graph, which contains all of its data.
 /// During serialization its node are translated into the runtime format, and their data stored in a runtime graph definition

@@ -7,9 +7,7 @@
 
 #include <anim/graph/animation_graph_dataset.hpp>
 #include <assets/asset_archive_header.hpp>
-#include <assets/asset_service.hpp>
 #include <config/path.h>
-#include <core/asset_loaders/animation_graph_loader.hpp>
 #include <reflection/services/type_registry_service.hpp>
 #include <reflection/type_info.hpp>
 
@@ -29,7 +27,8 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     auto outputNodes = GetAllNodesOfType<PoseEditorNode>();
     assert(outputNodes.size() == 1);
 
-    outputNodes[0]->Compile(context, &graphDefinition);
+    auto rootNodeIndex = outputNodes[0]->Compile(context, &graphDefinition);
+    graphDefinition.m_rootNodeIndex = rootNodeIndex;
     graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
     graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
 
@@ -51,8 +50,6 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
         std::vector<std::byte> data;
         auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
 
-        // TODO:
-        // Save the settings types information so that we can instanciate the settings array
         reflect::TypeCollectionDescriptor typeCollectionDesc;
         for (auto& pSettings : graphDefinition.m_nodeSettings)
         {
@@ -62,6 +59,8 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
         }
 
         dataArchive << typeCollectionDesc;
+        dataArchive << graphDefinition.m_nodeIndices;
+        dataArchive << graphDefinition.m_rootNodeIndex;
         dataArchive << graphDefinition.m_nodeOffsets;
         dataArchive << graphDefinition.m_requiredMemorySize;
         dataArchive << graphDefinition.m_requiredMemoryAlignement;

@@ -15,6 +15,6 @@ class PoseEditorNode : public EditorGraphNode
 
   public:
     virtual void Initialize() override;
-    virtual void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
 };
 } // namespace aln

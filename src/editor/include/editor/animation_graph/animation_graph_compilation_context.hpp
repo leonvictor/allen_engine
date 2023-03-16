@@ -1,7 +1,6 @@
 #pragma once
 
 #include "animation_graph_editor.hpp"
-#include "editor_graph_node.hpp"
 
 #include <anim/graph/graph_definition.hpp>
 #include <anim/graph/runtime_graph_node.hpp>
@@ -11,7 +10,7 @@
 namespace aln
 {
 
-class AnimationGraphEditor;
+class EditorGraphNode;
 
 /// @brief The context passed around when compiling from an editor animation graph to its runtime version
 class AnimationGraphCompilationContext
@@ -55,10 +54,11 @@ class AnimationGraphCompilationContext
         // Otherwise create the settings
         pOutSettings = aln::New<typename T::Settings>();
         pOutSettings->m_nodeIndex = m_compiledNodes.size();
-
         pGraphDefinition->m_nodeSettings.push_back(pOutSettings);
-        pGraphDefinition->m_nodeOffsets.push_back(m_currentNodeMemoryOffset);
+        pGraphDefinition->m_nodeIndices.push_back(pOutSettings->m_nodeIndex);
 
+        // Update instance required memory info
+        pGraphDefinition->m_nodeOffsets.push_back(m_currentNodeMemoryOffset);
         m_maxNodeMemoryAlignement = std::max(m_maxNodeMemoryAlignement, alignof(T));
         const auto requiredPadding = (alignof(T) - (m_currentNodeMemoryOffset % m_maxNodeMemoryAlignement)) % m_maxNodeMemoryAlignement;
         m_currentNodeMemoryOffset += (sizeof(T) + requiredPadding);

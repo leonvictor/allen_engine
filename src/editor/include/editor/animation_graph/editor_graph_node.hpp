@@ -10,12 +10,14 @@
 
 #include <nlohmann/json.hpp>
 
+#include <animation_graph/animation_graph_compilation_context.hpp>
+
 namespace aln
 {
 
 // fwd
-class AnimationGraphCompilationContext;
 class AnimationGraphDefinition;
+class AnimationGraphCompilationContext;
 
 class EditorGraphNode : public reflect::IReflected
 {
@@ -94,7 +96,7 @@ class EditorGraphNode : public reflect::IReflected
 
     /// @brief Compile the node and add it to a graph definition
     /// @param context Context for the running compilation
-    virtual void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
 
     void SaveNodeState(nlohmann::json& jsonObject)
     {

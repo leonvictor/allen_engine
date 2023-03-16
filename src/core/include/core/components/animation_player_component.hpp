@@ -54,12 +54,12 @@ class AnimationPlayerComponent : public IComponent
     {
         assert(m_pAnimationClip.IsLoaded());
         assert(m_pSkeleton.IsLoaded());
-        m_pPose = new Pose(m_pSkeleton.get()); // TODO
+        m_pPose = aln::New<Pose>(m_pSkeleton.get()); // TODO
     }
 
     void Shutdown() override
     {
-        delete m_pPose;
+        aln::Delete(m_pPose);
     }
 
     void Load(const LoadingContext& loadingContext) override

@@ -9,7 +9,7 @@ void PoseEditorNode::Initialize()
     AddInputPin(PinValueType::Pose);
 }
 
-void PoseEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex PoseEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
 {
     // Get the linked input node
     const auto& inputPin = GetInputPin(0);
@@ -19,7 +19,6 @@ void PoseEditorNode::Compile(AnimationGraphCompilationContext& context, Animatio
     // we cannot afford to crash here !
     assert(pInputNode != nullptr);
 
-    // TODO: We need a mecanism to know the input node's index
     return pInputNode->Compile(context, pGraphDefinition); // The result is just a pointer to the previous node
 };
 } // namespace aln

@@ -29,8 +29,11 @@ class AnimationGraphDefinition : public IAsset
 
   private:
     std::vector<RuntimeGraphNode::Settings*> m_nodeSettings;
-    std::vector<uint32_t> m_nodeOffsets;
+    std::vector<NodeIndex> m_nodeIndices;
+    NodeIndex m_rootNodeIndex = InvalidIndex;
 
+    // Memory info used to instanciate the runtime node array(s)
+    std::vector<uint32_t> m_nodeOffsets;
     size_t m_requiredMemorySize;
     size_t m_requiredMemoryAlignement;
 

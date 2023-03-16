@@ -2,11 +2,13 @@
 
 #include <common/uuid.hpp>
 
-#include "editor_graph_node.hpp"
 #include "pin.hpp"
 
 namespace aln
 {
+
+class EditorGraphNode;
+
 class Link
 {
   public:

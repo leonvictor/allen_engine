@@ -31,6 +31,8 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
         // TODO: Settings memory is handled by the loader, so maybe its creation should be here as well ?
         reflect::TypeCollectionDescriptor typeCollectionDesc;
         archive >> typeCollectionDesc;
+        archive >> pDefinition->m_nodeIndices;
+        archive >> pDefinition->m_rootNodeIndex;
         archive >> pDefinition->m_nodeOffsets;
         archive >> pDefinition->m_requiredMemorySize;
         archive >> pDefinition->m_requiredMemoryAlignement;
@@ -45,6 +47,7 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
     {
         auto pGraphDefinition = pRecord->GetAsset<AnimationGraphDefinition>();
 
+        // TODO: Could be moved to type collection logics (something like DeleteFixedSizeCollection)
         void* pMemory = pGraphDefinition->m_nodeSettings[0];
         for (auto& pSettings : pGraphDefinition->m_nodeSettings)
         {
@@ -52,7 +55,13 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
             pSettings->~T();
         }
         aln::Free(pMemory);
+
         pGraphDefinition->m_nodeSettings.clear();
+        pGraphDefinition->m_nodeIndices.clear();
+        pGraphDefinition->m_rootNodeIndex = InvalidIndex;
+        pGraphDefinition->m_nodeOffsets.clear();
+        pGraphDefinition->m_requiredMemoryAlignement = 0;
+        pGraphDefinition->m_requiredMemorySize = 0;
     };
 };
 

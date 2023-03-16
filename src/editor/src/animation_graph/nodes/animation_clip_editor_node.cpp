@@ -14,7 +14,7 @@ void AnimationClipEditorNode::Initialize()
     AddOutputPin(PinValueType::Pose);
 }
 
-void AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
 {
     AnimationClipRuntimeNode::Settings* pSettings = nullptr;
     bool compiled = context.GetSettings<AnimationClipRuntimeNode>(this, pGraphDefinition, pSettings);
@@ -22,6 +22,8 @@ void AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context,
     {
         pSettings->m_dataSlotIdx = context.RegisterDataSlot(GetID());
     }
+
+    return pSettings->GetNodeIndex();
 };
 
 } // namespace aln
