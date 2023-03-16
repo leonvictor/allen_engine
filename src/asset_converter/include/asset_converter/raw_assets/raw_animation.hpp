@@ -131,7 +131,7 @@ struct AssimpAnimationReader
         BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
         animation.Serialize(dataStream);
 
-        AssetArchiveHeader header("smsh"); // TODO: Use SkeletalMesh::GetStaticAssetType();
+        AssetArchiveHeader header("anim"); // TODO: Use SkeletalMesh::GetStaticAssetType();
         header.AddDependency(pSkeleton->GetID());
 
         auto path = (sceneContext.GetOutputDirectory() / (animation.m_name + ".anim"));

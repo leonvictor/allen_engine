@@ -28,7 +28,11 @@ class AssetsBrowser : public IEditorWindow
     void RecursiveDrawDirectory(const std::filesystem::directory_entry& directoryEntry);
 
   public:
-    AssetsBrowser(std::string folderPath) : m_currentFilePath(folderPath) {}
+    AssetsBrowser(std::string folderPath) : m_currentFilePath(folderPath)
+    {
+        // TMP
+        m_currentFilePath.make_preferred();
+    }
 
     void Update(const UpdateContext& context) override;
 

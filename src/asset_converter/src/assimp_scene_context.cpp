@@ -6,6 +6,10 @@ AssimpSceneContext::AssimpSceneContext(const std::filesystem::path& inputFile, c
     : m_sourceFilePath(inputFile),
       m_outputDirectoryPath(outputDirectory)
 {
+    // TMP: Make sure asset paths use the default separator
+    m_sourceFilePath.make_preferred();
+    m_outputDirectoryPath.make_preferred();
+
     m_importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
     m_pScene = m_importer.ReadFile(inputFile.string(), AssimpPostProcessFlags);
 

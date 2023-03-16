@@ -27,7 +27,7 @@ class AssetID
     }
 
   private:
-    // TODO: change to a hash ?
+    // TODO: change to AssetPath
     std::string m_path;
     AssetTypeID m_typeID;
 
@@ -46,7 +46,7 @@ class AssetID
     inline const std::string GetAssetName() const
     {
         assert(IsValid());
-        auto start = m_path.find_last_of("/\\") + 1;
+        auto start = m_path.find_last_of(std::filesystem::path::preferred_separator) + 1;
         auto end = m_path.find_last_of('.') - start;
         return m_path.substr(start, end);
     }
