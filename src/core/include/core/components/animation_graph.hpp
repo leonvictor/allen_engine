@@ -5,8 +5,10 @@
 #include <anim/skeleton.hpp>
 
 #include <anim/graph/animation_graph_dataset.hpp>
+#include <anim/graph/graph_context.hpp>
 #include <anim/graph/graph_definition.hpp>
 #include <anim/graph/runtime_graph_instance.hpp>
+#include <anim/graph/task_system.hpp>
 
 #include <assets/asset_service.hpp>
 #include <assets/handle.hpp>
@@ -27,13 +29,34 @@ class AnimationGraphComponent : public IComponent
     AssetHandle<AnimationGraphDataset> m_pGraphDataset;
 
     RuntimeAnimationGraphInstance* m_pGraphInstance = nullptr;
+    GraphContext m_graphContext;
+    TaskSystem* m_pTaskSystem;
+
+    Pose* m_pPose = nullptr;
+    Percentage m_previousAnimTime = 0.0f;
+    Percentage m_animTime = 0.0f;
 
   public:
+    inline const Pose* GetPose() { return m_pPose; }
+
     // ---------
 
-    void Evaluate()
+    /// @brief Run through the animation graph recording tasks
+    /// @param deltaTime
+    void Evaluate(float deltaTime, const Transform& characterWorldTransform)
     {
+        assert(m_graphContext.IsValid());
+
         // TODO
+        m_graphContext.Update(deltaTime, characterWorldTransform);
+
+        m_pTaskSystem->Reset();
+        m_pGraphInstance->Update(m_graphContext);
+    }
+
+    void ExecuteTasks()
+    {
+        m_pTaskSystem->ExecuteTasks(m_graphContext.m_deltaTime, m_graphContext.m_worldTransform, m_pPose);
     }
 
     // --------- Component methods
@@ -68,14 +91,22 @@ class AnimationGraphComponent : public IComponent
 
     void Initialize() override
     {
+        m_pPose = aln::New<Pose>(m_pSkeleton.get());
+        m_pTaskSystem = aln::New<TaskSystem>(m_pSkeleton.get());
         m_pGraphInstance = aln::New<RuntimeAnimationGraphInstance>(m_pGraphDefinition.get(), m_pGraphDataset.get());
-        // TODO ...
+
+        m_graphContext.Initialize(m_pTaskSystem, m_pPose);
+        m_pGraphInstance->Initialize(m_graphContext);
     }
 
     void Shutdown() override
     {
+        m_pGraphInstance->Shutdown();
+        m_graphContext.Shutdown();
+
         aln::Delete(m_pGraphInstance);
-        // TODO ...
+        aln::Delete(m_pTaskSystem);
+        aln::Delete(m_pPose);
     }
 };
 } // namespace aln

@@ -55,8 +55,20 @@ class PoseRuntimeNode : public RuntimeGraphNode
     inline Seconds GetDuration() const { return m_duration; }
 
     // Initialize an animation node with a specific start time
-    void Initialize(GraphContext& context, const SyncTrackTime& InitialTime = SyncTrackTime()) {} // TODO
-    virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) {}   // TODO
+    void Initialize(GraphContext& context, const SyncTrackTime& initialTime = SyncTrackTime())
+    {
+        InitializeInternal(context, initialTime);
+        // TODO: Should be set elsewhere
+        m_status = Status::Initialized;
+    }
+
+    virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime)
+    {
+        m_loopCount = 0;
+        m_duration = 0.0f;
+        m_currentTime = 0.0f;
+        m_previousTime = 0.0f;
+    }
 
     /// @brief Unsynchronized update
     /// @note Use the time delta for the current step

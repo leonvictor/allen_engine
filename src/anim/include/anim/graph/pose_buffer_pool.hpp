@@ -15,6 +15,7 @@ struct PoseBuffer
     TaskIndex m_owner = InvalidIndex;
     Pose m_pose;
 
+    bool IsOwned() const { return m_owner != InvalidIndex; }
     // We have a problem here:
     // Pose buffers are kept in a std::vector, which can be dynamically extended. When it does, it can either:
     // * copy its elements around -> we can't do that, as poses shouldn't be copied
@@ -38,31 +39,38 @@ struct PoseBufferPool
     PoseBufferPool(const Skeleton* pSkeleton) : m_pSkeleton(pSkeleton)
     {
         // Average pool size = 5. TODO: is it ?
-        m_buffers.reserve(5);
-        for (uint8_t i; i < 5; ++i)
+        constexpr PoseBufferIndex averagePoolSize = 5;
+        m_buffers.reserve(averagePoolSize);
+        for (PoseBufferIndex bufferIndex = 0; bufferIndex < averagePoolSize; ++bufferIndex)
         {
             m_buffers.emplace_back(m_pSkeleton);
         }
     }
 
-    std::pair<PoseBufferIndex, PoseBuffer*> GetFirstAvailable()
+    PoseBufferIndex GetFirstAvailableBufferIndex()
     {
-        auto size = m_buffers.size();
-        for (uint8_t i = 0; i < size; ++i)
+        PoseBufferIndex bufferCount = m_buffers.size();
+        for (PoseBufferIndex bufferIndex = 0; bufferIndex < bufferCount; ++bufferIndex)
         {
-            if (m_buffers[i].m_owner == InvalidIndex)
+            if (!m_buffers[bufferIndex].IsOwned())
             {
-                return {i, &m_buffers[i]};
+                return bufferIndex;
             }
         }
         auto& buffer = m_buffers.emplace_back(m_pSkeleton);
-        return {(PoseBufferIndex) size, &buffer};
+        return bufferCount;
     }
 
     PoseBuffer* GetByIndex(PoseBufferIndex index)
     {
         assert(index < m_buffers.size());
         return &m_buffers[index];
+    }
+
+    void ReleasePoseBuffer(PoseBufferIndex index)
+    {
+        assert(m_buffers[index].IsOwned());
+        m_buffers[index].m_owner = InvalidIndex;
     }
 };
 } // namespace aln

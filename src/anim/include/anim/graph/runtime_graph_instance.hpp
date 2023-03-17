@@ -2,6 +2,7 @@
 
 #include "animation_graph_dataset.hpp"
 #include "graph_definition.hpp"
+#include "pose_node.hpp"
 #include "runtime_graph_node.hpp"
 #include "value_node.hpp"
 
@@ -23,6 +24,8 @@ class RuntimeAnimationGraphInstance
 
     std::vector<RuntimeGraphNode*> m_runtimeNodeInstances;
     std::set<std::string, ValueNode*> m_controlParameters;
+
+    PoseRuntimeNode* m_pRootNode = nullptr;
 
   public:
     RuntimeAnimationGraphInstance(const AnimationGraphDefinition* pGraphDefinition, const AnimationGraphDataset* pGraphDataset)
@@ -50,6 +53,34 @@ class RuntimeAnimationGraphInstance
             pNode->~RuntimeGraphNode();
         }
         aln::Free(m_pNodeInstancesMemory);
+    }
+
+    void Initialize(GraphContext& context)
+    {
+        for (auto& pNode : m_runtimeNodeInstances)
+        {
+            pNode->Initialize(context);
+        }
+
+        m_pRootNode = static_cast<PoseRuntimeNode*>(m_runtimeNodeInstances[m_pGraphDefinition->m_rootNodeIndex]);
+    }
+
+    void Shutdown()
+    {
+        m_pRootNode = nullptr;
+
+        for (auto pNode : m_runtimeNodeInstances)
+        {
+            pNode->Shutdown();
+        }
+    }
+
+    bool IsInitialized() const { return m_pRootNode != nullptr && m_pRootNode->IsInitialized(); }
+
+    PoseNodeResult Update(GraphContext& context)
+    {
+        assert(IsInitialized());
+        return m_pRootNode->Update(context);
     }
 
     // Control parameters

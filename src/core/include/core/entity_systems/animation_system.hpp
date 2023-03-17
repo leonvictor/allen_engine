@@ -19,9 +19,9 @@ class AnimationSystem : public IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
-    AnimationGraphComponent* m_pAnimationGraphComponent;
-    AnimationPlayerComponent* m_pAnimationPlayerComponent;
-    SkeletalMeshComponent* m_pSkeletalMeshComponent;
+    AnimationGraphComponent* m_pAnimationGraphComponent = nullptr;
+    AnimationPlayerComponent* m_pAnimationPlayerComponent = nullptr;
+    SkeletalMeshComponent* m_pSkeletalMeshComponent = nullptr;
 
   public:
     AnimationSystem()

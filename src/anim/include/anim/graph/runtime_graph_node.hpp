@@ -40,6 +40,13 @@ class RuntimeGraphNode
 {
     friend class Settings;
 
+  protected:
+    enum class Status : uint8_t
+    {
+        Uninitialized,
+        Initialized,
+    };
+
   public:
     class Settings : public reflect::IReflected
     {
@@ -79,13 +86,16 @@ class RuntimeGraphNode
       public:
         /// @brief Instanciate a node and all its data. Override in derived nodes
         virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const = 0;
+        NodeIndex GetNodeIndex() const { return m_nodeIndex; }
     };
 
   private:
     const Settings* m_pSettings = nullptr;
-    NodeIndex m_index = InvalidIndex;
 
   protected:
+    // TODO: Status is protected for now as we need to set it in pose nodes's initialize methods... It shouldnt
+    Status m_status = Status::Uninitialized;
+
     // TODO: Pointer to the runtime graph DEFINITION, which holds the settings values
     template <typename T>
     const typename T::Settings* GetSettings() const
@@ -94,18 +104,31 @@ class RuntimeGraphNode
         return static_cast<const T::Settings*>(m_pSettings);
     }
 
+    virtual void InitializeInternal(GraphContext& context) = 0; // ?
+    virtual void ShutdownInternal() = 0;
+
+    virtual NodeValueType GetValueType() const { return NodeValueType::Unknown; }; // ?
+
+  public:
+    NodeIndex GetNodeIndex() const { return m_pSettings->GetNodeIndex(); }
+    bool IsInitialized() const { return m_status == Status::Initialized; }
     bool IsNodeActive(GraphContext& context) const
     {
         // TODO
         return false;
     }
 
-    virtual void Initialize(GraphContext& context) = 0;                            // ?
-    virtual void InitializeInternal(GraphContext& context) = 0;                    // ?
-    virtual NodeValueType GetValueType() const { return NodeValueType::Unknown; }; // ?
+    virtual void Initialize(GraphContext& context)
+    {
+        InitializeInternal(context);
+        m_status = Status::Initialized;
+    }
 
-  public:
-    NodeIndex GetIndex() const { return m_index; }
+    virtual void Shutdown()
+    {
+        ShutdownInternal();
+        m_status = Status::Uninitialized;
+    }
 };
 
 } // namespace aln

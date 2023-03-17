@@ -12,7 +12,8 @@ class SampleTask : public Task
     Percentage m_time;
 
   public:
-    SampleTask(NodeIndex sourceNodeIdx, const AnimationClip* pAnimation, Percentage time) : Task(sourceNodeIdx), m_pAnimation(pAnimation), m_time(time)
+    SampleTask(NodeIndex sourceNodeIdx, const AnimationClip* pAnimation, Percentage time)
+        : Task(sourceNodeIdx), m_pAnimation(pAnimation), m_time(time)
     {
         assert(m_pAnimation != nullptr);
     }

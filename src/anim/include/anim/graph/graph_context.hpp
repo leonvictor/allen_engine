@@ -43,9 +43,9 @@ struct RootMotionActionRecorder
 class GraphContext
 {
   public:
-    const TaskSystem* m_pTaskSystem = nullptr; // Task system to register to
-    const Skeleton const* m_pSkeleton = nullptr;
-    const Pose const* m_pPreviousPose = nullptr; // Pose from last frame
+    TaskSystem* m_pTaskSystem = nullptr; // Task system to register to
+    const Skeleton* m_pSkeleton = nullptr;
+    const Pose* m_pPreviousPose = nullptr; // Pose from last frame
     Seconds m_deltaTime = 0.0f;
     Transform m_worldTransform = Transform::Identity;        // World transform of the considered character this frame
     Transform m_worldTransformInverse = Transform::Identity; // Inverse world transform of the character this frame
@@ -70,11 +70,24 @@ class GraphContext
 
     void Initialize(TaskSystem* pTaskSystem, const Pose* pPreviousPose)
     {
-        // TODO
+        m_pTaskSystem = pTaskSystem;
+        m_pPreviousPose = pPreviousPose;
+        m_pSkeleton = pPreviousPose->GetSkeleton();
+
+        // TODO: Initialize Root motion recorder
+
+        m_deltaTime = 0.0f;
+        m_worldTransform = Transform::Identity;
+        m_worldTransformInverse = Transform::Identity;
+        m_branchState = BranchState::Active;
+        // m_sampledEvents // TODO: Reset
     }
 
     void Shutdown()
     {
+        m_pSkeleton = nullptr;
+        m_pPreviousPose = nullptr;
+        m_pTaskSystem = nullptr;
         // TODO
     }
 
@@ -83,6 +96,9 @@ class GraphContext
     void Update(const Seconds deltaTime, const Transform& currentWorldTransform)
     {
         // TODO
+        m_deltaTime = deltaTime;
+        m_worldTransform = currentWorldTransform;
+        m_worldTransformInverse = currentWorldTransform.GetInverse();
     }
 
 // Debugging

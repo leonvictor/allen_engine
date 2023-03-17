@@ -42,14 +42,34 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
     PoseNodeResult Update(GraphContext& context) override
     {
-        // TODO: Abstract method impl
+        assert(context.IsValid());
+
+        // TODO: Mark the node as active
+
+        if (m_pPlayInReverseValueNode != nullptr)
+        {
+            // TODO
+        }
+
+        const auto deltaPercentage = Percentage(context.m_deltaTime / m_duration);
+
+        auto pSettings = GetSettings<AnimationClipRuntimeNode>();
+
+        m_previousTime = m_currentTime;
+        m_currentTime += deltaPercentage;
+
+        // TODO: Handle looping (or not)
+        m_currentTime = std::fmod(m_currentTime, m_duration);
+
         PoseNodeResult result;
+        result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);
         return result;
     }
 
     PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) override
     {
         // TODO: Abstract method impl
+        assert(false);
         PoseNodeResult result;
         return result;
     }
@@ -57,16 +77,33 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
     virtual const SyncTrack& GetSyncTrack() const override
     {
         // TODO: Abstract method impl
+        assert(false);
         return SyncTrack();
     };
 
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
         // TODO: Abstract method impl
+        PoseRuntimeNode::InitializeInternal(context, initialTime);
+        if (m_pPlayInReverseValueNode != nullptr)
+        {
+            m_pPlayInReverseValueNode->Initialize(context);
+        }
+
+        m_duration = m_pAnimationClip->GetDuration();
+
+        // TODO: Initialize current time and previous time based on initialTime
+    }
+
+    virtual void ShutdownInternal() override
+    {
+        if (m_pPlayInReverseValueNode != nullptr)
+        {
+            m_pPlayInReverseValueNode->Shutdown();
+        }
+        PoseRuntimeNode::Shutdown();
     }
 
     const AnimationClip* GetAnimationClip() const { return m_pAnimationClip; }
-
-  private:
 };
 } // namespace aln
