@@ -521,18 +521,7 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
 void Entity::AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     AddComponentImmediate(pComponent, pParentComponent);
-
-    if (IsLoaded())
-    {
-        // TODO: Async ?
-        pComponent->LoadComponent(loadingContext);
-    }
-
-    // if (IsActivated())
-    // {
-    //     RegisterComponentWithLocalSystems(pComponent);
-    //     loadingContext.m_registerWithWorldSystems(this, pComponent);
-    // }
+    pComponent->LoadComponent(loadingContext);
 }
 
 void Entity::RegisterComponentWithLocalSystems(IComponent* pComponent)
