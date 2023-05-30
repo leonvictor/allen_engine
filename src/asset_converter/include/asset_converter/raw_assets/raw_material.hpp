@@ -63,7 +63,9 @@ class AssimpMaterialReader
             material.m_albedoMapID = textureID;
         }
 
-        auto id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + name + ".mtrl");
+        auto exportPath = sceneContext.GetOutputDirectory() / name;
+        exportPath.replace_extension("mtrl");
+        auto id = AssetID(exportPath.string());
 
         AssetArchiveHeader header(id.GetAssetTypeID()); // TODO: Use Material::GetStaticAssetType
         header.AddDependency(material.m_albedoMapID);

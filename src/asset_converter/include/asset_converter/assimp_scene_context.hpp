@@ -40,8 +40,8 @@ class AssimpSceneContext
     mutable std::map<std::string, RawSkeleton> m_skeletons;
     std::vector<AssetID> m_materials;
 
-    const std::filesystem::path m_sourceFilePath;
-    const std::filesystem::path m_outputDirectoryPath;
+    std::filesystem::path m_sourceFilePath;
+    std::filesystem::path m_outputDirectoryPath;
 
   public:
     AssimpSceneContext(const std::filesystem::path& inputFile, const std::filesystem::path& outputDirectory);

@@ -35,9 +35,6 @@ class MeshComponent : public SpatialComponent
 
     friend class GraphicsSystem;
 
-  protected:
-    vkg::Device* m_pDevice;
-
   public:
     virtual void SetMesh(const std::string& path) = 0;
 

@@ -57,7 +57,9 @@ class AnimationGraphComponent : public IComponent
         {
             m_status = Status::Loaded;
         }
-        else if (m_pSkeleton.HasFailedLoading() || m_pGraphDataset.HasFailedLoading() || m_pGraphDefinition.HasFailedLoading())
+        else if (!m_pSkeleton.IsValid() || m_pSkeleton.HasFailedLoading() ||
+                 !m_pGraphDataset.IsValid() || m_pGraphDataset.HasFailedLoading() ||
+                 !m_pGraphDefinition.IsValid() || m_pGraphDefinition.HasFailedLoading())
         {
             m_status = Status::LoadingFailed;
         }

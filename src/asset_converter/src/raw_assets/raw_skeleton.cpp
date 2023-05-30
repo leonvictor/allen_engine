@@ -63,12 +63,15 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
 
     auto skeletonName = std::string(skeletonRoot.m_pNode->mName.C_Str());
 
+    auto exportPath = sceneContext.GetOutputDirectory() / skeletonName;
+    exportPath.replace_extension("skel");
+
     // Look for an existing skeleton with this root
     RawSkeleton* pSkeleton = nullptr;
     if (!sceneContext.TryGetSkeleton(skeletonName, pSkeleton))
     {
         pSkeleton->m_name = skeletonName;
-        pSkeleton->m_id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + pSkeleton->m_name + ".skel");
+        pSkeleton->m_id = AssetID(exportPath.string());
         pSkeleton->m_rootNodeGlobalTransform = sceneContext.DecomposeMatrix(skeletonRoot.m_globalTransform);
 
         // Add root data
@@ -173,16 +176,20 @@ void AssimpSkeletonReader::ReadAnimationBoneHierarchy(RawSkeleton* pSkeleton, co
 const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, const aiMesh* pSkeletalMesh)
 {
     assert(pSkeletalMesh->HasBones());
+    assert(pSkeletalMesh != nullptr);
 
     // Initialize the root node
     auto pRootBone = pSkeletalMesh->mBones[0]->mArmature;
     auto skeletonName = std::string(pRootBone->mName.C_Str());
 
+    auto exportPath = sceneContext.GetOutputDirectory() / skeletonName;
+    exportPath.replace_extension("skel");
+
     RawSkeleton* pSkeleton = nullptr;
     if (!sceneContext.TryGetSkeleton(skeletonName, pSkeleton))
     {
         pSkeleton->m_name = skeletonName;
-        pSkeleton->m_id = AssetID(sceneContext.GetOutputDirectory().string() + "/" + pSkeleton->m_name + ".skel");
+        pSkeleton->m_id = AssetID(exportPath.string());
         pSkeleton->m_rootNodeGlobalTransform = sceneContext.GetGlobalTransform(pRootBone);
 
         auto numBones = pSkeletalMesh->mNumBones + 1;
