@@ -61,7 +61,7 @@ class GraphicsSystem : public IWorldSystem
     LinesRenderState m_linesRenderState;
 
     // Registered components
-    Camera* m_pCameraComponent = nullptr;
+    const Camera* m_pCameraComponent = nullptr;
     IDVector<SkeletalMeshRenderInstance> m_skeletalMeshRenderInstances;
     IDVector<StaticMeshRenderInstance> m_staticMeshRenderInstances;
     IDVector<Light*> m_lightComponents;
@@ -78,6 +78,12 @@ class GraphicsSystem : public IWorldSystem
     void RegisterComponent(const Entity* pEntity, IComponent* pComponent) override;
     void UnregisterComponent(const Entity* pEntity, IComponent* pComponent) override;
     const UpdatePriorities& GetUpdatePriorities() override;
+
+    void SetRenderCamera(const Camera* pCameraComponent)
+    {
+        assert(pCameraComponent != nullptr);
+        m_pCameraComponent = pCameraComponent;
+    }
 
     // Rendering calls
     void RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext);

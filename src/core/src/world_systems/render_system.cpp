@@ -145,14 +145,10 @@ void GraphicsSystem::Update(const UpdateContext& context)
 
 void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pComponent)
 {
+    // Set the first registered camera as the active one
     auto pCamera = dynamic_cast<Camera*>(pComponent);
-    if (pCamera != nullptr)
+    if (m_pCameraComponent == nullptr && pCamera != nullptr)
     {
-        if (m_pCameraComponent != nullptr)
-        {
-            std::runtime_error("The render system already has a camera registered.");
-        }
-
         m_pCameraComponent = pCamera;
         return;
     }

@@ -24,6 +24,8 @@
 
 #include <common/memory.hpp>
 
+#include <core/components/camera.hpp>
+#include <core/entity_systems/camera_controller.hpp>
 #include <entities/component.hpp>
 #include <entities/entity.hpp>
 #include <entities/entity_descriptors.hpp>
@@ -63,6 +65,12 @@ class Editor
     std::filesystem::path m_scenePath;
 
     WorldEntity& m_worldEntity;
+
+    Entity* m_pEditorEntity = nullptr;
+    Camera* m_pCamera = nullptr;
+
+    Entity* m_pSelectedEntity = nullptr;
+    glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
     EntityDescriptor m_entityClipboard;
 
     const TypeRegistryService* m_pTypeRegistryService;
@@ -146,11 +154,18 @@ class Editor
         m_entityInspector.Initialize(&m_editorWindowContext);
 
         // TODO: Usability stuff: automatically load last used scene etc
-        m_scenePath = scenePath;
-        if (std::filesystem::exists(m_scenePath))
+        if (std::filesystem::exists(scenePath))
         {
+            m_scenePath = scenePath;
             LoadScene();
             LoadState();
+        }
+        else
+        {
+            m_pCamera = aln::New<Camera>();
+            m_pEditorEntity = m_worldEntity.m_entityMap.CreateEntity("Editor");
+            m_pEditorEntity->AddComponent(m_pCamera);
+            m_pEditorEntity->CreateSystem<EditorCameraController>();
         }
     }
 
