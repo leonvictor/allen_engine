@@ -12,6 +12,7 @@ class EntityInspector : public IEditorWindow
 
     // TODO: Move to the quaternion widget directly
     glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
+    bool m_uniformScale = true;
     Entity* m_pEntity;
 
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
@@ -116,15 +117,62 @@ class EntityInspector : public IEditorWindow
                     // Scale
                     auto scale = pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetScale();
                     changed = false;
+                    
                     ImGui::Text("Scale");
-                    changed |= ImGui::DragFloat("x##Scale", &scale.x, 1.0f);
                     ImGui::SameLine();
-                    changed |= ImGui::DragFloat("y##Scale", &scale.y, 1.0f);
+                    if (m_uniformScale)
+                    {
+                        ImGui::Text(ICON_FA_LINK);
+                    }
+                    else
+                    {
+                        ImGui::Text(ICON_FA_LINK_SLASH);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("Enforce uniform scale by linking components together.");
+                    }
+                    if (ImGui::IsItemClicked())
+                    {
+                        m_uniformScale = !m_uniformScale;
+                    }
+
+                    if (ImGui::DragFloat("x##Scale", &scale.x, 1.0f))
+                    {
+                        if (m_uniformScale)
+                        {
+                            scale.y = scale.x;
+                            scale.z = scale.x;
+                        }
+                        changed = true;
+                    }
                     ImGui::SameLine();
-                    changed |= ImGui::DragFloat("z##Scale", &scale.z, 1.0f);
+
+                    if (ImGui::DragFloat("y##Scale", &scale.y, 1.0f))
+                    {
+                        if (m_uniformScale)
+                        {
+                            scale.x = scale.y;
+                            scale.z = scale.y;
+                        }
+                        changed = true;
+                    }
+                    ImGui::SameLine();
+
+                    if (ImGui::DragFloat("z##Scale", &scale.z, 1.0f))
+                    {
+                        if (m_uniformScale)
+                        {
+                            scale.x = scale.z;
+                            scale.y = scale.z;
+                        }
+                        changed = true;
+                    }
 
                     if (changed)
+                    {
                         pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformScale(scale);
+                    }
 
                     ImGui::PopItemWidth();
                 }
