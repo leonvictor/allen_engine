@@ -95,8 +95,8 @@ class Entity
     void AddComponentImmediate(IComponent* pComponent, SpatialComponent* pParentComponent);
     void AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent);
 
-    void RegisterComponentWithLocalSystems(IComponent* pComponent);
-    void UnregisterComponentWithLocalSystems(IComponent* pComponent);
+    void RegisterComponentWithEntitySystems(IComponent* pComponent);
+    void UnregisterComponentWithEntitySystems(IComponent* pComponent);
 
     /// @brief Attach to the parent entity.
     void AttachToParent();

@@ -101,7 +101,7 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
             pComponent->InitializeComponent();
             if (IsActivated())
             {
-                RegisterComponentWithLocalSystems(pComponent);
+                RegisterComponentWithEntitySystems(pComponent);
                 loadingContext.m_registerWithWorldSystems(this, pComponent);
             }
         }
@@ -131,6 +131,8 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
 
     for (auto pComponent : m_components)
     {
+        assert(!pComponent->IsRegisteredWithEntitySystems() && !pComponent->IsRegisteredWithWorldSystems());
+
         if (pComponent->IsInitialized())
         {
             pComponent->ShutdownComponent();
@@ -138,7 +140,6 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
         // TODO: Component *should* be loaded in all cases
         if (pComponent->IsLoaded() || pComponent->IsLoading())
         {
-            // TODO: What do we do with loadingContext ?
             pComponent->UnloadComponent(loadingContext);
         }
     }
@@ -165,7 +166,7 @@ void Entity::Activate(const LoadingContext& loadingContext)
     {
         if (pComponent->IsInitialized())
         {
-            RegisterComponentWithLocalSystems(pComponent);
+            RegisterComponentWithEntitySystems(pComponent);
             loadingContext.m_registerWithWorldSystems(this, pComponent);
         }
     }
@@ -212,7 +213,7 @@ void Entity::Deactivate(const LoadingContext& loadingContext)
     {
         if (pComponent->IsRegisteredWithEntitySystems())
         {
-            UnregisterComponentWithLocalSystems(pComponent);
+            UnregisterComponentWithEntitySystems(pComponent);
         }
         if (pComponent->IsRegisteredWithWorldSystems())
         {
@@ -431,8 +432,14 @@ void Entity::DestroyComponentDeferred(const LoadingContext& loadingContext, ICom
 {
     if (IsActivated())
     {
-        loadingContext.m_unregisterWithWorldSystems(this, pComponent);
-        UnregisterComponentWithLocalSystems(pComponent);
+        if (pComponent->IsRegisteredWithWorldSystems())
+        {
+            loadingContext.m_unregisterWithWorldSystems(this, pComponent);
+        }
+        if (pComponent->IsRegisteredWithEntitySystems())
+        {
+            UnregisterComponentWithEntitySystems(pComponent);
+        }
     }
 
     if (pComponent->IsInitialized())
@@ -524,7 +531,7 @@ void Entity::AddComponentDeferred(const LoadingContext& loadingContext, ICompone
     pComponent->LoadComponent(loadingContext);
 }
 
-void Entity::RegisterComponentWithLocalSystems(IComponent* pComponent)
+void Entity::RegisterComponentWithEntitySystems(IComponent* pComponent)
 {
     assert(!pComponent->m_registeredWithEntitySystems);
     for (auto pSystem : m_systems)
@@ -534,7 +541,7 @@ void Entity::RegisterComponentWithLocalSystems(IComponent* pComponent)
     pComponent->m_registeredWithEntitySystems = true;
 }
 
-void Entity::UnregisterComponentWithLocalSystems(IComponent* pComponent)
+void Entity::UnregisterComponentWithEntitySystems(IComponent* pComponent)
 {
     assert(pComponent->m_registeredWithEntitySystems);
     for (auto pSystem : m_systems)
@@ -690,7 +697,7 @@ void Entity::StartComponentEditing(const LoadingContext& loadingContext, ICompon
     // Deactivate
     if (pComponent->IsRegisteredWithEntitySystems())
     {
-        UnregisterComponentWithLocalSystems(pComponent);
+        UnregisterComponentWithEntitySystems(pComponent);
     }
     if (pComponent->IsRegisteredWithWorldSystems())
     {
