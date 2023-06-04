@@ -714,7 +714,7 @@ void Entity::EndComponentEditing(const LoadingContext& loadingContext)
     {
         if (pComponent->IsUnloaded())
         {
-            pComponent->Load(loadingContext);
+            pComponent->LoadComponent(loadingContext);
         }
     }
 }
