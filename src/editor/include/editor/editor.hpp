@@ -1,40 +1,5 @@
 #pragma once
 
-#include <assert.h>
-#include <concepts>
-#include <filesystem>
-#include <functional>
-#include <map>
-#include <typeindex>
-
-#include <vulkan/vulkan.hpp>
-
-#include <imgui.h>
-#include <imnodes.h>
-
-#include <IconsFontAwesome6.h>
-#include <imgui_internal.h>
-#include <imgui_stdlib.h>
-
-#include <glm/gtc/random.hpp>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-
-#include <fmt/core.h>
-
-#include <common/memory.hpp>
-
-#include <core/components/camera.hpp>
-#include <core/entity_systems/camera_controller.hpp>
-#include <entities/component.hpp>
-#include <entities/entity.hpp>
-#include <entities/entity_descriptors.hpp>
-#include <entities/spatial_component.hpp>
-#include <entities/update_context.hpp>
-#include <entities/world_entity.hpp>
-
-#include <reflection/services/type_registry_service.hpp>
-
 #include "animation_graph/animation_graph_editor.hpp"
 #include "asset_editor_window.hpp"
 #include "assets_browser.hpp"
@@ -42,8 +7,31 @@
 #include "entity_inspector.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
+#include <entities/entity_descriptors.hpp>
+
+#include <glm/vec2.hpp>
+
+#include <filesystem>
+#include <map>
+
+namespace vk
+{
+class DescriptorSet;
+}
+
+struct ImNodesContext;
+struct ImGuiContext;
+typedef void* (*ImGuiMemAllocFunc)(size_t, void*);
+typedef void (*ImGuiMemFreeFunc)(void*, void*);
+
 namespace aln
 {
+class Entity;
+class Camera;
+class WorldEntity;
+class TypeRegistryService;
+class ServiceProvider;
+
 struct EditorImGuiContext
 {
     ImGuiContext* m_pImGuiContext = nullptr;
@@ -65,15 +53,12 @@ class Editor
     std::filesystem::path m_scenePath;
 
     WorldEntity& m_worldEntity;
-
     Entity* m_pEditorEntity = nullptr;
     Camera* m_pCamera = nullptr;
 
-    Entity* m_pSelectedEntity = nullptr;
-    glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
     EntityDescriptor m_entityClipboard;
 
-    const TypeRegistryService* m_pTypeRegistryService;
+    const TypeRegistryService* m_pTypeRegistryService = nullptr;
 
     EditorWindowContext m_editorWindowContext;
 
@@ -90,132 +75,28 @@ class Editor
     void EntityOutlinePopup(Entity* pEntity = nullptr);
     void RecurseEntityTree(Entity* pEntity);
 
-    void ResolveAssetWindowRequests()
-    {
-        for (auto& assetID : m_editorWindowContext.m_requestedAssetWindowsDeletions)
-        {
-            RemoveAssetWindow(assetID);
-        }
-        m_editorWindowContext.m_requestedAssetWindowsDeletions.clear();
-
-        for (auto& assetID : m_editorWindowContext.m_requestedAssetWindowsCreations)
-        {
-            // TODO: Find the right window type
-            CreateAssetWindow(assetID, true);
-        }
-        m_editorWindowContext.m_requestedAssetWindowsCreations.clear();
-    }
+    void ResolveAssetWindowRequests();
 
   public:
     Editor(WorldEntity& worldEntity);
 
-    void CreateAssetWindow(const AssetID& id, bool readAssetFile)
-    {
-        assert(id.IsValid());
-
-        // TODO: Wouldn't be necessary with a default asset editor window
-        if (!m_assetWindowsFactory.IsTypeRegistered(id.GetAssetTypeID()))
-        {
-            return;
-        }
-
-        auto [it, inserted] = m_assetWindows.try_emplace(id, nullptr);
-        if (inserted)
-        {
-            it->second = m_assetWindowsFactory.CreateEditorWindow(id.GetAssetTypeID());
-            it->second->Initialize(&m_editorWindowContext, id, readAssetFile);
-        }
-    }
-
-    void RemoveAssetWindow(const AssetID& id)
-    {
-        assert(id.IsValid());
-
-        auto pWindow = m_assetWindows.extract(id).mapped();
-        pWindow->Shutdown();
-        aln::Delete(pWindow);
-    }
-
     // -------------------
     // Editor Lifetime
     //--------------------
-    void Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath)
-    {
-        m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
-
-        // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
-        m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
-        m_editorWindowContext.m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
-        m_editorWindowContext.m_pWorldEntity = &m_worldEntity;
-
-        m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
-
-        m_assetsBrowser.Initialize(&m_editorWindowContext);
-        m_entityInspector.Initialize(&m_editorWindowContext);
-
-        // TODO: Usability stuff: automatically load last used scene etc
-        if (std::filesystem::exists(scenePath))
-        {
-            m_scenePath = scenePath;
-            LoadScene();
-            LoadState();
-        }
-        else
-        {
-            m_pCamera = aln::New<Camera>();
-            m_pEditorEntity = m_worldEntity.m_entityMap.CreateEntity("Editor");
-            m_pEditorEntity->AddComponent(m_pCamera);
-            m_pEditorEntity->CreateSystem<EditorCameraController>();
-        }
-    }
-
-    void Shutdown()
-    {
-        for (auto& [id, pWindow] : m_assetWindows)
-        {
-            pWindow->Shutdown();
-            aln::Delete(pWindow);
-        }
-        m_assetWindows.clear();
-
-        m_assetsBrowser.Shutdown();
-        m_entityInspector.Shutdown();
-
-        ReflectedTypeEditor::Shutdown();
-    }
+    void Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath);
+    void Shutdown();
+    void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);
 
     const glm::vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
 
-    void SaveScene() const
-    {
-        EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_worldEntity.m_entityMap, *m_pTypeRegistryService);
-        BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Write);
-        archive << mapDescriptor;
-    }
+    void CreateAssetWindow(const AssetID& id, bool readAssetFile);
+    void RemoveAssetWindow(const AssetID& id);
 
-    void LoadScene()
-    {
-        // TODO
-        EntityMapDescriptor mapDescriptor;
-        BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Read);
-        archive >> mapDescriptor;
+    void SaveScene() const;
+    void LoadScene();
 
-        mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, m_worldEntity.m_loadingContext, *m_pTypeRegistryService);
-    }
+    void SaveState() const;
+    void LoadState();
 
-    void SaveState() const
-    {
-        // TODO: Save the current state of the editor
-        // including all subwindows
-        for (auto& [assetID, pWindow] : m_assetWindows)
-        {
-        }
-    }
-
-    void LoadState()
-    {
-    }
-
-    void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);
 };
 } // namespace aln

@@ -3,6 +3,7 @@
 #include "editor_window.hpp"
 
 #include "assets/asset_id.hpp"
+#include "assets/asset.hpp"
 
 #include <map>
 

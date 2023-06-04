@@ -1,10 +1,8 @@
 #pragma once
 
-#include <imgui.h>
+#include "editor_window.hpp"
 
 #include <assets/asset_id.hpp>
-
-#include "editor_window.hpp"
 
 #include <filesystem>
 #include <string>

@@ -1,4 +1,6 @@
 #include "assets_browser.hpp"
+
+#include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 
 namespace aln

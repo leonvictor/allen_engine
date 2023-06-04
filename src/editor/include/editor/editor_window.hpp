@@ -1,17 +1,18 @@
 #pragma once
 
-#include <graphics/imgui.hpp>
 #include <assets/asset_id.hpp>
-#include <assets/asset_service.hpp>
-#include <assets/handle.hpp>
-#include <entities/update_context.hpp>
-#include <entities/entity.hpp>
-#include <entities/world_entity.hpp>
 
 #include <nlohmann/json.hpp>
 
 namespace aln
 {
+
+class WorldEntity;
+class Entity;
+class TypeRegistryService;
+class IAssetHandle;
+class UpdateContext;
+class AssetService;
 
 class EditorWindowContext
 {
@@ -42,27 +43,10 @@ class IEditorWindow
   protected:
     EditorWindowContext* m_pEditorWindowContext = nullptr;
 
-    virtual void Initialize(EditorWindowContext* pEditorWindowContext)
-    {
-        m_pEditorWindowContext = pEditorWindowContext;
-    }
-
-    virtual void Shutdown()
-    {
-        m_pEditorWindowContext = nullptr;
-    }
-
-    void LoadAsset(IAssetHandle& assetHandle)
-    {
-        assert(assetHandle.IsUnloaded() && assetHandle.GetAssetID().IsValid());
-        m_pEditorWindowContext->m_pAssetService->Load(assetHandle);
-    }
-
-    void UnloadAsset(IAssetHandle& assetHandle)
-    {
-        assert(assetHandle.IsLoaded() && assetHandle.GetAssetID().IsValid());
-        m_pEditorWindowContext->m_pAssetService->Unload(assetHandle);
-    }
+    virtual void Initialize(EditorWindowContext* pEditorWindowContext);
+    virtual void Shutdown();
+    void LoadAsset(IAssetHandle& assetHandle);
+    void UnloadAsset(IAssetHandle& assetHandle);
 
     void RequestAssetWindowCreation(const AssetID& id) { m_pEditorWindowContext->m_requestedAssetWindowsCreations.emplace_back(id); }
     void RequestAssetWindowDeletion(const AssetID& id) { m_pEditorWindowContext->m_requestedAssetWindowsDeletions.emplace_back(id); }

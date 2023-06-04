@@ -1,27 +1,25 @@
 #include "editor.hpp"
+
 #include "animation_graph/animation_graph_editor.hpp"
 
-#include "misc/cpp/imgui_stdlib.h"
-
-#include <assets/handle.hpp>
-#include <common/colors.hpp>
-#include <core/material.hpp>
-#include <core/mesh.hpp>
-#include <core/texture.hpp>
-#include <reflection/services/type_registry_service.hpp>
-
-#include <anim/animation_clip.hpp>
-
-#include <entities/entity_descriptors.hpp>
-#include <entities/entity_system.hpp>
-
-#include <glm/vec3.hpp>
-
 #include <config/path.h>
+#include <assets/handle.hpp>
+#include <assets/asset_service.hpp>
+#include <reflection/services/type_registry_service.hpp>
+#include <core/components/camera.hpp>
+#include <core/entity_systems/camera_controller.hpp>
+#include <common/memory.hpp>
+#include <entities/world_entity.hpp>
+
+#include <vulkan/vulkan.hpp>
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <imnodes.h>
+#include <IconsFontAwesome6.h>
+#include <fmt/core.h>
 
 namespace aln
 {
-
 namespace editor
 {
 void SetImGuiContext(const EditorImGuiContext& context)
@@ -334,5 +332,123 @@ void Editor::EntityOutlinePopup(Entity* pEntity)
 
         ImGui::EndPopup();
     }
+}
+
+void Editor::CreateAssetWindow(const AssetID& id, bool readAssetFile)
+{
+    assert(id.IsValid());
+
+    // TODO: Wouldn't be necessary with a default asset editor window
+    if (!m_assetWindowsFactory.IsTypeRegistered(id.GetAssetTypeID()))
+    {
+        return;
+    }
+
+    auto [it, inserted] = m_assetWindows.try_emplace(id, nullptr);
+    if (inserted)
+    {
+        it->second = m_assetWindowsFactory.CreateEditorWindow(id.GetAssetTypeID());
+        it->second->Initialize(&m_editorWindowContext, id, readAssetFile);
+    }
+}
+
+void Editor::RemoveAssetWindow(const AssetID& id)
+{
+    assert(id.IsValid());
+
+    auto pWindow = m_assetWindows.extract(id).mapped();
+    pWindow->Shutdown();
+    aln::Delete(pWindow);
+}
+
+void Editor::ResolveAssetWindowRequests()
+{
+    for (auto& assetID : m_editorWindowContext.m_requestedAssetWindowsDeletions)
+    {
+        RemoveAssetWindow(assetID);
+    }
+    m_editorWindowContext.m_requestedAssetWindowsDeletions.clear();
+
+    for (auto& assetID : m_editorWindowContext.m_requestedAssetWindowsCreations)
+    {
+        // TODO: Find the right window type
+        CreateAssetWindow(assetID, true);
+    }
+    m_editorWindowContext.m_requestedAssetWindowsCreations.clear();
+}
+
+void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath)
+{
+    m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+
+    // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
+    m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
+    m_editorWindowContext.m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+    m_editorWindowContext.m_pWorldEntity = &m_worldEntity;
+
+    m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
+
+    m_assetsBrowser.Initialize(&m_editorWindowContext);
+    m_entityInspector.Initialize(&m_editorWindowContext);
+
+    // TODO: Usability stuff: automatically load last used scene etc
+    if (std::filesystem::exists(scenePath))
+    {
+        m_scenePath = scenePath;
+        LoadScene();
+        LoadState();
+    }
+    else
+    {
+        m_pCamera = aln::New<Camera>();
+        m_pEditorEntity = m_worldEntity.m_entityMap.CreateEntity("Editor");
+        m_pEditorEntity->AddComponent(m_pCamera);
+        m_pEditorEntity->CreateSystem<EditorCameraController>();
+    }
+}
+
+void Editor::Shutdown()
+{
+    for (auto& [id, pWindow] : m_assetWindows)
+    {
+        pWindow->Shutdown();
+        aln::Delete(pWindow);
+    }
+    m_assetWindows.clear();
+
+    m_assetsBrowser.Shutdown();
+    m_entityInspector.Shutdown();
+
+    ReflectedTypeEditor::Shutdown();
+}
+
+void Editor::SaveScene() const
+{
+    EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_worldEntity.m_entityMap, *m_pTypeRegistryService);
+    BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Write);
+    archive << mapDescriptor;
+}
+
+void Editor::LoadScene()
+{
+    // TODO
+    EntityMapDescriptor mapDescriptor;
+    BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Read);
+    archive >> mapDescriptor;
+
+    mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, m_worldEntity.m_loadingContext, *m_pTypeRegistryService);
+}
+
+void Editor::SaveState() const
+{
+    // TODO: Save the current state of the editor
+    // including all subwindows
+    for (auto& [assetID, pWindow] : m_assetWindows)
+    {
+    }
+}
+
+void Editor::LoadState()
+{
 }
 } // namespace aln

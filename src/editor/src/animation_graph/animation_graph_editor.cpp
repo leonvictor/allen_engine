@@ -1,15 +1,19 @@
 #include "animation_graph/animation_graph_editor.hpp"
+
 #include "animation_graph/animation_graph_compilation_context.hpp"
 #include "animation_graph/editor_graph_node.hpp"
 #include "animation_graph/nodes/animation_clip_editor_node.hpp"
 #include "animation_graph/nodes/pose_editor_node.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
+#include <config/path.h>
 #include <anim/graph/animation_graph_dataset.hpp>
 #include <assets/asset_archive_header.hpp>
-#include <config/path.h>
 #include <reflection/services/type_registry_service.hpp>
 #include <reflection/type_info.hpp>
+#include <entities/update_context.hpp>
+
+#include <imnodes.h>
 
 #include <assert.h>
 

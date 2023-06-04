@@ -1,5 +1,11 @@
 #include "reflected_types/primitive_type_editors.hpp"
 
+#include <assets/asset.hpp>
+#include <assets/handle.hpp>
+
+#include <imgui.h>
+#include <imgui_stdlib.h>
+
 namespace aln
 {
 

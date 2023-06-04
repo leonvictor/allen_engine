@@ -2,14 +2,10 @@
 
 #include <cstddef>
 
-#include <imgui.h>
-#include <misc/cpp/imgui_stdlib.h>
-
-#include <assets/asset.hpp>
-#include <assets/handle.hpp>
-
 namespace aln
 {
+
+class StringID;
 
 /// @brief Base class for primitive type editor widgets.
 /// Uses two-step editing: first draw the widget, then update the values

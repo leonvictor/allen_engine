@@ -5,8 +5,9 @@ add_library(${LIB_NAME}
     src/reflected_types/primitive_type_editors.cpp
 
     src/editor.cpp
-    
     src/assets_browser.cpp
+    src/entity_inspector.cpp
+    src/editor_window.cpp
     
     src/animation_graph/animation_graph_editor.cpp
     src/animation_graph/editor_graph_node.cpp
@@ -16,9 +17,9 @@ add_library(${LIB_NAME}
     src/module/module.cpp
     
     ${IMGUI_SOURCE}
-)
+ )
 
-set(LIB_DEPENDENCIES  ${IMGUI_INCLUDE_DIRS})
+set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})
 
 set(LIB_LINK_DEPENDENCIES reflection assets core entities anim fmt::fmt)
 

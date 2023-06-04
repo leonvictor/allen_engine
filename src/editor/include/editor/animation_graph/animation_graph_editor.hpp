@@ -1,16 +1,13 @@
 #pragma once
 
-#include <map>
-#include <vector>
-
-#include <imgui.h>
-#include <imnodes.h>
-
-#include <anim/graph/runtime_graph_instance.hpp>
-
 #include "asset_editor_window.hpp"
 #include "link.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
+
+#include <anim/graph/runtime_graph_instance.hpp>
+
+#include <map>
+#include <vector>
 
 namespace aln
 {

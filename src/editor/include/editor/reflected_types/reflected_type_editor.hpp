@@ -3,12 +3,14 @@
 #include "primitive_type_editors.hpp"
 
 #include <common/event.hpp>
-
 #include <reflection/reflected_type.hpp>
+
 #include <unordered_map>
 
 namespace aln
 {
+
+namespace reflect { class ClassMemberInfo; }
 
 struct TypeEditedEventDetails
 {

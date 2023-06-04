@@ -3,6 +3,9 @@
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
 #include <reflection/reflected_type.hpp>
+#include <reflection/type_info.hpp>
+
+#include <imgui.h>
 
 namespace aln
 {
