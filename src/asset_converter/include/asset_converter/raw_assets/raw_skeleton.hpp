@@ -49,6 +49,9 @@ class RawSkeleton : public IRawAsset
     void CalculateLocalTransforms();
     void CalculateGlobalTransforms();
 
+    /// @brief Reorder bones so that parents appear before their children
+    void SortBones();
+
     const Transform& GetRootBoneGlobalTransform() const { return m_rootNodeGlobalTransform; }
     void Serialize(BinaryMemoryArchive& archive) final override;
 };

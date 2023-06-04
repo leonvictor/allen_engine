@@ -52,6 +52,77 @@ void RawSkeleton::CalculateGlobalTransforms()
     }
 }
 
+void RawSkeleton::SortBones()
+{
+    assert(!m_parentBoneIndices.empty());
+
+    // Sort bones indices so that parents appear before children
+    // Inverse mappings are also generated to actually update parent indices later on
+
+    auto boneCount = GetBoneCount();
+    
+    std::vector<size_t> sortedToOriginal;
+    sortedToOriginal.reserve(boneCount);
+    std::vector<size_t> originalToSorted;
+    originalToSorted.resize(boneCount);
+
+    // Initialize with root nodes
+    for (auto boneIdx = 0; boneIdx < boneCount; ++boneIdx)
+    {
+        if (m_parentBoneIndices[boneIdx] == InvalidIndex)
+        {
+            originalToSorted[boneIdx] = sortedToOriginal.size(); 
+            sortedToOriginal.push_back(boneIdx);
+        }
+    }
+    
+    size_t currentParentsStart = 0;
+    while (sortedToOriginal.size() < boneCount)
+    {
+        size_t currentParentsEnd = sortedToOriginal.size();
+        
+        // Append all direct children of the last group of added bones
+        for (auto parentBoneIdx = currentParentsStart; parentBoneIdx < currentParentsEnd; ++parentBoneIdx)
+        {
+            for (auto childBoneIdx = 0; childBoneIdx < boneCount; ++childBoneIdx)
+            {
+                if (m_parentBoneIndices[childBoneIdx] == sortedToOriginal[parentBoneIdx])
+                {
+                    originalToSorted[childBoneIdx] = sortedToOriginal.size(); 
+                    sortedToOriginal.push_back(childBoneIdx);
+                }
+            }
+        }
+        currentParentsStart = currentParentsEnd;
+    }
+
+    // Update bone data to sorted order
+    auto boneNames = m_boneNames;
+    auto parentBoneIndices = m_parentBoneIndices;
+    auto globalReferencePose = m_globalReferencePose;
+    auto localReferencePose = m_localReferencePose;
+
+    for (auto newBoneIndex = 0; newBoneIndex < sortedToOriginal.size(); ++newBoneIndex)
+    {
+        auto oldBoneIndex = sortedToOriginal[newBoneIndex];
+        auto oldParentBoneIndex = parentBoneIndices[oldBoneIndex];
+        
+        if (oldParentBoneIndex == InvalidIndex)
+        {
+            m_parentBoneIndices[newBoneIndex] = InvalidIndex;
+        }
+        else
+        {
+            m_parentBoneIndices[newBoneIndex] = originalToSorted[oldParentBoneIndex];
+        }
+        
+        m_boneNames[newBoneIndex] = boneNames[oldBoneIndex];
+        m_globalReferencePose[newBoneIndex] = globalReferencePose[oldBoneIndex];
+        m_localReferencePose[newBoneIndex] = localReferencePose[oldBoneIndex];
+    }
+}
+
+
 /// ---------------
 /// Skeleton reader
 /// ---------------
@@ -233,9 +304,9 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
             pSkeleton->m_parentBoneIndices.push_back(parentBoneIndex);
         }
 
-        // TODO: Reorder so that parents appear before children
-
         pSkeleton->CalculateLocalTransforms();
+
+        pSkeleton->SortBones();
 
         // Save skeleton
         std::vector<std::byte> data;
