@@ -2,7 +2,7 @@
 
 #include <config/path.h>
 
-#include "IconsFontAwesome4.h"
+#include "IconsFontAwesome6.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -127,7 +127,8 @@ class ImGUI
         icons_config.MergeMode = true;
         icons_config.GlyphOffset.y = 1;
         // icons_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fontawesome-webfont.ttf", 13.0f, &icons_config, icons_ranges);
+        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fa-regular-400.ttf", 13.0f, &icons_config, icons_ranges);
+        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fa-solid-900.ttf", 13.0f, &icons_config, icons_ranges);
 
         // Use any command queue
         pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)

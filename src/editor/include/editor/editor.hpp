@@ -12,7 +12,7 @@
 #include <imgui.h>
 #include <imnodes.h>
 
-#include <IconsFontAwesome4.h>
+#include <IconsFontAwesome6.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 

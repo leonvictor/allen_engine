@@ -46,7 +46,7 @@ class EntityInspector : public IEditorWindow
         }
 
         // Inspector panel
-        if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr) && pSelectedEntity != nullptr)
+        if (ImGui::Begin(ICON_FA_CIRCLE_INFO " Inspector", nullptr) && pSelectedEntity != nullptr)
         {
             ImGui::PushID(pSelectedEntity->GetID().ToString().c_str());
 
