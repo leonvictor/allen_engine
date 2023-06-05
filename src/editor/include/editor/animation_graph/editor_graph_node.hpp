@@ -39,6 +39,7 @@ class EditorGraphNode : public reflect::IReflected
         auto& pin = m_inputPins.emplace_back();
         pin.m_type = Pin::Type::In;
         pin.m_valueType = valueType;
+        pin.m_name = name;
     }
 
     void AddOutputPin(PinValueType valueType, std::string name = "")
@@ -46,6 +47,7 @@ class EditorGraphNode : public reflect::IReflected
         auto& pin = m_outputPins.emplace_back();
         pin.m_type = Pin::Type::Out;
         pin.m_valueType = valueType;
+        pin.m_name = name;
     }
 
   public:

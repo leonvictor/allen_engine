@@ -1,12 +1,12 @@
 #pragma once
 
-#include <cstdint>
-#include <vector>
-
 #include "../pose.hpp"
 #include "../types.hpp"
-// #include "graph_node.hpp"
 #include "pose_buffer_pool.hpp"
+
+#include <common/update_stages.hpp>
+
+#include <vector>
 
 namespace aln
 {
@@ -19,8 +19,8 @@ struct TaskContext
     // Buffer indices for the dependencies output
     std::vector<PoseBufferIndex> m_dependencyBufferIndices;
     std::vector<Task*> m_dependencies;
-    Percentage m_deltaTime;
-    Transform m_worldTransform;
+    Percentage m_deltaTime = 0.0f;
+    Transform m_worldTransform = Transform::Identity;
 
     TaskContext(PoseBufferPool* pPoseBufferPool) : m_pPoseBufferPool(pPoseBufferPool) {}
 };
@@ -37,7 +37,7 @@ class Task
     PoseBufferIndex m_resultBufferIndex = InvalidIndex;
     std::vector<TaskIndex> m_dependencies;
 
-    // UpdateStage m_updateStage;
+     UpdateStage m_updateStage;
 
     // Disable copies
     Task(const Task& rhs) = delete;
@@ -88,8 +88,8 @@ class Task
 
   public:
     Task(NodeIndex sourceNodeIdx) : m_sourceNodeIdx(sourceNodeIdx) {}
-    // Task(NodeIndex sourceNodeIdx, UpdateStage updateStage, std::vector<TaskIndex>& dependencies)
-    //     : m_sourceNodeIdx(sourceNodeIdx), m_updateStage(updateStage), m_dependencies(dependencies) {}
+    Task(NodeIndex sourceNodeIdx, UpdateStage updateStage, std::vector<TaskIndex> dependencies)
+        : m_sourceNodeIdx(sourceNodeIdx), m_updateStage(updateStage), m_dependencies(dependencies) {}
 
     PoseBufferIndex GetResultBufferIndex() const { return m_resultBufferIndex; }
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "animation.hpp"
-
 #include <cstdint>
 
 namespace aln
@@ -22,7 +20,6 @@ struct SampledEvent
 {
     // TODO:
     // Source animation
-    Animation* pAnimation;
     AnimationEvent* pEvent;
     float eventWeight = 1; // How important is this event for this update.
     // TODO: Is modified by any blend that occur. When blending away from the source anim, the weight is reduced

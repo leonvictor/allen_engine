@@ -4,8 +4,9 @@ add_library(${LIB_NAME} SHARED
     src/pose.cpp
     src/track.cpp
     
+    src/graph/runtime_graph_node.cpp
     src/graph/nodes/animation_clip_runtime_node.cpp
-    src/graph/nodes/runtime_graph_node.cpp
+    src/graph/nodes/blend_runtime_node.cpp
     
     src/module/module.cpp
 )

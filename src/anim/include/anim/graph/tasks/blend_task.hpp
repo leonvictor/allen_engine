@@ -11,17 +11,6 @@
 namespace aln
 {
 
-template <typename T>
-class BitFlags
-{
-    // TODO
-};
-
-enum class PoseBlend
-{
-    // TODO
-};
-
 class BlendTask : public Task
 {
   private:
@@ -38,8 +27,7 @@ class BlendTask : public Task
     {
         assert(m_blendWeight >= 0.0f && m_blendWeight <= 1.0f);
 
-        // Ensure that blend weights close to 1 are set to 1 since blend code will optimize unnecessary ops away.
-        // if (Math::IsNearEqual(m_blendWeight, 1.0f))
+        // TODO: Use a standard epsilon
         if (glm::epsilonEqual(m_blendWeight, 1.0f, 0.000001f))
         {
             m_blendWeight = 1.0f;

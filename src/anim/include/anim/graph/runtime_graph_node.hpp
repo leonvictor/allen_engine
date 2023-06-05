@@ -83,6 +83,13 @@ class RuntimeGraphNode
             pNode = nodePtrs[nodeIndex];
         }
 
+        /// @brief Set a node based on a given index
+        void SetNodePtrFromIndex(const std::vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, RuntimeGraphNode* pNode) const
+        {
+            assert(nodeIndex != InvalidIndex);
+            pNode = nodePtrs[nodeIndex];
+        }
+
       public:
         /// @brief Instanciate a node and all its data. Override in derived nodes
         virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const = 0;
