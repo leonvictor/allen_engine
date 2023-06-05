@@ -30,6 +30,15 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     // Compile graph definition
     AnimationGraphDefinition graphDefinition;
 
+    // Parameter nodes are compiled first to be easier to find
+    auto parameterNodes = GetAllNodesOfType<IControlParameterEditorNode>();
+    graphDefinition.m_controlParameterNames.reserve(parameterNodes.size());
+    for (auto& pParameterNode : parameterNodes)
+    {
+        pParameterNode->Compile(context, &graphDefinition);
+        graphDefinition.m_controlParameterNames.push_back(pParameterNode->GetParameterName());
+    }
+
     auto outputNodes = GetAllNodesOfType<PoseEditorNode>();
     assert(outputNodes.size() == 1);
 
