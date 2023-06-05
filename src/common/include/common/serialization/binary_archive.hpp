@@ -21,7 +21,6 @@ concept TriviallyCopyableType = std::is_trivially_copyable_v<T>;
 
 template <typename T>
 concept ContiguousContainer = requires(T a) {
-                                  T::size_type;
                                   std::contiguous_iterator<typename T::iterator>;
                               };
 
