@@ -11,6 +11,8 @@ add_library(${LIB_NAME}
     
     src/animation_graph/animation_graph_editor.cpp
     src/animation_graph/editor_graph_node.cpp
+
+    src/animation_graph/nodes/control_parameter_editor_nodes.cpp
     src/animation_graph/nodes/pose_editor_node.cpp
     src/animation_graph/nodes/animation_clip_editor_node.cpp
     src/animation_graph/nodes/blend_editor_node.cpp

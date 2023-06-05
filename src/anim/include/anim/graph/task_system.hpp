@@ -30,10 +30,10 @@ class TaskSystem
     {
         m_taskContext.m_deltaTime = deltaTime;
 
-        m_taskContext.m_dependencies.clear();
         const auto taskCount = m_registeredTasks.size();
         for (auto taskIndex = 0; taskIndex < taskCount; ++taskIndex)
         {
+            m_taskContext.m_dependencies.clear();
             for (auto& dependencyIndex : m_registeredTasks[taskIndex]->GetDependencies())
             {
                 m_taskContext.m_dependencies.emplace_back(m_registeredTasks[dependencyIndex]);

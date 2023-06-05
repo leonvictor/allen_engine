@@ -75,19 +75,27 @@ class RuntimeGraphNode
         }
 
         /// @brief Set a node based on a given index, only if the index was set
-        void SetOptionalNodePtrFromIndex(const std::vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, RuntimeGraphNode* pNode) const
+        template<typename T>
+        void SetOptionalNodePtrFromIndex(const std::vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
         {
             if (nodeIndex == InvalidIndex)
+            {
                 return;
+            }
 
-            pNode = nodePtrs[nodeIndex];
+            assert(nodeIndex >= 0 && nodeIndex < nodePtrs.size());
+            
+            pNode = reinterpret_cast<T*>(nodePtrs[nodeIndex]);
         }
 
         /// @brief Set a node based on a given index
-        void SetNodePtrFromIndex(const std::vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, RuntimeGraphNode* pNode) const
+        template<typename T>
+        void SetNodePtrFromIndex(const std::vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
         {
             assert(nodeIndex != InvalidIndex);
-            pNode = nodePtrs[nodeIndex];
+            assert(nodeIndex >= 0 && nodeIndex < nodePtrs.size());
+
+            pNode = reinterpret_cast<T*>(nodePtrs[nodeIndex]);
         }
 
       public:
@@ -111,8 +119,8 @@ class RuntimeGraphNode
         return static_cast<const T::Settings*>(m_pSettings);
     }
 
-    virtual void InitializeInternal(GraphContext& context) = 0; // ?
-    virtual void ShutdownInternal() = 0;
+    virtual void InitializeInternal(GraphContext& context) {}
+    virtual void ShutdownInternal() {}
 
     virtual NodeValueType GetValueType() const { return NodeValueType::Unknown; }; // ?
 

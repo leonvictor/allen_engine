@@ -16,8 +16,6 @@ class Task;
 struct TaskContext
 {
     PoseBufferPool* m_pPoseBufferPool = nullptr;
-    // Buffer indices for the dependencies output
-    std::vector<PoseBufferIndex> m_dependencyBufferIndices;
     std::vector<Task*> m_dependencies;
     Percentage m_deltaTime = 0.0f;
     Transform m_worldTransform = Transform::Identity;
@@ -33,45 +31,18 @@ class Task
 
   private:
     TaskIndex m_index = InvalidIndex;
+    bool m_completed = false;
     NodeIndex m_sourceNodeIdx = InvalidIndex;
     PoseBufferIndex m_resultBufferIndex = InvalidIndex;
     std::vector<TaskIndex> m_dependencies;
 
-     UpdateStage m_updateStage;
+    UpdateStage m_updateStage;
 
     // Disable copies
     Task(const Task& rhs) = delete;
     Task& operator=(const Task& rhs) = delete;
 
   protected:
-    // TODO: bufferindex ?
-    /// @brief Release the buffer held by one of this task's dependencies
-    /// @param context: Todo
-    /// @param dependency: Index of the dependency
-    void ReleaseDependencyPoseBuffer(const TaskContext& context, PoseBufferIndex dependencyIndex)
-    {
-        // TODO: How do we access the taskSystem which holds the buffers ?
-        auto pBuffer = context.m_pPoseBufferPool->GetByIndex(context.m_dependencyBufferIndices[dependencyIndex]);
-        // TODO: Reset pose ?
-        pBuffer->m_owner = InvalidIndex;
-    }
-
-    /// @brief Retrieve the output pose buffer of a depency and transfer ownership to self
-    PoseBuffer* TransferDependencyPoseBuffer(const TaskContext& context, uint8_t dependencyIndex)
-    {
-        // TODO
-        auto pBuffer = context.m_pPoseBufferPool->GetByIndex(context.m_dependencyBufferIndices[dependencyIndex]);
-        pBuffer->m_owner = m_index;
-        return pBuffer;
-    }
-
-    /// @brief Retrieve the ouptut pose buffer of a dependency
-    PoseBuffer* AccessDependencyPoseBuffer(const TaskContext& context, uint8_t dependencyIndex)
-    {
-        // TODO
-        return context.m_pPoseBufferPool->GetByIndex(context.m_dependencyBufferIndices[dependencyIndex]);
-    }
-
     /// @brief Get an unused pose buffer
     PoseBuffer* GetNewPoseBuffer(const TaskContext& context)
     {
@@ -81,9 +52,55 @@ class Task
         return pBuffer;
     }
 
+    /// @brief Release the currently held buffer
+    void ReleasePoseBuffer(const TaskContext& context)
+    {
+        assert(m_resultBufferIndex != InvalidIndex);
+        context.m_pPoseBufferPool->ReleasePoseBuffer(m_resultBufferIndex);
+        m_resultBufferIndex = InvalidIndex;
+    }
+
+    /// @brief Release the buffer held by one of this task's dependencies
+    void ReleaseDependencyPoseBuffer(const TaskContext& context, PoseBufferIndex dependencyIndex)
+    {
+        assert(dependencyIndex < context.m_dependencies.size());
+        auto pDependency = context.m_dependencies[dependencyIndex];
+
+        assert(pDependency != nullptr && pDependency->IsComplete() && pDependency->m_resultBufferIndex != InvalidIndex);
+        pDependency->ReleasePoseBuffer(context);
+    }
+
+    /// @brief Retrieve the output pose buffer of a depency and acquire its ownership
+    PoseBuffer* TransferDependencyPoseBuffer(const TaskContext& context, uint8_t dependencyIndex)
+    {
+        assert(dependencyIndex < context.m_dependencies.size());
+        auto pDependency = context.m_dependencies[dependencyIndex];
+
+        assert(pDependency != nullptr && pDependency->IsComplete() && pDependency->m_resultBufferIndex != InvalidIndex);
+        m_resultBufferIndex = pDependency->GetResultBufferIndex();
+        pDependency->m_resultBufferIndex = InvalidIndex;
+
+        auto pBuffer = context.m_pPoseBufferPool->GetByIndex(m_resultBufferIndex);
+        pBuffer->m_owner = m_index;
+
+        return pBuffer;
+    }
+
+    /// @brief Retrieve the ouptut pose buffer of a dependency
+    PoseBuffer* AccessDependencyPoseBuffer(const TaskContext& context, uint8_t dependencyIndex)
+    {
+        assert(dependencyIndex < context.m_dependencies.size());
+        auto pDependency = context.m_dependencies[dependencyIndex];
+
+        assert(pDependency != nullptr && pDependency->IsComplete() && pDependency->m_resultBufferIndex != InvalidIndex);
+
+        return context.m_pPoseBufferPool->GetByIndex(pDependency->GetResultBufferIndex());
+    }
+
     void MarkTaskComplete(const TaskContext& context)
     {
-        // TODO
+        assert(!m_completed);
+        m_completed = true;
     }
 
   public:
@@ -91,6 +108,7 @@ class Task
     Task(NodeIndex sourceNodeIdx, UpdateStage updateStage, std::vector<TaskIndex> dependencies)
         : m_sourceNodeIdx(sourceNodeIdx), m_updateStage(updateStage), m_dependencies(dependencies) {}
 
+    bool IsComplete() const { return m_completed; }
     PoseBufferIndex GetResultBufferIndex() const { return m_resultBufferIndex; }
 
     bool HasDependencies() const { return !m_dependencies.empty(); }

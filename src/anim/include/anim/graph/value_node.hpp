@@ -63,7 +63,7 @@ class ValueNode : public RuntimeGraphNode
 {
   public:
     template <typename T>
-    inline T GetValue(GraphContext& context)
+    inline T GetValue(GraphContext& context) const
     {
         assert(ValueTypeValidation<T>::Type == GetValueType());
         T value;
@@ -79,8 +79,13 @@ class ValueNode : public RuntimeGraphNode
     }
 
   protected:
-    virtual void GetValueInternal(GraphContext& context, void* pValue) = 0;
+    virtual void GetValueInternal(GraphContext& context, void* pValue) const = 0;
     virtual void SetValueInternal(GraphContext& context, void const* pValue) = 0;
-    virtual NodeValueType GetValueType() = 0;
+    virtual NodeValueType GetValueType() const = 0;
+};
+
+class FloatValueNode : public ValueNode
+{
+    virtual NodeValueType GetValueType() const override final { return NodeValueType::Float; }
 };
 } // namespace aln

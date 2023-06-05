@@ -35,8 +35,7 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
             auto pNode = CreateNode<AnimationClipRuntimeNode>(nodePtrs, options);
             SetOptionalNodePtrFromIndex(nodePtrs, m_playInReverseValueNodeIdx, pNode->m_pPlayInReverseValueNode);
 
-            auto pSettings = pNode->GetSettings<AnimationClipRuntimeNode>();
-            pNode->m_pAnimationClip = pDataSet->GetAnimationClip(pSettings->m_dataSlotIdx);
+            pNode->m_pAnimationClip = pDataSet->GetAnimationClip(m_dataSlotIdx);
         }
     };
 
@@ -59,7 +58,7 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
         m_currentTime += deltaPercentage;
 
         // TODO: Handle looping (or not)
-        m_currentTime = std::fmod(m_currentTime, m_duration);
+        m_currentTime = std::fmod(m_currentTime, 1.0);
 
         PoseNodeResult result;
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);
@@ -83,8 +82,6 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
-        // TODO: Abstract method impl
-        PoseRuntimeNode::InitializeInternal(context, initialTime);
         if (m_pPlayInReverseValueNode != nullptr)
         {
             m_pPlayInReverseValueNode->Initialize(context);
@@ -101,7 +98,6 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
         {
             m_pPlayInReverseValueNode->Shutdown();
         }
-        PoseRuntimeNode::Shutdown();
     }
 
     const AnimationClip* GetAnimationClip() const { return m_pAnimationClip; }

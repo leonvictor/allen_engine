@@ -2,6 +2,7 @@
 
 #include "animation_graph/animation_graph_compilation_context.hpp"
 #include "animation_graph/editor_graph_node.hpp"
+#include "animation_graph/nodes/control_parameter_editor_nodes.hpp"
 #include "animation_graph/nodes/animation_clip_editor_node.hpp"
 #include "animation_graph/nodes/blend_editor_node.hpp"
 #include "animation_graph/nodes/pose_editor_node.hpp"

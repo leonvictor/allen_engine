@@ -28,9 +28,9 @@ NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, An
     {
         const auto pSourceNode1 = context.GetNodeLinkedToInputPin(GetInputPin(0).GetID());
         const auto pSourceNode2 = context.GetNodeLinkedToInputPin(GetInputPin(1).GetID());
+        const auto pBlendWeightValueNode = context.GetNodeLinkedToInputPin(GetInputPin(2).GetID());
         
-        // TODO: How are value node compiled ?
-        //pSettings->m_blendWeightValueNodeIdx = context.GetNodeLinkedToInputPin(GetInputPin(2).GetID());
+        pSettings->m_blendWeightValueNodeIdx = pBlendWeightValueNode->Compile(context, pGraphDefinition);
         pSettings->m_sourcePoseNode1Idx = pSourceNode1->Compile(context, pGraphDefinition);
         pSettings->m_sourcePoseNode2Idx = pSourceNode2->Compile(context, pGraphDefinition);
     }

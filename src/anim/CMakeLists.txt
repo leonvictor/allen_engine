@@ -5,8 +5,11 @@ add_library(${LIB_NAME} SHARED
     src/track.cpp
     
     src/graph/runtime_graph_node.cpp
+    src/graph/nodes/control_parameter_nodes.cpp
     src/graph/nodes/animation_clip_runtime_node.cpp
     src/graph/nodes/blend_runtime_node.cpp
+
+    src/graph/tasks/sample_task.cpp
     
     src/module/module.cpp
 )

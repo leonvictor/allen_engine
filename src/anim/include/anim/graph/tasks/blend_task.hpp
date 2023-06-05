@@ -43,6 +43,7 @@ class BlendTask : public Task
         Blender::Blend(&pSourceBuffer->m_pose, &pTargetBuffer->m_pose, m_blendWeight, m_blendOptions, m_pBoneMask, &pFinalBuffer->m_pose);
 
         ReleaseDependencyPoseBuffer(context, 1);
+        
         MarkTaskComplete(context);
     }
 

@@ -1,31 +1,24 @@
 #pragma once
 
-#include "../../animation_clip.hpp"
 #include "../task.hpp"
+
+#include <string>
 
 namespace aln
 {
+
+class AnimationClip;
+
 class SampleTask : public Task
 {
   private:
-    AnimationClip const* m_pAnimation;
+    const AnimationClip* m_pAnimation;
     Percentage m_time;
 
   public:
-    SampleTask(NodeIndex sourceNodeIdx, const AnimationClip* pAnimation, Percentage time)
-        : Task(sourceNodeIdx), m_pAnimation(pAnimation), m_time(time)
-    {
-        assert(m_pAnimation != nullptr);
-    }
+    SampleTask(NodeIndex sourceNodeIdx, const AnimationClip* pAnimation, Percentage time);
 
-    void Execute(const TaskContext& context) override
-    {
-        assert(m_pAnimation != nullptr);
-
-        auto pResultBuffer = GetNewPoseBuffer(context);
-        m_pAnimation->GetPose(m_time, &pResultBuffer->m_pose);
-        MarkTaskComplete(context);
-    }
+    void Execute(const TaskContext& context) override;
 
 #ifndef NDEBUG
     std::string GetDebugText() const
