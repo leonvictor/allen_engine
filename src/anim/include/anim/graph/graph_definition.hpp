@@ -30,6 +30,7 @@ class AnimationGraphDefinition : public IAsset
   private:
     std::vector<RuntimeGraphNode::Settings*> m_nodeSettings;
     std::vector<NodeIndex> m_nodeIndices;
+    std::vector<StringID> m_controlParameterNames;
     NodeIndex m_rootNodeIndex = InvalidIndex;
 
     // Memory info used to instanciate the runtime node array(s)

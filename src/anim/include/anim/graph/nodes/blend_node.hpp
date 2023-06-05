@@ -93,7 +93,7 @@ class BlendNode : public PoseRuntimeNode
         m_pSourcePoseNode1->Shutdown();
         m_pBlendWeightValueNode->Shutdown();
 
-        PoseRuntimeNode::Shutdown();
+        PoseRuntimeNode::ShutdownInternal();
     }
 };
 } // namespace aln 

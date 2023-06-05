@@ -6,7 +6,6 @@
 #include "runtime_graph_node.hpp"
 #include "value_node.hpp"
 
-#include <set>
 #include <string>
 
 namespace aln
@@ -23,7 +22,6 @@ class RuntimeAnimationGraphInstance
     std::byte* m_pNodeInstancesMemory = nullptr;
 
     std::vector<RuntimeGraphNode*> m_runtimeNodeInstances;
-    std::set<std::string, ValueNode*> m_controlParameters;
 
     PoseRuntimeNode* m_pRootNode = nullptr;
 
@@ -83,23 +81,31 @@ class RuntimeAnimationGraphInstance
         return m_pRootNode->Update(context);
     }
 
-    // Control parameters
+    // ----- Control parameters
 
-    // TODO: Control parameters are value nodes that represent an instance of a value
-    // Primary inputs to the graph
-    // set once per frame before the graph evaluates
-    // unique names per graph
-    uint32_t GetParameterIndex(std::string parameterName)
+    size_t GetControlParameterCount() const { return m_pGraphDefinition->m_controlParameterNames.size(); }
+
+    // TODO: set once per frame before the graph evaluates
+    // TODO: unique names per graph
+    uint32_t GetControlParameterIndex(StringID& parameterName)
     {
-        // TODO
+        auto parameterCount = GetControlParameterCount();
+        for (auto parameterIdx = 0; parameterIdx < parameterCount; ++parameterIdx)
+        {
+            if (m_pGraphDefinition->m_controlParameterNames[parameterIdx] == parameterName)
+            {
+                return parameterIdx;
+            }
+        }
+        return InvalidIndex;
     }
 
-    void SetParameter(uint32_t parameterIdx, float value)
+    template <typename T>
+    void SetControlParameter(uint32_t parameterIdx, T value)
     {
-        // TODO
-        // Use like this:
-        // uint32_t const parameterIdx = graphInstance->GetParameterIndex("Speed");
-        // graphInstance->SetParameter(parameterIdx, 5.0f);
+        assert(parameterIdx < GetControlParameterCount());
+        auto pParameterNode = reinterpret_cast<ValueNode*>(m_runtimeNodeInstances[parameterIdx]);
+        pParameterNode->SetValue<T>(value);
     }
 };
 } // namespace aln

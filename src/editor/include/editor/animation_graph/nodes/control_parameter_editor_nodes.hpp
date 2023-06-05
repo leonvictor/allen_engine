@@ -4,7 +4,22 @@
 
 namespace aln
 {
-class FloatControlParameterEditorNode : public EditorGraphNode
+
+/// @todo Control Parameters names can be modified but must be unique
+class IControlParameterEditorNode : public EditorGraphNode
+{
+    StringID m_parameterName;
+
+  public:
+    StringID GetParameterName() const { return m_parameterName; }
+
+    void SetParameterName(std::string& paramName)
+    {
+        m_parameterName = StringID(paramName);
+    }
+};
+
+class FloatControlParameterEditorNode : public IControlParameterEditorNode
 {
     ALN_REGISTER_TYPE();
 
