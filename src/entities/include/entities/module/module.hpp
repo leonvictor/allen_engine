@@ -10,6 +10,6 @@ namespace aln::Entities
 class Module : public IEngineModule
 {
   public:
-    void RegisterTypes(TypeRegistryService* pTypeRegistryService) override;
+    void Initialize(EngineModuleContext& context) override;
 };
 } // namespace aln::Tooling

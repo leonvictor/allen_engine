@@ -3,10 +3,6 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <fmt/core.h>
-#include <functional>
-#include <stdexcept>
-#include <string.h>
 
 #include <editor/editor.hpp>
 
@@ -30,23 +26,11 @@
 #include <input/input_service.hpp>
 #include <reflection/services/type_registry_service.hpp>
 
-#include <entities/entity.hpp>
-#include <entities/entity_descriptors.hpp>
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
 #include <core/skeletal_mesh.hpp>
 #include <core/static_mesh.hpp>
-
-#include <core/components/animation_player_component.hpp>
-#include <core/components/camera.hpp>
-#include <core/components/light.hpp>
-#include <core/components/skeletal_mesh_component.hpp>
-#include <core/components/static_mesh_component.hpp>
-
-#include <core/entity_systems/animation_system.hpp>
-#include <core/entity_systems/camera_controller.hpp>
-#include <core/entity_systems/script.hpp>
 
 #include <core/world_systems/render_system.hpp>
 
@@ -67,15 +51,10 @@
 #include <common/services/service_provider.hpp>
 #include <common/threading/task_service.hpp>
 
-#include <anim/animation_clip.hpp>
-
 #include <config/path.h>
 
 #include <Tracy.hpp>
 #include <nlohmann/json.hpp>
-
-// Test anim graph
-#include <anim/graph/nodes/animation_clip_node.hpp>
 
 namespace aln
 {
@@ -175,16 +154,14 @@ class Engine
         m_updateContext.m_pServiceProvider = &m_serviceProvider;
 
         // Initialize modules
-        // TODO: Use Initialize fn + context
-        // ModuleContext moduleContext;
-        // moduleContext.m_pTypeRegistryService = &m_typeRegistryService;
-        // ...
+        EngineModuleContext moduleContext;
+        moduleContext.m_pTypeRegistryService = &m_typeRegistryService;
 
-        m_coreModule.RegisterTypes(&m_typeRegistryService);
-        m_assetsModule.RegisterTypes(&m_typeRegistryService);
-        m_animModule.RegisterTypes(&m_typeRegistryService);
-        m_toolingModule.RegisterTypes(&m_typeRegistryService);
-        m_entitiesModule.RegisterTypes(&m_typeRegistryService);
+        m_coreModule.Initialize(moduleContext);
+        m_assetsModule.Initialize(moduleContext);
+        m_animModule.Initialize(moduleContext);
+        m_toolingModule.Initialize(moduleContext);
+        m_entitiesModule.Initialize(moduleContext);
 
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.

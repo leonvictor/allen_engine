@@ -4,8 +4,13 @@ namespace aln
 {
 class TypeRegistryService;
 
+struct EngineModuleContext
+{
+    TypeRegistryService* m_pTypeRegistryService;
+};
+
 class IEngineModule
 {
-    virtual void RegisterTypes(TypeRegistryService*) = 0;
+    virtual void Initialize(EngineModuleContext& context) = 0;
 };
 } // namespace aln

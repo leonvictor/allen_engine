@@ -2,9 +2,9 @@
 
 namespace aln::Anim
 {
-void Module::RegisterTypes(TypeRegistryService* pTypeRegistryService)
+void Module::Initialize(EngineModuleContext& context)
 {
-    pTypeRegistryService->PollRegisteredTypes();
+    context.m_pTypeRegistryService->PollRegisteredTypes();
 }
 
 } // namespace aln::Anim
