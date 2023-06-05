@@ -18,7 +18,6 @@
 
 #include <Tracy.hpp>
 #include <common/TracySystem.hpp>
-#include <fmt/core.h>
 
 namespace aln
 {
