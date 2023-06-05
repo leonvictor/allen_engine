@@ -13,7 +13,7 @@ namespace aln
 class Entity;
 class IComponent;
 class EntityMap;
-class LoadingContext;
+struct LoadingContext;
 
 // We can't use the default serialization system for entities
 // because of the dynamic types of components and systems
