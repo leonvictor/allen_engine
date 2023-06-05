@@ -10,5 +10,6 @@ enum UpdateStage
     Physics,
     PostPhysics,
     FrameEnd,
-    NumStages
+    NumStages,
+    Any,
 };

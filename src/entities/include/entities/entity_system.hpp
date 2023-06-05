@@ -2,16 +2,16 @@
 
 #include <assert.h>
 
-#include "../update_stages.hpp"
-
 #include "update_context.hpp"
 #include "world_update.hpp"
+
+#include <common/update_stages.hpp>
+#include <reflection/reflected_type.hpp>
 
 #include <map>
 #include <string>
 #include <vector>
 
-#include <reflection/reflected_type.hpp>
 
 namespace aln
 {
