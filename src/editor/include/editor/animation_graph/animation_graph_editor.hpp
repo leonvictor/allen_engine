@@ -97,6 +97,9 @@ class AnimationGraphEditor : public IAssetEditorWindow
     /// @brief Create a link between two pins
     void AddLink(UUID inputNodeID, UUID inputPinID, UUID outputNodeID, UUID outputPinID);
     void RemoveLink(const UUID& linkID);
+    
+    /// @note Only works for single-link pins
+    const UUID& GetLinkToPin(const UUID& pinID) const;
 
     // -------------- Saving/Loading
 

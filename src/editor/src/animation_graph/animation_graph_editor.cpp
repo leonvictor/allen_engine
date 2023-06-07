@@ -210,6 +210,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         bool linkHovered = ImNodes::IsLinkHovered(&hoveredLinkID);
 
         ImNodes::BeginNodeEditor();
+        ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick | ImNodesAttributeFlags_EnableLinkCreationOnSnap);
 
         // Open contextual popups and register context ID
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
@@ -346,6 +347,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
             ImNodes::PopColorStyle();
         }
 
+        ImNodes::PopAttributeFlag();
         ImNodes::EndNodeEditor();
 
         // if (ImGui::BeginDragDropTarget())
@@ -368,8 +370,32 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
         // Handle link creation
         UUID startPinID, endPinID, startNodeID, endNodeID;
-        if (ImNodes::IsLinkCreated(&startNodeID, &startPinID, &endNodeID, &endPinID))
+        bool createdFromSnap = false;
+        if (ImNodes::IsLinkCreated(&startNodeID, &startPinID, &endNodeID, &endPinID, &createdFromSnap))
         {
+            if (!createdFromSnap)
+            {
+                // Delete other links
+                auto pInputPin = m_pinLookupMap[startPinID];
+                if (!pInputPin->AllowsMultipleLinks())
+                {
+                    const auto& existingLinkID = GetLinkToPin(startPinID);
+                    if (existingLinkID.IsValid())
+                    {
+                        RemoveLink(existingLinkID);
+                    }
+                }
+
+                auto pOutputPin = m_pinLookupMap[endPinID];
+                if (!pOutputPin->AllowsMultipleLinks())
+                {
+                    const auto& existingLinkID = GetLinkToPin(endPinID);
+                    if (existingLinkID.IsValid())
+                    {
+                        RemoveLink(existingLinkID);
+                    }
+                }
+            }
             AddLink(startNodeID, startPinID, endNodeID, endPinID);
         }
 
@@ -536,6 +562,18 @@ void AnimationGraphEditor::RemoveGraphNode(const UUID& nodeID)
     aln::Delete(pNode);
 
     SetDirty();
+}
+
+const UUID& AnimationGraphEditor::GetLinkToPin(const UUID& pinID) const
+{
+    for (auto& link : m_links)
+    {
+        if (link.m_inputPinID == pinID || link.m_outputPinID == pinID)
+        {
+            return link.m_id;
+        }
+    }
+    return UUID::InvalidID();
 }
 
 void AnimationGraphEditor::AddLink(UUID inputNodeID, UUID inputPinID, UUID outputNodeID, UUID outputPinID)

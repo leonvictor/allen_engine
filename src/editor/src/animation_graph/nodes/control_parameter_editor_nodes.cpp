@@ -11,7 +11,7 @@ ALN_REGISTER_IMPL_END()
 void FloatControlParameterEditorNode::Initialize()
 {
     m_name = "Float Parameter";
-    AddOutputPin(PinValueType::Float);
+    AddOutputPin(PinValueType::Float, "Value", true);
 }
 
 NodeIndex FloatControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
