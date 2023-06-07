@@ -19,6 +19,16 @@ class ALN_COMMON_EXPORT RGBColor : public glm::vec3
     RGBColor() = default;
     RGBColor(float r, float g, float b) : glm::vec3(r, g, b) {}
 
+    /// @brief Convert to a 32-bit integer
+    uint32_t U32() const {
+        uint32_t out;
+        out = ((uint32_t) (this->x * 255.0f + 0.5f));
+        out |= ((uint32_t) (this->y * 255.0f + 0.5f)) << 8;
+        out |= ((uint32_t) (this->z * 255.0f + 0.5f)) << 16;
+        out |= (uint32_t) 255 << 24;
+        return out;
+    }
+
     static const RGBColor Red;
     static const RGBColor Pink;
     static const RGBColor Orange;

@@ -2,18 +2,19 @@
 
 #include "animation_graph/animation_graph_compilation_context.hpp"
 #include "animation_graph/editor_graph_node.hpp"
-#include "animation_graph/nodes/control_parameter_editor_nodes.hpp"
 #include "animation_graph/nodes/animation_clip_editor_node.hpp"
 #include "animation_graph/nodes/blend_editor_node.hpp"
+#include "animation_graph/nodes/control_parameter_editor_nodes.hpp"
 #include "animation_graph/nodes/pose_editor_node.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <config/path.h>
+
 #include <anim/graph/animation_graph_dataset.hpp>
 #include <assets/asset_archive_header.hpp>
+#include <entities/update_context.hpp>
 #include <reflection/services/type_registry_service.hpp>
 #include <reflection/type_info.hpp>
-#include <entities/update_context.hpp>
 
 #include <imnodes.h>
 
@@ -21,6 +22,25 @@
 
 namespace aln
 {
+
+// Helpers
+RGBColor GetTypeColor(PinValueType valueType)
+{
+    // TODO: Handle all possible types
+    // TODO: Handle hue variation on selected / hovered
+    // TODO: Decide on a cool color palette
+    switch (valueType)
+    {
+    case PinValueType::Pose:
+        return RGBColor::Pink;
+    case PinValueType::Float:
+        return RGBColor::Yellow;
+    default:
+        assert(false); // Is the value type handled ?
+        return RGBColor::Black;
+    }
+}
+
 AnimationGraphDefinition* AnimationGraphEditor::Compile()
 {
     assert(m_pTypeRegistryService != nullptr);
@@ -285,9 +305,13 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
             for (auto& inputPin : pNode->m_inputPins)
             {
+                ImNodes::PushColorStyle(ImNodesCol_Pin, GetTypeColor(inputPin.GetValueType()).U32());
+
                 ImNodes::BeginInputAttribute(inputPin.GetID());
                 ImGui::Text(inputPin.GetName().c_str());
                 ImNodes::EndInputAttribute();
+
+                ImNodes::PopColorStyle();
             }
 
             ImGui::Spacing();
@@ -300,9 +324,13 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
             for (auto& outputPin : pNode->m_outputPins)
             {
+                ImNodes::PushColorStyle(ImNodesCol_Pin, GetTypeColor(outputPin.GetValueType()).U32());
+
                 ImNodes::BeginOutputAttribute(outputPin.GetID());
                 ImGui::Text(outputPin.GetName().c_str());
                 ImNodes::EndOutputAttribute();
+
+                ImNodes::PopColorStyle();
             }
 
             ImNodes::EndNode();
@@ -311,7 +339,11 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         // Draw links
         for (auto& link : m_links)
         {
+            const auto pPin = m_pinLookupMap[link.m_inputPinID];
+
+            ImNodes::PushColorStyle(ImNodesCol_Link, GetTypeColor(pPin->GetValueType()).U32());
             ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
+            ImNodes::PopColorStyle();
         }
 
         ImNodes::EndNodeEditor();
