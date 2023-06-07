@@ -34,7 +34,7 @@ class EditorGraphNode : public reflect::IReflected
   protected:
     std::string m_name;
 
-    void AddInputPin(PinValueType valueType, std::string name = "", bool allowMultipleLinks = false)
+    void AddInputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false)
     {
         auto& pin = m_inputPins.emplace_back();
         pin.m_type = Pin::Type::In;
@@ -43,7 +43,7 @@ class EditorGraphNode : public reflect::IReflected
         pin.m_allowMultipleLinks = allowMultipleLinks;
     }
 
-    void AddOutputPin(PinValueType valueType, std::string name = "", bool allowMultipleLinks = false)
+    void AddOutputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false)
     {
         auto& pin = m_outputPins.emplace_back();
         pin.m_type = Pin::Type::Out;
@@ -55,6 +55,21 @@ class EditorGraphNode : public reflect::IReflected
   public:
     const UUID& GetID() const { return m_id; }
     const std::string& GetName() const { return m_name; }
+    NodeValueType GetValueType() const
+    {
+        if (m_outputPins.size() > 0)
+        {
+            return GetOutputPin(0).m_valueType;
+        }
+        else if (m_inputPins.size() > 0)
+        {
+            return GetInputPin(0).m_valueType;
+        }
+        else
+        {
+            return NodeValueType::Unknown;
+        }
+    }
 
     const Pin& GetInputPin(size_t pinIdx) const
     {

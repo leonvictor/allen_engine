@@ -13,11 +13,11 @@ ALN_REGISTER_IMPL_END()
 void BlendEditorNode::Initialize()
 {
     m_name = "Blend";
-    AddInputPin(PinValueType::Pose, "Source Pose");
-    AddInputPin(PinValueType::Pose, "Target Pose");
-    AddInputPin(PinValueType::Float, "Blend Weight");
+    AddInputPin(NodeValueType::Pose, "Source Pose");
+    AddInputPin(NodeValueType::Pose, "Target Pose");
+    AddInputPin(NodeValueType::Float, "Blend Weight");
 
-    AddOutputPin(PinValueType::Pose);
+    AddOutputPin(NodeValueType::Pose);
 }
 
 NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const

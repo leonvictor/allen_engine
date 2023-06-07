@@ -24,16 +24,16 @@ namespace aln
 {
 
 // Helpers
-RGBColor GetTypeColor(PinValueType valueType)
+RGBColor GetTypeColor(NodeValueType valueType)
 {
     // TODO: Handle all possible types
     // TODO: Handle hue variation on selected / hovered
     // TODO: Decide on a cool color palette
     switch (valueType)
     {
-    case PinValueType::Pose:
+    case NodeValueType::Pose:
         return RGBColor::Pink;
-    case PinValueType::Float:
+    case NodeValueType::Float:
         return RGBColor::Yellow;
     default:
         assert(false); // Is the value type handled ?

@@ -11,7 +11,7 @@ ALN_REGISTER_IMPL_END()
 void AnimationClipEditorNode::Initialize()
 {
     m_name = "Animation Clip";
-    AddOutputPin(PinValueType::Pose);
+    AddOutputPin(NodeValueType::Pose);
 }
 
 NodeIndex AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const

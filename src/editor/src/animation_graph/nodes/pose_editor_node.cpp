@@ -6,7 +6,7 @@ namespace aln
 void PoseEditorNode::Initialize()
 {
     m_name = "Output Pose";
-    AddInputPin(PinValueType::Pose);
+    AddInputPin(NodeValueType::Pose);
 }
 
 NodeIndex PoseEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const

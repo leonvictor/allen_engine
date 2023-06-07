@@ -1,8 +1,8 @@
 #pragma once
 
-#include <common/uuid.hpp>
+#include "anim/graph/value_types.hpp"
 
-#include "pin_value_types.hpp"
+#include <common/uuid.hpp>
 
 namespace aln
 {
@@ -23,14 +23,14 @@ class Pin
     inline bool IsOutput() const { return m_type == Type::Out; }
     inline UUID GetID() const { return m_id; }
     inline const std::string& GetName() const { return m_name; }
-    inline const PinValueType GetValueType() const { return m_valueType; }
+    inline const NodeValueType GetValueType() const { return m_valueType; }
     inline bool AllowsMultipleLinks() const { return m_allowMultipleLinks; }
 
   private:
     const UUID m_id = UUID::Generate();
     std::string m_name;
     Type m_type = Type::In;
-    PinValueType m_valueType = PinValueType::None;
+    NodeValueType m_valueType = NodeValueType::Unknown;
     bool m_allowMultipleLinks = false;
 };
 } // namespace aln

@@ -7,6 +7,7 @@
 
 #include "animation_graph_dataset.hpp"
 #include "graph_context.hpp"
+#include "value_types.hpp"
 
 namespace aln
 {
@@ -14,20 +15,6 @@ namespace aln
 struct Target
 {
     // TODO
-};
-
-// todo: where ?
-enum class NodeValueType : uint8_t
-{
-    Unknown,
-    Pose,
-    Bool,
-    ID,
-    Int,
-    Float,
-    Vector,
-    Target,
-    BoneMask,
 };
 
 enum class InitOptions : uint8_t
