@@ -34,13 +34,13 @@ class EditorGraphNode : public reflect::IReflected
   protected:
     std::string m_name;
 
-    void AddInputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false)
+    void AddInputPin(NodeValueType valueType, std::string name = "")
     {
         auto& pin = m_inputPins.emplace_back();
         pin.m_type = Pin::Type::In;
         pin.m_valueType = valueType;
         pin.m_name = name;
-        pin.m_allowMultipleLinks = allowMultipleLinks;
+        pin.m_allowMultipleLinks = false;
     }
 
     void AddOutputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false)

@@ -35,6 +35,7 @@ RGBColor GetTypeColor(NodeValueType valueType)
         return RGBColor::Pink;
     case NodeValueType::Float:
         return RGBColor::Yellow;
+    case NodeValueType::Unknown:
     default:
         assert(false); // Is the value type handled ?
         return RGBColor::Black;
@@ -172,7 +173,7 @@ void AnimationGraphEditor::LoadState(nlohmann::json& json, const TypeRegistrySer
         auto pInputNode = m_graphNodes[linkJson["input_node"]];
         auto pOutputNode = m_graphNodes[linkJson["output_node"]];
 
-        AddLink(pInputNode->GetID(), pInputNode->GetInputPin(linkJson["input_pin"]).GetID(), pOutputNode->GetID(), pOutputNode->GetOutputPin(linkJson["output_pin"]).GetID());
+        AddLink(pOutputNode->GetID(), pOutputNode->GetOutputPin(linkJson["output_pin"]).GetID(), pInputNode->GetID(), pInputNode->GetInputPin(linkJson["input_pin"]).GetID());
     }
 }
 
@@ -210,7 +211,6 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         bool linkHovered = ImNodes::IsLinkHovered(&hoveredLinkID);
 
         ImNodes::BeginNodeEditor();
-        ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick | ImNodesAttributeFlags_EnableLinkCreationOnSnap);
 
         // Open contextual popups and register context ID
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
@@ -304,6 +304,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
             ImGui::Text(pNode->GetName().c_str());
             ImNodes::EndNodeTitleBar();
 
+            ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
             for (auto& inputPin : pNode->m_inputPins)
             {
                 ImNodes::PushColorStyle(ImNodesCol_Pin, GetTypeColor(inputPin.GetValueType()).U32());
@@ -314,6 +315,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
                 ImNodes::PopColorStyle();
             }
+            ImNodes::PopAttributeFlag();
 
             ImGui::Spacing();
 
@@ -325,6 +327,8 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
             for (auto& outputPin : pNode->m_outputPins)
             {
+                const auto pinFlags = outputPin.AllowsMultipleLinks() ? ImNodesAttributeFlags_None : ImNodesAttributeFlags_EnableLinkDetachWithDragClick;
+                ImNodes::PushAttributeFlag(pinFlags);
                 ImNodes::PushColorStyle(ImNodesCol_Pin, GetTypeColor(outputPin.GetValueType()).U32());
 
                 ImNodes::BeginOutputAttribute(outputPin.GetID());
@@ -332,6 +336,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
                 ImNodes::EndOutputAttribute();
 
                 ImNodes::PopColorStyle();
+                ImNodes::PopAttributeFlag();
             }
 
             ImNodes::EndNode();
@@ -347,7 +352,6 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
             ImNodes::PopColorStyle();
         }
 
-        ImNodes::PopAttributeFlag();
         ImNodes::EndNodeEditor();
 
         // if (ImGui::BeginDragDropTarget())
@@ -370,32 +374,8 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
         // Handle link creation
         UUID startPinID, endPinID, startNodeID, endNodeID;
-        bool createdFromSnap = false;
-        if (ImNodes::IsLinkCreated(&startNodeID, &startPinID, &endNodeID, &endPinID, &createdFromSnap))
+        if (ImNodes::IsLinkCreated(&startNodeID, &startPinID, &endNodeID, &endPinID))
         {
-            if (!createdFromSnap)
-            {
-                // Delete other links
-                auto pInputPin = m_pinLookupMap[startPinID];
-                if (!pInputPin->AllowsMultipleLinks())
-                {
-                    const auto& existingLinkID = GetLinkToPin(startPinID);
-                    if (existingLinkID.IsValid())
-                    {
-                        RemoveLink(existingLinkID);
-                    }
-                }
-
-                auto pOutputPin = m_pinLookupMap[endPinID];
-                if (!pOutputPin->AllowsMultipleLinks())
-                {
-                    const auto& existingLinkID = GetLinkToPin(endPinID);
-                    if (existingLinkID.IsValid())
-                    {
-                        RemoveLink(existingLinkID);
-                    }
-                }
-            }
             AddLink(startNodeID, startPinID, endNodeID, endPinID);
         }
 
@@ -564,24 +544,26 @@ void AnimationGraphEditor::RemoveGraphNode(const UUID& nodeID)
     SetDirty();
 }
 
-const UUID& AnimationGraphEditor::GetLinkToPin(const UUID& pinID) const
+const Link* AnimationGraphEditor::GetLinkToPin(const UUID& pinID) const
 {
-    for (auto& link : m_links)
+    for (const auto& link : m_links)
     {
         if (link.m_inputPinID == pinID || link.m_outputPinID == pinID)
         {
-            return link.m_id;
+            return &link;
         }
     }
-    return UUID::InvalidID();
+    return nullptr;
 }
 
-void AnimationGraphEditor::AddLink(UUID inputNodeID, UUID inputPinID, UUID outputNodeID, UUID outputPinID)
+void AnimationGraphEditor::AddLink(UUID startNodeID, UUID startPinID, UUID endNodeID, UUID endPinID)
 {
-    assert(inputNodeID.IsValid() && inputPinID.IsValid() && outputNodeID.IsValid() && outputPinID.IsValid());
+    assert(startNodeID.IsValid() && startPinID.IsValid() && endNodeID.IsValid() && endPinID.IsValid());
 
-    auto pInputPin = m_pinLookupMap[inputPinID];
-    auto pOutputPin = m_pinLookupMap[outputPinID];
+    auto pInputPin = m_pinLookupMap[endPinID];
+    auto pOutputPin = m_pinLookupMap[startPinID];
+    
+    assert(pInputPin->IsInput() && pOutputPin->IsOutput());
 
     // Ensure matching pin types
     if (pInputPin->GetValueType() != pOutputPin->GetValueType())
@@ -589,19 +571,28 @@ void AnimationGraphEditor::AddLink(UUID inputNodeID, UUID inputPinID, UUID outpu
         return;
     }
 
-    // Ensure pins are input/output and in the right order
-    if (!pInputPin->IsInput())
+    // Remove existing links if necessary
+    // Input pins only accept one link
+    const auto pLink = GetLinkToPin(endPinID);
+    if (pLink != nullptr && pLink->m_outputPinID != endPinID)
     {
-        std::swap(pInputPin, pOutputPin);
-        std::swap(inputNodeID, outputNodeID);
+        RemoveLink(pLink->m_id);
     }
 
-    assert(pInputPin->IsInput() && pOutputPin->IsOutput());
+    if (!pOutputPin->AllowsMultipleLinks())
+    {
+        const auto pLink = GetLinkToPin(startPinID);
+        if (pLink != nullptr && pLink->m_outputPinID != endPinID)
+        {
+            RemoveLink(pLink->m_id);
+        }
+    }
 
+    // Finally create the new link
     auto& link = m_links.emplace_back();
-    link.m_pInputNode = m_nodeLookupMap[inputNodeID];
+    link.m_pInputNode = m_nodeLookupMap[endNodeID];
     link.m_inputPinID = pInputPin->GetID();
-    link.m_pOutputNode = m_nodeLookupMap[outputNodeID];
+    link.m_pOutputNode = m_nodeLookupMap[startNodeID];
     link.m_outputPinID = pOutputPin->GetID();
 
     SetDirty();
