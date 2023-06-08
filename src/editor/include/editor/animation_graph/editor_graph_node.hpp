@@ -30,9 +30,13 @@ class EditorGraphNode : public reflect::IReflected
 
     std::vector<Pin> m_inputPins;
     std::vector<Pin> m_outputPins;
-
+    
   protected:
     std::string m_name;
+    bool m_renamable = false;
+    // TODO: This is an awful lot of state
+    bool m_renamingStarted = false;
+    bool m_renamingInProgress = false;
 
     void AddInputPin(NodeValueType valueType, std::string name = "")
     {
@@ -55,6 +59,21 @@ class EditorGraphNode : public reflect::IReflected
   public:
     const UUID& GetID() const { return m_id; }
     const std::string& GetName() const { return m_name; }
+
+    bool IsRenamable() const { return m_renamable; }
+    void BeginRenaming()
+    {
+        assert(m_renamable);
+        m_renamingInProgress = true;
+        m_renamingStarted = true;
+    }
+
+    void EndRenaming()
+    {
+        assert(m_renamable);
+        m_renamingInProgress = false;
+    }
+
     NodeValueType GetValueType() const
     {
         if (m_outputPins.size() > 0)
@@ -70,6 +89,9 @@ class EditorGraphNode : public reflect::IReflected
             return NodeValueType::Unknown;
         }
     }
+
+    const std::vector<Pin>& GetInputPins() const { return m_inputPins; }
+    const std::vector<Pin>& GetOutputPins() const { return m_outputPins; }
 
     const Pin& GetInputPin(size_t pinIdx) const
     {

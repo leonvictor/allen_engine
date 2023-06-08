@@ -5,12 +5,12 @@
 namespace aln
 {
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, FloatControlParameterEditorNode)
-ALN_REFLECT_MEMBER(m_value, Value);
 ALN_REGISTER_IMPL_END()
 
 void FloatControlParameterEditorNode::Initialize()
 {
     m_name = "Float Parameter";
+    m_renamable = true;
     AddOutputPin(NodeValueType::Float, "Value", true);
 }
 

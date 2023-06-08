@@ -52,7 +52,7 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
         const auto deltaPercentage = Percentage(context.m_deltaTime / m_duration);
 
-        auto pSettings = GetSettings<AnimationClipRuntimeNode>();
+        //auto pSettings = GetSettings<AnimationClipRuntimeNode>();
 
         m_previousTime = m_currentTime;
         m_currentTime += deltaPercentage;

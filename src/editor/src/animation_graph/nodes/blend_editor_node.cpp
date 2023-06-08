@@ -17,7 +17,7 @@ void BlendEditorNode::Initialize()
     AddInputPin(NodeValueType::Pose, "Target Pose");
     AddInputPin(NodeValueType::Float, "Blend Weight");
 
-    AddOutputPin(NodeValueType::Pose);
+    AddOutputPin(NodeValueType::Pose, "Result");
 }
 
 NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
