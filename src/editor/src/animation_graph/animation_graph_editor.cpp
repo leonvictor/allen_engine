@@ -18,6 +18,8 @@
 
 #include <imnodes.h>
 
+#include <imgui_stdlib.h>
+
 #include <assert.h>
 
 namespace aln
@@ -40,6 +42,31 @@ RGBColor GetTypeColor(NodeValueType valueType)
         assert(false); // Is the value type handled ?
         return RGBColor::Black;
     }
+}
+
+float CalcNodeWidth(const EditorGraphNode* pNode)
+{
+    constexpr float MIN_NODE_WIDTH = 120.0f;
+
+    float nodeWidth = std::max(MIN_NODE_WIDTH, ImGui::CalcTextSize(pNode->GetName().c_str()).x);
+
+    for (const auto& pin : pNode->GetInputPins())
+    {
+        nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+    }
+
+    for (const auto& pin : pNode->GetOutputPins())
+    {
+        nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+    }
+
+    const auto pTypeInfo = pNode->GetTypeInfo();
+    for (const auto& member : pTypeInfo->m_members)
+    {
+        nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(member.GetPrettyName().c_str()).x + 100);
+    }
+
+    return nodeWidth;
 }
 
 AnimationGraphDefinition* AnimationGraphEditor::Compile()
@@ -299,42 +326,100 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         // Draw nodes
         for (auto pNode : m_graphNodes)
         {
+            const float nodeWidth = CalcNodeWidth(pNode);
+
             ImNodes::BeginNode(pNode->GetID());
             ImNodes::BeginNodeTitleBar();
-            ImGui::Text(pNode->GetName().c_str());
+
+            if (pNode->IsRenamable())
+            {
+                if (pNode->m_renamingInProgress)
+                {
+                    ImGui::PushItemWidth(nodeWidth);
+                    ImGui::InputText("", &pNode->m_name);
+                    ImGui::PopItemWidth();
+
+                    if (pNode->m_renamingStarted)
+                    {
+                        ImGui::SetKeyboardFocusHere(-1);
+                        pNode->m_renamingStarted = false;
+                    }
+                    if (ImGui::IsItemDeactivated())
+                    {
+                        pNode->EndRenaming();
+                    }
+                }
+                else
+                {
+                    ImGui::Text(pNode->GetName().c_str());
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                    {
+                        pNode->BeginRenaming();
+                    }
+                }
+            }
+            else
+            {
+                ImGui::Text(pNode->GetName().c_str());
+            }
+
             ImNodes::EndNodeTitleBar();
 
             ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
             for (auto& inputPin : pNode->m_inputPins)
             {
                 ImNodes::PushColorStyle(ImNodesCol_Pin, GetTypeColor(inputPin.GetValueType()).U32());
-
                 ImNodes::BeginInputAttribute(inputPin.GetID());
-                ImGui::Text(inputPin.GetName().c_str());
-                ImNodes::EndInputAttribute();
 
+                const auto pPinName = inputPin.GetName().c_str();
+                const auto offset = nodeWidth - ImGui::CalcTextSize(pPinName).x;
+                ImGui::Text(pPinName);
+                ImGui::SameLine();
+                ImGui::Dummy({offset, 0.0f});
+
+                ImNodes::EndInputAttribute();
                 ImNodes::PopColorStyle();
             }
             ImNodes::PopAttributeFlag();
 
-            ImGui::Spacing();
-
             // Display reflected fields
             auto pTypeInfo = pNode->GetTypeInfo();
-            m_nodeInspector.Draw(pTypeInfo, pNode, 100);
+            if (pNode->m_inputPins.size() > 0 && pTypeInfo->GetMemberCount() > 0)
+            {
+                ImGui::Spacing();
+            }
 
-            ImGui::Spacing();
+            if (pTypeInfo->GetMemberCount() > 0)
+            {
+                m_nodeInspector.Draw(pTypeInfo, pNode, 100);
+                ImGui::Spacing();
+            }
+
+            if (pNode->m_outputPins.size() > 0 && (pNode->m_inputPins.size() > 0 || pTypeInfo->GetMemberCount() > 0))
+            {
+                ImGui::Spacing();
+            }
 
             for (auto& outputPin : pNode->m_outputPins)
             {
                 const auto pinFlags = outputPin.AllowsMultipleLinks() ? ImNodesAttributeFlags_None : ImNodesAttributeFlags_EnableLinkDetachWithDragClick;
                 ImNodes::PushAttributeFlag(pinFlags);
                 ImNodes::PushColorStyle(ImNodesCol_Pin, GetTypeColor(outputPin.GetValueType()).U32());
-
                 ImNodes::BeginOutputAttribute(outputPin.GetID());
-                ImGui::Text(outputPin.GetName().c_str());
-                ImNodes::EndOutputAttribute();
 
+                const char* pinName = outputPin.GetName().c_str();
+
+                /// @note : I'd like to align output pin labels to the right side of the node.
+                /// However, for now, the node's dimensions are only known after the ImNodes::EndNode() call
+                /// The following attempt result in forever growing node width:
+                const float labelWidth = ImGui::CalcTextSize(pinName).x;
+                // const float nodeWidth = ImNodes::GetNodeDimensions(pNode->GetID()).x;
+                auto offset = nodeWidth - labelWidth;
+                ImGui::Indent(offset);
+
+                ImGui::Text(pinName);
+
+                ImNodes::EndOutputAttribute();
                 ImNodes::PopColorStyle();
                 ImNodes::PopAttributeFlag();
             }
@@ -562,7 +647,7 @@ void AnimationGraphEditor::AddLink(UUID startNodeID, UUID startPinID, UUID endNo
 
     auto pInputPin = m_pinLookupMap[endPinID];
     auto pOutputPin = m_pinLookupMap[startPinID];
-    
+
     assert(pInputPin->IsInput() && pOutputPin->IsOutput());
 
     // Ensure matching pin types
