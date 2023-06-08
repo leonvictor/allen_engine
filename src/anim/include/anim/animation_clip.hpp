@@ -15,7 +15,6 @@
 namespace aln
 {
 
-/// @todo : Clarify difference between animation & animationClip
 class AnimationClip : public IAsset
 {
     ALN_REGISTER_ASSET_TYPE("anim");

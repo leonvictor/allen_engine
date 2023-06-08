@@ -80,7 +80,7 @@ class ValueNode : public RuntimeGraphNode
 
   protected:
     virtual void GetValueInternal(GraphContext& context, void* pValue) const = 0;
-    virtual void SetValueInternal(GraphContext& context, void const* pValue) = 0;
+    virtual void SetValueInternal(GraphContext& context, void const* pValue) { assert(false); };
     virtual NodeValueType GetValueType() const = 0;
 };
 
