@@ -26,7 +26,7 @@ class AnimationClipEditorNode : public EditorGraphNode
         m_animationClipID = AssetID(assetPath);
     }
 
-    virtual void SaveState(nlohmann::json& json) override
+    virtual void SaveState(nlohmann::json& json) const override
     {
         json["animation_clip"] = m_animationClipID.GetAssetPath();
     }

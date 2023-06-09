@@ -27,6 +27,6 @@ class EntityInspector : public IEditorWindow
     // ------- State management
     // The editor's state is saved to disk and loaded back
     virtual void LoadState(nlohmann::json& json, const TypeRegistryService* m_pTypeRegistryService) {}
-    virtual void SaveState(nlohmann::json& json) {}
+    virtual void SaveState(nlohmann::json& json) const {}
 };
 } // namespace aln

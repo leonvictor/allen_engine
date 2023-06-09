@@ -25,7 +25,7 @@
 namespace aln
 {
 
-// Helpers
+// ----- Helpers
 RGBColor GetTypeColor(NodeValueType valueType)
 {
     // TODO: Handle all possible types
@@ -152,7 +152,7 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     return nullptr;
 }
 
-void AnimationGraphEditor::SaveState(nlohmann::json& json)
+void AnimationGraphEditor::SaveState(nlohmann::json& json) const
 {
     auto& nodes = json["nodes"];
     for (auto pNode : m_graphNodes)
@@ -202,6 +202,21 @@ void AnimationGraphEditor::LoadState(nlohmann::json& json, const TypeRegistrySer
 
         AddLink(pOutputNode->GetID(), pOutputNode->GetOutputPin(linkJson["output_pin"]).GetID(), pInputNode->GetID(), pInputNode->GetInputPin(linkJson["input_pin"]).GetID());
     }
+}
+
+const reflect::TypeInfo* AvailableNodeTypesMenuItems(const TypeRegistryService* pTypeRegistryService)
+{
+    const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
+
+    auto& animGraphNodeTypes = pTypeRegistryService->GetTypesInScope("ANIM_GRAPH_EDITOR_NODES");
+    for (auto& pAnimGraphNodeType : animGraphNodeTypes)
+    {
+        if (ImGui::MenuItem(pAnimGraphNodeType->m_name.c_str()))
+        {
+            return pAnimGraphNodeType;
+        }
+    }
+    return nullptr;
 }
 
 void AnimationGraphEditor::Update(const UpdateContext& context)
@@ -267,21 +282,17 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         if (ImGui::BeginPopup("graph_editor_canvas_popup"))
         {
             const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
-
             if (ImGui::BeginMenu("Add Node"))
             {
-                auto& animGraphNodeTypes = pTypeRegistryService->GetTypesInScope("ANIM_GRAPH_EDITOR_NODES");
-                for (auto& pAnimGraphNodeType : animGraphNodeTypes)
+                auto pSelectedNodeType = AvailableNodeTypesMenuItems(pTypeRegistryService);
+                if (pSelectedNodeType != nullptr)
                 {
-                    if (ImGui::Selectable(pAnimGraphNodeType->m_name.c_str()))
-                    {
-                        auto pNode = pAnimGraphNodeType->CreateTypeInstance<EditorGraphNode>();
-                        pNode->Initialize();
+                    auto pNode = pSelectedNodeType->CreateTypeInstance<EditorGraphNode>();
+                    pNode->Initialize();
 
-                        AddGraphNode(pNode);
+                    AddGraphNode(pNode);
 
-                        ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
-                    }
+                    ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
                 }
                 ImGui::EndMenu();
             }
@@ -319,6 +330,22 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
             if (ImGui::MenuItem("Remove link"))
             {
                 RemoveLink(m_contextPopupElementID);
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopup("graph_editor_link_dropped_popup"))
+        {
+            const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
+            auto pSelectedNodeType = AvailableNodeTypesMenuItems(pTypeRegistryService);
+            if (pSelectedNodeType != nullptr)
+            {
+                auto pNode = pSelectedNodeType->CreateTypeInstance<EditorGraphNode>();
+                pNode->Initialize();
+
+                AddGraphNode(pNode);
+
+                ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
             }
             ImGui::EndPopup();
         }
@@ -469,6 +496,14 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
         {
             RemoveLink(linkID);
         }
+
+        UUID pinID;
+        if (ImNodes::IsLinkDropped(&pinID, false))
+        {
+            // TODO: Filter available node types matching the existing pin's type
+            // TODO: Automatically create a link
+            //ImGui::OpenPopup("graph_editor_link_dropped_popup");
+        }
     }
     ImGui::End();
 
@@ -532,6 +567,7 @@ void AnimationGraphEditor::Shutdown()
 void AnimationGraphEditor::Clear()
 {
     m_pinLookupMap.clear();
+    m_nodeLookupMap.clear();
     m_links.clear();
 
     for (auto pNode : m_graphNodes)
@@ -540,10 +576,9 @@ void AnimationGraphEditor::Clear()
     }
 
     m_graphNodes.clear();
-    m_nodeLookupMap.clear();
 }
 
-uint32_t AnimationGraphEditor::GetNodeIndex(const UUID& nodeID)
+uint32_t AnimationGraphEditor::GetNodeIndex(const UUID& nodeID) const
 {
     uint32_t nodeCount = m_graphNodes.size();
     for (uint32_t nodeIndex = 0; nodeIndex < nodeCount; ++nodeIndex)
@@ -605,7 +640,8 @@ void AnimationGraphEditor::RemoveGraphNode(const UUID& nodeID)
 {
     assert(nodeID.IsValid());
 
-    auto pNode = m_nodeLookupMap.at(nodeID);
+    auto pNode = *std::find_if(m_graphNodes.begin(), m_graphNodes.end(), [&](auto pNode)
+        { return pNode->GetID() == nodeID; });
 
     // Clean up lookup maps
     m_nodeLookupMap.erase(pNode->GetID());
@@ -622,7 +658,7 @@ void AnimationGraphEditor::RemoveGraphNode(const UUID& nodeID)
     std::erase_if(m_links, [&](auto& link)
         { return link.m_pInputNode == pNode || link.m_pOutputNode == pNode; });
 
-    // TODO: Actually remove the node from the graph
+    // Actually remove the node from the graph
     std::erase(m_graphNodes, pNode);
     aln::Delete(pNode);
 

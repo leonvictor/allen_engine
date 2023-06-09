@@ -32,7 +32,7 @@ class IAssetEditorWindow : public IEditorWindow
   public:
     const AssetID& GetID() { return m_id; }
 
-    virtual void SaveState(nlohmann::json& json) override = 0;
+    virtual void SaveState(nlohmann::json& json) const override = 0;
     virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override = 0;
 };
 

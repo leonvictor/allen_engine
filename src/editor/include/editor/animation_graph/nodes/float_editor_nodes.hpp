@@ -17,7 +17,7 @@ class FloatClampEditorNode : public EditorGraphNode
 
   public:
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override {}
-    virtual void SaveState(nlohmann::json& json) override {}
+    virtual void SaveState(nlohmann::json& json) const override {}
 
     virtual void Initialize() override;
     virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;

@@ -62,6 +62,6 @@ class IEditorWindow
     // ------- State management
     // The editor's state is saved to disk and loaded back
     virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) = 0;
-    virtual void SaveState(nlohmann::json& json) = 0;
+    virtual void SaveState(nlohmann::json& json) const = 0;
 };
 } // namespace aln

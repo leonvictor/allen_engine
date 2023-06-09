@@ -28,7 +28,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
     std::filesystem::path m_statePath;
 
     std::vector<EditorGraphNode*> m_graphNodes;
-    std::map<UUID, EditorGraphNode*> m_nodeLookupMap;
+    std::map<UUID, const EditorGraphNode*> m_nodeLookupMap;
     std::map<UUID, const Pin*> m_pinLookupMap;
     std::vector<Link> m_links;
 
@@ -44,7 +44,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     ReflectedTypeEditor m_nodeInspector;
 
-  public:
+public:
     // ----------- Window lifetime
 
     void Update(const UpdateContext& context) override;
@@ -59,26 +59,25 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     // ----------- Graph handling
 
-    // TODO: Const
-    const EditorGraphNode* GetNode(const UUID& nodeID)
+    const EditorGraphNode* GetNode(const UUID& nodeID) const
     {
         assert(nodeID.IsValid());
-        return m_nodeLookupMap[nodeID];
+        return m_nodeLookupMap.at(nodeID);
     }
 
-    uint32_t GetNodeIndex(const UUID& nodeID);
+    uint32_t GetNodeIndex(const UUID& nodeID) const;
     const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const;
     const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const;
 
     template <typename T>
-    std::vector<T*> GetAllNodesOfType()
+    std::vector<const T*> GetAllNodesOfType() const
     {
         static_assert(std::is_base_of_v<EditorGraphNode, T>);
 
-        std::vector<T*> matchingTypeNodes;
-        for (auto& [id, pNode] : m_nodeLookupMap)
+        std::vector<const T*> matchingTypeNodes;
+        for (const auto& [id, pNode] : m_nodeLookupMap)
         {
-            auto pTypedNode = dynamic_cast<T*>(pNode);
+            const auto pTypedNode = dynamic_cast<const T*>(pNode);
             if (pTypedNode != nullptr)
             {
                 matchingTypeNodes.push_back(pTypedNode);
@@ -90,7 +89,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     /// @brief Create a node to the graph
     void AddGraphNode(EditorGraphNode* pNode);
-
+    
     /// @brief Remove a node from the graph
     void RemoveGraphNode(const UUID& nodeID);
 
@@ -105,7 +104,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     AnimationGraphDefinition* Compile();
 
-    virtual void SaveState(nlohmann::json& json) override;
+    virtual void SaveState(nlohmann::json& json) const override;
     virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override;
 };
 

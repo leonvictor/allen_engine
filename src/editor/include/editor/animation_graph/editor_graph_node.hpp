@@ -105,7 +105,7 @@ class EditorGraphNode : public reflect::IReflected
         return m_outputPins[pinIdx];
     }
 
-    uint32_t GetInputPinIndex(const UUID& pinID)
+    uint32_t GetInputPinIndex(const UUID& pinID) const
     {
         uint32_t pinCount = m_inputPins.size();
         for (uint32_t pinIndex = 0; pinIndex < pinCount; ++pinIndex)
@@ -119,7 +119,7 @@ class EditorGraphNode : public reflect::IReflected
         return InvalidIndex;
     }
 
-    uint32_t GetOutputPinIndex(const UUID& pinID)
+    uint32_t GetOutputPinIndex(const UUID& pinID) const
     {
         uint32_t pinCount = m_outputPins.size();
         for (uint32_t pinIndex = 0; pinIndex < pinCount; ++pinIndex)
@@ -139,7 +139,7 @@ class EditorGraphNode : public reflect::IReflected
     /// @param context Context for the running compilation
     virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
 
-    void SaveNodeState(nlohmann::json& jsonObject)
+    void SaveNodeState(nlohmann::json& jsonObject) const
     {
         // Custom ...
         SaveState(jsonObject);
@@ -152,7 +152,7 @@ class EditorGraphNode : public reflect::IReflected
 
     // Customizable parts
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) {}
-    virtual void SaveState(nlohmann::json& jsonObject) {}
+    virtual void SaveState(nlohmann::json& jsonObject) const {}
 
     bool operator==(const EditorGraphNode& other) { return m_id == other.m_id; }
     bool operator!=(const EditorGraphNode& other) { return m_id != other.m_id; }
