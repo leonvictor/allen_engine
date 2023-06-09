@@ -139,14 +139,21 @@ class EditorGraphNode : public reflect::IReflected
     /// @param context Context for the running compilation
     virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
 
-    void SaveNodeState(nlohmann::json& jsonObject) const
+    void SaveNodeState(nlohmann::json& json) const
     {
-        // Custom ...
-        SaveState(jsonObject);
+        if (m_renamable)
+        {
+            json["name"] = m_name;
+        }
+        SaveState(json);
     }
 
     void LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
     {
+        if (m_renamable)
+        {
+            m_name = json["name"];
+        }
         LoadState(json, pTypeRegistryService);
     }
 

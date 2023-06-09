@@ -84,7 +84,7 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
     for (auto& pParameterNode : parameterNodes)
     {
         pParameterNode->Compile(context, &graphDefinition);
-        graphDefinition.m_controlParameterNames.push_back(pParameterNode->GetParameterName());
+        graphDefinition.m_controlParameterNames.push_back(pParameterNode->GetName());
     }
 
     auto outputNodes = GetAllNodesOfType<PoseEditorNode>();
@@ -122,11 +122,7 @@ AnimationGraphDefinition* AnimationGraphEditor::Compile()
         }
 
         dataArchive << typeCollectionDesc;
-        dataArchive << graphDefinition.m_nodeIndices;
-        dataArchive << graphDefinition.m_rootNodeIndex;
-        dataArchive << graphDefinition.m_nodeOffsets;
-        dataArchive << graphDefinition.m_requiredMemorySize;
-        dataArchive << graphDefinition.m_requiredMemoryAlignement;
+        dataArchive << graphDefinition;
 
         auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
 

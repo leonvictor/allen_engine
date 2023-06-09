@@ -10,15 +10,6 @@ namespace aln
 /// @todo Control Parameters names must be unique
 class IControlParameterEditorNode : public EditorGraphNode
 {
-    StringID m_parameterName;
-
-  public:
-    StringID GetParameterName() const { return m_parameterName; }
-
-    void SetParameterName(std::string& paramName)
-    {
-        m_parameterName = StringID(paramName);
-    }
 };
 
 class FloatControlParameterEditorNode : public IControlParameterEditorNode

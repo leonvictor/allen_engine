@@ -31,11 +31,7 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
         // TODO: Settings memory is handled by the loader, so maybe its creation should be here as well ?
         reflect::TypeCollectionDescriptor typeCollectionDesc;
         archive >> typeCollectionDesc;
-        archive >> pDefinition->m_nodeIndices;
-        archive >> pDefinition->m_rootNodeIndex;
-        archive >> pDefinition->m_nodeOffsets;
-        archive >> pDefinition->m_requiredMemorySize;
-        archive >> pDefinition->m_requiredMemoryAlignement;
+        archive >> *pDefinition;
 
         typeCollectionDesc.InstanciateFixedSizeCollection(pDefinition->m_nodeSettings, *m_pTypeRegistryService);
 
