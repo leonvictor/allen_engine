@@ -58,7 +58,7 @@ void ReflectedTypeEditor::Draw(const reflect::TypeInfo* pTypeInfo, void* pTypeIn
             if (pEditor->DrawWidget(pMemberInstance))
             {
                 TypeEditedEventDetails details;
-                details.m_action = TypeEditedEventDetails::Action::Edit;
+                details.m_action = pEditor->RequireEntityReload() ? TypeEditedEventDetails::Action::EditRequiresReload : TypeEditedEventDetails::Action::Edit;
                 details.m_pEditedMemberInfo = &memberInfo;
                 details.m_pEditedTypeInstance = reinterpret_cast<reflect::IReflected*>(pTypeInstance);
 

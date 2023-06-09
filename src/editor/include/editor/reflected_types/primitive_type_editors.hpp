@@ -18,6 +18,8 @@ class IPrimitiveTypeEditor
 
     virtual bool DrawWidget(std::byte* pTypeInstance) = 0;
     virtual void UpdateValue() = 0;
+
+    virtual bool RequireEntityReload() const { return false; }
 };
 
 } // namespace aln

@@ -18,6 +18,7 @@ struct TypeEditedEventDetails
     {
         Invalid,
         Edit,
+        EditRequiresReload,
     };
 
     Action m_action = Action::Invalid;
