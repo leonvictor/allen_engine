@@ -30,19 +30,16 @@ class SkeletalMeshComponent : public MeshComponent
     AssetHandle<SkeletalMesh> m_pMesh;
     AssetHandle<Skeleton> m_pSkeleton; // Animation Skeleton
 
-    std::vector<Transform> m_boneTransforms; // Bone transforms, in global character space
-
+    // Bone transforms in global character space
+    std::vector<Transform> m_boneTransforms; 
     std::vector<glm::mat4x4> m_skinningTransforms;
 
-    // AssetHandle<Skeleton> m_pSkeleton; // Rendering skeleton
-
-    // TODO: Runtime state:
     // Bone mapping between animation and render skeletons
     std::vector<BoneIndex> m_animToRenderBonesMap;
 
     // Editor toggles
     /// @todo : Disable in release / move out to anoter class
-    bool m_drawDebugSkeleton = true;
+    bool m_drawDebugSkeleton = false;
     bool m_drawRootBone = false;
 
     // TODO: Procedural Bones Solver
@@ -51,6 +48,7 @@ class SkeletalMeshComponent : public MeshComponent
     inline const SkeletalMesh* GetMesh() const { return m_pMesh.get(); }
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
 
+    // TODO: Setters not needed ?
     void SetMesh(const std::string& path) override
     {
         assert(IsUnloaded());
@@ -81,7 +79,8 @@ class SkeletalMeshComponent : public MeshComponent
         m_boneTransforms = m_pMesh->GetBindPose();
     }
 
-    size_t GetBonesCount() const { return m_pSkeleton->GetBonesCount(); }
+    /// @brief Number of render bones
+    size_t GetBonesCount() const { return m_boneTransforms.size(); }
 
   private:
     void UpdateSkinningTransforms();
@@ -91,22 +90,27 @@ class SkeletalMeshComponent : public MeshComponent
         assert(m_pMesh.IsLoaded() && m_pSkeleton.IsLoaded());
         assert(m_pMesh->m_bindPose.size() > 0);
 
-        // TODO:
-        m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
-
-        // Initialize the bone mapping
-        /// @todo: For now skeletal meshes don't have a specific skeleton
-        const auto boneCount = m_pSkeleton->GetBonesCount();
-        m_animToRenderBonesMap.resize(boneCount, InvalidIndex);
-        for (BoneIndex boneIdx = 0; boneIdx < boneCount; ++boneIdx)
+        // Initialize bone mapping
+        const auto animBoneCount = m_pSkeleton->GetBonesCount();
+        m_animToRenderBonesMap.resize(animBoneCount, InvalidIndex);
+        for (BoneIndex boneIdx = 0; boneIdx < animBoneCount; ++boneIdx)
         {
-            // TODO: Actually map
-            auto animBoneIdx = boneIdx;
-            m_animToRenderBonesMap[boneIdx] = animBoneIdx;
+            const auto& animBoneName = m_pSkeleton->GetBoneName(boneIdx);
+            const auto& boneIndex = m_pMesh->GetBoneIndex(animBoneName);
+            m_animToRenderBonesMap[boneIdx] = boneIndex;
         }
 
-        // TODO: Set to bind pose
-        m_boneTransforms = m_pSkeleton->GetGlobalReferencePose();
+        m_boneTransforms = m_pMesh->GetBindPose();
+
+        // TODO: Maybe set to anim's skeleton reference pose instead ?
+        /*m_boneTransforms.resize(m_pMesh->GetBonesCount());
+        auto pose = Pose(m_pSkeleton.get());
+        pose.CalculateGlobalTransforms();
+        SetPose(&pose);*/
+
+        m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
+        UpdateSkinningTransforms();
+
         MeshComponent::Initialize();
     }
 
@@ -143,7 +147,7 @@ class SkeletalMeshComponent : public MeshComponent
         return IsLoaded();
     }
 
-    /// @brief Draw this skeletal mesh's skeleton
+    /// @brief Draw this skeletal mesh's render skeleton
     void DrawPose(DrawingContext& drawingContext) const
     {
         const Transform& worldTransform = GetWorldTransform();
@@ -154,7 +158,7 @@ class SkeletalMeshComponent : public MeshComponent
         auto boneCount = m_boneTransforms.size();
         for (BoneIndex boneIndex = 1; boneIndex < boneCount; boneIndex++)
         {
-            const auto parentBoneIndex = m_pSkeleton->GetParentBoneIndex(boneIndex);
+            const auto parentBoneIndex = m_pMesh->GetParentBoneIndex(boneIndex);
             if (m_drawRootBone || parentBoneIndex != 0)
             {
                 boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
@@ -180,7 +184,7 @@ class SkeletalMeshComponent : public MeshComponent
         {
             boneWorldTransform = worldTransform * bindPose[boneIndex];
 
-            const auto parentBoneIndex = m_pSkeleton->GetParentBoneIndex(boneIndex);
+            const auto parentBoneIndex = m_pMesh->GetParentBoneIndex(boneIndex);
             const Transform parentWorldTransform = worldTransform * bindPose[parentBoneIndex];
 
             drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);

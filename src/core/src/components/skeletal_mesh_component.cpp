@@ -13,7 +13,8 @@ namespace aln
 void SkeletalMeshComponent::UpdateSkinningTransforms()
 {
     // Update the transform matrices of skinning matrices
-    for (auto i = 0; i < m_boneTransforms.size(); ++i)
+    const auto boneCount = m_boneTransforms.size();
+    for (auto i = 0; i < boneCount; ++i)
     {
         const Transform transform = m_boneTransforms[i] * m_pMesh->GetInverseBindPose()[i];
         m_skinningTransforms[i] = transform.ToMatrix();

@@ -29,12 +29,14 @@ class MeshLoader : public IAssetLoader
 
             archive >> pSkeletalMesh->m_indices;
             archive >> pSkeletalMesh->m_vertices;
+            archive >> pSkeletalMesh->m_boneNames;
+            archive >> pSkeletalMesh->m_parentBoneIndices;
             archive >> pSkeletalMesh->m_inverseBindPose;
 
             // Generate bind pose
-            // TODO: Are both really needed ?
-            pSkeletalMesh->m_bindPose.reserve(pSkeletalMesh->m_inverseBindPose.size());
-            for (size_t i = 0; i < pSkeletalMesh->m_inverseBindPose.size(); ++i)
+            const auto boneCount = pSkeletalMesh->m_inverseBindPose.size();
+            pSkeletalMesh->m_bindPose.reserve(boneCount);
+            for (size_t i = 0; i < boneCount; ++i)
             {
                 pSkeletalMesh->m_bindPose.push_back(pSkeletalMesh->m_inverseBindPose[i].GetInverse());
             }

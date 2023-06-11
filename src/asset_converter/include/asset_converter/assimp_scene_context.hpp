@@ -26,7 +26,7 @@ class AssimpSceneContext
   private:
     static constexpr int AssimpPostProcessFlags =
         aiProcess_GenNormals |
-        aiProcess_JoinIdenticalVertices |
+        //aiProcess_JoinIdenticalVertices | // TMP: aiProcess_JoinIndenticalVertices provokes extremely long processing times in debug mode...
         aiProcess_FlipUVs |
         aiProcess_Triangulate |
         aiProcess_GenUVCoords |

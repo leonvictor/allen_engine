@@ -41,6 +41,8 @@ class RawSkeletalMesh : public IRawAsset
     std::vector<SkinnedVertex> m_vertices;
     std::vector<Transform> m_inverseBindPose;
 
+    RawSkeleton m_skeleton;
+
     void Serialize(BinaryMemoryArchive& archive) final override
     {
         archive << m_indices;
@@ -50,6 +52,8 @@ class RawSkeletalMesh : public IRawAsset
         archive << byteSize;
         archive.Write(m_vertices.data(), byteSize);
 
+        archive << m_skeleton.m_boneNames;
+        archive << m_skeleton.m_parentBoneIndices;
         archive << m_inverseBindPose;
     }
 
@@ -151,16 +155,16 @@ struct AssimpMeshReader
             RawSkeletalMesh mesh;
 
             ReadMeshData(mesh.m_vertices, mesh.m_indices, pMesh, context);
+            AssimpSkeletonReader::ReadSkeleton(context, pMesh, &mesh.m_skeleton);
+            
+            // TODO: This should be done directly in the skeleton reader method
+            assert((mesh.m_skeleton.GetBonesCount()) == pMesh->mNumBones);
 
-            // Read Skeleton asset
-            const auto pSkeleton = AssimpSkeletonReader::ReadSkeleton(context, pMesh);
-            assert((pSkeleton->GetBoneCount() - 1) == pMesh->mNumBones);
-
-            mesh.m_inverseBindPose.resize(pSkeleton->GetBoneCount(), Transform::Identity);
+            mesh.m_inverseBindPose.resize(mesh.m_skeleton.GetBonesCount(), Transform::Identity);
             for (size_t meshBoneIndex = 0; meshBoneIndex < pMesh->mNumBones; ++meshBoneIndex)
             {
-                auto pBone = pMesh->mBones[meshBoneIndex];
-                auto skeletonBoneIndex = pSkeleton->GetBoneIndex(std::string(pBone->mName.C_Str()));
+                const auto pBone = pMesh->mBones[meshBoneIndex];
+                const auto skeletonBoneIndex = mesh.m_skeleton.GetBoneIndex(std::string(pBone->mName.C_Str()));
                 assert(skeletonBoneIndex != InvalidIndex);
 
                 // Save the inverse bind pose matrix
@@ -176,14 +180,11 @@ struct AssimpMeshReader
             }
 
             // Save skeletal mesh asset
-            meshPath += ".smsh";
-
             AssetArchiveHeader header("smsh"); // TODO: Use SkeletalMesh::GetStaticAssetType();
             header.AddDependency(context.GetMaterial(pMesh->mMaterialIndex));
 
             std::vector<std::byte> data;
             BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
-
             mesh.Serialize(dataStream);
 
             // TODO: Compress

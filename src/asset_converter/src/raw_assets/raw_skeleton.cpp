@@ -32,9 +32,13 @@ void RawSkeleton::Serialize(BinaryMemoryArchive& archive)
 
 void RawSkeleton::CalculateLocalTransforms()
 {
+    assert(m_parentBoneIndices[0] == InvalidIndex);
+
     m_localReferencePose.resize(m_boneNames.size());
     m_localReferencePose[0] = m_globalReferencePose[0];
-    for (auto boneIdx = GetBoneCount() - 1; boneIdx > 1; --boneIdx)
+
+    auto boneCount = GetBonesCount();
+    for (auto boneIdx = boneCount - 1; boneIdx > 0; --boneIdx)
     {
         auto& parentBoneIdx = m_parentBoneIndices[boneIdx];
         m_localReferencePose[boneIdx] = m_globalReferencePose[parentBoneIdx].GetInverse() * m_globalReferencePose[boneIdx];
@@ -43,9 +47,13 @@ void RawSkeleton::CalculateLocalTransforms()
 
 void RawSkeleton::CalculateGlobalTransforms()
 {
+    assert(m_parentBoneIndices[0] == InvalidIndex);
+
     m_globalReferencePose.resize(m_boneNames.size());
     m_globalReferencePose[0] = m_localReferencePose[0];
-    for (auto boneIdx = 1; boneIdx < GetBoneCount(); ++boneIdx)
+
+    auto boneCount = GetBonesCount();
+    for (auto boneIdx = 1; boneIdx < boneCount; ++boneIdx)
     {
         auto& parentBoneIdx = m_parentBoneIndices[boneIdx];
         m_globalReferencePose[boneIdx] = m_globalReferencePose[parentBoneIdx] * m_localReferencePose[boneIdx];
@@ -59,8 +67,8 @@ void RawSkeleton::SortBones()
     // Sort bones indices so that parents appear before children
     // Inverse mappings are also generated to actually update parent indices later on
 
-    auto boneCount = GetBoneCount();
-    
+    auto boneCount = GetBonesCount();
+
     std::vector<size_t> sortedToOriginal;
     sortedToOriginal.reserve(boneCount);
     std::vector<size_t> originalToSorted;
@@ -71,16 +79,16 @@ void RawSkeleton::SortBones()
     {
         if (m_parentBoneIndices[boneIdx] == InvalidIndex)
         {
-            originalToSorted[boneIdx] = sortedToOriginal.size(); 
+            originalToSorted[boneIdx] = sortedToOriginal.size();
             sortedToOriginal.push_back(boneIdx);
         }
     }
-    
+
     size_t currentParentsStart = 0;
     while (sortedToOriginal.size() < boneCount)
     {
         size_t currentParentsEnd = sortedToOriginal.size();
-        
+
         // Append all direct children of the last group of added bones
         for (auto parentBoneIdx = currentParentsStart; parentBoneIdx < currentParentsEnd; ++parentBoneIdx)
         {
@@ -88,7 +96,7 @@ void RawSkeleton::SortBones()
             {
                 if (m_parentBoneIndices[childBoneIdx] == sortedToOriginal[parentBoneIdx])
                 {
-                    originalToSorted[childBoneIdx] = sortedToOriginal.size(); 
+                    originalToSorted[childBoneIdx] = sortedToOriginal.size();
                     sortedToOriginal.push_back(childBoneIdx);
                 }
             }
@@ -106,7 +114,7 @@ void RawSkeleton::SortBones()
     {
         auto oldBoneIndex = sortedToOriginal[newBoneIndex];
         auto oldParentBoneIndex = parentBoneIndices[oldBoneIndex];
-        
+
         if (oldParentBoneIndex == InvalidIndex)
         {
             m_parentBoneIndices[newBoneIndex] = InvalidIndex;
@@ -115,13 +123,20 @@ void RawSkeleton::SortBones()
         {
             m_parentBoneIndices[newBoneIndex] = originalToSorted[oldParentBoneIndex];
         }
-        
+
         m_boneNames[newBoneIndex] = boneNames[oldBoneIndex];
-        m_globalReferencePose[newBoneIndex] = globalReferencePose[oldBoneIndex];
-        m_localReferencePose[newBoneIndex] = localReferencePose[oldBoneIndex];
+
+        // TODO: This is meh but should work for now. Maybe ensure we always sort bones before setting the ref poses ?
+        if (m_globalReferencePose.size() > 0)
+        {
+            m_globalReferencePose[newBoneIndex] = globalReferencePose[oldBoneIndex];
+        }
+        if (m_localReferencePose.size() > 0)
+        {
+            m_localReferencePose[newBoneIndex] = localReferencePose[oldBoneIndex];
+        }
     }
 }
-
 
 /// ---------------
 /// Skeleton reader
@@ -145,14 +160,10 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
         pSkeleton->m_id = AssetID(exportPath.string());
         pSkeleton->m_rootNodeGlobalTransform = sceneContext.DecomposeMatrix(skeletonRoot.m_globalTransform);
 
-        // Add root data
-        pSkeleton->m_boneNames.push_back(skeletonName);
-        pSkeleton->m_parentBoneIndices.push_back(InvalidIndex);
-        pSkeleton->m_globalReferencePose.push_back(Transform::Identity);
-        pSkeleton->m_localReferencePose.push_back(Transform::Identity);
-
         // Traverse the hierarchy to build the skeleton
-        ReadAnimationBoneHierarchy(pSkeleton, sceneContext, pAnimation, skeletonRoot.m_pNode, skeletonRoot.m_globalTransform, 0);
+        ReadAnimationBoneHierarchy(pSkeleton, sceneContext, pAnimation, skeletonRoot.m_pNode, skeletonRoot.m_globalTransform, InvalidIndex);
+
+        assert(pSkeleton->m_parentBoneIndices[0] == InvalidIndex);
 
         // Save the skeleton
         // TODO: Check against existing skeletons
@@ -244,83 +255,38 @@ void AssimpSkeletonReader::ReadAnimationBoneHierarchy(RawSkeleton* pSkeleton, co
     }
 }
 
-const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, const aiMesh* pSkeletalMesh)
+void AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, const aiMesh* pSkeletalMesh, RawSkeleton* pOutSkeleton)
 {
-    assert(pSkeletalMesh->HasBones());
-    assert(pSkeletalMesh != nullptr);
+    assert(pSkeletalMesh != nullptr && pSkeletalMesh->HasBones());
 
-    // Initialize the root node
-    auto pRootBone = pSkeletalMesh->mBones[0]->mArmature;
-    auto skeletonName = std::string(pRootBone->mName.C_Str());
+    auto numBones = pSkeletalMesh->mNumBones;
+    std::vector<std::string> parentBoneNames;
 
-    auto exportPath = sceneContext.GetOutputDirectory() / skeletonName;
-    exportPath.replace_extension("skel");
+    parentBoneNames.reserve(numBones);
+    pOutSkeleton->m_boneNames.reserve(numBones);
+    pOutSkeleton->m_parentBoneIndices.reserve(numBones);
 
-    RawSkeleton* pSkeleton = nullptr;
-    if (!sceneContext.TryGetSkeleton(skeletonName, pSkeleton))
+    // Initialize the rest of the bones
+    for (size_t meshBoneIndex = 0; meshBoneIndex < pSkeletalMesh->mNumBones; ++meshBoneIndex)
     {
-        pSkeleton->m_name = skeletonName;
-        pSkeleton->m_id = AssetID(exportPath.string());
-        pSkeleton->m_rootNodeGlobalTransform = sceneContext.GetGlobalTransform(pRootBone);
+        auto pBone = pSkeletalMesh->mBones[meshBoneIndex];
+        auto boneName = std::string(pBone->mName.C_Str());
 
-        auto numBones = pSkeletalMesh->mNumBones + 1;
-        std::vector<std::string> parentBoneNames;
+        auto parentBoneName = std::string(pBone->mNode->mParent->mName.C_Str());
+        parentBoneNames.push_back(parentBoneName);
 
-        parentBoneNames.reserve(numBones);
-        pSkeleton->m_boneNames.reserve(numBones);
-        pSkeleton->m_parentBoneIndices.reserve(numBones);
-        pSkeleton->m_globalReferencePose.reserve(numBones);
-        pSkeleton->m_localReferencePose.reserve(numBones);
-
-        // Add root data
-        pSkeleton->m_localReferencePose.push_back(Transform::Identity);
-        pSkeleton->m_globalReferencePose.push_back(Transform::Identity);
-        pSkeleton->m_boneNames.push_back(skeletonName);
-        parentBoneNames.push_back("");
-
-        // Initialize the rest of the bones
-        for (size_t meshBoneIndex = 0; meshBoneIndex < pSkeletalMesh->mNumBones; ++meshBoneIndex)
-        {
-            auto pBone = pSkeletalMesh->mBones[meshBoneIndex];
-            auto boneName = std::string(pBone->mName.C_Str());
-
-            auto parentBoneName = std::string(pBone->mNode->mParent->mName.C_Str());
-            parentBoneNames.push_back(parentBoneName);
-
-            // TODO: Choose the right one !
-            auto inverseBindPose = sceneContext.DecomposeMatrix(pBone->mOffsetMatrix);
-            auto bindPose = Transform(glm::inverse(sceneContext.ToGLM(pBone->mOffsetMatrix)));
-
-            // Add bone data
-            pSkeleton->m_boneNames.push_back(boneName);
-            pSkeleton->m_globalReferencePose.push_back(bindPose);
-        }
-
-        // Find parent bone indices
-        pSkeleton->m_parentBoneIndices.push_back(InvalidIndex);
-        for (size_t boneIndex = 1; boneIndex < numBones; ++boneIndex)
-        {
-            auto parentBoneIndex = pSkeleton->GetBoneIndex(parentBoneNames[boneIndex]);
-            pSkeleton->m_parentBoneIndices.push_back(parentBoneIndex);
-        }
-
-        pSkeleton->CalculateLocalTransforms();
-
-        pSkeleton->SortBones();
-
-        // Save skeleton
-        std::vector<std::byte> data;
-        auto dataStream = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
-
-        pSkeleton->Serialize(dataStream);
-
-        // TODO: Use skeleton static asset type
-        auto header = AssetArchiveHeader("skel");
-        auto archive = BinaryFileArchive(pSkeleton->m_id.GetAssetPath(), IBinaryArchive::IOMode::Write);
-        archive << header << data;
+        // Add bone data
+        pOutSkeleton->m_boneNames.push_back(boneName);
     }
 
-    assert(pSkeleton != nullptr);
-    return pSkeleton;
+    // Find parent bone indices
+    //pOutSkeleton->m_parentBoneIndices.push_back(InvalidIndex);
+    for (size_t boneIndex = 0; boneIndex < numBones; ++boneIndex)
+    {
+        auto parentBoneIndex = pOutSkeleton->GetBoneIndex(parentBoneNames[boneIndex]);
+        pOutSkeleton->m_parentBoneIndices.push_back(parentBoneIndex);
+    }
+
+    pOutSkeleton->SortBones();
 }
 } // namespace aln::assets::converter

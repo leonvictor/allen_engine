@@ -16,12 +16,14 @@ namespace aln::assets::converter
 {
 
 class AssimpSceneContext;
+class RawSkeletalMesh;
 
 /// @brief Intermediate Skeleton data representation, built by the converter, then serialized.
 // It can be deserialized directly into the runtime format
 class RawSkeleton : public IRawAsset
 {
     friend class AssimpSkeletonReader;
+    friend class RawSkeletalMesh;
 
   private:
     std::string m_name;
@@ -38,7 +40,7 @@ class RawSkeleton : public IRawAsset
     std::vector<Transform> m_globalReferencePose;
 
   public:
-    size_t GetBoneCount() const { return m_boneNames.size(); }
+    size_t GetBonesCount() const { return m_boneNames.size(); }
     uint32_t GetBoneIndex(const std::string& boneName) const;
     const std::string& GetBoneName(uint32_t boneIndex) const
     {
@@ -70,6 +72,6 @@ class AssimpSkeletonReader
 
   public:
     static const RawSkeleton* ReadSkeleton(const AssimpSceneContext& sceneContext, const aiAnimation* pAnimation);
-    static const RawSkeleton* ReadSkeleton(const AssimpSceneContext& sceneContext, const aiMesh* pSkeletalMesh);
+    static void ReadSkeleton(const AssimpSceneContext& sceneContext, const aiMesh* pSkeletalMesh, RawSkeleton* pOutSkeleton);
 };
 } // namespace aln::assets::converter

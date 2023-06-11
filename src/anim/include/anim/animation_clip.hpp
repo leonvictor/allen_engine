@@ -50,6 +50,7 @@ class AnimationClip : public IAsset
   private:
     // Track components are in local bone space
     std::vector<Track> m_tracks;
+    std::vector<Transform> m_rootMotionTrack;
 
     float m_framesPerSecond = 0.0f;
     Seconds m_duration = 0.0f; // Duration in seconds

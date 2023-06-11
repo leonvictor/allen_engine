@@ -21,6 +21,7 @@ void AnimationSystem::Update(const UpdateContext& ctx)
 
         m_pSkeletalMeshComponent->SetPose(m_pAnimationGraphComponent->GetPose());
     }
+
     // Otherwise fall back to animation player
     else if (m_pAnimationPlayerComponent != nullptr)
     {

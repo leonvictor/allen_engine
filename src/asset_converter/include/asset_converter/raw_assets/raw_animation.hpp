@@ -23,6 +23,7 @@ class RawAnimation : public IRawAsset
     };
 
     std::vector<TrackData> m_tracks;
+    std::vector<Transform> m_rootMotionTrack;
 
     std::string m_name;
     float m_duration; // Duration in seconds
@@ -42,6 +43,8 @@ class RawAnimation : public IRawAsset
         {
             archive << track.m_transforms;
         }
+
+        archive << m_rootMotionTrack;
     }
 };
 
@@ -66,23 +69,20 @@ struct AssimpAnimationReader
         assert(pSkeleton->GetID().IsValid());
 
         RawAnimation animation;
-        animation.m_name = std::string(pAnimation->mName.C_Str()) == "" ? sceneContext.GetSourceFile().stem().string() : std::string(pAnimation->mName.C_Str());
+        animation.m_name = sceneContext.GetSourceFile().stem().string() + "_" + std::string(pAnimation->mName.C_Str());
         animation.m_duration = pAnimation->mDuration / pAnimation->mTicksPerSecond;
         animation.m_skeletonID = pSkeleton->GetID();
 
         uint32_t maxKeyCount = 0;
 
         // Process animation tracks
-        auto boneCount = pSkeleton->GetBoneCount();
+        auto boneCount = pSkeleton->GetBonesCount();
         animation.m_tracks.reserve(boneCount);
-
-        // TMP: Add empty keys to the root joint
-        // TODO: This is wasted memory, we shouldnt need it. Remove after we've dealt with animation compression
-        auto& rootBoneTrack = animation.m_tracks.emplace_back();
 
         for (auto boneIndex = 0; boneIndex < boneCount; ++boneIndex)
         {
             auto boneName = pSkeleton->GetBoneName(boneIndex);
+            auto& track = animation.m_tracks.emplace_back();
 
             auto pChannel = GetChannel(pAnimation, boneName);
             if (pChannel != nullptr)
@@ -97,8 +97,6 @@ struct AssimpAnimationReader
 
                 const auto keyCount = pChannel->mNumPositionKeys;
                 maxKeyCount = std::max(maxKeyCount, keyCount);
-
-                auto& track = animation.m_tracks.emplace_back();
 
                 track.m_transforms.reserve(pChannel->mNumPositionKeys);
                 for (auto keyIndex = 0; keyIndex < keyCount; ++keyIndex)
@@ -115,17 +113,26 @@ struct AssimpAnimationReader
             }
             else
             {
-                // No channel for this bone in the animation.
                 /// @todo : Log somewhere clever, maybe the class itself ?
                 std::cout << "Warning: no channel for bone " << boneName << std::endl;
                 // TODO: Insert data from the skeleton's reference pose
+                track.m_transforms.push_back(Transform::Identity);
             }
         }
 
-        // TMP: Add empty keys to the root joint
-        rootBoneTrack.m_transforms.resize(maxKeyCount, Transform::Identity);
-
         animation.m_framesPerSecond = animation.m_duration / (maxKeyCount - 1);
+
+        // Extract root motion to a separate track and replace it with an empty one
+        auto& rootMotionTrack = animation.m_tracks[0];
+        auto rootMotionFrameCount = rootMotionTrack.m_transforms.size();
+        animation.m_rootMotionTrack.reserve(rootMotionFrameCount);
+        for (auto frameIdx = 0; frameIdx < rootMotionFrameCount; ++frameIdx)
+        {
+            animation.m_rootMotionTrack.push_back(rootMotionTrack.m_transforms[frameIdx]);
+            // TODO: TMP while we do not handle root motion : remove translation but keep everything else
+            //rootMotionTrack.m_transforms[frameIdx] = Transform::Identity;
+            rootMotionTrack.m_transforms[frameIdx].SetTranslation(glm::vec3());
+        }
 
         std::vector<std::byte> data;
         BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);

@@ -40,6 +40,8 @@ class AnimationLoader : public IAssetLoader
             archive >> track.m_transforms;
         }
 
+        archive >> pAnim->m_rootMotionTrack;
+
         // TODO: Add a dependency on the skeleton, and ensure it is loaded correctly
 
         pRecord->SetAsset(pAnim);
