@@ -17,9 +17,10 @@ add_library(${LIB_NAME} SHARED
     src/entity_systems/script.cpp
     src/entity_systems/camera_controller.cpp
     src/entity_systems/animation_system.cpp
+    src/entity_systems/player_controller.cpp    
     
     src/module/module.cpp
-    )
+)
 
 set(LIB_DEPENDENCIES 
     TracyClient

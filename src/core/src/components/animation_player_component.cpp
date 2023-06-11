@@ -11,15 +11,15 @@ namespace aln
 {
 void AnimationPlayerComponent::Update(Seconds deltaTime)
 {
-    if (m_pause)
-        return;
+    if (!m_pause)
+    {
+        // TODO switch on play mode
+        m_previousAnimTime = m_animTime;
+        m_animTime += deltaTime;
 
-    // TODO switch on play mode
-    m_previousAnimTime = m_animTime;
-    m_animTime += deltaTime;
-
-    // Loop
-    m_animTime = std::fmod(m_animTime, m_pAnimationClip->GetDuration());
+        // Loop
+        m_animTime = std::fmod(m_animTime, m_pAnimationClip->GetDuration());
+    }
 
     m_pAnimationClip->GetPose(m_animTime, m_pPose);
     m_pPose->CalculateGlobalTransforms();

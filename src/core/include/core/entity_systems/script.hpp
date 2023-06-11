@@ -8,6 +8,7 @@ namespace aln
 {
 
 /// @todo For now this is a test system...
+/// @todo This is intended to be the interface from which user-provided scripts inherit
 class ScriptSystem : public IEntitySystem
 {
     ALN_REGISTER_TYPE();

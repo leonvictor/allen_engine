@@ -87,7 +87,7 @@ class RuntimeAnimationGraphInstance
 
     // TODO: set once per frame before the graph evaluates
     // TODO: unique names per graph
-    uint32_t GetControlParameterIndex(StringID& parameterName)
+    NodeIndex GetControlParameterIndex(const StringID& parameterName) const
     {
         auto parameterCount = GetControlParameterCount();
         for (auto parameterIdx = 0; parameterIdx < parameterCount; ++parameterIdx)
@@ -101,11 +101,19 @@ class RuntimeAnimationGraphInstance
     }
 
     template <typename T>
-    void SetControlParameter(uint32_t parameterIdx, T value)
+    void SetControlParameterValue(GraphContext& context, NodeIndex parameterIdx, T value)
     {
         assert(parameterIdx < GetControlParameterCount());
         auto pParameterNode = reinterpret_cast<ValueNode*>(m_runtimeNodeInstances[parameterIdx]);
-        pParameterNode->SetValue<T>(value);
+        pParameterNode->SetValue<T>(context, value);
+    }
+
+    template <typename T>
+    const T& GetControlParameterValue(GraphContext& context, NodeIndex parameterIdx)
+    {
+        assert(parameterIdx < GetControlParameterCount());
+        auto pParameterNode = reinterpret_cast<ValueNode*>(m_runtimeNodeInstances[parameterIdx]);
+        return pParameterNode->GetValue<T>(context);
     }
 };
 } // namespace aln

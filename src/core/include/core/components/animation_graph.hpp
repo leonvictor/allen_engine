@@ -39,8 +39,28 @@ class AnimationGraphComponent : public IComponent
   public:
     inline const Pose* GetPose() { return m_pPose; }
 
-    // ---------
+    // --------- Control Parameters
 
+    NodeIndex GetControlParameterIndex(const StringID& parameterName) const
+    {
+        return m_pGraphInstance->GetControlParameterIndex(parameterName);
+    }
+
+    template<typename T>
+    void SetControlParameterValue(NodeIndex parameterIndex, const T& value)
+    {
+        m_pGraphInstance->SetControlParameterValue(m_graphContext, parameterIndex, value);
+    }
+
+    template<typename T>
+    const T& GetControlParameterValue(NodeIndex parameterIndex) const
+    {
+        return m_pGraphInstance->GetControlParameterValue<T>(m_graphContext, parameterIndex);
+    }
+
+    // --------- Evaluation/Execution
+    /// @todo Maybe this could only be accessed by the animation system ?
+    
     /// @brief Run through the animation graph recording tasks
     /// @param deltaTime
     void Evaluate(float deltaTime, const Transform& characterWorldTransform)
