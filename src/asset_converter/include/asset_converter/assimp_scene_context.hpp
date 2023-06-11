@@ -24,15 +24,8 @@ class AssimpSceneContext
     friend class AssetConverter;
 
   private:
-    static constexpr int AssimpPostProcessFlags =
-        aiProcess_GenNormals |
-        //aiProcess_JoinIdenticalVertices | // TMP: aiProcess_JoinIndenticalVertices provokes extremely long processing times in debug mode...
-        aiProcess_FlipUVs |
-        aiProcess_Triangulate |
-        aiProcess_GenUVCoords |
-        aiProcess_PopulateArmatureData;
 
-    Assimp::Importer m_importer;
+
     const aiScene* m_pScene = nullptr;
 
     Transform m_inverseSceneTransform = Transform::Identity;
@@ -44,8 +37,6 @@ class AssimpSceneContext
     std::filesystem::path m_outputDirectoryPath;
 
   public:
-    AssimpSceneContext(const std::filesystem::path& inputFile, const std::filesystem::path& outputDirectory);
-
     const aiScene* GetScene() const { return m_pScene; }
     const aiNode* GetRootNode() const { return m_pScene->mRootNode; }
 

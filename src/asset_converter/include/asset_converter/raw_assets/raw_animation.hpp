@@ -66,7 +66,9 @@ struct AssimpAnimationReader
 
     static void ReadAnimation(const AssimpSceneContext& sceneContext, const aiAnimation* pAnimation, const RawSkeleton* pSkeleton)
     {
+        assert(pAnimation != nullptr && pSkeleton != nullptr);
         assert(pSkeleton->GetID().IsValid());
+        assert(pSkeleton->GetBonesCount() >= pAnimation->mNumChannels);
 
         RawAnimation animation;
         animation.m_name = sceneContext.GetSourceFile().stem().string() + "_" + std::string(pAnimation->mName.C_Str());

@@ -17,8 +17,11 @@ int main(int argc, char* argv[])
     }
 
     std::filesystem::path inputDirectory = std::filesystem::path(argv[1]);
+    std::filesystem::path rootOutputDirectory = inputDirectory.parent_path() / "assets_export";
 
     std::cout << "Loaded asset directory: " << inputDirectory << std::endl;
+
+    AssetConverter converter = AssetConverter(rootOutputDirectory);
 
     for (auto& file : std::filesystem::recursive_directory_iterator(inputDirectory))
     {
@@ -43,8 +46,7 @@ int main(int argc, char* argv[])
 
         if (extension == ".fbx" || extension == ".obj" || extension == ".gltf")
         {
-            auto folder = exportPath.parent_path() / file.path().stem();
-            AssetConverter::Convert(file.path(), folder, aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs | aiProcess_Triangulate | aiProcess_GenUVCoords | aiProcess_PopulateArmatureData);
+            converter.ReadFile(file.path());
         }
     }
 

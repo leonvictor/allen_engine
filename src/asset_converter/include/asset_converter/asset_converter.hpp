@@ -17,18 +17,49 @@ namespace aln::assets::converter
 class AssetConverter
 {
   private:
+    Assimp::Importer m_importer;
     AssimpSceneContext m_sceneContext;
 
-    AssetConverter(std::filesystem::path inputFile, std::filesystem::path outputDirectory, int postProcessFlags)
-        : m_sceneContext(inputFile, outputDirectory)
+    static constexpr int AssimpPostProcessFlags =
+        aiProcess_GenNormals |
+        // aiProcess_JoinIdenticalVertices | // TMP: aiProcess_JoinIndenticalVertices provokes extremely long processing times in debug mode...
+        aiProcess_FlipUVs |
+        aiProcess_Triangulate |
+        aiProcess_GenUVCoords |
+        aiProcess_PopulateArmatureData;
+
+  public:
+    AssetConverter(std::filesystem::path& outputDirectory)
     {
         std::filesystem::create_directory(outputDirectory);
+        m_sceneContext.m_outputDirectoryPath = outputDirectory;
+        m_sceneContext.m_outputDirectoryPath.make_preferred();
+
+        m_importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
+    }
+
+    void ReadFile(std::filesystem::path inputFile)
+    {
+        m_sceneContext.m_pScene = m_importer.ReadFile(inputFile.string(), AssimpPostProcessFlags);
+        m_sceneContext.m_sourceFilePath = inputFile;
+        m_sceneContext.m_sourceFilePath.make_preferred();
+
+        if (m_sceneContext.m_pScene == nullptr)
+        {
+            // TODO: Handle error
+            auto errorString = m_importer.GetErrorString();
+            assert(false);
+        }
+
+
+        m_sceneContext.m_inverseSceneTransform = m_sceneContext.DecomposeMatrix(m_sceneContext.m_pScene->mRootNode->mTransformation).GetInverse();
 
         ReadMaterials();
         ReadMeshes();
         ReadAnimations();
     }
 
+  private:
     void ReadAnimations()
     {
         const auto pScene = m_sceneContext.GetScene();
@@ -68,12 +99,6 @@ class AssetConverter
                 m_sceneContext.m_materials.push_back(id);
             }
         }
-    }
-
-  public:
-    static void Convert(std::filesystem::path inputFile, std::filesystem::path outputDirectory, int postProcessFlags)
-    {
-        auto converter = AssetConverter(inputFile, outputDirectory, postProcessFlags);
     }
 };
 
