@@ -30,7 +30,7 @@ class SkeletalMeshComponent : public MeshComponent
     AssetHandle<SkeletalMesh> m_pMesh;
     AssetHandle<Skeleton> m_pSkeleton; // Animation Skeleton
 
-    // Bone transforms in global character space
+    // Rendering bone transforms in global character space
     std::vector<Transform> m_boneTransforms; 
     std::vector<glm::mat4x4> m_skinningTransforms;
 
@@ -48,22 +48,11 @@ class SkeletalMeshComponent : public MeshComponent
     inline const SkeletalMesh* GetMesh() const { return m_pMesh.get(); }
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
 
-    // TODO: Setters not needed ?
-    void SetMesh(const std::string& path) override
-    {
-        assert(IsUnloaded());
-        m_pMesh = AssetHandle<SkeletalMesh>(path);
-    }
-
-    void SetSkeleton(const std::string& path)
-    {
-        assert(IsUnloaded());
-        m_pSkeleton = AssetHandle<Skeleton>(path);
-    }
 
     void SetPose(const Pose* pPose)
     {
         assert(pPose != nullptr);
+
         // Map from animation to render bones
         auto animBoneCount = pPose->GetBonesCount();
         for (BoneIndex animBoneIdx = 0; animBoneIdx < animBoneCount; ++animBoneIdx)
@@ -73,7 +62,8 @@ class SkeletalMeshComponent : public MeshComponent
         }
     }
 
-    /// @brief Reset the pose to the reference one
+    /// @brief Reset the pose to the rendering bind pose
+    /// @todo We could alternatively reset to the animation skeleton's reference pose
     void ResetPose()
     {
         m_boneTransforms = m_pMesh->GetBindPose();
@@ -83,6 +73,7 @@ class SkeletalMeshComponent : public MeshComponent
     size_t GetBonesCount() const { return m_boneTransforms.size(); }
 
   private:
+    /// @brief Compute the skinning matrices of the rendering skeleton from the current associated transforms
     void UpdateSkinningTransforms();
 
     void Initialize() override

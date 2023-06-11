@@ -52,9 +52,18 @@ class BlendNode : public PoseRuntimeNode
         
         PoseNodeResult result;
         
+        // TODO: Avoid updating source nodes if its not necessary
         m_blendWeight = m_pBlendWeightValueNode->GetValue<float>(context);
         auto sourceNodeResult1 = m_pSourcePoseNode1->Update(context);
         auto sourceNodeResult2 = m_pSourcePoseNode2->Update(context);
+
+        m_duration = glm::lerp(m_pSourcePoseNode1->GetDuration(), m_pSourcePoseNode2->GetDuration(), m_blendWeight);
+        m_previousTime = m_currentTime;
+
+        const auto deltaPercentage = context.m_deltaTime / m_duration; 
+
+        float integralPart;
+        m_currentTime = std::modff(m_currentTime + deltaPercentage, &integralPart);
 
         BitFlags<PoseBlend> blendOptions; // TODO
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<BlendTask>(GetNodeIndex(), sourceNodeResult1.m_taskIndex, sourceNodeResult2.m_taskIndex, m_blendWeight, blendOptions, nullptr);

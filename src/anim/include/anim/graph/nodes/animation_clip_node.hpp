@@ -47,18 +47,16 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
         if (m_pPlayInReverseValueNode != nullptr)
         {
-            // TODO
+            assert(false); // TODO
         }
 
-        const auto deltaPercentage = Percentage(context.m_deltaTime / m_duration);
-
-        //auto pSettings = GetSettings<AnimationClipRuntimeNode>();
-
+        const auto deltaPercentage = context.m_deltaTime / m_duration; 
         m_previousTime = m_currentTime;
         m_currentTime += deltaPercentage;
-
+       
         // TODO: Handle looping (or not)
-        m_currentTime = std::fmod(m_currentTime, 1.0);
+        float integralPart;
+        m_currentTime = std::modff(m_currentTime, &integralPart);
 
         PoseNodeResult result;
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);
@@ -82,13 +80,13 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
+        PoseRuntimeNode::InitializeInternal(context, initialTime);
         if (m_pPlayInReverseValueNode != nullptr)
         {
             m_pPlayInReverseValueNode->Initialize(context);
         }
 
         m_duration = m_pAnimationClip->GetDuration();
-
         // TODO: Initialize current time and previous time based on initialTime
     }
 

@@ -29,7 +29,6 @@ class AnimationSystem : public IEntitySystem
         m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::FrameStart, 10);
     }
 
-    // TODO: Hide UpdateContext from users
     void Update(const UpdateContext& ctx) override;
     void RegisterComponent(IComponent* pComponent) override;
     void UnregisterComponent(IComponent* pComponent) override;

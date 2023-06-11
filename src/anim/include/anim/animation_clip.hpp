@@ -34,7 +34,7 @@ class AnimationClip : public IAsset
         const auto boneCount = pSkeleton->GetBonesCount();
 
         float frameIndex;
-        float frameProgress = std::modf(time / GetFramesPerSecond(), &frameIndex);
+        float frameProgress = std::modff(time / GetFramesPerSecond(), &frameIndex);
 
         for (BoneIndex boneIndex = 0; boneIndex < boneCount; ++boneIndex)
         {

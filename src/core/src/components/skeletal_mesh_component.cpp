@@ -12,7 +12,6 @@ namespace aln
 {
 void SkeletalMeshComponent::UpdateSkinningTransforms()
 {
-    // Update the transform matrices of skinning matrices
     const auto boneCount = m_boneTransforms.size();
     for (auto i = 0; i < boneCount; ++i)
     {
