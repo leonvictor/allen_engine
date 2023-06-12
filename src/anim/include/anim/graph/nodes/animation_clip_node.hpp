@@ -65,17 +65,19 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
     PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) override
     {
-        // TODO: Abstract method impl
-        assert(false);
+        assert(context.IsValid());
+
+        m_previousTime = GetSyncTrack().GetPercentageThrough(updateRange.m_beginTime);
+        m_currentTime = GetSyncTrack().GetPercentageThrough(updateRange.m_endTime);
+        
         PoseNodeResult result;
+        result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);
         return result;
     }
 
     virtual const SyncTrack& GetSyncTrack() const override
     {
-        // TODO: Abstract method impl
-        assert(false);
-        return SyncTrack();
+        return m_pAnimationClip->GetSyncTrack();
     };
 
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override

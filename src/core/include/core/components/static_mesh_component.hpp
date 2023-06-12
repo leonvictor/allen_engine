@@ -18,12 +18,6 @@ class StaticMeshComponent : public MeshComponent
   public:
     inline const StaticMesh* GetMesh() const { return m_pMesh.get(); }
 
-    void SetMesh(const std::string& path) override
-    {
-        assert(IsUnloaded());
-        m_pMesh = AssetHandle<StaticMesh>(path);
-    }
-
     static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
         std::vector<vk::DescriptorSetLayoutBinding> bindings{

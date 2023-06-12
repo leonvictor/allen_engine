@@ -21,6 +21,7 @@ class BlendNode : public PoseRuntimeNode
     PoseRuntimeNode* m_pSourcePoseNode2 = nullptr;
 
     float m_blendWeight = 0.0;
+    SyncTrack m_blendedSyncTrack;
 
   public:
     class Settings : public PoseRuntimeNode::Settings
@@ -52,21 +53,33 @@ class BlendNode : public PoseRuntimeNode
         
         PoseNodeResult result;
         
-        // TODO: Avoid updating source nodes if its not necessary
+        // TODO: Avoid updating source nodes if it's not necessary
         m_blendWeight = m_pBlendWeightValueNode->GetValue<float>(context);
-        auto sourceNodeResult1 = m_pSourcePoseNode1->Update(context);
-        auto sourceNodeResult2 = m_pSourcePoseNode2->Update(context);
-
-        m_duration = glm::lerp(m_pSourcePoseNode1->GetDuration(), m_pSourcePoseNode2->GetDuration(), m_blendWeight);
-        m_previousTime = m_currentTime;
-
+        
         const auto deltaPercentage = context.m_deltaTime / m_duration; 
-
+        SyncTrackTimeRange timeRange;
+        timeRange.m_beginTime = m_blendedSyncTrack.GetTime(m_currentTime);
+        
         float integralPart;
-        m_currentTime = std::modff(m_currentTime + deltaPercentage, &integralPart);
+        timeRange.m_endTime = m_blendedSyncTrack.GetTime(std::modff(m_currentTime + deltaPercentage, &integralPart));
+
+        const auto sourceNodeResult = m_pSourcePoseNode1->Update(context, timeRange);
+        const auto targetNodeResult = m_pSourcePoseNode2->Update(context, timeRange);
 
         BitFlags<PoseBlend> blendOptions; // TODO
-        result.m_taskIndex = context.m_pTaskSystem->RegisterTask<BlendTask>(GetNodeIndex(), sourceNodeResult1.m_taskIndex, sourceNodeResult2.m_taskIndex, m_blendWeight, blendOptions, nullptr);
+        result.m_taskIndex = context.m_pTaskSystem->RegisterTask<BlendTask>(GetNodeIndex(), sourceNodeResult.m_taskIndex, targetNodeResult.m_taskIndex, m_blendWeight, blendOptions, nullptr);
+        
+        // TODO: Before ?
+        const auto& sourceSyncTrack = m_pSourcePoseNode1->GetSyncTrack();
+        const auto& targetSyncTrack = m_pSourcePoseNode2->GetSyncTrack();
+        m_blendedSyncTrack = SyncTrack::Blend(sourceSyncTrack, targetSyncTrack, m_blendWeight);
+        m_duration = SyncTrack::CalculateSynchronizedTrackDuration(m_pSourcePoseNode1->GetDuration(), m_pSourcePoseNode2->GetDuration(), sourceSyncTrack, targetSyncTrack, m_blendedSyncTrack, m_blendWeight);
+        m_previousTime = m_blendedSyncTrack.GetPercentageThrough(timeRange.m_beginTime);
+        m_currentTime = m_blendedSyncTrack.GetPercentageThrough(timeRange.m_endTime);
+
+        // TODO: Unsynced 
+        //auto sourceNodeResult1 = m_pSourcePoseNode1->Update(context);
+        //auto sourceNodeResult2 = m_pSourcePoseNode2->Update(context);
 
         return result;
     }
@@ -81,19 +94,23 @@ class BlendNode : public PoseRuntimeNode
 
     virtual const SyncTrack& GetSyncTrack() const override
     {
-        // TODO: Abstract method impl
-        assert(false);
-        return SyncTrack();
+        return m_blendedSyncTrack;
     };
 
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
-        // TODO: Abstract method impl
         PoseRuntimeNode::InitializeInternal(context, initialTime);
      
         m_pBlendWeightValueNode->Initialize(context);
         m_pSourcePoseNode1->Initialize(context, initialTime);
         m_pSourcePoseNode2->Initialize(context, initialTime);
+
+        m_blendWeight = m_pBlendWeightValueNode->GetValue<float>(context);
+
+        const auto& sourceSyncTrack = m_pSourcePoseNode1->GetSyncTrack();
+        const auto& targetSyncTrack = m_pSourcePoseNode2->GetSyncTrack();
+        m_blendedSyncTrack = SyncTrack::Blend(sourceSyncTrack, targetSyncTrack, m_blendWeight);
+        m_duration = SyncTrack::CalculateSynchronizedTrackDuration(m_pSourcePoseNode1->GetDuration(), m_pSourcePoseNode2->GetDuration(), sourceSyncTrack, targetSyncTrack, m_blendedSyncTrack, m_blendWeight);
     }
 
     virtual void ShutdownInternal() override

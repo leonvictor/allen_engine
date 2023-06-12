@@ -42,6 +42,9 @@ class AnimationLoader : public IAssetLoader
 
         archive >> pAnim->m_rootMotionTrack;
 
+        // TMP: Explicitely creates a default sync track
+        pAnim->m_syncTrack = SyncTrack::Default;
+
         // TODO: Add a dependency on the skeleton, and ensure it is loaded correctly
 
         pRecord->SetAsset(pAnim);

@@ -3,6 +3,7 @@
 #include "pose.hpp"
 #include "skeleton.hpp"
 #include "track.hpp"
+#include "sync_track.hpp"
 
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
@@ -14,6 +15,8 @@
 
 namespace aln
 {
+
+class AnimationEvent;
 
 class AnimationClip : public IAsset
 {
@@ -46,11 +49,14 @@ class AnimationClip : public IAsset
     inline Seconds GetDuration() const { return m_duration; }
     inline size_t GetFrameCount() const { return m_tracks.size(); }
     inline float GetFramesPerSecond() const { return m_framesPerSecond; }
+    inline const SyncTrack& GetSyncTrack() const { return m_syncTrack; }
 
   private:
     // Track components are in local bone space
     std::vector<Track> m_tracks;
     std::vector<Transform> m_rootMotionTrack;
+    std::vector<AnimationEvent*> m_events;
+    SyncTrack m_syncTrack;
 
     float m_framesPerSecond = 0.0f;
     Seconds m_duration = 0.0f; // Duration in seconds
