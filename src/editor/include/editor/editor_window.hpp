@@ -42,6 +42,7 @@ class IEditorWindow
 
   protected:
     EditorWindowContext* m_pEditorWindowContext = nullptr;
+    bool m_isOpen = true;
 
     virtual void Initialize(EditorWindowContext* pEditorWindowContext);
     virtual void Shutdown();

@@ -8,10 +8,11 @@ add_library(${LIB_NAME}
     src/assets_browser.cpp
     src/entity_inspector.cpp
     src/editor_window.cpp
-    
+ 
+    src/assets/animation_clip_editor.cpp
+
     src/animation_graph/animation_graph_editor.cpp
     src/animation_graph/editor_graph_node.cpp
-
     src/animation_graph/nodes/control_parameter_editor_nodes.cpp
     src/animation_graph/nodes/float_editor_nodes.cpp
     src/animation_graph/nodes/pose_editor_node.cpp
@@ -21,7 +22,7 @@ add_library(${LIB_NAME}
     src/module/module.cpp
     
     ${IMGUI_SOURCE}
- )
+)
 
 set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})
 

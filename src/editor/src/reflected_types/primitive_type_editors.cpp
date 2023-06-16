@@ -40,7 +40,7 @@ class FloatEditor : public IPrimitiveTypeEditor
         m_pInstanceValue = reinterpret_cast<float*>(pTypeInstance);
         m_editingValue = *m_pInstanceValue;
 
-        return ImGui::DragFloat("##Float", &m_editingValue);
+        return ImGui::DragFloat("##Float", &m_editingValue, 0.01);
     }
 
     void UpdateValue() override

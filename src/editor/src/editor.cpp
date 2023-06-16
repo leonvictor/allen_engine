@@ -1,6 +1,7 @@
 #include "editor.hpp"
 
 #include "animation_graph/animation_graph_editor.hpp"
+#include "assets/animation_clip_editor.hpp"
 
 #include <config/path.h>
 #include <assets/handle.hpp>
@@ -119,7 +120,7 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
             ImGui::EndMenuBar();
         }
     }
-    ImGui::End();
+    ImGui::End(); 
 
     if (ImGui::Begin(ICON_FA_GLOBE " Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
     {
@@ -193,7 +194,7 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
 
 void Editor::RecurseEntityTree(Entity* pEntity)
 {
-    ImGui::PushID(pEntity->GetID().ToString().c_str());
+    ImGui::PushID(pEntity);
     static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
     // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
@@ -270,27 +271,25 @@ void Editor::RecurseEntityTree(Entity* pEntity)
     ImGui::PopID();
 }
 
-void Editor::EntityOutlinePopup(Entity* pEntity)
+void Editor::EntityOutlinePopup(Entity* pContextEntity)
 {
     if (ImGui::BeginPopupContextItem("entity_outline_popup", ImGuiPopupFlags_MouseButtonRight))
     {
-        auto contextEntityAndNotSpatial = (pEntity != nullptr && !pEntity->IsSpatialEntity());
-
-        if (pEntity != nullptr)
+        if (pContextEntity != nullptr)
         {
-            ImGui::Text(pEntity->GetID().ToString().c_str());
+            ImGui::Text(pContextEntity->GetID().ToString().c_str());
             ImGui::Separator();
             if (ImGui::MenuItem("Remove Entity"))
             {
-                if (m_editorWindowContext.m_pSelectedEntity == pEntity)
+                if (m_editorWindowContext.m_pSelectedEntity == pContextEntity)
                 {
                     m_editorWindowContext.m_pSelectedEntity = nullptr;
                 }
-                m_worldEntity.m_entityMap.RemoveEntity(pEntity);
+                m_worldEntity.m_entityMap.RemoveEntity(pContextEntity);
             }
         }
 
-        if (ImGui::MenuItem("Create Empty Entity", "", false, pEntity == nullptr))
+        if (ImGui::MenuItem("Create Empty Entity", "", false, pContextEntity == nullptr))
         {
             auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
         }
@@ -301,21 +300,21 @@ void Editor::EntityOutlinePopup(Entity* pEntity)
         // TODO: Handle keyboard shortcuts
         // TODO: Handle removing, copying, pasting, hierarchies of entities
         // TODO: Handle removing, copying, pasting, multiple selected entities
-        if (pEntity != nullptr)
+        if (pContextEntity != nullptr)
         {
             if (ImGui::MenuItem("Cut", "Ctrl + X"))
             {
-                m_entityClipboard = EntityDescriptor(pEntity, m_pTypeRegistryService);
-                if (m_editorWindowContext.m_pSelectedEntity == pEntity)
+                m_entityClipboard = EntityDescriptor(pContextEntity, m_pTypeRegistryService);
+                if (m_editorWindowContext.m_pSelectedEntity == pContextEntity)
                 {
                     m_editorWindowContext.m_pSelectedEntity = nullptr;
                 }
-                m_worldEntity.m_entityMap.RemoveEntity(pEntity);
+                m_worldEntity.m_entityMap.RemoveEntity(pContextEntity);
             }
 
             if (ImGui::MenuItem("Copy", "Ctrl + C"))
             {
-                m_entityClipboard = EntityDescriptor(pEntity, m_pTypeRegistryService);
+                m_entityClipboard = EntityDescriptor(pContextEntity, m_pTypeRegistryService);
             }
         }
 
@@ -324,9 +323,9 @@ void Editor::EntityOutlinePopup(Entity* pEntity)
             // TODO: Disable paste on non-spatial entities
             auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("");
             m_entityClipboard.InstanciateEntity(pNewEntity, m_pTypeRegistryService);
-            if (pEntity != nullptr)
+            if (pContextEntity != nullptr)
             {
-                pNewEntity->SetParentEntity(pEntity);
+                pNewEntity->SetParentEntity(pContextEntity);
             }
         }
 
@@ -387,14 +386,17 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     m_editorWindowContext.m_pWorldEntity = &m_worldEntity;
 
     m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
+    // TODO: Animation clips can't be created from scratch in the editor. Remove them from the list
+    m_assetWindowsFactory.RegisterFactory<AnimationClip, AnimationClipEditorWindowFactory>("Animation Clip");
 
     m_assetsBrowser.Initialize(&m_editorWindowContext);
     m_entityInspector.Initialize(&m_editorWindowContext);
 
+    m_scenePath = scenePath;
+
     // TODO: Usability stuff: automatically load last used scene etc
     if (std::filesystem::exists(scenePath))
     {
-        m_scenePath = scenePath;
         LoadScene();
         LoadState();
     }

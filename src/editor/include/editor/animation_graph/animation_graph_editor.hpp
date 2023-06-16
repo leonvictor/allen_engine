@@ -48,7 +48,6 @@ public:
     // ----------- Window lifetime
 
     void Update(const UpdateContext& context) override;
-
     virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
     virtual void Shutdown() override;
     void Clear();
