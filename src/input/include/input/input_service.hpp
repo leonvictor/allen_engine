@@ -1,8 +1,9 @@
 #pragma once
 
 #include "callback_context.hpp"
-#include "keyboard.hpp"
-#include "mouse.hpp"
+#include "devices/keyboard.hpp"
+#include "devices/mouse.hpp"
+#include "devices/gamepad.hpp"
 
 #include <vector>
 
@@ -19,7 +20,7 @@ class InputContext;
 /// @brief Input is the overarching system recording and dispatching input operations.
 class InputService : public IService
 {
-    friend aln::Engine;
+    friend Engine;
 
   private:
     // TODO:
@@ -31,6 +32,7 @@ class InputService : public IService
 
     Keyboard m_keyboard;
     Mouse m_mouse;
+    //Gamepad m_gamepad;
 
     // TODO: Merge in a single function and handle device internally
     void UpdateKeyboardControlState(int code, int action)
@@ -71,13 +73,13 @@ class InputService : public IService
     void RegisterContext(InputContext* pContext);
     void UnregisterContext(InputContext* pContext);
 
-    // TODO: Handle multiple device of each type.
+    // TODO: Handle multiple device of each type (or none).
     /// @brief Access to the keyboard.
     inline const Keyboard* GetKeyboard() const { return &m_keyboard; }
     /// @brief Access to the mouse.
     inline const Mouse* GetMouse() const { return &m_mouse; }
 
     /// TODO: Access to the gamepad.
-    // static const GetGamepad& Gamepad();
+    // static const Gamepad& GetGamepad();
 };
 } // namespace aln

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "controls/input_control.hpp"
+#include "input_control.hpp"
 #include "input_action_phase.hpp"
 
 namespace aln

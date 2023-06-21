@@ -2,7 +2,7 @@
 
 #include <functional>
 #include <input/input_service.hpp>
-#include <input/mouse.hpp>
+#include <input/devices/mouse.hpp>
 
 #include <GLFW/glfw3.h>
 

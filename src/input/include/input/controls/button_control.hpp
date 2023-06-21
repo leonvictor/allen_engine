@@ -14,11 +14,7 @@ class ButtonControl : public InputControl<ButtonState>
 
   private:
   public:
-    ButtonControl()
-    {
-        m_defaultValue = ButtonState::None;
-        m_value = ButtonState::None;
-    }
+    ButtonControl() : InputControl<ButtonState>(ButtonState::None) {}
 
     bool IsHeld() const { return m_value == ButtonState::Held || m_value == ButtonState::Pressed; }
     bool WasPressed() const { return m_value == ButtonState::Pressed; }
@@ -26,6 +22,7 @@ class ButtonControl : public InputControl<ButtonState>
 
     void Update() override
     {
+        // TODO: Frame lag ?!
         // Mark the control for update *next frame* if it has changed during this one
         if (m_updateState == UpdateState::Changed)
         {

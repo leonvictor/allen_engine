@@ -1,4 +1,5 @@
-#include "mouse.hpp"
+#include "devices/mouse.hpp"
+
 #include "control_state_event.hpp"
 
 #include <GLFW/glfw3.h>

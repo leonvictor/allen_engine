@@ -11,14 +11,7 @@ class AxisControl : public InputControl<float>
     friend class Mouse;
 
   public:
-    AxisControl(){};
-    AxisControl(int code)
-    {
-        m_defaultValue = 0.;
-        m_value = 0.;
-        m_id = code;
-        // TODO: For now we use GLFW scancodes as ids. We should use a guid
-    }
+    AxisControl() : InputControl<float>(0.0f) {}
 
     void Update() {}
 };

@@ -17,7 +17,7 @@ class Engine;
 /// @brief Describes a physical keyboard.
 class Keyboard : public IInputDevice
 {
-    friend aln::Engine;
+    friend Engine;
     friend class InputService;
 
   public:
@@ -151,7 +151,6 @@ class Keyboard : public IInputDevice
 
     /// Map of keyboard keys controls.
     std::array<ButtonControl, 131> m_keys;
-
     std::multimap<int, ControlStateChangedEvent> m_statesChanged;
 
     /// @brief Return a list of state changed events that occured since the last call to this function.
@@ -161,7 +160,7 @@ class Keyboard : public IInputDevice
     /// @todo Move to virtual fn in InputDevice (possibly InputControl even ?)
     void UpdateControlState(int glfwCode, int action);
 
-    void Update()
+    void Update() override
     {
         for (auto& key : m_keys)
         {
@@ -170,6 +169,7 @@ class Keyboard : public IInputDevice
     }
 
   public:
+    // ----- Polling API
     inline bool WasPressed(Key key) const { return m_keys[(uint16_t) key].WasPressed(); }
     inline bool WasReleased(Key key) const { return m_keys[(uint16_t) key].WasReleased(); }
     inline bool IsHeld(Key key) const { return m_keys[(uint16_t) key].IsHeld(); }

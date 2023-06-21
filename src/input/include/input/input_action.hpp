@@ -26,7 +26,7 @@ class InputAction
     std::function<void(CallbackContext)> m_callback;
     InputActionPhase m_phase = InputActionPhase::Disabled;
     Interaction::Type m_interactionType = Interaction::Type::Press;
-    std::shared_ptr<Interaction> m_pInteraction;
+    std::shared_ptr<Interaction> m_pInteraction; // TODO: raw ptr
 
   public:
     void SetCallback(std::function<void(CallbackContext)> callback) { m_callback = callback; }

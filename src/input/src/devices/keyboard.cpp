@@ -1,11 +1,11 @@
-#include "keyboard.hpp"
+#include "devices/keyboard.hpp"
 
 #include "control_state_event.hpp"
 #include "input_device.hpp"
 
 #include <GLFW/glfw3.h>
-
 #include <glm/vec2.hpp>
+
 #include <map>
 
 namespace aln
@@ -13,7 +13,6 @@ namespace aln
 
 // 1:1 Map from glfw key codes to ours
 const std::unordered_map<uint16_t, Keyboard::Key> Keyboard::GlfwKeyMap = {
-    {GLFW_KEY_UNKNOWN, Key::Unknown},
     {GLFW_KEY_UNKNOWN, Key::Unknown},
     {GLFW_KEY_SPACE, Key::Space},
     {GLFW_KEY_APOSTROPHE, Key::Apostrophe}, /* ' */

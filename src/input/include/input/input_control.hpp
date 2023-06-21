@@ -1,5 +1,7 @@
 #pragma once
 
+#include <common/uuid.hpp>
+
 #include <stdint.h>
 
 namespace aln
@@ -14,12 +16,13 @@ enum class ButtonState : uint8_t
 
 class IInputControl
 {
+  private:
+    UUID m_id = UUID::Generate();
+
   protected:
-    /// TODO: Use GUID
-    int m_id;
 
   public:
-    inline int GetId() const { return m_id; }
+    inline const UUID& GetID() const { return m_id; }
     virtual bool IsActuated() const = 0;
     friend bool operator<(const IInputControl& left, const IInputControl& right);
 };
@@ -55,14 +58,9 @@ class InputControl : public IInputControl
     virtual void Update() = 0;
 
   public:
-    bool IsActuated() const
-    {
-        return m_value != m_defaultValue;
-    }
+    InputControl(const T& defaultValue) : m_defaultValue(defaultValue), m_value(defaultValue) {}
 
-    T GetValue() const
-    {
-        return m_value;
-    }
+    bool IsActuated() const { return m_value != m_defaultValue; }
+    T GetValue() const { return m_value; }
 };
 } // namespace aln
