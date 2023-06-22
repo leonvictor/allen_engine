@@ -10,7 +10,6 @@ add_library(
     src/shaders.cpp
     src/subpass.cpp
     src/swapchain.cpp
-    src/window.cpp
     src/resources/buffer.cpp
     src/resources/image.cpp
 

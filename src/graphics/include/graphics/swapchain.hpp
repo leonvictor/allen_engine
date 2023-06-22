@@ -2,22 +2,25 @@
 
 #include <vulkan/vulkan.hpp>
 
+
+namespace aln
+{
+class GLFWApplication;
+}
 namespace aln::vkg
 {
 
 class Device;
 class Image;
-class Window;
 
 /// @brief Wrapper around a vulkan swapchain. Swapchain represent an array of images we render to and that are presented to the screen.
 class Swapchain
 {
     friend class Renderer;
+    friend GLFWApplication;
 
   public:
-    Swapchain() {}
-
-    Swapchain(Device* pDevice, vkg::Window* pWindow);
+    void Initialize(Device* pDevice, vk::SurfaceKHR* pSurface, uint32_t windowWidth, uint32_t windowHeight);
 
     uint32_t AcquireNextImage(vk::Semaphore& semaphore);
 
@@ -37,12 +40,13 @@ class Swapchain
 
     /// @brief Add a callback that triggers when this swapchain is resized.
     void AddResizeCallback(std::function<void(uint32_t, uint32_t)> callback);
+    bool RequiresResize() const { return m_resizeRequired; }
 
   private:
     // Wrapped vulkan swapchain.
     vk::UniqueSwapchainKHR m_vkSwapchain;
 
-    vkg::Window* m_pWindow = nullptr;
+    vk::SurfaceKHR* m_pSurface = nullptr;
     vk::SurfaceFormatKHR m_surfaceFormat;
     vk::Extent2D m_extent;
 

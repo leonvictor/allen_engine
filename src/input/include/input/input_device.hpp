@@ -12,6 +12,7 @@ class IInputDevice
     std::multimap<int, ControlStateChangedEvent> m_statesChanged;
 
     virtual void Update() = 0;
+    virtual void ClearFrameState() {}
 
   public:
     /// @brief Return a list of state changed events that occured since the last call to this method.

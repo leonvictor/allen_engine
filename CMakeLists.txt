@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(SOURCE 
-    src/main.cpp)
+    src/applications/glfw_application.cpp)
 
 enable_testing()
 

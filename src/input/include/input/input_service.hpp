@@ -12,7 +12,6 @@
 namespace aln
 {
 
-class Engine;
 
 /// TODO: https://www.gamedev.net/blogs/entry/2250186-designing-a-robust-input-handling-system-for-games/
 class InputContext;
@@ -20,7 +19,8 @@ class InputContext;
 /// @brief Input is the overarching system recording and dispatching input operations.
 class InputService : public IService
 {
-    friend Engine;
+    friend class GLFWApplication;
+    friend class Engine;
 
   private:
     // TODO:
@@ -64,6 +64,13 @@ class InputService : public IService
         // m_gamepad.Update();
 
         Dispatch();
+    }
+
+    void ClearFrameState()
+    {
+        m_keyboard.ClearFrameState();
+        m_mouse.ClearFrameState();
+        //m_gamepad.ClearFrameState();
     }
 
     /// @brief Process registered input by passing them to active contexts.

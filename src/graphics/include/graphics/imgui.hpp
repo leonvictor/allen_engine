@@ -12,7 +12,6 @@
 #include "device.hpp"
 #include "instance.hpp"
 #include "render_pass.hpp"
-#include "window.hpp"
 
 namespace aln::vkg
 {

@@ -2,22 +2,18 @@
 
 #include "device.hpp"
 #include "resources/image.hpp"
-#include "window.hpp"
 
 #include <functional>
 
 namespace aln::vkg
 {
 
-Swapchain::Swapchain(Device* pDevice, vkg::Window* pWindow)
+void Swapchain::Initialize(Device* pDevice, vk::SurfaceKHR* pSurface, uint32_t windowWidth, uint32_t windowHeight)
 {
     m_pDevice = pDevice;
-    m_pWindow = pWindow;
-    m_width = pWindow->GetWidth();
-    m_height = pWindow->GetHeight();
-
-    // Hook a callback to the window's resize event
-    pWindow->AddResizeCallback(std::bind(&Swapchain::TargetWindowResizedCallback, this, std::placeholders::_1, std::placeholders::_2));
+    m_width = windowWidth;
+    m_height = windowHeight;
+    m_pSurface = pSurface;
 
     CreateInternal();
 }
@@ -91,14 +87,7 @@ void Swapchain::Present(vk::Semaphore& waitSemaphore)
     // TODO: Shoud this happen in swapchain directly ?
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_resizeRequired)
     {
-        // TODO: Shouldn't be here
-        while (m_pWindow->IsMinimized())
-        {
-            m_pWindow->WaitEvents();
-        }
-
-        auto size = m_pWindow->GetSize();
-        Resize(size.width, size.height);
+        m_resizeRequired = true;
     }
     else if (result != vk::Result::eSuccess)
     {
@@ -118,7 +107,7 @@ void Swapchain::CreateInternal()
 
 vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain)
 {
-    auto swapchainSupport = m_pDevice->GetSwapchainSupport(m_pWindow->GetVkSurface());
+    auto swapchainSupport = m_pDevice->GetSwapchainSupport(*m_pSurface);
     auto presentMode = ChoosePresentMode(swapchainSupport.presentModes);
     m_surfaceFormat = ChooseSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
 
@@ -133,7 +122,7 @@ vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain
     }
 
     vk::SwapchainCreateInfoKHR createInfo{
-        .surface = m_pWindow->GetVkSurface(),
+        .surface = *m_pSurface,
         .minImageCount = imageCount,
         .imageFormat = m_surfaceFormat.format,
         .imageColorSpace = m_surfaceFormat.colorSpace,

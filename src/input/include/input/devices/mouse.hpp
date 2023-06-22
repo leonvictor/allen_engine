@@ -71,8 +71,14 @@ class Mouse : IInputDevice
             button.Update();
         }
 
+        
+    }
+
+    void ClearFrameState() override
+    {
         // Reset deltas
         m_scrollDelta = {0.0f, 0.0f};
+        m_delta = {0.0f, 0.0f};
     }
 
     /// @brief Translate a GLFW Event to KeyControl

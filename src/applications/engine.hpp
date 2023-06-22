@@ -1,44 +1,23 @@
-#include <glm/gtc/random.hpp>
-#include <glm/vec3.hpp>
-
-#include <cstdint>
-#include <cstdlib>
-
-#include <editor/editor.hpp>
-
-#include <graphics/device.hpp>
-#include <graphics/imgui.hpp>
-#include <graphics/instance.hpp>
-#include <graphics/window.hpp>
-
-#include <core/renderers/scene_renderer.hpp>
-#include <core/renderers/ui_renderer.hpp>
-
-#ifdef ALN_DEBUG
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-
-#include <crtdbg.h>
-#endif
-
-#include <assets/asset_service.hpp>
-#include <core/services/time_service.hpp>
-#include <input/input_service.hpp>
-#include <reflection/services/type_registry_service.hpp>
-
-#include <entities/world_entity.hpp>
-#include <entities/world_update.hpp>
-
-#include <core/skeletal_mesh.hpp>
-#include <core/static_mesh.hpp>
-
-#include <core/world_systems/render_system.hpp>
+#pragma once
 
 #include <anim/module/module.hpp>
 #include <assets/module/module.hpp>
 #include <core/module/module.hpp>
 #include <editor/module/module.hpp>
 #include <entities/module/module.hpp>
+
+#include <core/renderers/scene_renderer.hpp>
+#include <core/renderers/ui_renderer.hpp>
+#include <core/world_systems/render_system.hpp>
+
+#include <assets/asset_service.hpp>
+#include <core/services/time_service.hpp>
+#include <input/input_service.hpp>
+#include <reflection/services/type_registry_service.hpp>
+#include <common/services/service_provider.hpp>
+
+#include <entities/world_entity.hpp>
+#include <entities/world_update.hpp>
 
 #include <core/asset_loaders/animation_graph_loader.hpp>
 #include <core/asset_loaders/animation_loader.hpp>
@@ -47,46 +26,27 @@
 #include <core/asset_loaders/skeleton_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
 
-#include <common/memory.hpp>
-#include <common/services/service_provider.hpp>
-#include <common/threading/task_service.hpp>
+#include <editor/editor.hpp>
 
-#include <config/path.h>
-
-#include <Tracy.hpp>
-#include <nlohmann/json.hpp>
+class GLFWwindow;
 
 namespace aln
 {
-
-static constexpr glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
-static constexpr glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, 1.0f);
-static constexpr glm::vec3 WORLD_BACKWARD = -WORLD_FORWARD;
-static constexpr glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
-static constexpr glm::vec3 WORLD_LEFT = -WORLD_RIGHT;
-static constexpr glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
-static constexpr glm::vec3 WORLD_DOWN = -WORLD_UP;
 
 class Engine
 {
   private:
     // Rendering
-    vkg::Instance m_instance;
-    vkg::Window m_window;
-    vkg::Device m_device;
-    vkg::Swapchain m_swapchain;
-
     aln::UIRenderer m_uiRenderer;
     aln::SceneRenderer m_sceneRenderer;
 
     // Services
+    ServiceProvider m_serviceProvider;
     TaskService m_taskService;
     AssetService m_assetService;
     TimeService m_timeService;
     InputService m_inputService;
     TypeRegistryService m_typeRegistryService;
-
-    ServiceProvider m_serviceProvider;
 
     // Editor
     Editor m_editor;
@@ -105,42 +65,19 @@ class Engine
   public:
     Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity) {}
 
-    void Run()
-    {
-        while (!m_window.ShouldClose())
-        {
-            Update();
-            FrameMark;
-        }
-    }
-
-    void Initialize()
+    // TODO: Get rid of the glfwWindow
+    void Initialize(GLFWwindow* pGLFWWindow, vkg::Swapchain& swapchain, vkg::Device& device, const glm::vec2& windowSize)
     {
         // Initialize the render engine
-        // @todo: Improve API
-        m_window.InitializeWindow();
-        m_instance.RequestExtensions(m_window.GetRequiredExtensions());
-        m_instance.Create();
-        m_window.CreateSurface(&m_instance);
-
-        m_device.Initialize(&m_instance, m_window.GetVkSurface());
-        m_swapchain = vkg::Swapchain(&m_device, &m_window);
-
-        m_uiRenderer.Create(&m_swapchain);
+        m_uiRenderer.Create(&swapchain);
 
         m_sceneRenderer.Create(
-            &m_device,
-            m_window.GetWidth(), m_window.GetHeight(),
+            &device,
+            windowSize.x, windowSize.y,
             2,
-            m_swapchain.GetImageFormat());
+            swapchain.GetImageFormat());
 
-        m_imgui.Initialize(m_window.GetGLFWWindow(), &m_device, m_uiRenderer.GetRenderPass(), m_uiRenderer.GetNumberOfImages());
-
-        // Register callbacks to transfer events from the window to the input system
-        // TODO: Ideally this would be managed entirelly by the input system, without a dependency on the window
-        m_window.AddKeyCallback(std::bind(&InputService::UpdateKeyboardControlState, &m_inputService, std::placeholders::_1, std::placeholders::_2));
-        m_window.AddMouseButtonCallback(std::bind(&InputService::UpdateMouseControlState, &m_inputService, std::placeholders::_1, std::placeholders::_2));
-        m_window.AddScrollCallback(std::bind(&InputService::UpdateScrollControlState, &m_inputService, std::placeholders::_1, std::placeholders::_2));
+        m_imgui.Initialize(pGLFWWindow, &device, m_uiRenderer.GetRenderPass(), m_uiRenderer.GetNumberOfImages());
 
         // TODO: Get rid of all the references to m_device
         // They should not be part of this class
@@ -165,23 +102,26 @@ class Engine
 
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
-        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(&m_device);
-        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(&m_device);
-        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(&m_device);
-        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&m_device);
+        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(&device);
+        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(&device);
+        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(&device);
+        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&device);
         m_assetService.RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
         m_assetService.RegisterAssetLoader<Skeleton, SkeletonLoader>();
         m_assetService.RegisterAssetLoader<AnimationGraphDataset, AnimationGraphDatasetLoader>();
         m_assetService.RegisterAssetLoader<AnimationGraphDefinition, AnimationGraphDefinitionLoader>(&m_typeRegistryService);
 
-        CreateWorld();
+        m_worldEntity.Initialize(m_serviceProvider);
+        m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
+        
+        m_editor.Initialize(m_serviceProvider, "scene.aln");
+        
         ShareImGuiContext();
     }
 
     void Shutdown()
     {
         // TODO
-        m_device.GetVkDevice().waitIdle();
         m_editor.Shutdown();
     }
 
@@ -199,25 +139,17 @@ class Engine
 
     void CreateWorld()
     {
-        m_worldEntity.Initialize(m_serviceProvider);
-        m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
 
-        m_editor.Initialize(m_serviceProvider, "scene.aln");
     }
 
     void Update()
     {
         // Update services
-
-        // todo: Move to InputService::Update. We need to associate the service with the window beforehand
-        m_inputService.UpdateMousePosition(m_window.GetCursorPosition());
-
         m_inputService.Update();
         m_timeService.Update();
         m_assetService.Update();
 
-        // TODO: Uniformize Update, NewFrame, Dispatch, and BeginFrame methods
-        m_window.NewFrame();
+        // TODO: Uniformize NewFrame and BeginFrame methods
         m_uiRenderer.BeginFrame(aln::vkg::render::RenderContext());
         m_imgui.NewFrame();
 
@@ -249,22 +181,9 @@ class Engine
         m_imgui.Render(m_uiRenderer.GetActiveRenderTarget().commandBuffer.get());
 
         m_uiRenderer.EndFrame();
+        m_inputService.ClearFrameState();
     }
+
+    InputService& GetInputService() { return m_inputService; }
 };
 } // namespace aln
-
-int main()
-{
-#ifdef ALN_DEBUG
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-    aln::Engine* pApp = aln::New<aln::Engine>();
-
-    pApp->Initialize();
-    pApp->Run();
-    pApp->Shutdown();
-
-    aln::Delete(pApp); // Test deletion
-
-    return EXIT_SUCCESS;
-};

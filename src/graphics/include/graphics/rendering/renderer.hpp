@@ -7,7 +7,6 @@
 #include "../resources/buffer.hpp"
 #include "../resources/image.hpp"
 #include "../swapchain.hpp"
-#include "../window.hpp"
 #include "render_target.hpp"
 
 #include <common/colors.hpp>
