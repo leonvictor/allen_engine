@@ -10,6 +10,8 @@ namespace aln
 /// @brief 2D floating point axis control (i.e. thumbstick)
 class AxisControl2D : public InputControl<glm::vec2>
 {
+    friend class Gamepad;
+
     public :
         AxisControl2D() : InputControl<glm::vec2>({0.0f, 0.0f}){}
         void Update() override{}

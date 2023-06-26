@@ -1,5 +1,7 @@
 #include "entity_systems/player_controller.hpp"
 
+#include <input/input_service.hpp>
+
 namespace aln
 {
 
@@ -9,6 +11,9 @@ ALN_REGISTER_IMPL_END()
 
 void PlayerControllerSystem::Update(const UpdateContext& ctx)
 {
+    // TODO: Use our own math lib
+    // TODO: Provide easier access to services in user-facing base script class
+    m_blendWeight = glm::length(ctx.GetService<InputService>()->GetGamepad()->GetRightStickValue());
     m_pGraphComponent->SetControlParameterValue(m_blendWeightParameterIndex, m_blendWeight);
 }
 
@@ -18,7 +23,7 @@ void PlayerControllerSystem::RegisterComponent(IComponent* pComponent)
     if (pGraphComponent != nullptr)
     {
         m_pGraphComponent = pGraphComponent;
-        m_blendWeightParameterIndex = pGraphComponent->GetControlParameterIndex("BlendWeight");
+        m_blendWeightParameterIndex = pGraphComponent->GetControlParameterIndex("Speed");
         return;
     }
 }

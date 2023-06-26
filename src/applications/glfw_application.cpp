@@ -92,6 +92,9 @@ class GLFWApplication
     {
         m_device.GetVkDevice().waitIdle();
         m_engine.Shutdown();
+
+        glfwDestroyWindow(m_pGlfwWindow);
+        glfwTerminate();
     }
 
     void Run()
@@ -105,10 +108,12 @@ class GLFWApplication
             glfwGetCursorPos(m_pGlfwWindow, &xpos, &ypos);
             m_engine.GetInputService().UpdateMousePosition({xpos, ypos});
 
+            // Gamepad input needs to be handled separately since glfw doesn't provide callbacks for them
+            PollGamepadInput();
+
             int width, height;
             glfwGetFramebufferSize(m_pGlfwWindow, &width, &height);
 
-            std::cout << m_swapchain.RequiresResize() << std::endl;
             if (m_swapchain.RequiresResize())
             {
                 m_swapchain.Resize(width, height);
@@ -132,6 +137,7 @@ class GLFWApplication
     /// TODO: override glfw and poll events directly from the os
     static void KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods)
     {
+        // TODO: Handle glfw mappings here rather than in the keyboard class
         auto pApp = reinterpret_cast<GLFWApplication*>(glfwGetWindowUserPointer(pGlfwWindow));
         pApp->m_engine.GetInputService().UpdateKeyboardControlState(key, scancode);
     }
@@ -152,6 +158,52 @@ class GLFWApplication
     {
         auto pApp = reinterpret_cast<GLFWApplication*>(glfwGetWindowUserPointer(pGlfwWindow));
         pApp->m_swapchain.TargetWindowResizedCallback(width, height);
+    }
+
+    void PollGamepadInput()
+    {
+        constexpr uint8_t MAX_JOYSTICKS = 16;
+        for (auto joystickIdx = 0; joystickIdx < MAX_JOYSTICKS; ++joystickIdx)
+        {
+            if (glfwJoystickPresent(joystickIdx))
+            {
+                if (glfwJoystickIsGamepad(joystickIdx))
+                {
+                    // TODO: Handle multiple controllers
+                    auto& gamepad = m_engine.GetInputService().m_gamepad;
+                    GLFWgamepadstate state;
+
+                    if (glfwGetGamepadState(joystickIdx, &state))
+                    {
+                        for (auto buttonIdx = 0; buttonIdx < GLFW_GAMEPAD_BUTTON_LAST; ++buttonIdx)
+                        {
+                            // Only trigger events if the state changed
+                            if (state.buttons[buttonIdx] == GLFW_PRESS)
+                            {
+                                if (!gamepad.m_buttons[buttonIdx].IsHeld())
+                                {
+                                    // TODO: Map from GLFW button to our actual values
+                                    gamepad.SetButtonPressed((Gamepad::Button) buttonIdx);
+                                }
+                            }
+                            else
+                            {
+                                if (gamepad.m_buttons[buttonIdx].IsHeld())
+                                {
+                                    gamepad.SetButtonReleased((Gamepad::Button) buttonIdx);
+                                }
+                            } 
+                        }
+
+                        gamepad.SetLeftStickState({state.axes[GLFW_GAMEPAD_AXIS_LEFT_X], state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]});
+                        gamepad.SetRightStickState({state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X], state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]});
+                        gamepad.SetLeftTriggerState(state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER]);
+                        gamepad.SetRightTriggerState(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]);
+
+                    }
+                }
+            }
+        }
     }
 };
 } // namespace aln

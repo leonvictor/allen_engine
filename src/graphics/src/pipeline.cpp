@@ -1,6 +1,7 @@
 #include "pipeline.hpp"
 
 #include <fstream>
+#include <iostream>
 
 using namespace aln::utils;
 
@@ -296,13 +297,13 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
 
         // Clean up and print results
         readCacheStream.close();
-        std::cout << "  Pipeline cache HIT!\n";
-        std::cout << "  cacheData loaded from " << path << "\n";
+        std::cout << "  Pipeline cache HIT!" << std::endl;
+        std::cout << "  cacheData loaded from " << path << std::endl;
     }
     else
     {
         // No cache found on disk
-        std::cout << "  Pipeline cache miss!\n";
+        std::cout << "  Pipeline cache miss!" << std::endl;
     }
 
     if (startCacheData)

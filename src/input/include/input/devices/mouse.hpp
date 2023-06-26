@@ -12,13 +12,11 @@
 
 namespace aln
 {
-class Engine;
 
 /// @brief Describe a physical mouse and its on-screen cursor relative.
 class Mouse : IInputDevice
 {
     friend class InputService;
-    friend Engine;
 
   public:
     enum class Button : uint8_t
@@ -70,8 +68,6 @@ class Mouse : IInputDevice
         {
             button.Update();
         }
-
-        
     }
 
     void ClearFrameState() override

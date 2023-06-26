@@ -11,8 +11,12 @@ class ButtonControl : public InputControl<ButtonState>
 {
     friend class Keyboard;
     friend class Mouse;
+    friend class Gamepad;
 
   private:
+    void Press() { SetValue(ButtonState::Pressed); }
+    void Release() { SetValue(ButtonState::Released); }
+
   public:
     ButtonControl() : InputControl<ButtonState>(ButtonState::None) {}
 
@@ -40,6 +44,8 @@ class ButtonControl : public InputControl<ButtonState>
             {
                 m_value = ButtonState::None;
             }
+
+            m_updateState = UpdateState::None;
         }
     }
 };

@@ -32,7 +32,7 @@ class InputService : public IService
 
     Keyboard m_keyboard;
     Mouse m_mouse;
-    //Gamepad m_gamepad;
+    Gamepad m_gamepad;
 
     // TODO: Merge in a single function and handle device internally
     void UpdateKeyboardControlState(int code, int action)
@@ -61,7 +61,7 @@ class InputService : public IService
     {
         m_keyboard.Update();
         m_mouse.Update();
-        // m_gamepad.Update();
+        m_gamepad.Update();
 
         Dispatch();
     }
@@ -86,7 +86,6 @@ class InputService : public IService
     /// @brief Access to the mouse.
     inline const Mouse* GetMouse() const { return &m_mouse; }
 
-    /// TODO: Access to the gamepad.
-    // static const Gamepad& GetGamepad();
+    inline const Gamepad* GetGamepad() const { return &m_gamepad; }
 };
 } // namespace aln
