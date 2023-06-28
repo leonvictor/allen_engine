@@ -1,20 +1,16 @@
 #pragma once
 
-#include "../drawing_context.hpp"
 #include "../skeletal_mesh.hpp"
 #include "mesh_component.hpp"
 
-#include <common/transform.hpp>
-
 #include <anim/animation_clip.hpp>
 #include <anim/skeleton.hpp>
-
+#include <common/drawing_context.hpp>
+#include <common/transform.hpp>
 #include <entities/spatial_component.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
-
-#include <memory>
 
 namespace aln
 {
@@ -31,7 +27,7 @@ class SkeletalMeshComponent : public MeshComponent
     AssetHandle<Skeleton> m_pSkeleton; // Animation Skeleton
 
     // Rendering bone transforms in global character space
-    std::vector<Transform> m_boneTransforms; 
+    std::vector<Transform> m_boneTransforms;
     std::vector<glm::mat4x4> m_skinningTransforms;
 
     // Bone mapping between animation and render skeletons
@@ -47,7 +43,6 @@ class SkeletalMeshComponent : public MeshComponent
   public:
     inline const SkeletalMesh* GetMesh() const { return m_pMesh.get(); }
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
-
 
     void SetPose(const Pose* pPose)
     {
@@ -150,12 +145,9 @@ class SkeletalMeshComponent : public MeshComponent
         for (BoneIndex boneIndex = 1; boneIndex < boneCount; boneIndex++)
         {
             const auto parentBoneIndex = m_pMesh->GetParentBoneIndex(boneIndex);
-            if (m_drawRootBone || parentBoneIndex != 0)
-            {
-                boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
-                const Transform parentWorldTransform = worldTransform * m_boneTransforms[parentBoneIndex];
-                drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
-            }
+            boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
+            const Transform parentWorldTransform = worldTransform * m_boneTransforms[parentBoneIndex];
+            drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
         }
     }
 

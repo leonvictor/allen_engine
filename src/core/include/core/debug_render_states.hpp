@@ -38,30 +38,30 @@ class LinesRenderState
 
         // Create UBO
         m_viewProjectionUBO = vkg::resources::Buffer(pDevice, sizeof(UBO), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        m_viewProjectionUBO.Map(0, sizeof(UBO));
+        m_viewProjectionUBO.Map();
 
         // Create descriptor set
         m_descriptorSet = pDevice->AllocateDescriptorSet<LinesRenderState>();
         pDevice->SetDebugUtilsObjectName(m_descriptorSet.get(), "Lines Descriptor Set");
 
-        vk::DescriptorBufferInfo linesBufferInfo =
+        vk::DescriptorBufferInfo viewProjectionUBOInfo =
             {
                 .buffer = m_viewProjectionUBO.GetVkBuffer(),
                 .offset = 0,
                 .range = VK_WHOLE_SIZE,
             };
 
-        vk::WriteDescriptorSet writeDescriptor =
+        vk::WriteDescriptorSet writeDescriptorSet =
             {
                 .dstSet = m_descriptorSet.get(),
                 .dstBinding = 0,
                 .dstArrayElement = 0,
                 .descriptorCount = 1,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
-                .pBufferInfo = &linesBufferInfo,
+                .pBufferInfo = &viewProjectionUBOInfo,
             };
 
-        pDevice->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
+        pDevice->GetVkDevice().updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
 
         // ---------------
         // Line drawing pipeline (used for debug)

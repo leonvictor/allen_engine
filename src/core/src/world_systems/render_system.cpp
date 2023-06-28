@@ -41,7 +41,8 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     // Update UBO
     LinesRenderState::UBO ubo;
     ubo.m_viewProjectionMatrix = m_pCameraComponent->GetViewProjectionMatrix(m_aspectRatio);
-    m_linesRenderState.m_viewProjectionUBO.Copy(&ubo, sizeof(ubo));
+
+    m_linesRenderState.m_viewProjectionUBO.Copy(ubo);
 
     // Update vertex buffer
     m_linesRenderState.m_vertexBuffer.Copy(vertexBuffer);
