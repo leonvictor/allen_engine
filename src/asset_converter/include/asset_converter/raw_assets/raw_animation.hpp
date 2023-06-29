@@ -52,6 +52,8 @@ struct AssimpAnimationReader
 {
     static aiNodeAnim* GetChannel(const aiAnimation* pAnimation, const std::string& boneName)
     {
+        assert(pAnimation != nullptr);
+
         for (auto channelIndex = 0; channelIndex < pAnimation->mNumChannels; ++channelIndex)
         {
             auto pChannel = pAnimation->mChannels[channelIndex];
@@ -126,14 +128,17 @@ struct AssimpAnimationReader
 
         // Extract root motion to a separate track and replace it with an empty one
         auto& rootMotionTrack = animation.m_tracks[0];
+        auto rootMotionStartOffset = rootMotionTrack.m_transforms[0].GetTranslation();
+
         auto rootMotionFrameCount = rootMotionTrack.m_transforms.size();
         animation.m_rootMotionTrack.reserve(rootMotionFrameCount);
         for (auto frameIdx = 0; frameIdx < rootMotionFrameCount; ++frameIdx)
         {
-            animation.m_rootMotionTrack.push_back(rootMotionTrack.m_transforms[frameIdx]);
-            // TODO: TMP while we do not handle root motion : remove translation but keep everything else
-            //rootMotionTrack.m_transforms[frameIdx] = Transform::Identity;
-            rootMotionTrack.m_transforms[frameIdx].SetTranslation(glm::vec3());
+            auto& transform = rootMotionTrack.m_transforms[frameIdx];
+            transform.AddTranslation(-rootMotionStartOffset);
+            animation.m_rootMotionTrack.push_back(transform);
+
+            rootMotionTrack.m_transforms[frameIdx] = Transform::Identity;
         }
 
         std::vector<std::byte> data;

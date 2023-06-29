@@ -33,11 +33,14 @@ class AnimationGraphComponent : public IComponent
     TaskSystem* m_pTaskSystem;
 
     Pose* m_pPose = nullptr;
+    Transform m_rootMotionDelta = Transform::Identity;
+
     Percentage m_previousAnimTime = 0.0f;
     Percentage m_animTime = 0.0f;
 
   public:
     inline const Pose* GetPose() { return m_pPose; }
+    inline const Transform& GetRootMotionDelta() { return m_rootMotionDelta; }
 
     // --------- Control Parameters
 
@@ -71,7 +74,9 @@ class AnimationGraphComponent : public IComponent
         m_graphContext.Update(deltaTime, characterWorldTransform);
 
         m_pTaskSystem->Reset();
-        m_pGraphInstance->Update(m_graphContext);
+     
+        const auto result = m_pGraphInstance->Update(m_graphContext);
+        m_rootMotionDelta = result.m_rootMotionDelta;
     }
 
     void ExecuteTasks()

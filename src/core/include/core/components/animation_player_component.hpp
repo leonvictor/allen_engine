@@ -35,6 +35,7 @@ class AnimationPlayerComponent : public IComponent
 
   public:
     inline const Pose* GetPose() { return m_pPose; }
+    inline const AssetHandle<AnimationClip>& GetAnimationClip() const { return m_pAnimationClip; }
 
     void Update(Seconds deltaTime);
 

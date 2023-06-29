@@ -38,6 +38,24 @@ class AssetConverter
         m_importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
     }
 
+    void RecursivePrint(const aiNode* pNode, int depthLevel=0)
+    {
+        for (int i = 0; i < depthLevel; ++i)
+        {
+            std::cout << " ";
+        }
+
+        aiVector3D pos, scale, rot;
+        pNode->mTransformation.Decompose(scale, rot, pos);
+        std::cout << pNode->mName.C_Str() << " (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+        
+        depthLevel++;
+        for (auto i = 0; i < pNode->mNumChildren; ++i)
+        {
+            RecursivePrint(pNode->mChildren[i], depthLevel);
+        }
+    }
+
     void ReadFile(std::filesystem::path inputFile)
     {
         m_sceneContext.m_pScene = m_importer.ReadFile(inputFile.string(), AssimpPostProcessFlags);
@@ -51,6 +69,7 @@ class AssetConverter
             assert(false);
         }
 
+        //RecursivePrint(m_sceneContext.GetRootNode());
 
         m_sceneContext.m_inverseSceneTransform = m_sceneContext.DecomposeMatrix(m_sceneContext.m_pScene->mRootNode->mTransformation).GetInverse();
 

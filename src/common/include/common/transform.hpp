@@ -40,23 +40,26 @@ class ALN_COMMON_EXPORT Transform
         assert(IsQuaternionNormalized(rotation));
     }
 
-    inline glm::vec3 GetTranslation() const { return m_translation; }
-    inline glm::quat GetRotation() const { return m_rotation; }
-    inline glm::vec3 GetScale() const { return m_scale; }
-    inline glm::vec3 GetRotationEuler() const { return glm::degrees(glm::eulerAngles(m_rotation)); }
+    inline const glm::vec3& GetTranslation() const { return m_translation; }
+    inline const glm::quat& GetRotation() const { return m_rotation; }
+    inline const glm::vec3& GetScale() const { return m_scale; }
+    inline const glm::vec3& GetRotationEuler() const { return glm::degrees(glm::eulerAngles(m_rotation)); }
 
-    inline void SetTranslation(const glm::vec3 translation) { m_translation = translation; }
-
-    inline void SetRotation(const glm::quat rotation)
+    inline void SetTranslation(const glm::vec3& translation) { m_translation = translation; }
+    inline void AddTranslation(const glm::vec3& translation) { m_translation = translation + m_translation; }
+    
+    inline void SetRotation(const glm::quat& rotation)
     {
         assert(IsQuaternionNormalized(rotation));
         m_rotation = rotation;
     }
+    
+    inline void AddRotation(const glm::quat& rotation) { m_rotation = rotation * m_rotation; }
 
     /// @brief Set the transform's rotation from euler angles given in degrees. Rotation order is XYZ.
-    inline void SetRotationEuler(const glm::vec3 eulerAngles) { m_rotation = glm::normalize(glm::quat(glm::radians(eulerAngles))); }
+    inline void SetRotationEuler(const glm::vec3& eulerAngles) { m_rotation = glm::normalize(glm::quat(glm::radians(eulerAngles))); }
 
-    inline void SetScale(const glm::vec3 scale) { m_scale = scale; }
+    inline void SetScale(const glm::vec3& scale) { m_scale = scale; }
 
     glm::mat4x4 ToMatrix() const;
 
@@ -74,11 +77,21 @@ class ALN_COMMON_EXPORT Transform
         return Transform(translation, rotation, scale);
     };
 
-    /// @brief Transform composition (right-to-left)
-    Transform& operator*=(const Transform& b);
+    /// @brief Get the delta between two transforms. Scale is ignored !
+    static Transform Delta(const Transform& from, const Transform& to)
+    {
+        const auto& inverseFromRotation = glm::inverse(from.m_rotation);
+        
+        Transform delta;
+        delta.m_rotation = to.m_rotation * inverseFromRotation;
+        delta.m_translation = glm::rotate(inverseFromRotation, to.m_translation - from.m_translation);
 
-    /// @brief Transform composition (right-to-left)
-    Transform operator*(const Transform& b) const;
+        return delta;
+    }
+
+    glm::vec3 TranslateVector(const glm::vec3& vector) const { return m_translation + vector; }
+    glm::vec3 RotateVector(const glm::vec3& vector) const { return glm::rotate(m_rotation, vector); }
+    glm::vec3 ScaleVector(const glm::vec3& vector) const { return m_scale * vector; }
 
     glm::vec3 TransformPoint(const glm::vec3& point) const
     {
@@ -89,9 +102,17 @@ class ALN_COMMON_EXPORT Transform
 
     glm::vec3 TransformVector(const glm::vec3& vector) const
     {
-        glm::vec3 out = m_rotation * (m_scale * vector);
+        auto out = m_scale * vector;
+        out = m_rotation * out;
+        out = m_translation + out;
         return out;
     }
+
+    /// @brief Transform composition (right-to-left)
+    Transform& operator*=(const Transform& b);
+
+    /// @brief Transform composition (right-to-left)
+    Transform operator*(const Transform& b) const;
 
     static const Transform Identity;
 

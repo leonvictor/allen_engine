@@ -24,8 +24,6 @@ class AssimpSceneContext
     friend class AssetConverter;
 
   private:
-
-
     const aiScene* m_pScene = nullptr;
 
     Transform m_inverseSceneTransform = Transform::Identity;

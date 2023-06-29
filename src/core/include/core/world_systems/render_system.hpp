@@ -1,22 +1,17 @@
 #pragma once
 
-#include "../components/light.hpp"
+#include "../debug_render_states.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 #include "../components/static_mesh_component.hpp"
-#include "../debug_render_states.hpp"
-#include "../skeletal_mesh.hpp"
-#include "../static_mesh.hpp"
+#include "../components/light.hpp"
 
 #include <common/drawing_context.hpp>
 #include <common/hash_vector.hpp>
-#include <common/vertex.hpp>
 #include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
-#include <graphics/resources/buffer.hpp>
 
 #include <vulkan/vulkan.hpp>
 
-#include <map>
 #include <vector>
 
 namespace aln
@@ -26,6 +21,8 @@ class Camera;
 
 class Entity;
 class IComponent;
+class SkeletalMesh;
+class StaticMesh;
 
 class GraphicsSystem : public IWorldSystem
 {

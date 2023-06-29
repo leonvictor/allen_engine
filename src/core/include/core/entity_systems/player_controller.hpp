@@ -12,6 +12,7 @@ class PlayerControllerSystem : public ScriptSystem
     ALN_REGISTER_TYPE();
 
     AnimationGraphComponent* m_pGraphComponent = nullptr;
+    SkeletalMeshComponent* m_pCharacterMeshComponent = nullptr;
 
     float m_blendWeight = 0.0f;
     NodeIndex m_blendWeightParameterIndex = InvalidIndex;

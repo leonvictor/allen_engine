@@ -183,11 +183,7 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     auto pCamera = dynamic_cast<Camera*>(pComponent);
     if (pCamera != nullptr)
     {
-        if (m_pCameraComponent == nullptr)
-        {
-            std::runtime_error("Tried to remove a non-existing camera component");
-        }
-
+        assert(m_pCameraComponent != nullptr);
         m_pCameraComponent = nullptr;
         return;
     }

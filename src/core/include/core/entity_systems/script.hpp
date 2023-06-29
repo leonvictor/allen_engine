@@ -13,7 +13,7 @@ class ScriptSystem : public IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
-    SpatialComponent* m_pRootComponent;
+    SpatialComponent* m_pRootComponent = nullptr;
 
     float m_rotationSpeedX = 15.0f;
     float m_rotationSpeedY = 0.0f;

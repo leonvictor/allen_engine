@@ -60,6 +60,8 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
         PoseNodeResult result;
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);
+        result.m_rootMotionDelta = m_pAnimationClip->GetRootMotionDelta(m_previousTime, m_currentTime);
+
         return result;
     }
 
@@ -72,6 +74,8 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
         
         PoseNodeResult result;
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);
+        result.m_rootMotionDelta = m_pAnimationClip->GetRootMotionDelta(m_previousTime, m_currentTime);
+        
         return result;
     }
 

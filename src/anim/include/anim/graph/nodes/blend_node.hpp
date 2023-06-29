@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../animation_graph_dataset.hpp"
 #include "../pose_node.hpp"
 #include "../runtime_graph_node.hpp"
 #include "../tasks/blend_task.hpp"
@@ -10,6 +9,8 @@
 
 namespace aln
 {
+
+class AnimationGraphDataset;
 
 /// @brief Node responsible for blending between animations.
 /// @note For now, only two animations and interpolative blending are supported
@@ -53,7 +54,7 @@ class BlendNode : public PoseRuntimeNode
         
         PoseNodeResult result;
         
-        // TODO: Avoid updating source nodes if it's not necessary
+        // TODO: Avoid updating source nodes if it's not necessary (i.e. we're at 0 or 1)
         m_blendWeight = m_pBlendWeightValueNode->GetValue<float>(context);
         
         const auto deltaPercentage = context.m_deltaTime / m_duration; 
@@ -68,11 +69,14 @@ class BlendNode : public PoseRuntimeNode
 
         BitFlags<PoseBlend> blendOptions; // TODO
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<BlendTask>(GetNodeIndex(), sourceNodeResult.m_taskIndex, targetNodeResult.m_taskIndex, m_blendWeight, blendOptions, nullptr);
-        
+        // TODO: we could skip an op by not interpolating scale (which is not used by the root motion track)
+        result.m_rootMotionDelta = Transform::Interpolate(sourceNodeResult.m_rootMotionDelta, targetNodeResult.m_rootMotionDelta, m_blendWeight);
+
         // TODO: Before ?
         const auto& sourceSyncTrack = m_pSourcePoseNode1->GetSyncTrack();
         const auto& targetSyncTrack = m_pSourcePoseNode2->GetSyncTrack();
         m_blendedSyncTrack = SyncTrack::Blend(sourceSyncTrack, targetSyncTrack, m_blendWeight);
+        
         m_duration = SyncTrack::CalculateSynchronizedTrackDuration(m_pSourcePoseNode1->GetDuration(), m_pSourcePoseNode2->GetDuration(), sourceSyncTrack, targetSyncTrack, m_blendedSyncTrack, m_blendWeight);
         m_previousTime = m_blendedSyncTrack.GetPercentageThrough(timeRange.m_beginTime);
         m_currentTime = m_blendedSyncTrack.GetPercentageThrough(timeRange.m_endTime);

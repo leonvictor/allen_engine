@@ -29,7 +29,7 @@ class AnimationLoader : public IAssetLoader
 
         archive >> pAnim->m_duration;
         archive >> pAnim->m_framesPerSecond;
-
+        
         size_t trackCount;
         archive >> trackCount;
 
@@ -39,6 +39,8 @@ class AnimationLoader : public IAssetLoader
             auto& track = pAnim->m_tracks.emplace_back();
             archive >> track.m_transforms;
         }
+
+        pAnim->m_frameCount = pAnim->m_tracks[0].m_transforms.size();
 
         archive >> pAnim->m_rootMotionTrack;
 
