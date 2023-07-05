@@ -60,27 +60,62 @@ class EditorGraphNode : public reflect::IReflected
         return nodeWidth;
     }
 
+    // TODO: Dynamic output
+
   protected:
     std::string m_name;
     bool m_renamable = false;
 
-    void AddInputPin(NodeValueType valueType, std::string name = "")
+    const Pin& AddInputPin(NodeValueType valueType, std::string name = "")
     {
         auto& pin = m_inputPins.emplace_back();
         pin.m_type = Pin::Type::In;
         pin.m_valueType = valueType;
         pin.m_name = name;
         pin.m_allowMultipleLinks = false;
+
+        return pin;
     }
 
-    void AddOutputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false)
+    const Pin& AddOutputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false)
     {
         auto& pin = m_outputPins.emplace_back();
         pin.m_type = Pin::Type::Out;
         pin.m_valueType = valueType;
         pin.m_name = name;
         pin.m_allowMultipleLinks = allowMultipleLinks;
+
+        return pin;
     }
+
+    const Pin& AddDynamicInputPin(NodeValueType valueType, std::string name = "")
+    {
+        AddInputPin(valueType, name);
+
+        auto& pin = m_inputPins.back();
+        pin.m_dynamic = true;
+
+        return pin;
+    }
+
+    void RemoveDynamicInputPin(const UUID& pinID)
+    {
+        assert(pinID.IsValid());
+
+        OnDynamicInputPinRemoved(pinID);
+
+        auto it = std::find_if(m_inputPins.begin(), m_inputPins.end(), [&](const Pin& pin)
+            { return pin.GetID() == pinID; });
+        assert(it != m_inputPins.end());
+
+        m_inputPins.erase(it);
+    }
+
+    // ---- Dynamic pins creation/deletion callbacks
+    virtual void OnDynamicInputPinCreated(const UUID& pinID) {}
+    virtual void OnDynamicInputPinRemoved(const UUID& pinID) {}
+    virtual void OnDynamicOutputPinCreated(const UUID& pinID) {}
+    virtual void OnDynamicOuputPinRemoved(const UUID& pinID) {}
 
     // ---- Custom drawing
     virtual void DrawNodeTitleBar(const GraphDrawingContext& ctx)
@@ -198,6 +233,8 @@ class EditorGraphNode : public reflect::IReflected
 
     const std::vector<Pin>& GetInputPins() const { return m_inputPins; }
     const std::vector<Pin>& GetOutputPins() const { return m_outputPins; }
+    uint32_t GetInputPinsCount() const { return m_inputPins.size(); }
+    uint32_t GetOutputPinsCount() const { return m_outputPins.size(); }
 
     const Pin& GetInputPin(size_t pinIdx) const
     {
@@ -246,7 +283,7 @@ class EditorGraphNode : public reflect::IReflected
     virtual bool SupportsDynamicOutputPins() const { return false; }
     virtual NodeValueType DynamicOutputPinValueType() const { return NodeValueType::Unknown; }
     virtual std::string DynamicOutputPinName() const { return ""; }
-    
+
     // ----- Renaming
 
     bool IsRenamable() const { return m_renamable; }

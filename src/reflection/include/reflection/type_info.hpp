@@ -309,6 +309,34 @@ class PrimitiveTypeInfo : public TypeInfo
     };                                                                                                                                        \
     }
 
+#define ALN_REGISTER_TEMPLATE_PRIMITIVE(primitiveType)                                                                                           \
+    namespace reflect                                                                                                                            \
+    {                                                                                                                                            \
+    template <typename T>                                                                                                                        \
+    struct TypeInfoResolver<primitiveType<T>>                                                                                                    \
+    {                                                                                                                                            \
+        static const TypeInfo* Get()                                                                                                             \
+        {                                                                                                                                        \
+            static PrimitiveTypeInfo typeInfo;                                                                                                   \
+            if (!typeInfo.IsValid())                                                                                                             \
+            {                                                                                                                                    \
+                auto typeName = std::string(#primitiveType) + "<" + typeid(T).name() + ">";                                                      \
+                typeInfo.m_typeID = StringID(typeName.c_str());                                                                                  \
+                typeInfo.m_name = typeName;                                                                                                      \
+                typeInfo.m_prettyName = PrettifyName(typeName.c_str());                                                                                  \
+                typeInfo.m_alignment = alignof(primitiveType<T>);                                                                                \
+                typeInfo.m_size = sizeof(primitiveType<T>);                                                                                      \
+                typeInfo.m_createType = []() { return aln::New<primitiveType<T>>(); };                                                           \
+                typeInfo.m_createTypeInPlace = [](void* pMemory) { return aln::PlacementNew<primitiveType<T>>(pMemory); };                       \
+                typeInfo.m_serialize = [](BinaryMemoryArchive& archive, const void* pInstance) { archive << *((primitiveType<T>*) pInstance); }; \
+                typeInfo.m_deserialize = [](BinaryMemoryArchive& archive, void* pInstance) { archive >> *((primitiveType<T>*) pInstance); };     \
+                TypeInfo::RegisterTypeInfo(&typeInfo);                                                                                           \
+            }                                                                                                                                    \
+            return &typeInfo;                                                                                                                    \
+        }                                                                                                                                        \
+    };                                                                                                                                           \
+    }
+
 } // namespace aln::reflect
 
 // Register primitives
@@ -330,4 +358,5 @@ ALN_REGISTER_PRIMITIVE(uint8_t)
 ALN_REGISTER_PRIMITIVE(uint16_t)
 ALN_REGISTER_PRIMITIVE(Transform)
 ALN_REGISTER_PRIMITIVE(std::string)
+ALN_REGISTER_TEMPLATE_PRIMITIVE(std::vector)
 } // namespace aln

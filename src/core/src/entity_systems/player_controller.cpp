@@ -13,7 +13,10 @@ void PlayerControllerSystem::Update(const UpdateContext& ctx)
 {
     // TODO: Use our own math lib
     // TODO: Provide easier access to services in user-facing base script class
-    m_blendWeight = glm::length(ctx.GetService<InputService>()->GetGamepad()->GetRightStickValue());
+    const auto leftStickState = ctx.GetService<InputService>()->GetGamepad()->GetLeftStickValue();
+    auto speed = std::max(std::abs(leftStickState.x), std::abs(leftStickState.y));
+    m_blendWeight = speed;
+
     m_pGraphComponent->SetControlParameterValue(m_blendWeightParameterIndex, m_blendWeight);
 
     // TODO: This should be the responsibility of the animation system. Use that when system update priorities are functionnal !

@@ -13,9 +13,13 @@ ALN_REGISTER_IMPL_END()
 void BlendEditorNode::Initialize()
 {
     m_name = "Blend";
-    AddInputPin(NodeValueType::Pose, "Source Pose");
-    AddInputPin(NodeValueType::Pose, "Target Pose");
     AddInputPin(NodeValueType::Float, "Blend Weight");
+    
+    AddInputPin(NodeValueType::Pose, "Input");
+    m_blendParameterValues.push_back(0.0f);
+    
+    AddInputPin(NodeValueType::Pose, "Input");
+    m_blendParameterValues.push_back(1.0f);
 
     AddOutputPin(NodeValueType::Pose, "Result");
 }
@@ -26,13 +30,31 @@ NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, An
     bool compiled = context.GetSettings<BlendNode>(this, pGraphDefinition, pSettings);
     if (!compiled)
     {
-        const auto pSourceNode1 = context.GetNodeLinkedToInputPin(GetInputPin(0).GetID());
-        const auto pSourceNode2 = context.GetNodeLinkedToInputPin(GetInputPin(1).GetID());
-        const auto pBlendWeightValueNode = context.GetNodeLinkedToInputPin(GetInputPin(2).GetID());
-        
+        // Blend weight parameter
+        const auto pBlendWeightValueNode = context.GetNodeLinkedToInputPin(GetInputPin(0).GetID());
         pSettings->m_blendWeightValueNodeIdx = pBlendWeightValueNode->Compile(context, pGraphDefinition);
-        pSettings->m_sourcePoseNode1Idx = pSourceNode1->Compile(context, pGraphDefinition);
-        pSettings->m_sourcePoseNode2Idx = pSourceNode2->Compile(context, pGraphDefinition);
+        
+        // Sources 
+        const auto inputPinsCount = GetInputPinsCount();
+        pSettings->m_sourcePoseNodeIndices.reserve(inputPinsCount - 1);
+
+        for (auto inputPinIdx = 1; inputPinIdx < inputPinsCount; ++inputPinIdx)
+        {
+            const auto pSourceNode = context.GetNodeLinkedToInputPin(GetInputPin(inputPinIdx).GetID());
+            pSettings->m_sourcePoseNodeIndices.push_back(pSourceNode->Compile(context, pGraphDefinition));
+        }
+
+        // Ranges
+        // TODO: Ensure ranges are sorted by ascending values
+        pSettings->m_blendRanges.reserve(inputPinsCount - 2);
+        for (auto rangeIdx = 0; rangeIdx < inputPinsCount - 2; ++rangeIdx)
+        {
+            auto& range = pSettings->m_blendRanges.emplace_back();
+            range.m_startNodeIndex = rangeIdx;
+            range.m_endNodeIndex = rangeIdx + 1;
+            range.m_startBlendWeightValue = m_blendParameterValues[rangeIdx];
+            range.m_endBlendWeightValue = m_blendParameterValues[rangeIdx + 1];
+        }
     }
 
     return pSettings->GetNodeIndex();

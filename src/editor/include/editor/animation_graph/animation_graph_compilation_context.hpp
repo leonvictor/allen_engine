@@ -28,7 +28,6 @@ class AnimationGraphCompilationContext
     AnimationGraphCompilationContext(const AnimationGraphEditor* pAnimationGraphEditor)
         : m_pAnimationGraphEditor(pAnimationGraphEditor) {}
 
-    // const AnimationGraphEditor* GetAnimationGraphEditor() const { return m_pAnimationGraphEditor; }
     const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const { return m_pAnimationGraphEditor->GetNodeLinkedToInputPin(inputPinID); }
     const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const { return m_pAnimationGraphEditor->GetNodeLinkedToOutputPin(outputPinID); }
 

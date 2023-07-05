@@ -61,6 +61,6 @@ class InputControl : public IInputControl
     InputControl(const T& defaultValue) : m_defaultValue(defaultValue), m_value(defaultValue) {}
 
     bool IsActuated() const { return m_value != m_defaultValue; }
-    T GetValue() const { return m_value; }
+    const T& GetValue() const { return m_value; }
 };
 } // namespace aln

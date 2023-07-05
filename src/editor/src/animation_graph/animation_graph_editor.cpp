@@ -270,9 +270,25 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
 
         if (ImGui::BeginPopup("graph_editor_node_popup"))
         {
+            // TODO: Factorize, we're looking for the node twice.
+            // but we need to correctly reset the context menu if the node is deleted 
+            auto pNode = *std::find_if(m_graphNodes.begin(), m_graphNodes.end(), [&](auto pNode)
+                { return pNode->GetID() == m_contextPopupElementID; });
+
             if (ImGui::MenuItem("Remove node"))
             {
                 RemoveGraphNode(m_contextPopupElementID);
+                pNode = nullptr;
+            }
+            
+            if (pNode != nullptr && pNode->SupportsDynamicInputPins() && ImGui::MenuItem("Add input pin"))
+            {
+                AddDynamicInputPin(pNode);
+            }
+
+            if (pNode != nullptr && pNode->SupportsDynamicOutputPins() && ImGui::MenuItem("Add output pin"))
+            {
+
             }
             ImGui::EndPopup();
         }
@@ -581,5 +597,22 @@ void AnimationGraphEditor::RemoveLink(const UUID& linkID)
         { return link.m_id == linkID; });
 
     SetDirty();
+}
+
+void AnimationGraphEditor::AddDynamicInputPin(EditorGraphNode* pNode)
+{
+    const auto& pin = pNode->AddDynamicInputPin(pNode->DynamicInputPinValueType(), pNode->DynamicInputPinName());
+    pNode->OnDynamicInputPinCreated(pin.GetID());
+    // Refresh lookup maps since ptrs to pins may have been invalidated by a resize
+    for (auto& pin : pNode->GetInputPins())
+    {
+        m_pinLookupMap[pin.GetID()] = &pin;
+    }
+}
+
+void AnimationGraphEditor::RemoveDynamicInputPin(EditorGraphNode* pNode, const UUID& pinID)
+{
+    m_pinLookupMap.erase(pinID);
+    pNode->RemoveDynamicInputPin(pinID);
 }
 } // namespace aln

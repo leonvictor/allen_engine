@@ -97,6 +97,9 @@ class AnimationGraphEditor : public IAssetEditorWindow
     void AddLink(UUID startNodeID, UUID startPinID, UUID endNodeID, UUID endPinID);
     void RemoveLink(const UUID& linkID);
 
+    void AddDynamicInputPin(EditorGraphNode* pNode);
+    void RemoveDynamicInputPin(EditorGraphNode* pNode, const UUID& pinID);
+
     /// @note Only works for single-link pins
     const Link* GetLinkToPin(const UUID& pinID) const;
 

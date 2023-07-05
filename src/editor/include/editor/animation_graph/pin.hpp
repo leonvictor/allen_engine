@@ -30,12 +30,14 @@ class Pin
     inline const std::string& GetName() const { return m_name; }
     inline const NodeValueType& GetValueType() const { return m_valueType; }
     inline bool AllowsMultipleLinks() const { return m_allowMultipleLinks; }
+    inline bool IsDynamic() const { return m_dynamic; }
 
   private:
-    const UUID m_id = UUID::Generate();
+    UUID m_id = UUID::Generate();
     std::string m_name;
     Type m_type = Type::In;
     NodeValueType m_valueType = NodeValueType::Unknown;
     bool m_allowMultipleLinks = false;
+    bool m_dynamic = false; // Added from the editor
 };
 } // namespace aln
