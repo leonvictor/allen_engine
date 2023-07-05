@@ -1,15 +1,16 @@
 #pragma once
 
-#include <assert.h>
-#include <iostream>
-#include <span>
-#include <vector>
+#include <aln_common_export.h>
 
 #include <stduuids.h>
 
+#include <assert.h>
+#include <iostream>
+#include <span>
+
 namespace aln
 {
-class UUID
+class ALN_COMMON_EXPORT UUID
 {
     friend struct std::hash<UUID>;
 
@@ -21,9 +22,8 @@ class UUID
     UUID() { assert(!IsValid()); }
     UUID(std::array<uint8_t, 16> data) : m_ID(data) {}
     UUID(std::span<uint8_t, 16> data) : m_ID(data) {}
-
     UUID(const std::string& str) : m_ID(uuids::uuid::from_string(str).value()) {}
-
+    
     static UUID Generate()
     {
         UUID id;
@@ -31,7 +31,7 @@ class UUID
         return id;
     }
 
-    static UUID InvalidID() { return UUID(); }
+    static const UUID InvalidID;
 
     inline std::string ToString() const { return uuids::to_string(m_ID); }
     inline bool IsValid() const { return !m_ID.is_nil(); }

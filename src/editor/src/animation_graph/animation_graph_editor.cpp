@@ -226,7 +226,7 @@ void AnimationGraphEditor::Update(const UpdateContext& context)
             }
             else
             {
-                m_contextPopupElementID = UUID::InvalidID();
+                m_contextPopupElementID = UUID::InvalidID;
                 ImGui::OpenPopup("graph_editor_canvas_popup");
             }
         }

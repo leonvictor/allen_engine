@@ -117,7 +117,7 @@ class TypeInfo
     // TODO: Members are public since they are initialized in custom reflected types bodies
     // Find a good way to avoid that
   public:
-    StringID m_typeID = StringID::InvalidID();
+    StringID m_typeID = StringID::InvalidID;
     std::string m_name;
     size_t m_size = 0;
     size_t m_alignment = 0;

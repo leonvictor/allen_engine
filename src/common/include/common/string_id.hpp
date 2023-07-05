@@ -1,10 +1,12 @@
 #pragma once
 
+#include <aln_common_export.h>
+
 #include "serialization/hash.hpp"
 
 namespace aln
 {
-class StringID
+class ALN_COMMON_EXPORT StringID
 {
   private:
     uint32_t m_hash;
@@ -22,7 +24,7 @@ class StringID
     bool operator!=(const StringID& id) const { return m_hash != id.m_hash; }
     bool operator<(const StringID& id) const { return m_hash < id.m_hash; }
 
-    static StringID InvalidID() { return StringID((uint32_t) 0); };
+    static StringID InvalidID;
 };
 
 // StringID must be trivial to easily be serialized

@@ -85,7 +85,7 @@ void SpatialComponent::Detach()
 
     // Remove component hierarchy values
     m_pSpatialParent = nullptr;
-    m_parentAttachmentSocketID = UUID::InvalidID();
+    m_parentAttachmentSocketID = UUID::InvalidID;
 
     // Offset local transform to account for the old parent's one
     m_localTransform = m_worldTransform;

@@ -18,7 +18,7 @@ class IComponent : public reflect::IReflected
 
   private:
     const UUID m_ID = UUID::Generate();
-    UUID m_entityID = UUID::InvalidID(); // Entity this component is attached to.
+    UUID m_entityID = UUID::InvalidID; // Entity this component is attached to.
     bool m_isSingleton = false;          // Whether you can have multiple components of this type per entity
 
     bool m_registeredWithEntitySystems = false;

@@ -194,7 +194,7 @@ class Entity
     /// @brief Add a component to this entity, taking ownership of it
     /// @param pComponent: Component to add.
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
-    void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID());
+    void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID);
 
     const std::vector<IComponent*>& GetComponents() { return m_components; }
 
