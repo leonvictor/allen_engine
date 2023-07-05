@@ -21,7 +21,7 @@ IPrimitiveTypeEditor* ReflectedTypeEditor::GetOrCreatePrimitiveTypeEditor(const 
     return it->second;
 }
 
-void ReflectedTypeEditor::Draw(const reflect::TypeInfo* pTypeInfo, void* pTypeInstance, float widgetColumnWidth)
+void ReflectedTypeEditor::Draw(const reflect::TypeInfo* pTypeInfo, void* pTypeInstance, float widgetColumnWidth) const
 {
     assert(pTypeInfo != nullptr && pTypeInstance != nullptr);
 

@@ -1,8 +1,13 @@
 #pragma once
 
+#include "graph_drawing_context.hpp"
+
 #include "anim/graph/value_types.hpp"
 
 #include <common/uuid.hpp>
+
+#include <imgui.h>
+#include <imnodes.h>
 
 namespace aln
 {
@@ -21,9 +26,9 @@ class Pin
   public:
     inline bool IsInput() const { return m_type == Type::In; }
     inline bool IsOutput() const { return m_type == Type::Out; }
-    inline UUID GetID() const { return m_id; }
+    inline const UUID& GetID() const { return m_id; }
     inline const std::string& GetName() const { return m_name; }
-    inline const NodeValueType GetValueType() const { return m_valueType; }
+    inline const NodeValueType& GetValueType() const { return m_valueType; }
     inline bool AllowsMultipleLinks() const { return m_allowMultipleLinks; }
 
   private:

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "asset_editor_window.hpp"
+#include "../asset_editor_window.hpp"
+#include "../reflected_types/reflected_type_editor.hpp"
+#include "graph_drawing_context.hpp"
 #include "link.hpp"
-#include "reflected_types/reflected_type_editor.hpp"
 
 #include <anim/graph/runtime_graph_instance.hpp>
 
@@ -42,9 +43,9 @@ class AnimationGraphEditor : public IAssetEditorWindow
 
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
 
-    ReflectedTypeEditor m_nodeInspector;
+    GraphDrawingContext m_graphDrawingContext;
 
-public:
+  public:
     // ----------- Window lifetime
 
     void Update(const UpdateContext& context) override;
@@ -88,14 +89,14 @@ public:
 
     /// @brief Create a node to the graph
     void AddGraphNode(EditorGraphNode* pNode);
-    
+
     /// @brief Remove a node from the graph
     void RemoveGraphNode(const UUID& nodeID);
 
     /// @brief Create a link between two pins
     void AddLink(UUID startNodeID, UUID startPinID, UUID endNodeID, UUID endPinID);
     void RemoveLink(const UUID& linkID);
-    
+
     /// @note Only works for single-link pins
     const Link* GetLinkToPin(const UUID& pinID) const;
 

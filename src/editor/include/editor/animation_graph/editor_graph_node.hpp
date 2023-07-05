@@ -1,16 +1,17 @@
 #pragma once
 
+#include "pin.hpp"
+
+#include <animation_graph/animation_graph_compilation_context.hpp>
 #include <common/types.hpp>
 #include <common/uuid.hpp>
-
 #include <reflection/reflected_type.hpp>
 #include <reflection/type_info.hpp>
 
-#include "pin.hpp"
-
+#include <imgui_stdlib.h>
 #include <nlohmann/json.hpp>
 
-#include <animation_graph/animation_graph_compilation_context.hpp>
+#include <cmath>
 
 namespace aln
 {
@@ -27,16 +28,41 @@ class EditorGraphNode : public reflect::IReflected
 
   private:
     const UUID m_id = UUID::Generate();
-
     std::vector<Pin> m_inputPins;
     std::vector<Pin> m_outputPins;
-    
-  protected:
-    std::string m_name;
-    bool m_renamable = false;
+
     // TODO: This is an awful lot of state
     bool m_renamingStarted = false;
     bool m_renamingInProgress = false;
+
+    float CalcNodeWidth() const
+    {
+        constexpr float MIN_NODE_WIDTH = 120.0f;
+
+        float nodeWidth = std::max(MIN_NODE_WIDTH, ImGui::CalcTextSize(GetName().c_str()).x);
+
+        for (const auto& pin : GetInputPins())
+        {
+            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+        }
+
+        for (const auto& pin : GetOutputPins())
+        {
+            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+        }
+
+        const auto pTypeInfo = GetTypeInfo();
+        for (const auto& member : pTypeInfo->m_members)
+        {
+            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(member.GetPrettyName().c_str()).x + 100);
+        }
+
+        return nodeWidth;
+    }
+
+  protected:
+    std::string m_name;
+    bool m_renamable = false;
 
     void AddInputPin(NodeValueType valueType, std::string name = "")
     {
@@ -56,23 +82,103 @@ class EditorGraphNode : public reflect::IReflected
         pin.m_allowMultipleLinks = allowMultipleLinks;
     }
 
+    // ---- Custom drawing
+    virtual void DrawNodeTitleBar(const GraphDrawingContext& ctx)
+    {
+        ImNodes::BeginNodeTitleBar();
+
+        if (IsRenamable())
+        {
+            if (m_renamingInProgress)
+            {
+                ImGui::PushItemWidth(ctx.m_currentNodeWidth);
+                ImGui::InputText("", &m_name);
+                ImGui::PopItemWidth();
+
+                if (m_renamingStarted)
+                {
+                    ImGui::SetKeyboardFocusHere(-1);
+                    m_renamingStarted = false;
+                }
+                if (ImGui::IsItemDeactivated())
+                {
+                    EndRenaming();
+                }
+            }
+            else
+            {
+                ImGui::Text(GetName().c_str());
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                {
+                    BeginRenaming();
+                }
+            }
+        }
+        else
+        {
+            ImGui::Text(GetName().c_str());
+        }
+
+        ImNodes::EndNodeTitleBar();
+    }
+
+    virtual bool DrawContent(const GraphDrawingContext& ctx)
+    {
+        auto pTypeInfo = GetTypeInfo();
+        ctx.m_nodeInspector.Draw(pTypeInfo, (void*) this, 100);
+        return pTypeInfo->GetMemberCount() > 0;
+    }
+
+    virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx)
+    {
+        ImNodes::PushColorStyle(ImNodesCol_Pin, ctx.GetTypeColor(pin.GetValueType()).U32());
+        if (pin.IsInput())
+        {
+            ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
+            ImNodes::BeginInputAttribute(pin.GetID());
+
+            const auto pPinName = pin.GetName().c_str();
+            const auto offset = ctx.m_currentNodeWidth - ImGui::CalcTextSize(pPinName).x;
+            ImGui::Text(pPinName);
+            ImGui::SameLine();
+            ImGui::Dummy({offset, 0.0f});
+
+            ImNodes::EndInputAttribute();
+            ImNodes::PopAttributeFlag();
+        }
+        else
+        {
+            const auto pinFlags = pin.AllowsMultipleLinks() ? ImNodesAttributeFlags_None : ImNodesAttributeFlags_EnableLinkDetachWithDragClick;
+            ImNodes::PushAttributeFlag(pinFlags);
+            ImNodes::BeginOutputAttribute(pin.GetID());
+
+            const char* pinName = pin.GetName().c_str();
+
+            /// @note : I'd like to align output pin labels to the right side of the node.
+            /// However, for now, the node's dimensions are only known after the ImNodes::EndNode() call
+            /// The following attempt result in forever growing node width:
+            const float labelWidth = ImGui::CalcTextSize(pinName).x;
+            // const float nodeWidth = ImNodes::GetNodeDimensions(GetID()).x;
+            auto offset = ctx.m_currentNodeWidth - labelWidth;
+            ImGui::Indent(offset);
+
+            ImGui::Text(pinName);
+
+            ImNodes::EndOutputAttribute();
+            ImNodes::PopAttributeFlag();
+        }
+        ImNodes::PopColorStyle();
+
+        return true;
+    }
+
+    // ---- Custom serialization
+    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) {}
+    virtual void SaveState(nlohmann::json& jsonObject) const {}
+
   public:
     const UUID& GetID() const { return m_id; }
     const std::string& GetName() const { return m_name; }
-
-    bool IsRenamable() const { return m_renamable; }
-    void BeginRenaming()
-    {
-        assert(m_renamable);
-        m_renamingInProgress = true;
-        m_renamingStarted = true;
-    }
-
-    void EndRenaming()
-    {
-        assert(m_renamable);
-        m_renamingInProgress = false;
-    }
 
     NodeValueType GetValueType() const
     {
@@ -133,6 +239,33 @@ class EditorGraphNode : public reflect::IReflected
         return InvalidIndex;
     }
 
+    virtual bool SupportsDynamicInputPins() const { return false; }
+    virtual NodeValueType DynamicInputPinValueType() const { return NodeValueType::Unknown; }
+    virtual std::string DynamicInputPinName() const { return ""; }
+
+    virtual bool SupportsDynamicOutputPins() const { return false; }
+    virtual NodeValueType DynamicOutputPinValueType() const { return NodeValueType::Unknown; }
+    virtual std::string DynamicOutputPinName() const { return ""; }
+    
+    // ----- Renaming
+
+    bool IsRenamable() const { return m_renamable; }
+
+    void BeginRenaming()
+    {
+        assert(m_renamable);
+        m_renamingInProgress = true;
+        m_renamingStarted = true;
+    }
+
+    void EndRenaming()
+    {
+        assert(m_renamable);
+        m_renamingInProgress = false;
+    }
+
+    // ----- Lifetime
+
     virtual void Initialize() = 0;
 
     /// @brief Compile the node and add it to a graph definition
@@ -157,9 +290,29 @@ class EditorGraphNode : public reflect::IReflected
         LoadState(json, pTypeRegistryService);
     }
 
-    // Customizable parts
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) {}
-    virtual void SaveState(nlohmann::json& jsonObject) const {}
+    void DrawNode(GraphDrawingContext& ctx)
+    {
+        ctx.m_currentNodeWidth = CalcNodeWidth();
+
+        ImNodes::BeginNode(GetID());
+
+        DrawNodeTitleBar(ctx);
+
+        for (auto& inputPin : m_inputPins)
+        {
+            DrawPin(inputPin, ctx);
+        }
+
+        // Display reflected fields
+        DrawContent(ctx);
+
+        for (auto& outputPin : m_outputPins)
+        {
+            DrawPin(outputPin, ctx);
+        }
+
+        ImNodes::EndNode();
+    }
 
     bool operator==(const EditorGraphNode& other) { return m_id == other.m_id; }
     bool operator!=(const EditorGraphNode& other) { return m_id != other.m_id; }
