@@ -42,7 +42,7 @@ class RuntimeGraphNode
         friend class AnimationGraphCompilationContext;
 
       private:
-        uint32_t m_nodeIndex = InvalidIndex; // Index of the node in the runtime settings array
+        NodeIndex m_nodeIndex = InvalidIndex; // Index of the node in the runtime settings array
 
       protected:
         /// @brief Placement-new a runtime node in the node vector and return a pointer to it
@@ -93,20 +93,20 @@ class RuntimeGraphNode
 
   private:
     const Settings* m_pSettings = nullptr;
-
-  protected:
-    // TODO: Status is protected for now as we need to set it in pose nodes's initialize methods... It shouldnt
     Status m_status = Status::Uninitialized;
 
-    // TODO: Pointer to the runtime graph DEFINITION, which holds the settings values
+  protected:
     template <typename T>
     const typename T::Settings* GetSettings() const
     {
-        // TODO: Runtime nodes do not contain data, and instead point to the memory where the "graph definition" lies
         return static_cast<const T::Settings*>(m_pSettings);
     }
 
-    virtual void InitializeInternal(GraphContext& context) {}
+    virtual void InitializeInternal(GraphContext& context)
+    {
+        m_status = Status::Initialized;
+    }
+
     virtual void ShutdownInternal() {}
 
     virtual NodeValueType GetValueType() const { return NodeValueType::Unknown; }; // ?
@@ -123,7 +123,7 @@ class RuntimeGraphNode
     virtual void Initialize(GraphContext& context)
     {
         InitializeInternal(context);
-        m_status = Status::Initialized;
+        assert(IsInitialized()); // Did you forget to call a base class' parent::InitializeInternal ?
     }
 
     virtual void Shutdown()

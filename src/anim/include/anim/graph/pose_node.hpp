@@ -1,4 +1,4 @@
-#pragma once
+    #pragma once
 
 #include <assert.h>
 #include <vector>
@@ -28,11 +28,6 @@ struct PoseNodeResult
 };
 
 /// @brief Animation graph node responsible for managing time. Contains the logic needed to calculate the final pose.
-/// Track and update time per node
-/// Synchronization
-/// Register pose generation tasks
-/// Sampling and modifying root motion deltas
-/// Sampling anim events
 class PoseRuntimeNode : public RuntimeGraphNode
 {
   protected:
@@ -58,12 +53,12 @@ class PoseRuntimeNode : public RuntimeGraphNode
     void Initialize(GraphContext& context, const SyncTrackTime& initialTime = SyncTrackTime())
     {
         InitializeInternal(context, initialTime);
-        // TODO: Should be set elsewhere
-        m_status = Status::Initialized;
     }
 
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime)
     {
+        RuntimeGraphNode::InitializeInternal(context);
+
         m_loopCount = 0;
         m_duration = 0.0f;
         m_currentTime = 0.0f;
