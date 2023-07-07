@@ -64,7 +64,6 @@ class EditorGraphNode : public reflect::IReflected
 
   protected:
     std::string m_name;
-    bool m_renamable = false;
 
     const Pin& AddInputPin(NodeValueType valueType, std::string name = "")
     {
@@ -286,18 +285,18 @@ class EditorGraphNode : public reflect::IReflected
 
     // ----- Renaming
 
-    bool IsRenamable() const { return m_renamable; }
+    virtual bool IsRenamable() const { return false; }
 
     void BeginRenaming()
     {
-        assert(m_renamable);
+        assert(IsRenamable());
         m_renamingInProgress = true;
         m_renamingStarted = true;
     }
 
     void EndRenaming()
     {
-        assert(m_renamable);
+        assert(IsRenamable());
         m_renamingInProgress = false;
     }
 
@@ -311,7 +310,7 @@ class EditorGraphNode : public reflect::IReflected
 
     void SaveNodeState(nlohmann::json& json) const
     {
-        if (m_renamable)
+        if (IsRenamable())
         {
             json["name"] = m_name;
         }
@@ -320,7 +319,7 @@ class EditorGraphNode : public reflect::IReflected
 
     void LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
     {
-        if (m_renamable)
+        if (IsRenamable())
         {
             m_name = json["name"];
         }

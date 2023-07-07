@@ -10,7 +10,6 @@ ALN_REGISTER_IMPL_END()
 void FloatControlParameterEditorNode::Initialize()
 {
     m_name = "Float Parameter";
-    m_renamable = true;
     AddOutputPin(NodeValueType::Float, "Value", true);
 }
 

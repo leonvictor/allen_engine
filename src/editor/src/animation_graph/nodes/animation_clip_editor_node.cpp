@@ -11,7 +11,6 @@ ALN_REGISTER_IMPL_END()
 void AnimationClipEditorNode::Initialize()
 {
     m_name = "Animation Clip";
-    m_renamable = true;
     AddOutputPin(NodeValueType::Pose);
 }
 

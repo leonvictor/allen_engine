@@ -19,6 +19,7 @@ class AnimationClipEditorNode : public EditorGraphNode
 
   public:
     const AssetID& GetAnimationClipID() { return m_animationClipID; }
+    virtual bool IsRenamable() const override { return true; }
 
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
     {

@@ -10,6 +10,7 @@ namespace aln
 /// @todo Control Parameters names must be unique
 class IControlParameterEditorNode : public EditorGraphNode
 {
+    virtual bool IsRenamable() const final override { return true; }
 };
 
 class FloatControlParameterEditorNode : public IControlParameterEditorNode
