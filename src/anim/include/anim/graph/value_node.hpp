@@ -88,4 +88,17 @@ class FloatValueNode : public ValueNode
 {
     virtual NodeValueType GetValueType() const override final { return NodeValueType::Float; }
 };
+
+class BoolValueNode : public ValueNode
+{
+    virtual NodeValueType GetValueType() const override final { return NodeValueType::Bool; }
+};
+
+class IDValueNode : public ValueNode
+{
+    virtual NodeValueType GetValueType() const override final { return NodeValueType::ID; }
+};
+
+// TODO: ...
+
 } // namespace aln

@@ -4,6 +4,9 @@
 
 namespace aln
 {
+
+// ------ Float control parameter node
+
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, FloatControlParameterEditorNode)
 ALN_REGISTER_IMPL_END()
 
@@ -19,4 +22,43 @@ NodeIndex FloatControlParameterEditorNode::Compile(AnimationGraphCompilationCont
     context.GetSettings<FloatControlParameterNode>(this, pGraphDefinition, pSettings);
     return pSettings->GetNodeIndex();
 }
+
+// ------ Bool control parameter node
+
+ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, BoolControlParameterEditorNode)
+ALN_REGISTER_IMPL_END()
+
+void BoolControlParameterEditorNode::Initialize()
+{
+    m_name = "Bool Parameter";
+    AddOutputPin(NodeValueType::Bool, "Value", true);
+}
+
+NodeIndex BoolControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+{
+    BoolControlParameterNode::Settings* pSettings = nullptr;
+    context.GetSettings<BoolControlParameterNode>(this, pGraphDefinition, pSettings);
+    return pSettings->GetNodeIndex();
+}
+
+// ------ StringID control parameter node
+
+ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, IDControlParameterEditorNode)
+ALN_REGISTER_IMPL_END()
+
+void IDControlParameterEditorNode::Initialize()
+{
+    m_name = "ID Parameter";
+    AddOutputPin(NodeValueType::ID, "Value", true);
+}
+
+NodeIndex IDControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+{
+    IDControlParameterNode::Settings* pSettings = nullptr;
+    context.GetSettings<IDControlParameterNode>(this, pGraphDefinition, pSettings);
+    return pSettings->GetNodeIndex();
+}
+
+// ------- TODO: ...
+
 }

@@ -21,4 +21,25 @@ class FloatControlParameterEditorNode : public IControlParameterEditorNode
     virtual void Initialize() override;
     virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
 };
+
+class BoolControlParameterEditorNode : public IControlParameterEditorNode
+{
+    ALN_REGISTER_TYPE();
+
+  public:
+    virtual void Initialize() override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+};
+
+class IDControlParameterEditorNode : public IControlParameterEditorNode
+{
+    ALN_REGISTER_TYPE();
+
+  public:
+    virtual void Initialize() override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+};
+
+// TODO: ...
+
 } // namespace aln

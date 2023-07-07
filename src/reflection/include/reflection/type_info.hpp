@@ -340,9 +340,10 @@ class PrimitiveTypeInfo : public TypeInfo
 } // namespace aln::reflect
 
 // Register primitives
-// TODO: Move colors/glm out
+// TODO: Move aln-specific type out
 #include <common/colors.hpp>
 #include <common/transform.hpp>
+#include <common/string_id.hpp>
 #include <glm/vec3.hpp>
 
 namespace aln
@@ -359,4 +360,5 @@ ALN_REGISTER_PRIMITIVE(uint16_t)
 ALN_REGISTER_PRIMITIVE(Transform)
 ALN_REGISTER_PRIMITIVE(std::string)
 ALN_REGISTER_TEMPLATE_PRIMITIVE(std::vector)
+ALN_REGISTER_PRIMITIVE(StringID)
 } // namespace aln

@@ -8,6 +8,8 @@ add_library(${LIB_NAME} SHARED
     src/graph/runtime_graph_node.cpp
     src/graph/nodes/control_parameter_nodes.cpp
     src/graph/nodes/float_nodes.cpp
+    src/graph/nodes/bool_nodes.cpp
+    src/graph/nodes/id_nodes.cpp
     src/graph/nodes/animation_clip_runtime_node.cpp
     src/graph/nodes/blend_runtime_node.cpp
 

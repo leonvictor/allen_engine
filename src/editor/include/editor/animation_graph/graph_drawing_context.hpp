@@ -23,6 +23,10 @@ struct GraphDrawingContext
             return RGBColor::Pink;
         case NodeValueType::Float:
             return RGBColor::Yellow;
+        case NodeValueType::Bool:
+            return RGBColor::Orange;
+        case NodeValueType::ID:
+            return RGBColor::Blue;
         case NodeValueType::Unknown:
         default:
             assert(false); // Is the value type handled ?
