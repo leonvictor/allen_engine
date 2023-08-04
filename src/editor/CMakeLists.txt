@@ -18,6 +18,9 @@ add_library(${LIB_NAME}
     src/animation_graph/nodes/pose_editor_node.cpp
     src/animation_graph/nodes/animation_clip_editor_node.cpp
     src/animation_graph/nodes/blend_editor_node.cpp
+    src/animation_graph/nodes/state_machine_editor_node.cpp
+    src/animation_graph/nodes/transition_editor_node.cpp
+    src/animation_graph/nodes/state_editor_node.cpp
 
     src/module/module.cpp
     

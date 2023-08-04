@@ -55,6 +55,9 @@ class PoseRuntimeNode : public RuntimeGraphNode
         InitializeInternal(context, initialTime);
     }
 
+    /// @brief Custom init function to be overriden in derived node classes. Custom overrides should initialize:
+    /// - Time info (duration, current time, previous time);
+    /// - Child nodes
     virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime)
     {
         RuntimeGraphNode::InitializeInternal(context);

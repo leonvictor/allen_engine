@@ -5,51 +5,81 @@
 namespace aln
 {
 
-// TODO
 class PassthroughRuntimeNode : public PoseRuntimeNode
 {
+  public:
+    class Settings : public PoseRuntimeNode::Settings
+    {
+        ALN_REGISTER_TYPE();
+
+        friend class AnimationGraphCompilationContext;
+
+      private:
+        NodeIndex m_childNodexIndex = InvalidIndex;
+
+      public:
+        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        {
+            auto pNode = CreateNode<PassthroughRuntimeNode>(nodePtrs, options);
+            SetNodePtrFromIndex(nodePtrs, m_childNodexIndex, pNode->m_pChildNode);
+        }
+    };
+
   private:
-    std::vector<PoseRuntimeNode*> m_pChildNodes; // todo
+    PoseRuntimeNode* m_pChildNode = nullptr;
 
   protected:
     PoseNodeResult Update(GraphContext& context) override
     {
-        // TODO: Where does task registration happen ?
-        // TODO: We should provide dependencies on children here ?
-        PoseNodeResult result;
-        std::vector<TaskIndex> wouldBeTaskDependencies;
-        for (auto& pChild : m_pChildNodes)
-        {
-            // TODO: Populate dependencies
-            auto childResult = pChild->Update(context);
-            if (childResult.HasRegisteredTasks())
-            {
-                wouldBeTaskDependencies.push_back(childResult.m_taskIndex);
-            }
-        }
+        assert(m_pChildNode != nullptr);
+
+        auto result = m_pChildNode->Update(context);
+
+        // Update internal time to match child's
+        m_duration = m_pChildNode->GetDuration();
+        m_previousTime = m_pChildNode->GetPreviousTime();
+        m_currentTime = m_pChildNode->GetCurrentTime();
 
         return result;
     }
 
     PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) override
     {
-        PoseNodeResult result;
-        for (auto& pChild : m_pChildNodes)
-        {
-            pChild->Update(context, updateRange);
-        }
+        assert(m_pChildNode != nullptr);
+
+        auto result = m_pChildNode->Update(context, updateRange);
+
+        // Update internal time to match child's
+        m_duration = m_pChildNode->GetDuration();
+        m_previousTime = m_pChildNode->GetPreviousTime();
+        m_currentTime = m_pChildNode->GetCurrentTime();
+
         return result;
     }
 
-  public:
-    virtual const SyncTrack& GetSyncTrack() override const {
-        // TODO: Abstract method impl ?
-    };
-
-    bool IsChildValid(const size_t index = 0) const
+    void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
-        assert(index < m_pChildNodes.size());
-        return m_pChildNodes[index]->IsValid();
+        PoseRuntimeNode::InitializeInternal(context, initialTime);
+
+        assert(m_pChildNode != nullptr);
+        m_duration = m_pChildNode->GetDuration();
+        m_previousTime = m_pChildNode->GetPreviousTime();
+        m_currentTime = m_pChildNode->GetCurrentTime();
     }
+
+    void ShutdownInternal() override
+    {
+        assert(m_pChildNode != nullptr);
+
+        m_pChildNode->Shutdown();
+        PoseRuntimeNode::ShutdownInternal();
+    }
+
+  public:
+    virtual const SyncTrack& GetSyncTrack() const override
+    {
+        assert(m_pChildNode != nullptr);
+        return m_pChildNode->GetSyncTrack();
+    };
 };
 } // namespace aln
