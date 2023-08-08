@@ -1,6 +1,6 @@
 #include "editor.hpp"
 
-#include "animation_graph/animation_graph_editor.hpp"
+#include "assets/animation_graph/animation_graph_workspace.hpp"
 #include "assets/animation_clip_editor.hpp"
 
 #include <config/path.h>

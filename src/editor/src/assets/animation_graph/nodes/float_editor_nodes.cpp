@@ -1,6 +1,6 @@
-#include "animation_graph/nodes/float_editor_nodes.hpp"
+#include "assets/animation_graph/nodes/float_editor_nodes.hpp"
 
-#include "animation_graph/animation_graph_compilation_context.hpp"
+#include "assets/animation_graph/animation_graph_compilation_context.hpp"
 
 #include <anim/graph/nodes/float_nodes.hpp>
 

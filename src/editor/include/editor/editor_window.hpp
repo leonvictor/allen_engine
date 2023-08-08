@@ -20,7 +20,7 @@ class EditorWindowContext
     friend class IEditorWindow;
 
     // TODO: Shouldnt be here
-    friend class AnimationGraphEditor;
+    friend class AnimationGraphWorkspace;
     friend class EntityInspector;
 
     // TODO: Specific to entities-related windows ?

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../editor_graph_node.hpp"
+#include "assets/animation_graph/editor_animation_graph_node.hpp"
 
 namespace aln
 {
@@ -8,7 +8,7 @@ namespace aln
 /// @brief Base class for control parameters, allows easy filtering
 /// @note Control parameters do not have default values to be as memory efficient as possible
 /// @todo Control Parameters names must be unique
-class IControlParameterEditorNode : public EditorGraphNode
+class IControlParameterEditorNode : public EditorAnimationGraphNode
 {
     virtual bool IsRenamable() const final override { return true; }
 };

@@ -4,12 +4,12 @@
 
 #include <reflection/type_info.hpp>
 
-#include "../editor_graph_node.hpp"
+#include "assets/animation_graph/editor_animation_graph_node.hpp"
 
 namespace aln
 {
 /// @brief Output node, receives the final pose to use in the frame
-class PoseEditorNode : public EditorGraphNode
+class PoseEditorNode : public EditorAnimationGraphNode
 {
     ALN_REGISTER_TYPE();
 

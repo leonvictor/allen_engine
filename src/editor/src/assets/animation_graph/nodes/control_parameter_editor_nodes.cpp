@@ -1,4 +1,5 @@
-#include "animation_graph/nodes/control_parameter_editor_nodes.hpp"
+#include "assets/animation_graph/nodes/control_parameter_editor_nodes.hpp"
+#include "assets/animation_graph/animation_graph_compilation_context.hpp"
 
 #include <anim/graph/nodes/control_parameter_nodes.hpp>
 

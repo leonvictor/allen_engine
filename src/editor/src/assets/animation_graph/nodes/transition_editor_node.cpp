@@ -1,6 +1,6 @@
-#include "animation_graph/nodes/transition_editor_node.hpp"
+#include "assets/animation_graph/nodes/transition_editor_node.hpp"
 
-#include "animation_graph/animation_graph_compilation_context.hpp"
+#include "assets/animation_graph/animation_graph_compilation_context.hpp"
 
 #include <anim/graph/nodes/transition.hpp>
 

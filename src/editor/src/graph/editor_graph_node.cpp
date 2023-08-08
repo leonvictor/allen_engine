@@ -1,4 +1,4 @@
-#include "animation_graph/editor_graph_node.hpp"
+#include "graph/editor_graph_node.hpp"
 
 namespace aln
 {

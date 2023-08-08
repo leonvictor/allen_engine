@@ -21,7 +21,7 @@ class AnimationGraphDefinition : public IAsset
 {
     ALN_REGISTER_ASSET_TYPE("agdf");
 
-    friend class AnimationGraphEditor;
+    friend class EditorAnimationGraph;
     friend class AnimationGraphCompilationContext;
     friend class AnimationGraphDefinitionLoader;
     friend class RuntimeAnimationGraphInstance;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../asset_editor_window.hpp"
-#include "../reflected_types/reflected_type_editor.hpp"
-#include "graph_drawing_context.hpp"
-#include "link.hpp"
+#include "asset_editor_window.hpp"
+#include "graph/link.hpp"
 
-#include <anim/graph/runtime_graph_instance.hpp>
+#include <reflection/services/type_registry_service.hpp>
+
+#include <imgui.h>
 
 #include <map>
 #include <vector>
@@ -14,51 +14,31 @@ namespace aln
 {
 
 class EditorGraphNode;
+class Pin;
 
-/// @brief A stateful representation of an animation graph, which contains all of its data.
-/// During serialization its node are translated into the runtime format, and their data stored in a runtime graph definition
-/// so that multiple instances of the same graph can share it.
-/// @todo: Separate data/view
-class AnimationGraphEditor : public IAssetEditorWindow
+/// @brief Base class for in-editor graph types. This class holds the data, use GraphView for visualization
+class EditorGraph
 {
+    friend class GraphView;
+
   private:
-    AssetHandle<AnimationGraphDefinition> m_pGraphDefinition;
-
-    std::filesystem::path m_compiledDefinitionPath;
-    std::filesystem::path m_compiledDatasetPath;
-    std::filesystem::path m_statePath;
-
     std::vector<EditorGraphNode*> m_graphNodes;
+    std::vector<Link> m_links;
+    
     std::map<UUID, const EditorGraphNode*> m_nodeLookupMap;
     std::map<UUID, const Pin*> m_pinLookupMap;
-    std::vector<Link> m_links;
-
-    UUID m_contextPopupElementID;
-
-    bool m_waitingForAssetLoad = true;
 
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;
-    bool m_isOpen = true;
-
-    const TypeRegistryService* m_pTypeRegistryService = nullptr;
-
-    GraphDrawingContext m_graphDrawingContext;
 
   public:
-    // ----------- Window lifetime
-
-    void Update(const UpdateContext& context) override;
-    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
-    virtual void Shutdown() override;
+    // TODO: Shared behavior ?
     void Clear();
-
     bool IsDirty() const { return m_dirty; }
     void SetDirty() { m_dirty = true; }
     void SetClean() { m_dirty = false; }
 
     // ----------- Graph handling
-
     const EditorGraphNode* GetNode(const UUID& nodeID) const
     {
         assert(nodeID.IsValid());
@@ -87,7 +67,7 @@ class AnimationGraphEditor : public IAssetEditorWindow
         return matchingTypeNodes;
     }
 
-    /// @brief Create a node to the graph
+    /// @brief Add a node to the graph
     void AddGraphNode(EditorGraphNode* pNode);
 
     /// @brief Remove a node from the graph
@@ -103,14 +83,23 @@ class AnimationGraphEditor : public IAssetEditorWindow
     /// @note Only works for single-link pins
     const Link* GetLinkToPin(const UUID& pinID) const;
 
+    // TODO: Make virtual and specialize in derived classes
+    const reflect::TypeInfo* AvailableNodeTypesMenuItems(const TypeRegistryService* pTypeRegistryService)
+    {
+        auto& animGraphNodeTypes = pTypeRegistryService->GetTypesInScope("ANIM_GRAPH_EDITOR_NODES");
+        for (auto& pAnimGraphNodeType : animGraphNodeTypes)
+        {
+            if (ImGui::MenuItem(pAnimGraphNodeType->m_name.c_str()))
+            {
+                return pAnimGraphNodeType;
+            }
+        }
+        return nullptr;
+    }
+
     // -------------- Saving/Loading
-
-    AnimationGraphDefinition* Compile();
-
-    virtual void SaveState(nlohmann::json& json) const override;
-    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override;
+    virtual void SaveState(nlohmann::json& json) const;
+    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService);
 };
-
-ALN_ASSET_WINDOW_FACTORY(AnimationGraphDefinition, AnimationGraphEditor)
 
 } // namespace aln

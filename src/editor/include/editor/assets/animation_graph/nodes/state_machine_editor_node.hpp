@@ -1,17 +1,18 @@
 #pragma once
 
-#include "../editor_graph_node.hpp"
+#include "assets/animation_graph/editor_animation_graph_node.hpp"
 
 namespace aln
 {
 
 class TypeRegistryService;
 
-class TransitionEditorNode : public EditorGraphNode
+class StateMachineEditorNode : public EditorAnimationGraphNode
 {
     ALN_REGISTER_TYPE()
 
   private:
+
   protected:
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
     {

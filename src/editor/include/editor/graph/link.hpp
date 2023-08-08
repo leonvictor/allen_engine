@@ -2,8 +2,6 @@
 
 #include <common/uuid.hpp>
 
-#include "pin.hpp"
-
 namespace aln
 {
 

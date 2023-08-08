@@ -5,12 +5,12 @@
 
 #include <anim/graph/nodes/animation_clip_node.hpp>
 
-#include "../editor_graph_node.hpp"
+#include "assets/animation_graph/editor_animation_graph_node.hpp"
 
 namespace aln
 {
 /// @brief Node pointing to an animation clip used as graph input
-class AnimationClipEditorNode : public EditorGraphNode
+class AnimationClipEditorNode : public EditorAnimationGraphNode
 {
     ALN_REGISTER_TYPE()
 

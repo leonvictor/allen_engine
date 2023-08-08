@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../editor_graph_node.hpp"
+#include "assets/animation_graph/editor_animation_graph_node.hpp"
 
 namespace aln
 {
 
 class TypeRegistryService;
 
-class FloatClampEditorNode : public EditorGraphNode
+class FloatClampEditorNode : public EditorAnimationGraphNode
 {
     ALN_REGISTER_TYPE()
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "animation_graph/animation_graph_editor.hpp"
+#include "assets/animation_graph/animation_graph_workspace.hpp"
 #include "asset_editor_window.hpp"
 #include "assets_browser.hpp"
 #include "editor_window.hpp"

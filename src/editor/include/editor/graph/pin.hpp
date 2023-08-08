@@ -1,13 +1,8 @@
 #pragma once
 
-#include "graph_drawing_context.hpp"
-
 #include "anim/graph/value_types.hpp"
 
 #include <common/uuid.hpp>
-
-#include <imgui.h>
-#include <imnodes.h>
 
 namespace aln
 {
@@ -30,6 +25,8 @@ class Pin
     inline const std::string& GetName() const { return m_name; }
     inline const NodeValueType& GetValueType() const { return m_valueType; }
     inline bool AllowsMultipleLinks() const { return m_allowMultipleLinks; }
+    
+    /// @brief Was this node created from the editor ?
     inline bool IsDynamic() const { return m_dynamic; }
 
   private:

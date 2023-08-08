@@ -1,6 +1,7 @@
 #pragma once
 
-#include "animation_graph_editor.hpp"
+#include "editor_animation_graph.hpp"
+#include "editor_animation_graph_node.hpp"
 
 #include <anim/graph/graph_definition.hpp>
 #include <anim/graph/runtime_graph_node.hpp>
@@ -10,26 +11,24 @@
 namespace aln
 {
 
-class EditorGraphNode;
-
 /// @brief The context passed around when compiling from an editor animation graph to its runtime version
 class AnimationGraphCompilationContext
 {
   private:
-    const AnimationGraphEditor* m_pAnimationGraphEditor; // The graph currently compiling
+    const EditorAnimationGraph* m_pAnimationGraphEditor; // The graph currently compiling
 
-    std::vector<const EditorGraphNode*> m_compiledNodes;
+    std::vector<const EditorAnimationGraphNode*> m_compiledNodes;
     std::vector<UUID> m_registeredDataSlots;
 
     size_t m_currentNodeMemoryOffset = 0;
     size_t m_maxNodeMemoryAlignement = 0;
 
   public:
-    AnimationGraphCompilationContext(const AnimationGraphEditor* pAnimationGraphEditor)
+    AnimationGraphCompilationContext(const EditorAnimationGraph* pAnimationGraphEditor)
         : m_pAnimationGraphEditor(pAnimationGraphEditor) {}
 
-    const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const { return m_pAnimationGraphEditor->GetNodeLinkedToInputPin(inputPinID); }
-    const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const { return m_pAnimationGraphEditor->GetNodeLinkedToOutputPin(outputPinID); }
+    const EditorAnimationGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pAnimationGraphEditor->GetNodeLinkedToInputPin(inputPinID)); }
+    const EditorAnimationGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pAnimationGraphEditor->GetNodeLinkedToOutputPin(outputPinID)); }
 
     /// @brief Try to get the runtime settings associated with an editor node
     /// @tparam T: Runtime type of the node
@@ -38,7 +37,7 @@ class AnimationGraphCompilationContext
     /// @param pSettings: Pointer to the node's settings storage
     /// @return Whether the node was already compiled (true: already compiled, false: not yet)
     template <typename T>
-    bool GetSettings(const EditorGraphNode* pNode, AnimationGraphDefinition* pGraphDefinition, typename T::Settings*& pOutSettings)
+    bool GetSettings(const EditorAnimationGraphNode* pNode, AnimationGraphDefinition* pGraphDefinition, typename T::Settings*& pOutSettings)
     {
         static_assert(std::is_base_of_v<RuntimeGraphNode, T>);
         static_assert(std::is_base_of_v<RuntimeGraphNode::Settings, typename T::Settings>);

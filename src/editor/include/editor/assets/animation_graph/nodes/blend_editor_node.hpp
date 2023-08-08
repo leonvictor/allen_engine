@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../editor_graph_node.hpp"
+#include "assets/animation_graph/editor_animation_graph_node.hpp"
 
 namespace aln
 {
@@ -8,7 +8,7 @@ namespace aln
 class TypeRegistryService;
 
 /// @brief Node responsible for blending between animations
-class BlendEditorNode : public EditorGraphNode
+class BlendEditorNode : public EditorAnimationGraphNode
 {
     ALN_REGISTER_TYPE()
 
@@ -33,7 +33,7 @@ class BlendEditorNode : public EditorGraphNode
 
     virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx) override
     {
-        EditorGraphNode::DrawPin(pin, ctx);
+        EditorAnimationGraphNode::DrawPin(pin, ctx);
         if (pin.IsInput() && pin.GetValueType() == NodeValueType::Pose)
         {
             auto pinIdx = GetInputPinIndex(pin.GetID());

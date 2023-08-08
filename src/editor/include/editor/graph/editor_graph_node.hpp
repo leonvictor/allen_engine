@@ -1,14 +1,16 @@
 #pragma once
 
 #include "pin.hpp"
+#include "graph_drawing_context.hpp"
 
-#include <animation_graph/animation_graph_compilation_context.hpp>
 #include <common/types.hpp>
 #include <common/uuid.hpp>
 #include <reflection/reflected_type.hpp>
 #include <reflection/type_info.hpp>
 
+#include <imgui.h>
 #include <imgui_stdlib.h>
+#include <imnodes.h>
 #include <nlohmann/json.hpp>
 
 #include <cmath>
@@ -16,18 +18,15 @@
 namespace aln
 {
 
-// fwd
-class AnimationGraphDefinition;
-class AnimationGraphCompilationContext;
-
+/// @brief Base class for editor graphs' nodes
 class EditorGraphNode : public reflect::IReflected
 {
     ALN_REGISTER_TYPE();
 
-    friend class AnimationGraphEditor;
+    friend class EditorGraph;
 
   private:
-    const UUID m_id = UUID::Generate();
+    UUID m_id = UUID::Generate();
     std::vector<Pin> m_inputPins;
     std::vector<Pin> m_outputPins;
 
@@ -60,7 +59,6 @@ class EditorGraphNode : public reflect::IReflected
         return nodeWidth;
     }
 
-    // TODO: Dynamic output
 
   protected:
     std::string m_name;
@@ -109,6 +107,8 @@ class EditorGraphNode : public reflect::IReflected
 
         m_inputPins.erase(it);
     }
+
+    // TODO: Dynamic output
 
     // ---- Dynamic pins creation/deletion callbacks
     virtual void OnDynamicInputPinCreated(const UUID& pinID) {}
@@ -284,7 +284,6 @@ class EditorGraphNode : public reflect::IReflected
     virtual std::string DynamicOutputPinName() const { return ""; }
 
     // ----- Renaming
-
     virtual bool IsRenamable() const { return false; }
 
     void BeginRenaming()
@@ -301,12 +300,8 @@ class EditorGraphNode : public reflect::IReflected
     }
 
     // ----- Lifetime
-
     virtual void Initialize() = 0;
-
-    /// @brief Compile the node and add it to a graph definition
-    /// @param context Context for the running compilation
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
+    virtual void Shutdown() {}
 
     void SaveNodeState(nlohmann::json& json) const
     {

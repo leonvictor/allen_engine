@@ -11,21 +11,25 @@ add_library(${LIB_NAME}
  
     src/assets/animation_clip_editor.cpp
 
-    src/animation_graph/animation_graph_editor.cpp
-    src/animation_graph/editor_graph_node.cpp
-    src/animation_graph/nodes/control_parameter_editor_nodes.cpp
-    src/animation_graph/nodes/float_editor_nodes.cpp
-    src/animation_graph/nodes/pose_editor_node.cpp
-    src/animation_graph/nodes/animation_clip_editor_node.cpp
-    src/animation_graph/nodes/blend_editor_node.cpp
-    src/animation_graph/nodes/state_machine_editor_node.cpp
-    src/animation_graph/nodes/transition_editor_node.cpp
-    src/animation_graph/nodes/state_editor_node.cpp
+    src/assets/animation_graph/animation_graph_workspace.cpp
+    src/assets/animation_graph/editor_animation_graph_node.cpp
+    src/assets/animation_graph/nodes/control_parameter_editor_nodes.cpp
+    src/assets/animation_graph/nodes/float_editor_nodes.cpp
+    src/assets/animation_graph/nodes/pose_editor_node.cpp
+    src/assets/animation_graph/nodes/animation_clip_editor_node.cpp
+    src/assets/animation_graph/nodes/blend_editor_node.cpp
+    src/assets/animation_graph/nodes/state_machine_editor_node.cpp
+    src/assets/animation_graph/nodes/transition_editor_node.cpp
+    src/assets/animation_graph/nodes/state_editor_node.cpp
+    src/assets/animation_graph/editor_animation_graph.cpp   
+
+    src/graph/editor_graph.cpp 
+    src/graph/editor_graph_node.cpp
 
     src/module/module.cpp
     
     ${IMGUI_SOURCE}
-)
+ )
 
 set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})
 
