@@ -1,6 +1,6 @@
 #pragma once
 
-#include "asset_editor_window.hpp"
+#include "asset_editor_workspace.hpp"
 #include "graph/link.hpp"
 
 #include <reflection/services/type_registry_service.hpp>

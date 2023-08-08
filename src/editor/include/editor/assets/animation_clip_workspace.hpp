@@ -1,6 +1,6 @@
 #pragma once
 
-#include "asset_editor_window.hpp"
+#include "asset_editor_workspace.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <anim/animation_clip.hpp>
@@ -24,7 +24,7 @@ struct EventTrack
     std::vector<AnimationEventEditor*> m_events;
 };
 
-class AnimationClipEditor : public IAssetEditorWindow
+class AnimationClipWorkspace : public IAssetWorkspace
 {
   private:
     AssetHandle<AnimationClip> m_pAnimationClip;
@@ -61,6 +61,6 @@ class AnimationClipEditor : public IAssetEditorWindow
     }
 };
 
-ALN_ASSET_WINDOW_FACTORY(AnimationClip, AnimationClipEditor)
+ALN_ASSET_WORKSPACE_FACTORY(AnimationClip, AnimationClipWorkspace)
 
 } // namespace aln

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "assets/animation_graph/animation_graph_workspace.hpp"
-#include "asset_editor_window.hpp"
+#include "asset_editor_workspace.hpp"
 #include "assets_browser.hpp"
 #include "editor_window.hpp"
 #include "entity_inspector.hpp"
@@ -63,7 +63,7 @@ class Editor
     EditorWindowContext m_editorWindowContext;
 
     AssetEditorWindowsFactories m_assetWindowsFactory;
-    std::map<AssetID, IAssetEditorWindow*> m_assetWindows;
+    std::map<AssetID, IAssetWorkspace*> m_assetWindows;
 
     // TODO: Handle widget lifetime. For now they're always here !
     AssetsBrowser m_assetsBrowser;

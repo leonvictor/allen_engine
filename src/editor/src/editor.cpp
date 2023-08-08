@@ -1,7 +1,7 @@
 #include "editor.hpp"
 
 #include "assets/animation_graph/animation_graph_workspace.hpp"
-#include "assets/animation_clip_editor.hpp"
+#include "assets/animation_clip_workspace.hpp"
 
 #include <config/path.h>
 #include <assets/handle.hpp>
@@ -346,7 +346,7 @@ void Editor::CreateAssetWindow(const AssetID& id, bool readAssetFile)
     auto [it, inserted] = m_assetWindows.try_emplace(id, nullptr);
     if (inserted)
     {
-        it->second = m_assetWindowsFactory.CreateEditorWindow(id.GetAssetTypeID());
+        it->second = m_assetWindowsFactory.CreateWorkspace(id.GetAssetTypeID());
         it->second->Initialize(&m_editorWindowContext, id, readAssetFile);
     }
 }

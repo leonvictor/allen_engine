@@ -1,6 +1,6 @@
 #pragma once
 
-#include "asset_editor_window.hpp"
+#include "asset_editor_workspace.hpp"
 #include "assets/animation_graph/editor_animation_graph.hpp"
 #include "graph/graph_view.hpp"
 
@@ -13,7 +13,7 @@ namespace aln
 class EditorAnimationGraphNode;
 
 /// @brief Editing window for animation graphs. Holds a single animation graph, and displays several it through several views
-class AnimationGraphWorkspace : public IAssetEditorWindow
+class AnimationGraphWorkspace : public IAssetWorkspace
 {
   private:
     // TODO: Load this definition if necessary, and use it when compiling
@@ -54,6 +54,6 @@ class AnimationGraphWorkspace : public IAssetEditorWindow
     void Compile();
 };
 
-ALN_ASSET_WINDOW_FACTORY(AnimationGraphDefinition, AnimationGraphWorkspace)
+ALN_ASSET_WORKSPACE_FACTORY(AnimationGraphDefinition, AnimationGraphWorkspace)
 
 } // namespace aln

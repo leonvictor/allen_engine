@@ -1,4 +1,5 @@
-#include "assets/animation_clip_editor.hpp"
+#include "assets/animation_clip_workspace.hpp"
+#include "aln_imgui_widgets.hpp"
 
 #include <IconsFontAwesome6.h>
 #include <imgui.h>
@@ -104,21 +105,7 @@ static bool SliderTimeline(ImGuiID id, float* pCurrentTime, const float animDura
     return valueChanged;
 }
 
-bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
-{
-    using namespace ImGui;
-    ImGuiContext& g = *GImGui;
-    ImGuiWindow* window = g.CurrentWindow;
-    ImGuiID id = window->GetID("##Splitter");
-    ImRect bb;
-    auto minOffset = (split_vertically ? ImVec2(*size1, 0.0f) : ImVec2(0.0f, *size1));
-    bb.Min = {window->DC.CursorPos.x + minOffset.x, window->DC.CursorPos.y + minOffset.y};
-    auto offset = ImGui::CalcItemSize(split_vertically ? ImVec2(thickness, splitter_long_axis_size) : ImVec2(splitter_long_axis_size, thickness), 0.0f, 0.0f);
-    bb.Max = {bb.Min.x + offset.x, bb.Min.y + offset.y};
-    return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
-}
-
-void AnimationClipEditor::Update(const UpdateContext& context)
+void AnimationClipWorkspace::Update(const UpdateContext& context)
 {
     float animDuration = 5; // TMP. Animation duration in seconds
     static float previewHeight = 300;
@@ -127,7 +114,7 @@ void AnimationClipEditor::Update(const UpdateContext& context)
     if (ImGui::Begin("Animation Clip", &m_isOpen))
     {
         float contentWidth = ImGui::GetContentRegionAvailWidth();
-        Splitter(false, 2, &previewHeight, &trackHeight, 8, 8, contentWidth);
+        ImGuiWidgets::Splitter(false, 2, &previewHeight, &trackHeight, 8, 8, contentWidth);
         // TODO: Allow re-docking subwindows but only inside the "main" one
         if (ImGui::BeginChild("Animation Preview", ImVec2{contentWidth, previewHeight}, true))
         {
@@ -151,7 +138,7 @@ void AnimationClipEditor::Update(const UpdateContext& context)
             static float listWidth = 50;
             static float timelineWidth = contentWidth - listWidth;
             const float trackEditorHeight = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y - 2;
-            Splitter(true, 2, &listWidth, &timelineWidth, 8, 8, trackEditorHeight);
+            ImGuiWidgets::Splitter(true, 2, &listWidth, &timelineWidth, 8, 8, trackEditorHeight);
 
             // --------- Event Track List
             ImGui::BeginChild("TrackList", ImVec2(listWidth, trackEditorHeight), true);
@@ -220,19 +207,19 @@ void AnimationClipEditor::Update(const UpdateContext& context)
     }
 }
 
-void AnimationClipEditor::Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile)
+void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile)
 {
 }
 
-void aln::AnimationClipEditor::Shutdown()
+void aln::AnimationClipWorkspace::Shutdown()
 {
 }
 
-void aln::AnimationClipEditor::Clear()
+void aln::AnimationClipWorkspace::Clear()
 {
 }
 
-AnimationClip* aln::AnimationClipEditor::Compile()
+AnimationClip* aln::AnimationClipWorkspace::Compile()
 {
     return nullptr;
 }

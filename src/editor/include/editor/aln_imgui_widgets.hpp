@@ -7,7 +7,7 @@
 namespace aln::ImGuiWidgets
 {
 /// @brief Moveable splitter. https://github.com/ocornut/imgui/issues/319
-bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
+static bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
 {
     using namespace ImGui;
     ImGuiContext& g = *GImGui;
@@ -21,13 +21,13 @@ bool Splitter(bool split_vertically, float thickness, float* size1, float* size2
     return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
 }
 
-bool SplitterH(float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f) {
+static bool SplitterH(float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
+{
     return Splitter(false, thickness, size1, size2, min_size1, min_size2, splitter_long_axis_size);
 }
 
-bool SplitterV(float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
+static bool SplitterV(float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
 {
     return Splitter(true, thickness, size1, size2, min_size1, min_size2, splitter_long_axis_size);
 }
-
-}
+} // namespace aln::ImGuiWidgets

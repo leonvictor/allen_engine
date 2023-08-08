@@ -10,7 +10,7 @@
 namespace aln
 {
 /// @brief Abstract base class for all editor windows related to an asset type
-class IAssetEditorWindow : public IEditorWindow
+class IAssetWorkspace : public IEditorWindow
 {
     friend class Editor;
     AssetID m_id;
@@ -36,12 +36,12 @@ class IAssetEditorWindow : public IEditorWindow
     virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override = 0;
 };
 
-class IAssetEditorWindowsFactory
+class IAssetWorkspacesFactory
 {
   public:
     std::string m_assetEditorName;
     AssetTypeID m_supportedAssetType;
-    virtual IAssetEditorWindow* CreateEditorWindow() = 0;
+    virtual IAssetWorkspace* CreateWorkspace() = 0;
 };
 
 /// @brief Maps asset types to window factories.
@@ -50,20 +50,20 @@ class AssetEditorWindowsFactories
 {
     friend class Editor;
 
-    std::vector<IAssetEditorWindowsFactory*> m_factories;
+    std::vector<IAssetWorkspacesFactory*> m_factories;
 
     template <typename AssetType, typename FactoryType>
     void RegisterFactory(std::string_view name)
     {
         static_assert(std::is_base_of_v<IAsset, AssetType>);
-        static_assert(std::is_base_of_v<IAssetEditorWindowsFactory, FactoryType>);
+        static_assert(std::is_base_of_v<IAssetWorkspacesFactory, FactoryType>);
 
         auto& pFactory = m_factories.emplace_back(aln::New<FactoryType>());
         pFactory->m_assetEditorName = name;
         pFactory->m_supportedAssetType = AssetType::GetStaticAssetTypeID();
     }
 
-    IAssetEditorWindowsFactory* FindFactory(const AssetTypeID& assetTypeID) const
+    IAssetWorkspacesFactory* FindFactory(const AssetTypeID& assetTypeID) const
     {
         for (auto pFactory : m_factories)
         {
@@ -88,25 +88,25 @@ class AssetEditorWindowsFactories
     bool IsTypeRegistered(const AssetTypeID& assetTypeID) const { return FindFactory(assetTypeID) != nullptr; }
 
     /// @brief Create a new asset editor window for the specified type. The memory is owned by the caller.
-    IAssetEditorWindow* CreateEditorWindow(const AssetTypeID& assetTypeID)
+    IAssetWorkspace* CreateWorkspace(const AssetTypeID& assetTypeID)
     {
         assert(assetTypeID.IsValid());
         auto pFactory = FindFactory(assetTypeID);
         if (pFactory != nullptr)
         {
-            return pFactory->CreateEditorWindow();
+            return pFactory->CreateWorkspace();
         }
         return nullptr; // TODO: Default ?
     }
 };
 
-#define ALN_ASSET_WINDOW_FACTORY(assetType, windowType)                      \
-    class assetType##EditorWindowFactory : public IAssetEditorWindowsFactory \
+#define ALN_ASSET_WORKSPACE_FACTORY(assetType, workspaceType)                      \
+    class assetType##EditorWindowFactory : public IAssetWorkspacesFactory \
     {                                                                        \
       public:                                                                \
-        virtual IAssetEditorWindow* CreateEditorWindow() override final      \
+        virtual IAssetWorkspace* CreateWorkspace() override final      \
         {                                                                    \
-            return aln::New<windowType>();                                   \
+            return aln::New<workspaceType>();                                   \
         }                                                                    \
     };
 

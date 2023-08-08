@@ -92,7 +92,7 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
 void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile)
 {
     // TODO: Which parts of this could be shared behavior with a parent class ?
-    IAssetEditorWindow::Initialize(pContext, id);
+    IAssetWorkspace::Initialize(pContext, id);
 
     m_pTypeRegistryService = pContext->m_pTypeRegistryService;
 
@@ -139,7 +139,7 @@ void AnimationGraphWorkspace::Shutdown()
     }
 
     Clear();
-    IAssetEditorWindow::Shutdown();
+    IAssetWorkspace::Shutdown();
 }
 
 void AnimationGraphWorkspace::Clear()
