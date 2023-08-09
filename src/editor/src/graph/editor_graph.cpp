@@ -3,14 +3,29 @@
 #include "graph/editor_graph_node.hpp"
 
 #include <config/path.h>
-
 #include <reflection/services/type_registry_service.hpp>
 #include <reflection/type_info.hpp>
+
+#include <imnodes.h>
 
 #include <assert.h>
 
 namespace aln
 {
+
+EditorGraph::~EditorGraph()
+{
+    for (auto pNode : m_graphNodes)
+    {
+        pNode->Shutdown();
+        aln::Delete(pNode);
+    }
+
+    if (m_pImNodesEditorContext != nullptr)
+    {
+        ImNodes::EditorContextFree(m_pImNodesEditorContext);
+    }
+}
 
 void EditorGraph::SaveState(nlohmann::json& json) const
 {
@@ -68,7 +83,7 @@ void EditorGraph::Clear()
 {
     m_pinLookupMap.clear();
     m_nodeLookupMap.clear();
-    m_links.clear();
+    m_links.Clear();
 
     for (auto pNode : m_graphNodes)
     {
@@ -155,7 +170,7 @@ void EditorGraph::RemoveGraphNode(const UUID& nodeID)
     }
 
     // Remove the node's attached links
-    std::erase_if(m_links, [&](auto& link)
+    m_links.EraseIf([&](auto& link)
         { return link.m_pInputNode == pNode || link.m_pOutputNode == pNode; });
 
     // Actually remove the node from the graph
@@ -210,7 +225,7 @@ void EditorGraph::AddLink(UUID startNodeID, UUID startPinID, UUID endNodeID, UUI
     }
 
     // Finally create the new link
-    auto& link = m_links.emplace_back();
+    auto& link = m_links.EmplaceBack();
     link.m_pInputNode = m_nodeLookupMap[endNodeID];
     link.m_inputPinID = pInputPin->GetID();
     link.m_pOutputNode = m_nodeLookupMap[startNodeID];
@@ -222,9 +237,7 @@ void EditorGraph::AddLink(UUID startNodeID, UUID startPinID, UUID endNodeID, UUI
 void EditorGraph::RemoveLink(const UUID& linkID)
 {
     assert(linkID.IsValid());
-
-    std::erase_if(m_links, [&](Link& link)
-        { return link.m_id == linkID; });
+    m_links.Erase(linkID);
 
     SetDirty();
 }

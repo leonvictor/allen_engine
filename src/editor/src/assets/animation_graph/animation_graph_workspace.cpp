@@ -60,23 +60,62 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
     if (ImGui::Begin(windowName.c_str(), &m_isOpen))
     {
         auto contentRegion = ImGui::GetContentRegionAvail();
-        static float topSectionHeight = contentRegion.y / 2;
-        static float bottomSectionHeight = contentRegion.y / 2;
-        ImGuiWidgets::Splitter(false, 2, &topSectionHeight, &bottomSectionHeight, 200, 200, contentRegion.x);
 
-        if (ImGui::BeginChild("Main Graph View", {contentRegion.x, topSectionHeight}, true))
+        if (m_firstUpdate)
         {
-            //ImGui::Text("first");
+            m_primaryGraphViewHeight = contentRegion.y / 2;
+            m_secondaryGraphViewHeight = contentRegion.y / 2;
+            m_firstUpdate = false;
+        }
+
+        // TODO: Compile button shouldn't be necessary since all assets compilation will be done when exporting the game
+        // This is a placeholder while we don't have a separation between game and scene editing
+        if (ImGui::Button("Save & Compile"))
+        {
+            Compile();
+
+            // TODO: Save to a common folder with the rest of the editor ?
+            nlohmann::json json;
+            SaveState(json);
+            std::ofstream outputStream(m_statePath);
+            outputStream << json;
+        }
+
+        // TMP : Account for the tempory compile button
+        float primaryGraphViewCurrentHeight = contentRegion.y - ImGui::GetFrameHeightWithSpacing();
+        // float primaryGraphViewCurrentHeight = contentRegion.y;
+        // Hide secondary view if only one is required
+        if (m_secondaryGraphView.HasGraphSet())
+        {
+            ImGuiWidgets::Splitter(false, 2, &m_primaryGraphViewHeight, &m_secondaryGraphViewHeight, 100, 100, contentRegion.x);
+            primaryGraphViewCurrentHeight = m_primaryGraphViewHeight;
+        }
+
+        if (ImGui::BeginChild("Main Graph View", {contentRegion.x, primaryGraphViewCurrentHeight}, true))
+        {
             m_primaryGraphView.Draw(pTypeRegistryService, m_graphDrawingContext);
-           
             ImGui::EndChild();
         }
 
-        if (ImGui::BeginChild("Secondary Graph View", {contentRegion.x, -1}, true))
+        EditorGraph* pSecondaryGraph = nullptr;
+        // Selected nodes take precedence over links
+        if (m_primaryGraphView.HasSelectedNodes())
         {
-            //ImGui::Text("second");
-            //m_secondaryGraphView.Update(context);
-            
+            auto pLastSelectedNode = m_primaryGraphView.GetSelectedNodes().back();
+            if (pLastSelectedNode->HasChildGraph())
+            {
+                pSecondaryGraph = pLastSelectedNode->GetChildGraph();
+            }
+        }
+        else if (m_primaryGraphView.HasSelectedLinks())
+        {
+            // TODO: Transitions might hold secondary graphs as well
+        }
+        m_secondaryGraphView.SetViewedGraph(pSecondaryGraph);
+
+        if (m_secondaryGraphView.HasGraphSet() && ImGui::BeginChild("Secondary Graph View", {contentRegion.x, -1}, true))
+        {
+            m_secondaryGraphView.Draw(pTypeRegistryService, m_graphDrawingContext);
             ImGui::EndChild();
         }
     }

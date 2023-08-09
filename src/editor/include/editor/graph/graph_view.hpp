@@ -3,8 +3,8 @@
 #include <imgui.h>
 #include <imnodes.h>
 
-#include "graph/editor_graph_node.hpp"
 #include "graph/editor_graph.hpp"
+#include "graph/editor_graph_node.hpp"
 
 namespace aln
 {
@@ -16,8 +16,37 @@ class GraphView
     EditorGraph* m_pGraph = nullptr;
     UUID m_contextPopupElementID = UUID::InvalidID;
 
+    std::vector<UUID> m_selectedNodeIDs;
+    std::vector<const EditorGraphNode*> m_selectedNodes;
+
+    std::vector<UUID> m_selectedLinkIDs;
+    std::vector<const Link*> m_selectedLinks;
+
+    ImNodesContext* m_pImNodesContext = ImNodes::CreateContext();
+
   public:
-    void SetViewedGraph(EditorGraph* pGraph) { m_pGraph = pGraph; }
+    ~GraphView()
+    {
+        ImNodes::DestroyContext(m_pImNodesContext);
+    }
+
+    void SetViewedGraph(EditorGraph* pGraph)
+    {
+        if (pGraph == m_pGraph)
+        {
+            return;
+        }
+
+        if (pGraph != nullptr && pGraph->m_pImNodesEditorContext == nullptr)
+        {
+            pGraph->m_pImNodesEditorContext = ImNodes::EditorContextCreate();
+            // TODO: Center on existing nodes when opening for the first time
+        }
+        
+        m_pGraph = pGraph;
+    }
+
+    bool HasGraphSet() const { return m_pGraph != nullptr; }
 
     void Clear()
     {
@@ -29,6 +58,14 @@ class GraphView
     // TODO: Should context be shared between view instances ?
     void Draw(const TypeRegistryService* pTypeRegistryService, GraphDrawingContext& drawingContext)
     {
+        if (m_pGraph == nullptr)
+        {
+            return;
+        }
+
+        ImNodes::SetCurrentContext(m_pImNodesContext);
+        ImNodes::EditorContextSet(m_pGraph->m_pImNodesEditorContext);
+
         UUID hoveredNodeID, hoveredPinID, hoveredLinkID;
         bool nodeHovered = ImNodes::IsNodeHovered(&hoveredNodeID);
         bool pinHovered = ImNodes::IsPinHovered(&hoveredPinID);
@@ -79,22 +116,12 @@ class GraphView
                 ImGui::EndMenu();
             }
 
-            // TODO: Related to anim graphs only
-            // if (ImGui::MenuItem("Compile & Save"))
-            //{
-            //    Compile();
-
-            //    // TODO: Save to a common folder with the rest of the editor ?
-            //    nlohmann::json json;
-            //    SaveState(json);
-            //    std::ofstream outputStream(m_statePath);
-            //    outputStream << json;
-            //}
             ImGui::EndPopup();
         }
 
         if (ImGui::BeginPopup("graph_editor_pin_popup"))
         {
+            // TODO: TMP
             ImGui::MenuItem("Pin !");
             ImGui::EndPopup();
         }
@@ -108,6 +135,7 @@ class GraphView
 
             if (ImGui::MenuItem("Remove node"))
             {
+                ImNodes::ClearNodeSelection(m_contextPopupElementID);
                 m_pGraph->RemoveGraphNode(m_contextPopupElementID);
                 pNode = nullptr;
             }
@@ -203,21 +231,57 @@ class GraphView
             m_pGraph->AddLink(startNodeID, startPinID, endNodeID, endPinID);
         }
 
-        UUID linkID;
-        if (ImNodes::IsLinkDestroyed(&linkID))
+        UUID destroyedlinkID;
+        if (ImNodes::IsLinkDestroyed(&destroyedlinkID))
         {
-            m_pGraph->RemoveLink(linkID);
+            m_pGraph->RemoveLink(destroyedlinkID);
         }
 
-        UUID pinID;
-        if (ImNodes::IsLinkDropped(&pinID, false))
+        UUID linkDroppedPinID;
+        if (ImNodes::IsLinkDropped(&linkDroppedPinID, false))
         {
             // TODO: Filter available node types matching the existing pin's type
             // TODO: Automatically create a link
             // ImGui::OpenPopup("graph_editor_link_dropped_popup");
         }
+
+        // TODO: Cache selected nodes and links rather than re-populating the arrays each frame
+        // Update selected nodes array
+        auto selectedNodesCount = ImNodes::NumSelectedNodes();
+        m_selectedNodeIDs.resize(selectedNodesCount);
+        m_selectedNodes.resize(selectedNodesCount);
+        if (selectedNodesCount != 0)
+        {
+            ImNodes::GetSelectedNodes(m_selectedNodeIDs.data());
+            for (auto nodeIdx = 0; nodeIdx < selectedNodesCount; ++nodeIdx)
+            {
+                auto& nodeID = m_selectedNodeIDs[nodeIdx];
+                m_selectedNodes[nodeIdx] = m_pGraph->GetNode(nodeID);
+            }
+        }
+
+        auto selectedLinksCount = ImNodes::NumSelectedLinks();
+        m_selectedLinkIDs.resize(selectedLinksCount);
+        m_selectedLinks.resize(selectedLinksCount);
+        if (selectedLinksCount != 0)
+        {
+            ImNodes::GetSelectedLinks(m_selectedLinkIDs.data());
+            for (auto linkIdx = 0; linkIdx < selectedLinksCount; ++linkIdx)
+            {
+                auto& linkID = m_selectedLinkIDs[linkIdx];
+                m_selectedLinks[linkIdx] = m_pGraph->GetLink(linkID);
+            }
+        }
     }
 
+    // ------ Interactivity
+    bool HasSelectedNodes() const { return !m_selectedNodes.empty(); }
+    const std::vector<const EditorGraphNode*>& GetSelectedNodes() const { return m_selectedNodes; }
+
+    bool HasSelectedLinks() const { return !m_selectedLinks.empty(); }
+    const std::vector<const Link*>& GetSelectedLinks() const { return m_selectedLinks; }
+
+    // ------ Serialization
     void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
     {
     }

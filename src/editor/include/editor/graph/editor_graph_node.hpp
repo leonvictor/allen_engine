@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pin.hpp"
 #include "graph_drawing_context.hpp"
+#include "pin.hpp"
 
 #include <common/types.hpp>
 #include <common/uuid.hpp>
@@ -29,6 +29,9 @@ class EditorGraphNode : public reflect::IReflected
     UUID m_id = UUID::Generate();
     std::vector<Pin> m_inputPins;
     std::vector<Pin> m_outputPins;
+
+    EditorGraph* m_pOwningGraph = nullptr;
+    EditorGraph* m_pChildGraph = nullptr;
 
     // TODO: This is an awful lot of state
     bool m_renamingStarted = false;
@@ -59,10 +62,10 @@ class EditorGraphNode : public reflect::IReflected
         return nodeWidth;
     }
 
-
   protected:
     std::string m_name;
 
+    // ----
     const Pin& AddInputPin(NodeValueType valueType, std::string name = "")
     {
         auto& pin = m_inputPins.emplace_back();
@@ -211,6 +214,9 @@ class EditorGraphNode : public reflect::IReflected
     virtual void SaveState(nlohmann::json& jsonObject) const {}
 
   public:
+    // TODO: In initialize/shutdown?
+    ~EditorGraphNode();
+
     const UUID& GetID() const { return m_id; }
     const std::string& GetName() const { return m_name; }
 
@@ -228,6 +234,20 @@ class EditorGraphNode : public reflect::IReflected
         {
             return NodeValueType::Unknown;
         }
+    }
+
+    // ---- Graph hierarchy
+    const EditorGraph* GetOwningGraph() const { return m_pOwningGraph; }
+
+    bool HasChildGraph() const { return m_pChildGraph != nullptr; }
+    EditorGraph* GetChildGraph() const { return m_pChildGraph; }
+
+    void SetChildGraph(EditorGraph* pChildGraph)
+    {
+        assert(pChildGraph != nullptr);
+        assert(m_pChildGraph == nullptr);
+
+        m_pChildGraph = pChildGraph;
     }
 
     const std::vector<Pin>& GetInputPins() const { return m_inputPins; }

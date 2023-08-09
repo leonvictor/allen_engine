@@ -4,8 +4,10 @@
 #include "graph/link.hpp"
 
 #include <reflection/services/type_registry_service.hpp>
+#include <common/hash_vector.hpp>
 
 #include <imgui.h>
+#include <imnodes.h>
 
 #include <map>
 #include <vector>
@@ -13,8 +15,8 @@
 namespace aln
 {
 
-class EditorGraphNode;
 class Pin;
+class EditorGraphNode;
 
 /// @brief Base class for in-editor graph types. This class holds the data, use GraphView for visualization
 class EditorGraph
@@ -22,16 +24,22 @@ class EditorGraph
     friend class GraphView;
 
   private:
+    // TODO: Replace node vector + lookup map with IDVector
     std::vector<EditorGraphNode*> m_graphNodes;
-    std::vector<Link> m_links;
-    
+    IDVector<Link> m_links;
+
     std::map<UUID, const EditorGraphNode*> m_nodeLookupMap;
     std::map<UUID, const Pin*> m_pinLookupMap;
 
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;
 
+    // UI Context. Set by the viewer when first displaying this graph 
+    ImNodesEditorContext* m_pImNodesEditorContext = nullptr;
+
   public:
+    ~EditorGraph();
+
     // TODO: Shared behavior ?
     void Clear();
     bool IsDirty() const { return m_dirty; }
@@ -39,6 +47,7 @@ class EditorGraph
     void SetClean() { m_dirty = false; }
 
     // ----------- Graph handling
+    uint32_t GetNodeCount() const { return m_graphNodes.size(); }
     const EditorGraphNode* GetNode(const UUID& nodeID) const
     {
         assert(nodeID.IsValid());
@@ -73,6 +82,13 @@ class EditorGraph
     /// @brief Remove a node from the graph
     void RemoveGraphNode(const UUID& nodeID);
 
+    const Link* GetLink(const UUID& linkID) const
+    {
+        assert(linkID.IsValid());
+        return &m_links.Get(linkID);
+    }
+
+    uint32_t GetLinkCount() const { return m_links.Size(); }
     /// @brief Create a link between two pins
     void AddLink(UUID startNodeID, UUID startPinID, UUID endNodeID, UUID endPinID);
     void RemoveLink(const UUID& linkID);

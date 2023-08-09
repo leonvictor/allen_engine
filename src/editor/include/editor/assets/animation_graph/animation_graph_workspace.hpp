@@ -35,6 +35,10 @@ class AnimationGraphWorkspace : public IAssetWorkspace
     GraphView m_primaryGraphView;
     GraphView m_secondaryGraphView;
 
+    bool m_firstUpdate = true;
+    float m_primaryGraphViewHeight = 0;
+    float m_secondaryGraphViewHeight = 0;
+
   public:
     // ----------- Window lifetime
     virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;

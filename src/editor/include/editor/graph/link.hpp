@@ -15,5 +15,7 @@ class Link
     const EditorGraphNode* m_pInputNode = nullptr;
     UUID m_outputPinID;
     const EditorGraphNode* m_pOutputNode = nullptr;
+
+    const UUID& GetID() const { return m_id; }
 };
 } // namespace aln
