@@ -110,6 +110,7 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
         else if (m_primaryGraphView.HasSelectedLinks())
         {
             // TODO: Transitions might hold secondary graphs as well
+            // TODO: Selecting a transition link opens up a transition graph
         }
         m_secondaryGraphView.SetViewedGraph(pSecondaryGraph);
 

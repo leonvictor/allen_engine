@@ -1,10 +1,17 @@
 #pragma once
 
-#include <imgui.h>
-#include <imnodes.h>
-
 #include "graph/editor_graph.hpp"
 #include "graph/editor_graph_node.hpp"
+
+#include "assets/animation_graph/editor_animation_state_machine.hpp"
+#include "assets/animation_graph/nodes/state_editor_node.hpp"
+
+#include <glm/vec2.hpp>
+#include <imgui.h>
+#include <imnodes.h>
+#include <imnodes_internal.h>
+
+#include <algorithm>
 
 namespace aln
 {
@@ -12,6 +19,20 @@ namespace aln
 /// @brief Stateful view of an editor graph
 class GraphView
 {
+    struct TransitionDragState
+    {
+        bool m_dragging = false;
+        EditorGraphNode* m_pStartNode = nullptr;
+        glm::vec2 m_startPosition;
+
+        void Reset()
+        {
+            m_dragging = false;
+            m_pStartNode = nullptr;
+            m_startPosition = {0, 0};
+        }
+    };
+
   private:
     EditorGraph* m_pGraph = nullptr;
     UUID m_contextPopupElementID = UUID::InvalidID;
@@ -22,7 +43,13 @@ class GraphView
     std::vector<UUID> m_selectedLinkIDs;
     std::vector<const Link*> m_selectedLinks;
 
+    UUID m_hoveredNodeID;
+    UUID m_hoveredPinID;
+    UUID m_hoveredLinkID;
+
     ImNodesContext* m_pImNodesContext = ImNodes::CreateContext();
+
+    TransitionDragState m_transitionDragState;
 
   public:
     ~GraphView()
@@ -42,9 +69,13 @@ class GraphView
             pGraph->m_pImNodesEditorContext = ImNodes::EditorContextCreate();
             // TODO: Center on existing nodes when opening for the first time
         }
-        
+
         m_pGraph = pGraph;
     }
+
+    // TODO: Use base classes to further decouple view from anim stuff
+    bool IsViewingAnimationGraph() const { return m_pGraph != nullptr && dynamic_cast<EditorAnimationGraph*>(m_pGraph) != nullptr; }
+    bool IsViewingStateMachine() const { return m_pGraph != nullptr && dynamic_cast<EditorAnimationStateMachine*>(m_pGraph) != nullptr; }
 
     bool HasGraphSet() const { return m_pGraph != nullptr; }
 
@@ -66,29 +97,76 @@ class GraphView
         ImNodes::SetCurrentContext(m_pImNodesContext);
         ImNodes::EditorContextSet(m_pGraph->m_pImNodesEditorContext);
 
-        UUID hoveredNodeID, hoveredPinID, hoveredLinkID;
-        bool nodeHovered = ImNodes::IsNodeHovered(&hoveredNodeID);
-        bool pinHovered = ImNodes::IsPinHovered(&hoveredPinID);
-        bool linkHovered = ImNodes::IsLinkHovered(&hoveredLinkID);
+        bool nodeHovered = ImNodes::IsNodeHovered(&m_hoveredNodeID);
+        bool pinHovered = ImNodes::IsPinHovered(&m_hoveredPinID);
+        bool linkHovered = ImNodes::IsLinkHovered(&m_hoveredLinkID);
 
         ImNodes::BeginNodeEditor();
+
+        if (IsDraggingTransition())
+        {
+            if (ImGui::IsAnyMouseDown())
+            {
+                if (nodeHovered)
+                {
+                    auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
+                    if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
+                    {
+                        // TODO: Create transition
+                    }
+                }
+                // Drop the ongoing transition
+                m_transitionDragState.Reset();
+            }
+            else
+            {
+                glm::vec2 endPosition = ImGui::GetMousePos();
+                if (nodeHovered)
+                {
+                    // Snap to state nodes
+                    // TODO: Only snap when the transition is possible
+                    // TODO: Account for multiple transitions between the same states
+                    auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
+                    if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
+                    {
+                        auto hoveredNodeCenter = GetNodeScreenSpaceCenter(m_hoveredNodeID);
+                        endPosition = GetNodeBorderIntersection(m_hoveredNodeID, m_transitionDragState.m_startPosition, hoveredNodeCenter);
+                    }
+                }
+                std::cout << endPosition.x << ", " << endPosition.y << std::endl;
+
+                // Draw the transition
+                m_pImNodesContext->CanvasDrawList->AddLine(
+                    m_transitionDragState.m_startPosition,
+                    endPosition, IM_COL32_BLACK, 2.0f);
+                
+                // TODO: Draw arrow
+                auto direction = glm::normalize(endPosition - m_transitionDragState.m_startPosition);
+                glm::vec2 orthogonal = {-direction.y, direction.x};
+                glm::vec2 triangleBase = endPosition - (direction * 16.0f);
+                glm::vec2 point1 = triangleBase + (orthogonal * 8.0f);
+                glm::vec2 point2 = triangleBase - (orthogonal * 8.0f);
+                glm::vec2 point3 = endPosition;
+                m_pImNodesContext->CanvasDrawList->AddTriangleFilled(point1, point2, point3, IM_COL32_BLACK);
+            }
+        }
 
         // Open contextual popups and register context ID
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
         {
             if (pinHovered)
             {
-                m_contextPopupElementID = hoveredPinID;
+                m_contextPopupElementID = m_hoveredPinID;
                 ImGui::OpenPopup("graph_editor_pin_popup");
             }
             else if (nodeHovered)
             {
-                m_contextPopupElementID = hoveredNodeID;
+                m_contextPopupElementID = m_hoveredNodeID;
                 ImGui::OpenPopup("graph_editor_node_popup");
             }
             else if (linkHovered)
             {
-                m_contextPopupElementID = hoveredLinkID;
+                m_contextPopupElementID = m_hoveredLinkID;
                 ImGui::OpenPopup("graph_editor_link_popup");
             }
             else
@@ -150,14 +228,18 @@ class GraphView
                 // TODO
             }
 
-            // auto pStateNode = dynamic_cast<StateEditorNode*>(pNode);
-            // if (pStateNode != nullptr)
-            //{
-            //     // TODO: New transition
-            //     if (ImGui::MenuItem("Add transition"))
-            //     {
-            //     }
-            // }
+            // TODO: Only when in state machines
+            auto pStateNode = dynamic_cast<StateEditorNode*>(pNode);
+            if (pStateNode != nullptr)
+            {
+                // TODO: New transition
+                if (ImGui::MenuItem("Transition to..."))
+                {
+                    m_transitionDragState.m_dragging = true;
+                    m_transitionDragState.m_pStartNode = pStateNode;
+                    m_transitionDragState.m_startPosition = GetNodeScreenSpaceCenter(m_contextPopupElementID);
+                }
+            }
 
             ImGui::EndPopup();
         }
@@ -274,12 +356,66 @@ class GraphView
         }
     }
 
-    // ------ Interactivity
+    // ------ Helpers
+    glm::vec2 GetNodeScreenSpaceCenter(const UUID& nodeID) const
+    {
+        return ImNodes::GetNodeScreenSpacePos(nodeID) + ImNodes::GetNodeDimensions(nodeID) / 2;
+    }
+
+    glm::vec2 GetNodeBorderIntersection(const UUID& nodeID, glm::vec2& start, glm::vec2& end) const
+    {
+        /// @note AABB Intersection https://noonat.github.io/intersect/#aabb-vs-segment
+        auto nodeCenter = GetNodeScreenSpaceCenter(nodeID);
+        auto nodeHalf = ImNodes::GetNodeDimensions(nodeID) / 2;
+        
+        const auto delta = end - start;
+        const auto scale = 1.0f / delta;
+        const auto sign = glm::sign(scale);
+        const auto nearTimes = (nodeCenter - sign * nodeHalf - start) * scale; 
+        const auto farTimes = (nodeCenter + sign * nodeHalf - start) * scale;
+
+        assert(!(nearTimes.x > farTimes.y || nearTimes.y > farTimes.x)); // No collision
+
+        const auto nearTime = glm::max(nearTimes.x, nearTimes.y);
+        const auto farTime = glm::min(farTimes.x, farTimes.y);
+
+        assert(nearTime < 1.0f); // Segment goes toward the AABB but does not reach it (TODO: Raycast ?)
+        assert(farTime > 0.0f); // Segment points away from the AABB 
+
+        float hitTime = std::clamp<float>(nearTime, 0.0f, 1.0f);
+        //auto hitDelta = (1.0f - hitTime) * -delta;
+        auto hitPos = start + delta * hitTime;
+        
+        return hitPos;
+    }
+
+    bool IsTransitionCreationAllowed(const EditorGraphNode* pStartNode, const EditorGraphNode* pEndNode)
+    {
+        assert(pStartNode != nullptr && pEndNode != nullptr);
+
+        if (pStartNode == pEndNode)
+        {
+            return false;
+        }
+
+        const auto pStartState = dynamic_cast<const StateEditorNode*>(pStartNode);
+        const auto pEndState = dynamic_cast<const StateEditorNode*>(pEndNode);
+        assert(pStartState != nullptr && pEndState != nullptr); // Both nodes must be state nodes
+
+        // TODO:
+        // - No existing identical link
+        std::cout << "Transition allowed" << std::endl;
+        return true;
+    }
+
+    // ------ Interactions
     bool HasSelectedNodes() const { return !m_selectedNodes.empty(); }
     const std::vector<const EditorGraphNode*>& GetSelectedNodes() const { return m_selectedNodes; }
 
     bool HasSelectedLinks() const { return !m_selectedLinks.empty(); }
     const std::vector<const Link*>& GetSelectedLinks() const { return m_selectedLinks; }
+
+    bool IsDraggingTransition() const { return m_transitionDragState.m_dragging; }
 
     // ------ Serialization
     void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
