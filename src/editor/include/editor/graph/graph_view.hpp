@@ -3,6 +3,7 @@
 #include "graph/editor_graph.hpp"
 #include "graph/editor_graph_node.hpp"
 
+#include "aln_imgui_widgets.hpp"
 #include "assets/animation_graph/editor_animation_state_machine.hpp"
 #include "assets/animation_graph/nodes/state_editor_node.hpp"
 
@@ -19,6 +20,8 @@ namespace aln
 /// @brief Stateful view of an editor graph
 class GraphView
 {
+    static constexpr float TransitionArrowsOffset = 4.0f;
+
     struct TransitionDragState
     {
         bool m_dragging = false;
@@ -102,54 +105,6 @@ class GraphView
         bool linkHovered = ImNodes::IsLinkHovered(&m_hoveredLinkID);
 
         ImNodes::BeginNodeEditor();
-
-        if (IsDraggingTransition())
-        {
-            if (ImGui::IsAnyMouseDown())
-            {
-                if (nodeHovered)
-                {
-                    auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
-                    if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
-                    {
-                        // TODO: Create transition
-                    }
-                }
-                // Drop the ongoing transition
-                m_transitionDragState.Reset();
-            }
-            else
-            {
-                glm::vec2 endPosition = ImGui::GetMousePos();
-                if (nodeHovered)
-                {
-                    // Snap to state nodes
-                    // TODO: Only snap when the transition is possible
-                    // TODO: Account for multiple transitions between the same states
-                    auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
-                    if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
-                    {
-                        auto hoveredNodeCenter = GetNodeScreenSpaceCenter(m_hoveredNodeID);
-                        endPosition = GetNodeBorderIntersection(m_hoveredNodeID, m_transitionDragState.m_startPosition, hoveredNodeCenter);
-                    }
-                }
-                std::cout << endPosition.x << ", " << endPosition.y << std::endl;
-
-                // Draw the transition
-                m_pImNodesContext->CanvasDrawList->AddLine(
-                    m_transitionDragState.m_startPosition,
-                    endPosition, IM_COL32_BLACK, 2.0f);
-                
-                // TODO: Draw arrow
-                auto direction = glm::normalize(endPosition - m_transitionDragState.m_startPosition);
-                glm::vec2 orthogonal = {-direction.y, direction.x};
-                glm::vec2 triangleBase = endPosition - (direction * 16.0f);
-                glm::vec2 point1 = triangleBase + (orthogonal * 8.0f);
-                glm::vec2 point2 = triangleBase - (orthogonal * 8.0f);
-                glm::vec2 point3 = endPosition;
-                m_pImNodesContext->CanvasDrawList->AddTriangleFilled(point1, point2, point3, IM_COL32_BLACK);
-            }
-        }
 
         // Open contextual popups and register context ID
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
@@ -270,6 +225,77 @@ class GraphView
             ImGui::EndPopup();
         }
 
+        if (IsViewingStateMachine())
+        {
+            auto pStateMachine = static_cast<EditorAnimationStateMachine*>(m_pGraph);
+
+            if (IsDraggingTransition())
+            {
+                if (ImGui::IsAnyMouseDown())
+                {
+                    if (nodeHovered)
+                    {
+                        auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
+                        if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
+                        {
+                            const auto pStartState = static_cast<const StateEditorNode*>(m_transitionDragState.m_pStartNode);
+                            const auto pEndState = static_cast<const StateEditorNode*>(pEndNode);
+                            pStateMachine->CreateTransition(pStartState, pEndState);
+                        }
+                    }
+
+                    // Drop the ongoing transition
+                    m_transitionDragState.Reset();
+                }
+                else
+                {
+                    glm::vec2 endPosition = ImGui::GetMousePos();
+
+                    if (nodeHovered)
+                    {
+                        // Snap to state nodes
+                        auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
+                        if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
+                        {
+                            auto hoveredNodeCenter = GetNodeScreenSpaceCenter(m_hoveredNodeID);
+                            endPosition = GetNodeBorderIntersection(m_hoveredNodeID, m_transitionDragState.m_startPosition, hoveredNodeCenter);
+                        }
+                    }
+
+                    auto direction = glm::normalize(endPosition - m_transitionDragState.m_startPosition);
+                    glm::vec2 orthogonalDirection = {-direction.y, direction.x};
+
+                    auto startPosition = GetNodeBorderIntersection(m_transitionDragState.m_pStartNode->GetID(), endPosition, m_transitionDragState.m_startPosition) + orthogonalDirection * TransitionArrowsOffset;
+                    if (nodeHovered)
+                    {
+                        endPosition = endPosition + TransitionArrowsOffset * orthogonalDirection;
+                    }
+
+                    ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, IM_COL32_BLACK);
+                }
+            }
+
+            // Draw transitions
+            for (auto pTransition : pStateMachine->m_transitions)
+            {
+                const auto& startStateID = pTransition->m_pStartState->GetID();
+                const auto& endStateID = pTransition->m_pEndState->GetID();
+
+                auto startStateCenter = GetNodeScreenSpaceCenter(startStateID);
+                auto endStateCenter = GetNodeScreenSpaceCenter(endStateID);
+
+                auto direction = glm::normalize(endStateCenter - startStateCenter);
+                glm::vec2 orthogonalDirection = {-direction.y, direction.x};
+
+                auto startPosition = GetNodeBorderIntersection(startStateID, endStateCenter, startStateCenter) + TransitionArrowsOffset * orthogonalDirection;
+                auto endPosition = GetNodeBorderIntersection(endStateID, startStateCenter, endStateCenter) + TransitionArrowsOffset * orthogonalDirection;
+
+                ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, IM_COL32_BLACK);
+
+                // TODO: Handle transition hovering and clicks (begin drag, pop up, etc)
+            }
+        }
+
         // Draw nodes
         for (auto pNode : m_pGraph->m_graphNodes)
         {
@@ -359,19 +385,19 @@ class GraphView
     // ------ Helpers
     glm::vec2 GetNodeScreenSpaceCenter(const UUID& nodeID) const
     {
-        return ImNodes::GetNodeScreenSpacePos(nodeID) + ImNodes::GetNodeDimensions(nodeID) / 2;
+        return (glm::vec2) ImNodes::GetNodeScreenSpacePos(nodeID) + (glm::vec2) ImNodes::GetNodeDimensions(nodeID) / 2.0f;
     }
 
     glm::vec2 GetNodeBorderIntersection(const UUID& nodeID, glm::vec2& start, glm::vec2& end) const
     {
         /// @note AABB Intersection https://noonat.github.io/intersect/#aabb-vs-segment
         auto nodeCenter = GetNodeScreenSpaceCenter(nodeID);
-        auto nodeHalf = ImNodes::GetNodeDimensions(nodeID) / 2;
-        
+        glm::vec2 nodeHalf = (glm::vec2) ImNodes::GetNodeDimensions(nodeID) / 2.0f;
+
         const auto delta = end - start;
         const auto scale = 1.0f / delta;
         const auto sign = glm::sign(scale);
-        const auto nearTimes = (nodeCenter - sign * nodeHalf - start) * scale; 
+        const auto nearTimes = (nodeCenter - sign * nodeHalf - start) * scale;
         const auto farTimes = (nodeCenter + sign * nodeHalf - start) * scale;
 
         assert(!(nearTimes.x > farTimes.y || nearTimes.y > farTimes.x)); // No collision
@@ -380,12 +406,12 @@ class GraphView
         const auto farTime = glm::min(farTimes.x, farTimes.y);
 
         assert(nearTime < 1.0f); // Segment goes toward the AABB but does not reach it (TODO: Raycast ?)
-        assert(farTime > 0.0f); // Segment points away from the AABB 
+        assert(farTime > 0.0f);  // Segment points away from the AABB
 
         float hitTime = std::clamp<float>(nearTime, 0.0f, 1.0f);
-        //auto hitDelta = (1.0f - hitTime) * -delta;
+        // auto hitDelta = (1.0f - hitTime) * -delta;
         auto hitPos = start + delta * hitTime;
-        
+
         return hitPos;
     }
 
@@ -404,7 +430,6 @@ class GraphView
 
         // TODO:
         // - No existing identical link
-        std::cout << "Transition allowed" << std::endl;
         return true;
     }
 
