@@ -3,8 +3,8 @@
 #include "asset_editor_workspace.hpp"
 #include "graph/link.hpp"
 
-#include <reflection/services/type_registry_service.hpp>
 #include <common/hash_vector.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
@@ -24,6 +24,8 @@ class EditorGraph
     friend class GraphView;
 
   private:
+    EditorGraph* m_pParentGraph = nullptr;
+
     // TODO: Replace node vector + lookup map with IDVector
     std::vector<EditorGraphNode*> m_graphNodes;
     IDVector<Link> m_links;
@@ -34,11 +36,17 @@ class EditorGraph
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;
 
-    // UI Context. Set by the viewer when first displaying this graph 
+    // UI Context. Set by the viewer when first displaying this graph
     ImNodesEditorContext* m_pImNodesEditorContext = nullptr;
+
+  protected:
+    const std::vector<EditorGraphNode*>& GetNodes() const { return m_graphNodes; }
 
   public:
     ~EditorGraph();
+
+    bool HasParentGraph() const { return m_pParentGraph != nullptr; }
+    EditorGraph* GetParentGraph() const { return m_pParentGraph; }
 
     // TODO: Shared behavior ?
     void Clear();
@@ -80,7 +88,7 @@ class EditorGraph
     void AddGraphNode(EditorGraphNode* pNode);
 
     /// @brief Remove a node from the graph
-    void RemoveGraphNode(const UUID& nodeID);
+    virtual void RemoveGraphNode(const UUID& nodeID);
 
     const Link* GetLink(const UUID& linkID) const
     {
@@ -95,6 +103,12 @@ class EditorGraph
 
     void AddDynamicInputPin(EditorGraphNode* pNode);
     void RemoveDynamicInputPin(EditorGraphNode* pNode, const UUID& pinID);
+
+    const Pin* GetPin(const UUID& pinID)
+    {
+        assert(pinID.IsValid());
+        return m_pinLookupMap.at(pinID);
+    }
 
     /// @note Only works for single-link pins
     const Link* GetLinkToPin(const UUID& pinID) const;

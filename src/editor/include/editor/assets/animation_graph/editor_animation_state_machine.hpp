@@ -18,28 +18,51 @@ class EditorAnimationStateMachine : public EditorGraph
     std::vector<EditorTransition*> m_transitions;
 
   private:
-    void CreateTransition(const StateEditorNode* pStartState, const StateEditorNode* pEndState)
+    EditorTransition* CreateTransition(const StateEditorNode* pStartState, const StateEditorNode* pEndState)
     {
         assert(pStartState != nullptr && pEndState != nullptr);
 
         auto pTransition = aln::New<EditorTransition>();
         pTransition->m_pStartState = pStartState;
         pTransition->m_pEndState = pEndState;
+        pTransition->Initialize();
 
         m_transitions.push_back(pTransition);
+
+        return pTransition;
     }
 
   public:
-    ~EditorAnimationStateMachine()
+    void RemoveGraphNode(const UUID& nodeID) override
     {
-        for (auto& pTransition : m_transitions)
+        auto predicate = [&](const auto* pTransition)
+        { return pTransition->GetStartState()->GetID() == nodeID || pTransition->GetEndState()->GetID() == nodeID; };
+
+        // Erase-remove idiom but we delete each ptr
+        // We might be able to use stable_partion as well
+        auto first = std::find_if(m_transitions.begin(), m_transitions.end(), predicate);
+        auto last = m_transitions.end();
+        if (first != last)
         {
-            aln::Delete(pTransition);
+            for (auto it = first; it != last; ++it)
+            {
+                if (!predicate(*it))
+                {
+                    *first = std::move(*it);
+                    first++;
+                }
+                else
+                {
+                    (*it)->Shutdown();
+                    aln::Delete(*it);
+                }
+            }
         }
-        EditorGraph::~EditorGraph();
+        m_transitions.erase(first, m_transitions.end());
+
+        EditorGraph::RemoveGraphNode(nodeID);
     }
 
-    // -------------- Asset compilation
-    // AnimationGraphDefinition* Compile(const std::filesystem::path& graphDefinitionPath, const std::filesystem::path& graphDatasetPath, const TypeRegistryService& typeRegistryService);
+    const std::vector<EditorTransition*>& GetTransitions() const { return m_transitions; }
 };
 } // namespace aln

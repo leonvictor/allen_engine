@@ -53,7 +53,7 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
         else
         {
             // ImGui::Text("Waiting for asset load");
-            //return; // TODO
+            // return; // TODO
         }
     }
 
@@ -98,8 +98,11 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
         }
 
         EditorGraph* pSecondaryGraph = nullptr;
-        // Selected nodes take precedence over links
-        if (m_primaryGraphView.HasSelectedNodes())
+        if (m_primaryGraphView.IsMouseDragging())
+        {
+            pSecondaryGraph = m_secondaryGraphView.GetViewedGraph();
+        }
+        else if (m_primaryGraphView.HasSelectedNodes())
         {
             auto pLastSelectedNode = m_primaryGraphView.GetSelectedNodes().back();
             if (pLastSelectedNode->HasChildGraph())
@@ -107,10 +110,13 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
                 pSecondaryGraph = pLastSelectedNode->GetChildGraph();
             }
         }
-        else if (m_primaryGraphView.HasSelectedLinks())
+        else if (m_primaryGraphView.IsViewingStateMachine() && m_primaryGraphView.HasSelectedTransition()) // Selected nodes take precedence over links
         {
-            // TODO: Transitions might hold secondary graphs as well
-            // TODO: Selecting a transition link opens up a transition graph
+            auto pTransition = m_primaryGraphView.GetSelectedTransition();
+            if (pTransition->HasChildGraph())
+            {
+                pSecondaryGraph = pTransition->GetChildGraph();
+            }
         }
         m_secondaryGraphView.SetViewedGraph(pSecondaryGraph);
 
@@ -146,6 +152,35 @@ void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const As
     // TODO: state is saved in a separate directory
     m_statePath = m_compiledDefinitionPath;
     m_statePath.replace_filename(".json");
+
+    auto HandleDoubleClick = [this](auto* pTransitionOrNode)
+    { if (pTransitionOrNode->HasChildGraph())
+        {
+            auto pChildGraph = pTransitionOrNode->GetChildGraph();
+            if (m_primaryGraphView.GetViewedGraph() != pChildGraph)
+            {
+                m_primaryGraphView.SetViewedGraph(pChildGraph);
+            }
+    } };
+
+    auto HandleCanvasDoubleClick = [this](auto* pEditorGraph)
+    {
+        if (pEditorGraph->HasParentGraph())
+        {
+            auto pParentGraph = pEditorGraph->GetParentGraph();
+            if (m_primaryGraphView.GetViewedGraph() != pParentGraph)
+            {
+                m_primaryGraphView.SetViewedGraph(pParentGraph);
+            }
+        }
+    };
+
+    m_primaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
+    m_primaryGraphView.OnTransitionDoubleClicked().BindListener(HandleDoubleClick);
+    m_primaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
+    m_secondaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
+    m_secondaryGraphView.OnTransitionDoubleClicked().BindListener(HandleDoubleClick);
+    m_secondaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
 
     m_primaryGraphView.SetViewedGraph(&m_rootGraph);
 

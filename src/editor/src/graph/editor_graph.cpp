@@ -148,6 +148,11 @@ void EditorGraph::AddGraphNode(EditorGraphNode* pNode)
         m_pinLookupMap[pin.GetID()] = &pin;
     }
 
+    if (pNode->HasChildGraph())
+    {
+        pNode->GetChildGraph()->m_pParentGraph = this;
+    }
+
     SetDirty();
 }
 

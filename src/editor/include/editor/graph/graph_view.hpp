@@ -7,6 +7,8 @@
 #include "assets/animation_graph/editor_animation_state_machine.hpp"
 #include "assets/animation_graph/nodes/state_editor_node.hpp"
 
+#include <common/event.hpp>
+
 #include <glm/vec2.hpp>
 #include <imgui.h>
 #include <imnodes.h>
@@ -25,7 +27,7 @@ class GraphView
     struct TransitionDragState
     {
         bool m_dragging = false;
-        EditorGraphNode* m_pStartNode = nullptr;
+        const EditorGraphNode* m_pStartNode = nullptr;
         glm::vec2 m_startPosition;
 
         void Reset()
@@ -36,9 +38,16 @@ class GraphView
         }
     };
 
+    struct ContextPopupState
+    {
+        const EditorGraphNode* m_pNode = nullptr;
+        const Pin* m_pPin = nullptr;
+        const Link* m_pLink = nullptr;
+        const EditorTransition* m_pTransition = nullptr;
+    };
+
   private:
     EditorGraph* m_pGraph = nullptr;
-    UUID m_contextPopupElementID = UUID::InvalidID;
 
     std::vector<UUID> m_selectedNodeIDs;
     std::vector<const EditorGraphNode*> m_selectedNodes;
@@ -46,13 +55,25 @@ class GraphView
     std::vector<UUID> m_selectedLinkIDs;
     std::vector<const Link*> m_selectedLinks;
 
-    UUID m_hoveredNodeID;
-    UUID m_hoveredPinID;
-    UUID m_hoveredLinkID;
+    // TODO: Handle selection of multiple transitions
+    const EditorTransition* m_pSelectedTransition = nullptr;
+
+    bool m_editorHovered = false;
+    bool m_canvasHovered = false;
+    const EditorTransition* m_pHoveredTransition = nullptr;
+    const EditorGraphNode* m_pHoveredNode = nullptr;
+    const Pin* m_pHoveredPin = nullptr;
+    const Link* m_pHoveredLink = nullptr;
 
     ImNodesContext* m_pImNodesContext = ImNodes::CreateContext();
 
     TransitionDragState m_transitionDragState;
+    ContextPopupState m_contextPopupState;
+
+    Event<const EditorGraph*> m_canvasDoubleClickedEvent;
+    Event<const EditorGraphNode*> m_nodeDoubleClickedEvent;
+    Event<const EditorTransition*> m_transitionDoubleClickedEvent;
+    // Links could also fire events, but its not needed right now
 
   public:
     ~GraphView()
@@ -81,11 +102,11 @@ class GraphView
     bool IsViewingStateMachine() const { return m_pGraph != nullptr && dynamic_cast<EditorAnimationStateMachine*>(m_pGraph) != nullptr; }
 
     bool HasGraphSet() const { return m_pGraph != nullptr; }
+    EditorGraph* GetViewedGraph() const { return m_pGraph; }
 
     void Clear()
     {
         m_pGraph = nullptr;
-        m_contextPopupElementID = UUID::InvalidID;
     }
 
     // TODO: Move registry in the context ?
@@ -100,33 +121,33 @@ class GraphView
         ImNodes::SetCurrentContext(m_pImNodesContext);
         ImNodes::EditorContextSet(m_pGraph->m_pImNodesEditorContext);
 
-        bool nodeHovered = ImNodes::IsNodeHovered(&m_hoveredNodeID);
-        bool pinHovered = ImNodes::IsPinHovered(&m_hoveredPinID);
-        bool linkHovered = ImNodes::IsLinkHovered(&m_hoveredLinkID);
+        m_pHoveredTransition = nullptr;
 
+        ImGui::PushID(this);
         ImNodes::BeginNodeEditor();
 
-        // Open contextual popups and register context ID
+        m_editorHovered = ImNodes::IsEditorHovered();
+
+        // Open contextual popups
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImNodes::IsEditorHovered())
         {
-            if (pinHovered)
+            if (IsPinHovered())
             {
-                m_contextPopupElementID = m_hoveredPinID;
+                m_contextPopupState.m_pPin = m_pHoveredPin;
                 ImGui::OpenPopup("graph_editor_pin_popup");
             }
-            else if (nodeHovered)
+            else if (IsNodeHovered())
             {
-                m_contextPopupElementID = m_hoveredNodeID;
+                m_contextPopupState.m_pNode = m_pHoveredNode;
                 ImGui::OpenPopup("graph_editor_node_popup");
             }
-            else if (linkHovered)
+            else if (IsLinkHovered())
             {
-                m_contextPopupElementID = m_hoveredLinkID;
+                m_contextPopupState.m_pLink = m_pHoveredLink;
                 ImGui::OpenPopup("graph_editor_link_popup");
             }
             else
             {
-                m_contextPopupElementID = UUID::InvalidID;
                 ImGui::OpenPopup("graph_editor_canvas_popup");
             }
         }
@@ -161,15 +182,18 @@ class GraphView
 
         if (ImGui::BeginPopup("graph_editor_node_popup"))
         {
-            // TODO: Factorize, we're looking for the node twice.
-            // but we need to correctly reset the context menu if the node is deleted
-            auto pNode = *std::find_if(m_pGraph->m_graphNodes.begin(), m_pGraph->m_graphNodes.end(), [&](auto pNode)
-                { return pNode->GetID() == m_contextPopupElementID; });
+            // This is not ideal... But the context menu is an exception that can alter the hovered node
+            auto pNode = const_cast<EditorGraphNode*>(m_contextPopupState.m_pNode);
 
             if (ImGui::MenuItem("Remove node"))
             {
-                ImNodes::ClearNodeSelection(m_contextPopupElementID);
-                m_pGraph->RemoveGraphNode(m_contextPopupElementID);
+                if (ImNodes::IsNodeSelected(pNode->GetID()))
+                {
+                    ImNodes::ClearNodeSelection(pNode->GetID());
+                }
+
+                m_pGraph->RemoveGraphNode(pNode->GetID());
+                m_contextPopupState.m_pNode = nullptr;
                 pNode = nullptr;
             }
 
@@ -183,17 +207,12 @@ class GraphView
                 // TODO
             }
 
-            // TODO: Only when in state machines
-            auto pStateNode = dynamic_cast<StateEditorNode*>(pNode);
-            if (pStateNode != nullptr)
+            auto pStateNode = dynamic_cast<const StateEditorNode*>(pNode);
+            if (pStateNode != nullptr && IsViewingStateMachine() && ImGui::MenuItem("Transition to..."))
             {
-                // TODO: New transition
-                if (ImGui::MenuItem("Transition to..."))
-                {
-                    m_transitionDragState.m_dragging = true;
-                    m_transitionDragState.m_pStartNode = pStateNode;
-                    m_transitionDragState.m_startPosition = GetNodeScreenSpaceCenter(m_contextPopupElementID);
-                }
+                m_transitionDragState.m_dragging = true;
+                m_transitionDragState.m_pStartNode = pStateNode;
+                m_transitionDragState.m_startPosition = GetNodeScreenSpaceCenter(pStateNode->GetID());
             }
 
             ImGui::EndPopup();
@@ -203,7 +222,8 @@ class GraphView
         {
             if (ImGui::MenuItem("Remove link"))
             {
-                m_pGraph->RemoveLink(m_contextPopupElementID);
+                m_pGraph->RemoveLink(m_pHoveredLink->GetID());
+                m_pHoveredLink = nullptr;
             }
             ImGui::EndPopup();
         }
@@ -214,7 +234,7 @@ class GraphView
             auto pSelectedNodeType = m_pGraph->AvailableNodeTypesMenuItems(pTypeRegistryService);
             if (pSelectedNodeType != nullptr)
             {
-                // TODO: These are never freed. Change AddGraphNode to accept a node's typeInfo ?
+                // TODO: Change AddGraphNode to accept a node's typeInfo ?
                 auto pNode = pSelectedNodeType->CreateTypeInstance<EditorGraphNode>();
                 pNode->Initialize();
 
@@ -233,14 +253,19 @@ class GraphView
             {
                 if (ImGui::IsAnyMouseDown())
                 {
-                    if (nodeHovered)
+                    if (IsNodeHovered())
                     {
-                        auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
+                        const auto pEndNode = m_pHoveredNode;
                         if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
                         {
                             const auto pStartState = static_cast<const StateEditorNode*>(m_transitionDragState.m_pStartNode);
                             const auto pEndState = static_cast<const StateEditorNode*>(pEndNode);
-                            pStateMachine->CreateTransition(pStartState, pEndState);
+                            auto pTransition = pStateMachine->CreateTransition(pStartState, pEndState);
+
+                            ClearLinkSelection();
+                            ClearNodeSelection();
+                            m_transitionDragState.Reset();
+                            m_pSelectedTransition = pTransition;
                         }
                     }
 
@@ -251,14 +276,14 @@ class GraphView
                 {
                     glm::vec2 endPosition = ImGui::GetMousePos();
 
-                    if (nodeHovered)
+                    if (IsNodeHovered())
                     {
                         // Snap to state nodes
-                        auto pEndNode = m_pGraph->GetNode(m_hoveredNodeID);
+                        const auto pEndNode = m_pHoveredNode;
                         if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
                         {
-                            auto hoveredNodeCenter = GetNodeScreenSpaceCenter(m_hoveredNodeID);
-                            endPosition = GetNodeBorderIntersection(m_hoveredNodeID, m_transitionDragState.m_startPosition, hoveredNodeCenter);
+                            auto hoveredNodeCenter = GetNodeScreenSpaceCenter(pEndNode->GetID());
+                            endPosition = GetNodeBorderIntersection(pEndNode->GetID(), m_transitionDragState.m_startPosition, hoveredNodeCenter);
                         }
                     }
 
@@ -266,7 +291,7 @@ class GraphView
                     glm::vec2 orthogonalDirection = {-direction.y, direction.x};
 
                     auto startPosition = GetNodeBorderIntersection(m_transitionDragState.m_pStartNode->GetID(), endPosition, m_transitionDragState.m_startPosition) + orthogonalDirection * TransitionArrowsOffset;
-                    if (nodeHovered)
+                    if (IsNodeHovered())
                     {
                         endPosition = endPosition + TransitionArrowsOffset * orthogonalDirection;
                     }
@@ -276,7 +301,7 @@ class GraphView
             }
 
             // Draw transitions
-            for (auto pTransition : pStateMachine->m_transitions)
+            for (auto& pTransition : pStateMachine->m_transitions)
             {
                 const auto& startStateID = pTransition->m_pStartState->GetID();
                 const auto& endStateID = pTransition->m_pEndState->GetID();
@@ -290,9 +315,28 @@ class GraphView
                 auto startPosition = GetNodeBorderIntersection(startStateID, endStateCenter, startStateCenter) + TransitionArrowsOffset * orthogonalDirection;
                 auto endPosition = GetNodeBorderIntersection(endStateID, startStateCenter, endStateCenter) + TransitionArrowsOffset * orthogonalDirection;
 
-                ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, IM_COL32_BLACK);
+                auto transitionColor = RGBColor::Blue;
+                // Handle hovering and selection
+                glm::vec2 mousePosition = ImGui::GetMousePos();
+                glm::vec2 closestPointOnTransitionFromMouse = ImLineClosestPoint(startPosition, endPosition, ImGui::GetMousePos());
+                auto distanceToTransition = glm::length2(mousePosition - closestPointOnTransitionFromMouse);
 
-                // TODO: Handle transition hovering and clicks (begin drag, pop up, etc)
+                if (distanceToTransition < 25.0f)
+                {
+                    m_pHoveredTransition = pTransition;
+                    transitionColor = RGBColor::Green;
+                    // TODO: Change color
+
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    {
+                        ClearLinkSelection();
+                        ClearNodeSelection();
+                        m_pSelectedTransition = pTransition;
+                    }
+                }
+
+                transitionColor = (pTransition == m_pSelectedTransition) ? RGBColor::Pink : transitionColor;
+                ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, transitionColor.U32());
             }
         }
 
@@ -314,23 +358,11 @@ class GraphView
 
         ImNodes::EndNodeEditor();
 
-        // if (ImGui::BeginDragDropTarget())
-        // {
-        //     if (const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload("AssetID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
-        //     {
-        //         assert(pPayload->DataSize == sizeof(AssetID));
-        //         auto pID = (AssetID*) pPayload->Data;
-        //         if (pID->GetAssetTypeID() == AnimationGraphDefinition::GetStaticAssetTypeID())
-        //         {
-        //             auto pAssetService = context.GetService<AssetService>();
-        //             pAssetService->Load(m_)
-        //         }
-        //         if (pID->GetAssetTypeID() == AnimationGraphDataset::GetStaticAssetTypeID())
-        //         {
-        //         }
-        //     }
-        //     ImGui::EndDragDropTarget();
-        // }
+        // Reset hovered state
+        UUID id = UUID::InvalidID;
+        m_pHoveredNode = ImNodes::IsNodeHovered(&id) ? m_pGraph->GetNode(id) : nullptr;
+        m_pHoveredPin = ImNodes::IsPinHovered(&id) ? m_pGraph->GetPin(id) : nullptr;
+        m_pHoveredLink = ImNodes::IsLinkHovered(&id) ? m_pGraph->GetLink(id) : nullptr;
 
         // Handle link creation
         UUID startPinID, endPinID, startNodeID, endNodeID;
@@ -353,6 +385,7 @@ class GraphView
             // ImGui::OpenPopup("graph_editor_link_dropped_popup");
         }
 
+        // -------- Selection
         // TODO: Cache selected nodes and links rather than re-populating the arrays each frame
         // Update selected nodes array
         auto selectedNodesCount = ImNodes::NumSelectedNodes();
@@ -380,9 +413,43 @@ class GraphView
                 m_selectedLinks[linkIdx] = m_pGraph->GetLink(linkID);
             }
         }
+
+        if (m_editorHovered && !IsTransitionHovered() && ImGui::IsAnyMouseDown())
+        {
+            m_pSelectedTransition = nullptr;
+        }
+
+        // -------- Navigation
+
+        if (m_editorHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        {
+            if (IsNodeHovered())
+            {
+                m_nodeDoubleClickedEvent.Fire(m_pHoveredNode);
+            }
+            else if (IsTransitionHovered())
+            {
+                m_transitionDoubleClickedEvent.Fire(m_pHoveredTransition);
+            }
+            else if (IsLinkHovered())
+            {
+                // ...
+            }
+            else if (IsPinHovered())
+            {
+                // ...
+            }
+            else
+            {
+                m_canvasDoubleClickedEvent.Fire(m_pGraph);
+            }
+        }
+
+        ImGui::PopID();
     }
 
     // ------ Helpers
+    // TODO: Move to private
     glm::vec2 GetNodeScreenSpaceCenter(const UUID& nodeID) const
     {
         return (glm::vec2) ImNodes::GetNodeScreenSpacePos(nodeID) + (glm::vec2) ImNodes::GetNodeDimensions(nodeID) / 2.0f;
@@ -415,7 +482,7 @@ class GraphView
         return hitPos;
     }
 
-    bool IsTransitionCreationAllowed(const EditorGraphNode* pStartNode, const EditorGraphNode* pEndNode)
+    bool IsTransitionCreationAllowed(const EditorGraphNode* pStartNode, const EditorGraphNode* pEndNode) const
     {
         assert(pStartNode != nullptr && pEndNode != nullptr);
 
@@ -433,6 +500,22 @@ class GraphView
         return true;
     }
 
+    bool IsMouseDragging() const { return m_pImNodesContext->LeftMouseDragging; }
+
+    void ClearLinkSelection()
+    {
+        ImNodes::ClearLinkSelection();
+        m_selectedLinkIDs.clear();
+        m_selectedLinks.clear();
+    }
+
+    void ClearNodeSelection()
+    {
+        ImNodes::ClearNodeSelection();
+        m_selectedNodeIDs.clear();
+        m_selectedNodes.clear();
+    }
+
     // ------ Interactions
     bool HasSelectedNodes() const { return !m_selectedNodes.empty(); }
     const std::vector<const EditorGraphNode*>& GetSelectedNodes() const { return m_selectedNodes; }
@@ -440,7 +523,19 @@ class GraphView
     bool HasSelectedLinks() const { return !m_selectedLinks.empty(); }
     const std::vector<const Link*>& GetSelectedLinks() const { return m_selectedLinks; }
 
+    bool HasSelectedTransition() const { return m_pSelectedTransition != nullptr; }
+    const EditorTransition* GetSelectedTransition() const { return m_pSelectedTransition; }
+
     bool IsDraggingTransition() const { return m_transitionDragState.m_dragging; }
+
+    bool IsNodeHovered() const { return m_pHoveredNode != nullptr; }
+    bool IsLinkHovered() const { return m_pHoveredLink != nullptr; }
+    bool IsPinHovered() const { return m_pHoveredPin != nullptr; }
+    bool IsTransitionHovered() const { return m_pHoveredTransition != nullptr; }
+
+    Event<const EditorGraph*>& OnCanvasDoubleClicked() { return m_canvasDoubleClickedEvent; }
+    Event<const EditorGraphNode*>& OnNodeDoubleClicked() { return m_nodeDoubleClickedEvent; }
+    Event<const EditorTransition*>& OnTransitionDoubleClicked() { return m_transitionDoubleClickedEvent; }
 
     // ------ Serialization
     void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
