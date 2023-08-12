@@ -2,17 +2,18 @@
 
 #include "graph/editor_graph.hpp"
 
-#include <filesystem>
-
 namespace aln
 {
 
 class AnimationGraphDefinition;
+class AnimationGraphDataset;
+class AnimationGraphCompilationContext;
 
+/// @todo Rename to Blend Tree
 class EditorAnimationGraph : public EditorGraph
 {
   public:
     // -------------- Asset compilation
-    AnimationGraphDefinition* Compile(const std::filesystem::path& graphDefinitionPath, const std::filesystem::path& graphDatasetPath, const TypeRegistryService& typeRegistryService);
+    bool Compile(AnimationGraphDefinition& graphDefinition, AnimationGraphDataset& graphDataset, const TypeRegistryService& typeRegistryService, AnimationGraphCompilationContext& context);
 };
 } // namespace aln

@@ -32,6 +32,12 @@ NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, An
     {
         // Blend weight parameter
         const auto pBlendWeightValueNode = context.GetNodeLinkedToInputPin(GetInputPin(0).GetID());
+        if (pBlendWeightValueNode == nullptr)
+        {
+            // TODO: Normalize error messages
+            context.LogError("No input blend weight value node found.", this);
+            return InvalidIndex;
+        }
         pSettings->m_blendWeightValueNodeIdx = pBlendWeightValueNode->Compile(context, pGraphDefinition);
         
         // Sources 
@@ -41,6 +47,11 @@ NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, An
         for (auto inputPinIdx = 1; inputPinIdx < inputPinsCount; ++inputPinIdx)
         {
             const auto pSourceNode = context.GetNodeLinkedToInputPin(GetInputPin(inputPinIdx).GetID());
+            if (pSourceNode == nullptr)
+            {
+                context.LogError("No input node found at pin: Input " + std::to_string(inputPinIdx), this);
+                return InvalidIndex;
+            }
             pSettings->m_sourcePoseNodeIndices.push_back(pSourceNode->Compile(context, pGraphDefinition));
         }
 

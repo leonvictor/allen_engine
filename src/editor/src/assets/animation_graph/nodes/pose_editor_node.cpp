@@ -14,10 +14,11 @@ NodeIndex PoseEditorNode::Compile(AnimationGraphCompilationContext& context, Ani
     // Get the linked input node
     const auto& inputPin = GetInputPin(0);
     const auto pInputNode = context.GetNodeLinkedToInputPin(inputPin.GetID());
-
-    // TODO: Handle, users will want to compile with malformed graphs,
-    // we cannot afford to crash here !
-    assert(pInputNode != nullptr);
+    if (pInputNode == nullptr)
+    {
+        context.LogError("No input link found.", this);
+        return InvalidIndex;
+    }
 
     return pInputNode->Compile(context, pGraphDefinition); // The result is just a pointer to the previous node
 };

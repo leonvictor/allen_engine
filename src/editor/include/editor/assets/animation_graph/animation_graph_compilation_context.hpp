@@ -14,8 +14,16 @@ namespace aln
 /// @brief The context passed around when compiling from an editor animation graph to its runtime version
 class AnimationGraphCompilationContext
 {
+    struct CompilationLogEntry
+    {
+        const EditorGraph* m_pGraph = nullptr;
+        const EditorGraphNode* m_pNode = nullptr;
+        std::string m_message = "";
+    };
+
   private:
-    const EditorAnimationGraph* m_pAnimationGraphEditor; // The graph currently compiling
+    const EditorAnimationGraph const* m_pRootGraph = nullptr;
+    const EditorAnimationGraph* m_pCurrentAnimationGraph = nullptr; // The (potentially child-) graph currently compiling
 
     std::vector<const EditorAnimationGraphNode*> m_compiledNodes;
     std::vector<UUID> m_registeredDataSlots;
@@ -23,12 +31,16 @@ class AnimationGraphCompilationContext
     size_t m_currentNodeMemoryOffset = 0;
     size_t m_maxNodeMemoryAlignement = 0;
 
+    std::vector<CompilationLogEntry> m_errorLog;
+
   public:
     AnimationGraphCompilationContext(const EditorAnimationGraph* pAnimationGraphEditor)
-        : m_pAnimationGraphEditor(pAnimationGraphEditor) {}
+        : m_pRootGraph(pAnimationGraphEditor) {}
 
-    const EditorAnimationGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pAnimationGraphEditor->GetNodeLinkedToInputPin(inputPinID)); }
-    const EditorAnimationGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pAnimationGraphEditor->GetNodeLinkedToOutputPin(outputPinID)); }
+    void SetCurrentGraph(const EditorAnimationGraph* pGraph) { m_pCurrentAnimationGraph = pGraph; }
+
+    const EditorAnimationGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pCurrentAnimationGraph->GetNodeLinkedToInputPin(inputPinID)); }
+    const EditorAnimationGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pCurrentAnimationGraph->GetNodeLinkedToOutputPin(outputPinID)); }
 
     /// @brief Try to get the runtime settings associated with an editor node
     /// @tparam T: Runtime type of the node
@@ -77,5 +89,15 @@ class AnimationGraphCompilationContext
 
     size_t GetNodeMemoryOffset() const { return m_currentNodeMemoryOffset; }
     size_t GetNodeMemoryAlignement() const { return m_maxNodeMemoryAlignement; }
+
+    void LogError(const std::string& message, const EditorGraphNode* pSourceNode = nullptr)
+    {
+        auto& entry = m_errorLog.emplace_back();
+        entry.m_pGraph = m_pCurrentAnimationGraph;
+        entry.m_pNode = pSourceNode;
+        entry.m_message = message;
+    }
+
+    const std::vector<CompilationLogEntry>& GetErrorLog() const { return m_errorLog; }
 };
 } // namespace aln

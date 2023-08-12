@@ -26,7 +26,11 @@ NodeIndex FloatClampEditorNode::Compile(AnimationGraphCompilationContext& contex
     if (!compiled)
     {
         const auto pInputNode = context.GetNodeLinkedToInputPin(GetInputPin(0).GetID());
-
+        if (pInputNode == nullptr)
+        {
+            context.LogError("No node linked to input pin " + GetInputPin(0).GetName(), this);
+            return InvalidIndex;
+        }
         pSettings->m_inputValueNodeIdx = pInputNode->Compile(context, pGraphDefinition);
         pSettings->m_min = m_min;
         pSettings->m_max = m_max;

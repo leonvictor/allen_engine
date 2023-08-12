@@ -1,7 +1,9 @@
 #include "assets/animation_graph/animation_graph_workspace.hpp"
 
 #include "aln_imgui_widgets.hpp"
+#include "assets/animation_graph/animation_graph_compilation_context.hpp"
 
+#include <assets/asset_archive_header.hpp>
 #include <entities/update_context.hpp>
 
 #include <imgui.h>
@@ -13,8 +15,62 @@ namespace aln
 {
 void AnimationGraphWorkspace::Compile()
 {
-    // TODO: Move the actual asset saving out of graph compilation
-    m_rootGraph.Compile(m_compiledDefinitionPath, m_compiledDatasetPath, *m_pTypeRegistryService);
+    AnimationGraphCompilationContext context(&m_rootGraph);
+    AnimationGraphDefinition graphDefinition;
+    AnimationGraphDataset graphDataset;
+
+    // TODO: Split definition / dataset compilations
+    // TODO: Compile directly to this workspace's associated assets
+    if (m_rootGraph.Compile(graphDefinition, graphDataset, *m_pTypeRegistryService, context))
+    {
+        // TODO: Where does runtime asset serialization+saving occur ?
+        // Serialize graph definition
+        {
+            std::vector<std::byte> data;
+            auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+
+            reflect::TypeCollectionDescriptor typeCollectionDesc;
+            for (auto& pSettings : graphDefinition.m_nodeSettings)
+            {
+                auto pSettingsTypeInfo = pSettings->GetTypeInfo();
+                auto& descriptor = typeCollectionDesc.m_descriptors.emplace_back();
+                descriptor.DescribeTypeInstance(pSettings, m_pTypeRegistryService, pSettingsTypeInfo);
+            }
+
+            dataArchive << typeCollectionDesc;
+            dataArchive << graphDefinition;
+
+            auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
+
+            auto fileArchive = BinaryFileArchive(m_compiledDefinitionPath, IBinaryArchive::IOMode::Write);
+            fileArchive << header << data;
+        }
+
+        // Serialize graph dataset
+        {
+            std::vector<std::byte> data;
+            auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+            graphDataset.Serialize(dataArchive);
+
+            auto header = AssetArchiveHeader(AnimationGraphDataset::GetStaticAssetTypeID());
+            for (auto& handle : graphDataset.m_animationClips)
+            {
+                header.AddDependency(handle.GetAssetID());
+            }
+
+            auto fileArchive = BinaryFileArchive(m_compiledDatasetPath, IBinaryArchive::IOMode::Write);
+            fileArchive << header << data;
+        }
+    }
+    else
+    {
+        // TODO: Log using a dedicated service
+        std::cout << "Compilation error(s) occured: " << std::endl;
+        for (auto& logEntry : context.GetErrorLog())
+        {
+            std::cout << logEntry.m_message << std::endl;
+        }
+    }
 }
 
 void AnimationGraphWorkspace::SaveState(nlohmann::json& json) const

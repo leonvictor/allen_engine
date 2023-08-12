@@ -12,14 +12,12 @@
 namespace aln
 {
 
- // TODO: Move the actual serialization out 
-AnimationGraphDefinition* EditorAnimationGraph::Compile(const std::filesystem::path& graphDefinitionPath, const std::filesystem::path& graphDatasetPath, const TypeRegistryService& typeRegistryService)
+// TODO: Move the actual serialization out 
+bool EditorAnimationGraph::Compile(AnimationGraphDefinition& graphDefinition, AnimationGraphDataset& graphDataset, const TypeRegistryService& typeRegistryService, AnimationGraphCompilationContext& context)
 {
-    AnimationGraphCompilationContext context(this);
+    context.SetCurrentGraph(this);
 
-    // Compile graph definition
-    AnimationGraphDefinition graphDefinition;
-
+    // ---- Compile graph definition
     // Parameter nodes are compiled first to be easier to find
     auto parameterNodes = GetAllNodesOfType<IControlParameterEditorNode>();
     graphDefinition.m_controlParameterNames.reserve(parameterNodes.size());
@@ -30,63 +28,44 @@ AnimationGraphDefinition* EditorAnimationGraph::Compile(const std::filesystem::p
     }
 
     auto outputNodes = GetAllNodesOfType<PoseEditorNode>();
-    assert(outputNodes.size() == 1);
+    // TODO: Identify the graph by a user-readable name
+    if (outputNodes.size() < 1)
+    {
+        context.LogError("No result pose node found.");
+        return false;
+    }
+    if (outputNodes.size() > 1)
+    {
+        context.LogError("More than one result pose node found.");
+        return false;
+    }
+    // TODO: Potentially allow the compilation to run further to log other errors ?
+    // TODO: Handle the log and display it
 
     auto rootNodeIndex = outputNodes[0]->Compile(context, &graphDefinition);
+    if (rootNodeIndex == InvalidIndex)
+    {
+        return false;
+    }
+
     graphDefinition.m_rootNodeIndex = rootNodeIndex;
     graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
     graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
 
-    // Compile dataset
-    AnimationGraphDataset graphDataset;
+    // ---- Compile dataset
     auto& registeredDataSlots = context.GetRegisteredDataSlots();
     for (auto& slotOwnerNodeID : registeredDataSlots)
     {
-        const auto pOwnerNode = (AnimationClipEditorNode*) GetNode(slotOwnerNodeID);
+        const auto pOwnerNode = static_cast<const AnimationClipEditorNode*>(GetNode(slotOwnerNodeID));
         auto& clipID = pOwnerNode->GetAnimationClipID();
-        assert(clipID.IsValid()); // TODO: Proper input validation
+        if (!clipID.IsValid())
+        {
+            context.LogError("Wrong animation clip ID provided to AnimationClip node.", pOwnerNode);
+            return false;
+        }
         graphDataset.m_animationClips.emplace_back(clipID);
     }
 
-    // TODO: Where does runtime asset serialization+saving occur ?
-
-    // Serialize graph definition
-    {
-        std::vector<std::byte> data;
-        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
-
-        reflect::TypeCollectionDescriptor typeCollectionDesc;
-        for (auto& pSettings : graphDefinition.m_nodeSettings)
-        {
-            auto pSettingsTypeInfo = pSettings->GetTypeInfo();
-            auto& descriptor = typeCollectionDesc.m_descriptors.emplace_back();
-            descriptor.DescribeTypeInstance(pSettings, &typeRegistryService, pSettingsTypeInfo);
-        }
-
-        dataArchive << typeCollectionDesc;
-        dataArchive << graphDefinition;
-
-        auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
-
-        auto fileArchive = BinaryFileArchive(graphDefinitionPath, IBinaryArchive::IOMode::Write);
-        fileArchive << header << data;
-    }
-
-    // Serialize graph dataset
-    {
-        std::vector<std::byte> data;
-        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
-        graphDataset.Serialize(dataArchive);
-
-        auto header = AssetArchiveHeader(AnimationGraphDataset::GetStaticAssetTypeID());
-        for (auto& handle : graphDataset.m_animationClips)
-        {
-            header.AddDependency(handle.GetAssetID());
-        }
-
-        auto fileArchive = BinaryFileArchive(graphDatasetPath, IBinaryArchive::IOMode::Write);
-        fileArchive << header << data;
-    }
-    return nullptr;
+    return true;
 }
 } // namespace aln
