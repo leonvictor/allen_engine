@@ -28,12 +28,8 @@ void StateEditorNode::Initialize()
 NodeIndex StateEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     StateRuntimeNode::Settings* pSettings = nullptr;
-    bool compiled = context.GetSettings<StateRuntimeNode>(this, pGraphDefinition, pSettings);
-    if (!compiled)
-    {
-        // TODO
-    }
-
-    return pSettings->GetNodeIndex();
+    bool compiled = context.GetSettings<StateRuntimeNode>(this, graphDefinition, pSettings);
+    auto pChildBlendTree = static_cast<const EditorAnimationGraph*>(GetChildGraph());
+    return pChildBlendTree->CompileDefinition(context, graphDefinition);
 };
 } // namespace aln

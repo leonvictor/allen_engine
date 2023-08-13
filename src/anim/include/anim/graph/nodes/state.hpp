@@ -4,6 +4,10 @@
 
 namespace aln
 {
+/// @brief
+// @todo State events = StringIDs emitted from states that can be used by gameplay code to react
+// 4 types of state events: TransitioningIn, transitioningOut, FullyInState, Timed (elapsed time in state > or < than... - remaining time in state >< that...)
+// TODO: State events can also be checked from within the graph (entry state overrides or transitions)
 class StateRuntimeNode : public PassthroughRuntimeNode
 {
   public:
@@ -12,6 +16,7 @@ class StateRuntimeNode : public PassthroughRuntimeNode
         ALN_REGISTER_TYPE();
 
         friend class AnimationGraphCompilationContext;
+        friend class StateEditorNode;
 
       private:
       public:

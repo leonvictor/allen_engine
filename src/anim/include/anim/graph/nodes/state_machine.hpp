@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../pose_node.hpp"
+#include "../value_node.hpp"
 #include "state.hpp"
 #include "transition.hpp"
 
@@ -13,6 +14,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
     struct Transition
     {
         TransitionRuntimeNode* m_pTransitionNode = nullptr;
+        BoolValueNode* m_pConditionNode = nullptr;
         uint16_t m_targetStateIndex = InvalidIndex; // Index of the target state in the node's states array
     };
 
@@ -28,11 +30,13 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
         ALN_REGISTER_TYPE();
 
         friend class AnimationGraphCompilationContext;
+        friend class StateMachineEditorNode;
 
         struct TransitionSettings
         {
+            uint32_t m_targetStateIndex = InvalidIndex; // Index of the target state in the node's states array
             NodeIndex m_transitionNodeIndex = InvalidIndex;
-            uint16_t m_targetStateIndex = InvalidIndex; // Index of the target state in the node's states array
+            NodeIndex m_conditionNodeIndex = InvalidIndex;
         };
 
         struct StateSettings
@@ -53,12 +57,12 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
             {
                 auto& state = pNode->m_states.emplace_back();
                 SetNodePtrFromIndex(nodePtrs, stateSettings.m_stateNodeIndex, state.m_pStateNode);
-
                 for (auto& transitionSettings : stateSettings.m_transitionSettings)
                 {
                     auto& transition = state.m_transitions.emplace_back();
                     transition.m_targetStateIndex = transitionSettings.m_targetStateIndex;
                     SetNodePtrFromIndex(nodePtrs, transitionSettings.m_transitionNodeIndex, transition.m_pTransitionNode);
+                    SetNodePtrFromIndex(nodePtrs, transitionSettings.m_conditionNodeIndex, transition.m_pConditionNode);
                 }
             }
         }

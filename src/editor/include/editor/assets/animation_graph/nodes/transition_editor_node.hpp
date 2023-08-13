@@ -11,7 +11,11 @@ class TransitionEditorNode : public EditorAnimationGraphNode
 {
     ALN_REGISTER_TYPE()
 
+    friend class StateMachineEditorNode;
+
   private:
+    float m_duration = 0.0f;
+
   protected:
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
     {

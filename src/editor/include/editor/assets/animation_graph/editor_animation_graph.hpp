@@ -2,6 +2,8 @@
 
 #include "graph/editor_graph.hpp"
 
+#include <anim/types.hpp>
+
 namespace aln
 {
 
@@ -14,7 +16,7 @@ class EditorAnimationGraph : public EditorGraph
 {
   public:
     // -------------- Asset compilation
-    bool CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const;
+    NodeIndex CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const;
     bool CompileDataset(AnimationGraphCompilationContext& context, AnimationGraphDataset& graphDataset) const;
 };
 } // namespace aln

@@ -12,14 +12,15 @@
 namespace aln
 {
 
-bool EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
+NodeIndex EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
+    auto pPreviousGraph = context.GetCurrentGraph();
     context.SetCurrentGraph(this);
 
     // ---- Compile graph definition
     // Parameter nodes are compiled first to be easier to find
     auto parameterNodes = GetAllNodesOfType<IControlParameterEditorNode>();
-    graphDefinition.m_controlParameterNames.reserve(parameterNodes.size());
+    graphDefinition.m_controlParameterNames.reserve(graphDefinition.m_controlParameterNames.size() + parameterNodes.size());
     for (auto& pParameterNode : parameterNodes)
     {
         pParameterNode->Compile(context, graphDefinition);
@@ -31,27 +32,22 @@ bool EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationContext& c
     if (outputNodes.size() < 1)
     {
         context.LogError("No result pose node found.");
-        return false;
+        context.SetCurrentGraph(pPreviousGraph);
+        return InvalidIndex;
     }
     if (outputNodes.size() > 1)
     {
         context.LogError("More than one result pose node found.");
-        return false;
+        context.SetCurrentGraph(pPreviousGraph);
+        return InvalidIndex;
     }
-    // TODO: Potentially allow the compilation to run further to log other errors ?
-    // TODO: Handle the log and display it
 
     auto rootNodeIndex = outputNodes[0]->Compile(context, graphDefinition);
-    if (rootNodeIndex == InvalidIndex)
-    {
-        return false;
-    }
+    // TODO: Record an error if necessary, them read them back in the reverse order as a stack trace
+    
+    context.SetCurrentGraph(pPreviousGraph);
 
-    graphDefinition.m_rootNodeIndex = rootNodeIndex;
-    graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
-    graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
-
-    return true;
+    return rootNodeIndex;
 }
 
 bool EditorAnimationGraph::CompileDataset(AnimationGraphCompilationContext& context, AnimationGraphDataset& graphDataset) const

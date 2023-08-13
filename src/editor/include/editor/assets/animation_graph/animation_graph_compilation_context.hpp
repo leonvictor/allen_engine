@@ -41,6 +41,7 @@ class AnimationGraphCompilationContext
     }
 
     void SetCurrentGraph(const EditorAnimationGraph* pGraph) { m_pCurrentAnimationGraph = pGraph; }
+    const EditorAnimationGraph* GetCurrentGraph() const { return m_pCurrentAnimationGraph; }
 
     const EditorAnimationGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pCurrentAnimationGraph->GetNodeLinkedToInputPin(inputPinID)); }
     const EditorAnimationGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const { return static_cast<const EditorAnimationGraphNode*>(m_pCurrentAnimationGraph->GetNodeLinkedToOutputPin(outputPinID)); }

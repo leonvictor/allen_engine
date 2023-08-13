@@ -17,6 +17,10 @@ class EditorAnimationStateMachine : public EditorGraph
   private:
     std::vector<Conduit*> m_conduits;
 
+    // TODO: 
+    // Entry State Overrides
+    // Global transitions
+
   private:
     Conduit* CreateConduit(const StateEditorNode* pStartState, const StateEditorNode* pEndState)
     {

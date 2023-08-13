@@ -21,8 +21,14 @@ void AnimationGraphWorkspace::Compile()
 
     // TODO: Decouple dataset from the graph, use a dedicated dataset editor to associate anim clip node's user name to a given anim clip ID
     // TODO: Compile directly to this workspace's associated assets
-    if (m_rootGraph.CompileDefinition(context, graphDefinition))
+    auto rootNodeIndex = m_rootGraph.CompileDefinition(context, graphDefinition);
+    if (rootNodeIndex != InvalidIndex)
     {
+        // Finalize the definition
+        graphDefinition.m_rootNodeIndex = rootNodeIndex;
+        graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
+        graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
+
         // TODO: Where does runtime asset serialization+saving occur ?
         // Serialize graph definition
         std::vector<std::byte> data;
