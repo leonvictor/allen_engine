@@ -19,7 +19,7 @@ class FloatControlParameterEditorNode : public IControlParameterEditorNode
 
   public:
     virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 
 class BoolControlParameterEditorNode : public IControlParameterEditorNode
@@ -28,7 +28,7 @@ class BoolControlParameterEditorNode : public IControlParameterEditorNode
 
   public:
     virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 
 class IDControlParameterEditorNode : public IControlParameterEditorNode
@@ -37,7 +37,7 @@ class IDControlParameterEditorNode : public IControlParameterEditorNode
 
   public:
     virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 
 // TODO: ...

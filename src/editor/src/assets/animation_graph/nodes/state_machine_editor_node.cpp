@@ -20,7 +20,7 @@ void StateMachineEditorNode::Initialize()
     SetChildGraph(pEditorStateMachine);
 }
 
-NodeIndex StateMachineEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex StateMachineEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     StateMachineRuntimeNode::Settings* pSettings = nullptr;
     bool compiled = context.GetSettings<StateMachineRuntimeNode>(this, pGraphDefinition, pSettings);

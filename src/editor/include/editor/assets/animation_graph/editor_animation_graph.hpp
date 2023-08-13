@@ -14,6 +14,7 @@ class EditorAnimationGraph : public EditorGraph
 {
   public:
     // -------------- Asset compilation
-    bool Compile(AnimationGraphDefinition& graphDefinition, AnimationGraphDataset& graphDataset, const TypeRegistryService& typeRegistryService, AnimationGraphCompilationContext& context);
+    bool CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const;
+    bool CompileDataset(AnimationGraphCompilationContext& context, AnimationGraphDataset& graphDataset) const;
 };
 } // namespace aln

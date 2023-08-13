@@ -16,7 +16,7 @@ void TransitionEditorNode::Initialize()
     AddInputPin(NodeValueType::Bool, "Condition");
 }
 
-NodeIndex TransitionEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex TransitionEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     TransitionRuntimeNode::Settings* pSettings = nullptr;
     bool compiled = context.GetSettings<TransitionRuntimeNode>(this, pGraphDefinition, pSettings);

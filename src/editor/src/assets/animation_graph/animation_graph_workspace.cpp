@@ -19,48 +19,56 @@ void AnimationGraphWorkspace::Compile()
     AnimationGraphDefinition graphDefinition;
     AnimationGraphDataset graphDataset;
 
-    // TODO: Split definition / dataset compilations
+    // TODO: Decouple dataset from the graph, use a dedicated dataset editor to associate anim clip node's user name to a given anim clip ID
     // TODO: Compile directly to this workspace's associated assets
-    if (m_rootGraph.Compile(graphDefinition, graphDataset, *m_pTypeRegistryService, context))
+    if (m_rootGraph.CompileDefinition(context, graphDefinition))
     {
         // TODO: Where does runtime asset serialization+saving occur ?
         // Serialize graph definition
+        std::vector<std::byte> data;
+        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+
+        reflect::TypeCollectionDescriptor typeCollectionDesc;
+        for (auto& pSettings : graphDefinition.m_nodeSettings)
         {
-            std::vector<std::byte> data;
-            auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
-
-            reflect::TypeCollectionDescriptor typeCollectionDesc;
-            for (auto& pSettings : graphDefinition.m_nodeSettings)
-            {
-                auto pSettingsTypeInfo = pSettings->GetTypeInfo();
-                auto& descriptor = typeCollectionDesc.m_descriptors.emplace_back();
-                descriptor.DescribeTypeInstance(pSettings, m_pTypeRegistryService, pSettingsTypeInfo);
-            }
-
-            dataArchive << typeCollectionDesc;
-            dataArchive << graphDefinition;
-
-            auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
-
-            auto fileArchive = BinaryFileArchive(m_compiledDefinitionPath, IBinaryArchive::IOMode::Write);
-            fileArchive << header << data;
+            auto pSettingsTypeInfo = pSettings->GetTypeInfo();
+            auto& descriptor = typeCollectionDesc.m_descriptors.emplace_back();
+            descriptor.DescribeTypeInstance(pSettings, m_pTypeRegistryService, pSettingsTypeInfo);
         }
 
+        dataArchive << typeCollectionDesc;
+        dataArchive << graphDefinition;
+
+        auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
+
+        auto fileArchive = BinaryFileArchive(m_compiledDefinitionPath, IBinaryArchive::IOMode::Write);
+        fileArchive << header << data;
+    }
+    else
+    {
+        // TODO: Log using a dedicated service
+        std::cout << "Compilation error(s) occured: " << std::endl;
+        for (auto& logEntry : context.GetErrorLog())
+        {
+            std::cout << logEntry.m_message << std::endl;
+        }
+    }
+
+    if (m_rootGraph.CompileDataset(context, graphDataset))
+    {
         // Serialize graph dataset
+        std::vector<std::byte> data;
+        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
+        graphDataset.Serialize(dataArchive);
+
+        auto header = AssetArchiveHeader(AnimationGraphDataset::GetStaticAssetTypeID());
+        for (auto& handle : graphDataset.m_animationClips)
         {
-            std::vector<std::byte> data;
-            auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
-            graphDataset.Serialize(dataArchive);
-
-            auto header = AssetArchiveHeader(AnimationGraphDataset::GetStaticAssetTypeID());
-            for (auto& handle : graphDataset.m_animationClips)
-            {
-                header.AddDependency(handle.GetAssetID());
-            }
-
-            auto fileArchive = BinaryFileArchive(m_compiledDatasetPath, IBinaryArchive::IOMode::Write);
-            fileArchive << header << data;
+            header.AddDependency(handle.GetAssetID());
         }
+
+        auto fileArchive = BinaryFileArchive(m_compiledDatasetPath, IBinaryArchive::IOMode::Write);
+        fileArchive << header << data;
     }
     else
     {
@@ -234,7 +242,7 @@ void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const As
     m_primaryGraphViewEventIDs.m_nodeDoubleClickedEventID = m_primaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
     m_primaryGraphViewEventIDs.m_conduitDoubleClickedEventID = m_primaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
     m_primaryGraphViewEventIDs.m_canvasDoubleClickedEventID = m_primaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
-    
+
     m_secondaryGraphViewEventIDs.m_nodeDoubleClickedEventID = m_secondaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
     m_secondaryGraphViewEventIDs.m_conduitDoubleClickedEventID = m_secondaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
     m_secondaryGraphViewEventIDs.m_canvasDoubleClickedEventID = m_secondaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
@@ -274,7 +282,7 @@ void AnimationGraphWorkspace::Shutdown()
     m_primaryGraphView.OnNodeDoubleClicked().UnbindListener(m_primaryGraphViewEventIDs.m_nodeDoubleClickedEventID);
     m_primaryGraphView.OnConduitDoubleClicked().UnbindListener(m_primaryGraphViewEventIDs.m_conduitDoubleClickedEventID);
     m_primaryGraphView.OnCanvasDoubleClicked().UnbindListener(m_primaryGraphViewEventIDs.m_canvasDoubleClickedEventID);
-    
+
     m_secondaryGraphView.OnNodeDoubleClicked().UnbindListener(m_secondaryGraphViewEventIDs.m_nodeDoubleClickedEventID);
     m_secondaryGraphView.OnConduitDoubleClicked().UnbindListener(m_secondaryGraphViewEventIDs.m_conduitDoubleClickedEventID);
     m_secondaryGraphView.OnCanvasDoubleClicked().UnbindListener(m_secondaryGraphViewEventIDs.m_canvasDoubleClickedEventID);

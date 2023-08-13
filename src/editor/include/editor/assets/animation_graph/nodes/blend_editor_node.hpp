@@ -64,6 +64,6 @@ class BlendEditorNode : public EditorAnimationGraphNode
     virtual std::string DynamicInputPinName() const override { return "Input"; }
 
     virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 } // namespace aln

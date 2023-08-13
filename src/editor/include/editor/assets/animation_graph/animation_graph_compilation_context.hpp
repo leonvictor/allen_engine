@@ -35,7 +35,10 @@ class AnimationGraphCompilationContext
 
   public:
     AnimationGraphCompilationContext(const EditorAnimationGraph* pAnimationGraphEditor)
-        : m_pRootGraph(pAnimationGraphEditor) {}
+        : m_pRootGraph(pAnimationGraphEditor)
+    {
+        assert(m_pRootGraph != nullptr);
+    }
 
     void SetCurrentGraph(const EditorAnimationGraph* pGraph) { m_pCurrentAnimationGraph = pGraph; }
 
@@ -45,11 +48,11 @@ class AnimationGraphCompilationContext
     /// @brief Try to get the runtime settings associated with an editor node
     /// @tparam T: Runtime type of the node
     /// @param pNode: Editor node
-    /// @param pGraphDefinition: Definition of the graph this node is part of
+    /// @param graphDefinition: Definition of the graph this node is part of
     /// @param pSettings: Pointer to the node's settings storage
     /// @return Whether the node was already compiled (true: already compiled, false: not yet)
     template <typename T>
-    bool GetSettings(const EditorAnimationGraphNode* pNode, AnimationGraphDefinition* pGraphDefinition, typename T::Settings*& pOutSettings)
+    bool GetSettings(const EditorAnimationGraphNode* pNode, AnimationGraphDefinition& graphDefinition, typename T::Settings*& pOutSettings)
     {
         static_assert(std::is_base_of_v<RuntimeGraphNode, T>);
         static_assert(std::is_base_of_v<RuntimeGraphNode::Settings, typename T::Settings>);
@@ -57,18 +60,19 @@ class AnimationGraphCompilationContext
         auto it = std::find(m_compiledNodes.begin(), m_compiledNodes.end(), pNode);
         if (it != m_compiledNodes.end())
         {
-            pOutSettings = (typename T::Settings*) pGraphDefinition->m_nodeSettings[it - m_compiledNodes.begin()];
+            pOutSettings = (typename T::Settings*) graphDefinition.m_nodeSettings[it - m_compiledNodes.begin()];
             return true;
         }
 
         // Otherwise create the settings
         pOutSettings = aln::New<typename T::Settings>();
         pOutSettings->m_nodeIndex = m_compiledNodes.size();
-        pGraphDefinition->m_nodeSettings.push_back(pOutSettings);
-        pGraphDefinition->m_nodeIndices.push_back(pOutSettings->m_nodeIndex);
+
+        graphDefinition.m_nodeSettings.push_back(pOutSettings);
+        graphDefinition.m_nodeIndices.push_back(pOutSettings->m_nodeIndex);
 
         // Update instance required memory info
-        pGraphDefinition->m_nodeOffsets.push_back(m_currentNodeMemoryOffset);
+        graphDefinition.m_nodeOffsets.push_back(m_currentNodeMemoryOffset);
         m_maxNodeMemoryAlignement = std::max(m_maxNodeMemoryAlignement, alignof(T));
         const auto requiredPadding = (alignof(T) - (m_currentNodeMemoryOffset % m_maxNodeMemoryAlignement)) % m_maxNodeMemoryAlignement;
         m_currentNodeMemoryOffset += (sizeof(T) + requiredPadding);

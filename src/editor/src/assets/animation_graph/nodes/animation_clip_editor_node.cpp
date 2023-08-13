@@ -14,10 +14,10 @@ void AnimationClipEditorNode::Initialize()
     AddOutputPin(NodeValueType::Pose);
 }
 
-NodeIndex AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex AnimationClipEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     AnimationClipRuntimeNode::Settings* pSettings = nullptr;
-    bool compiled = context.GetSettings<AnimationClipRuntimeNode>(this, pGraphDefinition, pSettings);
+    bool compiled = context.GetSettings<AnimationClipRuntimeNode>(this, graphDefinition, pSettings);
     if (!compiled)
     {
         pSettings->m_dataSlotIdx = context.RegisterDataSlot(GetID());

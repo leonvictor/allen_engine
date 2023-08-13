@@ -24,10 +24,10 @@ void BlendEditorNode::Initialize()
     AddOutputPin(NodeValueType::Pose, "Result");
 }
 
-NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     BlendNode::Settings* pSettings = nullptr;
-    bool compiled = context.GetSettings<BlendNode>(this, pGraphDefinition, pSettings);
+    bool compiled = context.GetSettings<BlendNode>(this, graphDefinition, pSettings);
     if (!compiled)
     {
         // Blend weight parameter
@@ -38,7 +38,7 @@ NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, An
             context.LogError("No input blend weight value node found.", this);
             return InvalidIndex;
         }
-        pSettings->m_blendWeightValueNodeIdx = pBlendWeightValueNode->Compile(context, pGraphDefinition);
+        pSettings->m_blendWeightValueNodeIdx = pBlendWeightValueNode->Compile(context, graphDefinition);
         
         // Sources 
         const auto inputPinsCount = GetInputPinsCount();
@@ -52,7 +52,7 @@ NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, An
                 context.LogError("No input node found at pin: Input " + std::to_string(inputPinIdx), this);
                 return InvalidIndex;
             }
-            pSettings->m_sourcePoseNodeIndices.push_back(pSourceNode->Compile(context, pGraphDefinition));
+            pSettings->m_sourcePoseNodeIndices.push_back(pSourceNode->Compile(context, graphDefinition));
         }
 
         // Ranges

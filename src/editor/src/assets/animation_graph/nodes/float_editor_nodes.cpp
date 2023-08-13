@@ -19,10 +19,10 @@ void FloatClampEditorNode::Initialize()
     AddOutputPin(NodeValueType::Float, "Result", true);
 }
 
-NodeIndex FloatClampEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex FloatClampEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     FloatClampRuntimeNode::Settings* pSettings = nullptr;
-    bool compiled = context.GetSettings<FloatClampRuntimeNode>(this, pGraphDefinition, pSettings);
+    bool compiled = context.GetSettings<FloatClampRuntimeNode>(this, graphDefinition, pSettings);
     if (!compiled)
     {
         const auto pInputNode = context.GetNodeLinkedToInputPin(GetInputPin(0).GetID());
@@ -31,7 +31,7 @@ NodeIndex FloatClampEditorNode::Compile(AnimationGraphCompilationContext& contex
             context.LogError("No node linked to input pin " + GetInputPin(0).GetName(), this);
             return InvalidIndex;
         }
-        pSettings->m_inputValueNodeIdx = pInputNode->Compile(context, pGraphDefinition);
+        pSettings->m_inputValueNodeIdx = pInputNode->Compile(context, graphDefinition);
         pSettings->m_min = m_min;
         pSettings->m_max = m_max;
     }

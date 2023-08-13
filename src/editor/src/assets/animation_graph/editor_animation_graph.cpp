@@ -12,8 +12,7 @@
 namespace aln
 {
 
-// TODO: Move the actual serialization out 
-bool EditorAnimationGraph::Compile(AnimationGraphDefinition& graphDefinition, AnimationGraphDataset& graphDataset, const TypeRegistryService& typeRegistryService, AnimationGraphCompilationContext& context)
+bool EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     context.SetCurrentGraph(this);
 
@@ -23,7 +22,7 @@ bool EditorAnimationGraph::Compile(AnimationGraphDefinition& graphDefinition, An
     graphDefinition.m_controlParameterNames.reserve(parameterNodes.size());
     for (auto& pParameterNode : parameterNodes)
     {
-        pParameterNode->Compile(context, &graphDefinition);
+        pParameterNode->Compile(context, graphDefinition);
         graphDefinition.m_controlParameterNames.push_back(pParameterNode->GetName());
     }
 
@@ -42,7 +41,7 @@ bool EditorAnimationGraph::Compile(AnimationGraphDefinition& graphDefinition, An
     // TODO: Potentially allow the compilation to run further to log other errors ?
     // TODO: Handle the log and display it
 
-    auto rootNodeIndex = outputNodes[0]->Compile(context, &graphDefinition);
+    auto rootNodeIndex = outputNodes[0]->Compile(context, graphDefinition);
     if (rootNodeIndex == InvalidIndex)
     {
         return false;
@@ -52,7 +51,11 @@ bool EditorAnimationGraph::Compile(AnimationGraphDefinition& graphDefinition, An
     graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
     graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
 
-    // ---- Compile dataset
+    return true;
+}
+
+bool EditorAnimationGraph::CompileDataset(AnimationGraphCompilationContext& context, AnimationGraphDataset& graphDataset) const
+{
     auto& registeredDataSlots = context.GetRegisteredDataSlots();
     for (auto& slotOwnerNodeID : registeredDataSlots)
     {
@@ -65,7 +68,6 @@ bool EditorAnimationGraph::Compile(AnimationGraphDefinition& graphDefinition, An
         }
         graphDataset.m_animationClips.emplace_back(clipID);
     }
-
     return true;
 }
 } // namespace aln

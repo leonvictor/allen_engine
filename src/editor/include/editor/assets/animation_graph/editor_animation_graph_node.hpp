@@ -20,6 +20,6 @@ class EditorAnimationGraphNode : public EditorGraphNode
   public:
     /// @brief Compile the node and add it to a graph definition
     /// @param context Context for the running compilation
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const = 0;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const = 0;
 };
 } // namespace aln

@@ -33,6 +33,6 @@ class AnimationClipEditorNode : public EditorAnimationGraphNode
     }
 
     virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const override;
+    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 } // namespace aln

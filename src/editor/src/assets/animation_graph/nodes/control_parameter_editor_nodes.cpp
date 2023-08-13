@@ -17,10 +17,10 @@ void FloatControlParameterEditorNode::Initialize()
     AddOutputPin(NodeValueType::Float, "Value", true);
 }
 
-NodeIndex FloatControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex FloatControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     FloatControlParameterNode::Settings* pSettings = nullptr;
-    context.GetSettings<FloatControlParameterNode>(this, pGraphDefinition, pSettings);
+    context.GetSettings<FloatControlParameterNode>(this, graphDefinition, pSettings);
     return pSettings->GetNodeIndex();
 }
 
@@ -35,10 +35,10 @@ void BoolControlParameterEditorNode::Initialize()
     AddOutputPin(NodeValueType::Bool, "Value", true);
 }
 
-NodeIndex BoolControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex BoolControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     BoolControlParameterNode::Settings* pSettings = nullptr;
-    context.GetSettings<BoolControlParameterNode>(this, pGraphDefinition, pSettings);
+    context.GetSettings<BoolControlParameterNode>(this, graphDefinition, pSettings);
     return pSettings->GetNodeIndex();
 }
 
@@ -53,10 +53,10 @@ void IDControlParameterEditorNode::Initialize()
     AddOutputPin(NodeValueType::ID, "Value", true);
 }
 
-NodeIndex IDControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
+NodeIndex IDControlParameterEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     IDControlParameterNode::Settings* pSettings = nullptr;
-    context.GetSettings<IDControlParameterNode>(this, pGraphDefinition, pSettings);
+    context.GetSettings<IDControlParameterNode>(this, graphDefinition, pSettings);
     return pSettings->GetNodeIndex();
 }
 
