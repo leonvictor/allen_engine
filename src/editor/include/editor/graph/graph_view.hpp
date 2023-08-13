@@ -22,9 +22,9 @@ namespace aln
 /// @brief Stateful view of an editor graph
 class GraphView
 {
-    static constexpr float TransitionArrowsOffset = 4.0f;
+    static constexpr float ConduitArrowsOffset = 4.0f;
 
-    struct TransitionDragState
+    struct ConduitDragState
     {
         bool m_dragging = false;
         const EditorGraphNode* m_pStartNode = nullptr;
@@ -43,7 +43,7 @@ class GraphView
         const EditorGraphNode* m_pNode = nullptr;
         const Pin* m_pPin = nullptr;
         const Link* m_pLink = nullptr;
-        const EditorTransition* m_pTransition = nullptr;
+        const Conduit* m_pConduit = nullptr;
     };
 
   private:
@@ -55,24 +55,24 @@ class GraphView
     std::vector<UUID> m_selectedLinkIDs;
     std::vector<const Link*> m_selectedLinks;
 
-    // TODO: Handle selection of multiple transitions
-    const EditorTransition* m_pSelectedTransition = nullptr;
+    // TODO: Handle selection of multiple conduits
+    const Conduit* m_pSelectedConduit = nullptr;
 
     bool m_editorHovered = false;
     bool m_canvasHovered = false;
-    const EditorTransition* m_pHoveredTransition = nullptr;
+    const Conduit* m_pHoveredConduit = nullptr;
     const EditorGraphNode* m_pHoveredNode = nullptr;
     const Pin* m_pHoveredPin = nullptr;
     const Link* m_pHoveredLink = nullptr;
 
     ImNodesContext* m_pImNodesContext = ImNodes::CreateContext();
 
-    TransitionDragState m_transitionDragState;
+    ConduitDragState m_conduitDragState;
     ContextPopupState m_contextPopupState;
 
     Event<const EditorGraph*> m_canvasDoubleClickedEvent;
     Event<const EditorGraphNode*> m_nodeDoubleClickedEvent;
-    Event<const EditorTransition*> m_transitionDoubleClickedEvent;
+    Event<const Conduit*> m_conduitDoubleClickedEvent;
     // Links could also fire events, but its not needed right now
 
   public:
@@ -121,7 +121,7 @@ class GraphView
         ImNodes::SetCurrentContext(m_pImNodesContext);
         ImNodes::EditorContextSet(m_pGraph->m_pImNodesEditorContext);
 
-        m_pHoveredTransition = nullptr;
+        m_pHoveredConduit = nullptr;
 
         ImGui::PushID(this);
         ImNodes::BeginNodeEditor();
@@ -208,11 +208,11 @@ class GraphView
             }
 
             auto pStateNode = dynamic_cast<const StateEditorNode*>(pNode);
-            if (pStateNode != nullptr && IsViewingStateMachine() && ImGui::MenuItem("Transition to..."))
+            if (pStateNode != nullptr && IsViewingStateMachine() && ImGui::MenuItem("Conduit to..."))
             {
-                m_transitionDragState.m_dragging = true;
-                m_transitionDragState.m_pStartNode = pStateNode;
-                m_transitionDragState.m_startPosition = GetNodeScreenSpaceCenter(pStateNode->GetID());
+                m_conduitDragState.m_dragging = true;
+                m_conduitDragState.m_pStartNode = pStateNode;
+                m_conduitDragState.m_startPosition = GetNodeScreenSpaceCenter(pStateNode->GetID());
             }
 
             ImGui::EndPopup();
@@ -249,28 +249,28 @@ class GraphView
         {
             auto pStateMachine = static_cast<EditorAnimationStateMachine*>(m_pGraph);
 
-            if (IsDraggingTransition())
+            if (IsDraggingConduit())
             {
                 if (ImGui::IsAnyMouseDown())
                 {
                     if (IsNodeHovered())
                     {
                         const auto pEndNode = m_pHoveredNode;
-                        if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
+                        if (IsConduitCreationAllowed(m_conduitDragState.m_pStartNode, pEndNode))
                         {
-                            const auto pStartState = static_cast<const StateEditorNode*>(m_transitionDragState.m_pStartNode);
+                            const auto pStartState = static_cast<const StateEditorNode*>(m_conduitDragState.m_pStartNode);
                             const auto pEndState = static_cast<const StateEditorNode*>(pEndNode);
-                            auto pTransition = pStateMachine->CreateTransition(pStartState, pEndState);
+                            auto pConduit = pStateMachine->CreateConduit(pStartState, pEndState);
 
                             ClearLinkSelection();
                             ClearNodeSelection();
-                            m_transitionDragState.Reset();
-                            m_pSelectedTransition = pTransition;
+                            m_conduitDragState.Reset();
+                            m_pSelectedConduit = pConduit;
                         }
                     }
 
-                    // Drop the ongoing transition
-                    m_transitionDragState.Reset();
+                    // Drop the ongoing conduit
+                    m_conduitDragState.Reset();
                 }
                 else
                 {
@@ -280,31 +280,31 @@ class GraphView
                     {
                         // Snap to state nodes
                         const auto pEndNode = m_pHoveredNode;
-                        if (IsTransitionCreationAllowed(m_transitionDragState.m_pStartNode, pEndNode))
+                        if (IsConduitCreationAllowed(m_conduitDragState.m_pStartNode, pEndNode))
                         {
                             auto hoveredNodeCenter = GetNodeScreenSpaceCenter(pEndNode->GetID());
-                            endPosition = GetNodeBorderIntersection(pEndNode->GetID(), m_transitionDragState.m_startPosition, hoveredNodeCenter);
+                            endPosition = GetNodeBorderIntersection(pEndNode->GetID(), m_conduitDragState.m_startPosition, hoveredNodeCenter);
                         }
                     }
 
-                    auto direction = glm::normalize(endPosition - m_transitionDragState.m_startPosition);
+                    auto direction = glm::normalize(endPosition - m_conduitDragState.m_startPosition);
                     glm::vec2 orthogonalDirection = {-direction.y, direction.x};
 
-                    auto startPosition = GetNodeBorderIntersection(m_transitionDragState.m_pStartNode->GetID(), endPosition, m_transitionDragState.m_startPosition) + orthogonalDirection * TransitionArrowsOffset;
+                    auto startPosition = GetNodeBorderIntersection(m_conduitDragState.m_pStartNode->GetID(), endPosition, m_conduitDragState.m_startPosition) + orthogonalDirection * ConduitArrowsOffset;
                     if (IsNodeHovered())
                     {
-                        endPosition = endPosition + TransitionArrowsOffset * orthogonalDirection;
+                        endPosition = endPosition + ConduitArrowsOffset * orthogonalDirection;
                     }
 
                     ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, IM_COL32_BLACK);
                 }
             }
 
-            // Draw transitions
-            for (auto& pTransition : pStateMachine->m_transitions)
+            // Draw conduits
+            for (auto& pConduit : pStateMachine->m_conduits)
             {
-                const auto& startStateID = pTransition->m_pStartState->GetID();
-                const auto& endStateID = pTransition->m_pEndState->GetID();
+                const auto& startStateID = pConduit->m_pStartState->GetID();
+                const auto& endStateID = pConduit->m_pEndState->GetID();
 
                 auto startStateCenter = GetNodeScreenSpaceCenter(startStateID);
                 auto endStateCenter = GetNodeScreenSpaceCenter(endStateID);
@@ -312,31 +312,31 @@ class GraphView
                 auto direction = glm::normalize(endStateCenter - startStateCenter);
                 glm::vec2 orthogonalDirection = {-direction.y, direction.x};
 
-                auto startPosition = GetNodeBorderIntersection(startStateID, endStateCenter, startStateCenter) + TransitionArrowsOffset * orthogonalDirection;
-                auto endPosition = GetNodeBorderIntersection(endStateID, startStateCenter, endStateCenter) + TransitionArrowsOffset * orthogonalDirection;
+                auto startPosition = GetNodeBorderIntersection(startStateID, endStateCenter, startStateCenter) + ConduitArrowsOffset * orthogonalDirection;
+                auto endPosition = GetNodeBorderIntersection(endStateID, startStateCenter, endStateCenter) + ConduitArrowsOffset * orthogonalDirection;
 
-                auto transitionColor = RGBColor::Blue;
+                auto conduitColor = RGBColor::Blue;
                 // Handle hovering and selection
                 glm::vec2 mousePosition = ImGui::GetMousePos();
-                glm::vec2 closestPointOnTransitionFromMouse = ImLineClosestPoint(startPosition, endPosition, ImGui::GetMousePos());
-                auto distanceToTransition = glm::length2(mousePosition - closestPointOnTransitionFromMouse);
+                glm::vec2 closestPointOnConduitFromMouse = ImLineClosestPoint(startPosition, endPosition, ImGui::GetMousePos());
+                auto distanceToConduit = glm::length2(mousePosition - closestPointOnConduitFromMouse);
 
-                if (distanceToTransition < 25.0f)
+                if (distanceToConduit < 25.0f)
                 {
-                    m_pHoveredTransition = pTransition;
-                    transitionColor = RGBColor::Green;
+                    m_pHoveredConduit = pConduit;
+                    conduitColor = RGBColor::Green;
                     // TODO: Change color
 
                     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                     {
                         ClearLinkSelection();
                         ClearNodeSelection();
-                        m_pSelectedTransition = pTransition;
+                        m_pSelectedConduit = pConduit;
                     }
                 }
 
-                transitionColor = (pTransition == m_pSelectedTransition) ? RGBColor::Pink : transitionColor;
-                ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, transitionColor.U32());
+                conduitColor = (pConduit == m_pSelectedConduit) ? RGBColor::Pink : conduitColor;
+                ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, conduitColor.U32());
             }
         }
 
@@ -414,9 +414,9 @@ class GraphView
             }
         }
 
-        if (m_editorHovered && !IsTransitionHovered() && ImGui::IsAnyMouseDown())
+        if (m_editorHovered && !IsConduitHovered() && ImGui::IsAnyMouseDown())
         {
-            m_pSelectedTransition = nullptr;
+            m_pSelectedConduit = nullptr;
         }
 
         // -------- Navigation
@@ -427,9 +427,9 @@ class GraphView
             {
                 m_nodeDoubleClickedEvent.Fire(m_pHoveredNode);
             }
-            else if (IsTransitionHovered())
+            else if (IsConduitHovered())
             {
-                m_transitionDoubleClickedEvent.Fire(m_pHoveredTransition);
+                m_conduitDoubleClickedEvent.Fire(m_pHoveredConduit);
             }
             else if (IsLinkHovered())
             {
@@ -482,7 +482,7 @@ class GraphView
         return hitPos;
     }
 
-    bool IsTransitionCreationAllowed(const EditorGraphNode* pStartNode, const EditorGraphNode* pEndNode) const
+    bool IsConduitCreationAllowed(const EditorGraphNode* pStartNode, const EditorGraphNode* pEndNode) const
     {
         assert(pStartNode != nullptr && pEndNode != nullptr);
 
@@ -523,19 +523,19 @@ class GraphView
     bool HasSelectedLinks() const { return !m_selectedLinks.empty(); }
     const std::vector<const Link*>& GetSelectedLinks() const { return m_selectedLinks; }
 
-    bool HasSelectedTransition() const { return m_pSelectedTransition != nullptr; }
-    const EditorTransition* GetSelectedTransition() const { return m_pSelectedTransition; }
+    bool HasSelectedConduit() const { return m_pSelectedConduit != nullptr; }
+    const Conduit* GetSelectedConduit() const { return m_pSelectedConduit; }
 
-    bool IsDraggingTransition() const { return m_transitionDragState.m_dragging; }
+    bool IsDraggingConduit() const { return m_conduitDragState.m_dragging; }
 
     bool IsNodeHovered() const { return m_pHoveredNode != nullptr; }
     bool IsLinkHovered() const { return m_pHoveredLink != nullptr; }
     bool IsPinHovered() const { return m_pHoveredPin != nullptr; }
-    bool IsTransitionHovered() const { return m_pHoveredTransition != nullptr; }
+    bool IsConduitHovered() const { return m_pHoveredConduit != nullptr; }
 
     Event<const EditorGraph*>& OnCanvasDoubleClicked() { return m_canvasDoubleClickedEvent; }
     Event<const EditorGraphNode*>& OnNodeDoubleClicked() { return m_nodeDoubleClickedEvent; }
-    Event<const EditorTransition*>& OnTransitionDoubleClicked() { return m_transitionDoubleClickedEvent; }
+    Event<const Conduit*>& OnConduitDoubleClicked() { return m_conduitDoubleClickedEvent; }
 
     // ------ Serialization
     void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graph/editor_graph.hpp"
-#include "graph/transition.hpp"
+#include "graph/conduit.hpp"
 
 #include "assets/animation_graph/nodes/state_editor_node.hpp"
 
@@ -15,33 +15,33 @@ class EditorAnimationStateMachine : public EditorGraph
     friend class GraphView;
 
   private:
-    std::vector<EditorTransition*> m_transitions;
+    std::vector<Conduit*> m_conduits;
 
   private:
-    EditorTransition* CreateTransition(const StateEditorNode* pStartState, const StateEditorNode* pEndState)
+    Conduit* CreateConduit(const StateEditorNode* pStartState, const StateEditorNode* pEndState)
     {
         assert(pStartState != nullptr && pEndState != nullptr);
 
-        auto pTransition = aln::New<EditorTransition>();
-        pTransition->m_pStartState = pStartState;
-        pTransition->m_pEndState = pEndState;
-        pTransition->Initialize();
+        auto pConduit = aln::New<Conduit>();
+        pConduit->m_pStartState = pStartState;
+        pConduit->m_pEndState = pEndState;
+        pConduit->Initialize();
 
-        m_transitions.push_back(pTransition);
+        m_conduits.push_back(pConduit);
 
-        return pTransition;
+        return pConduit;
     }
 
   public:
     void RemoveGraphNode(const UUID& nodeID) override
     {
-        auto predicate = [&](const auto* pTransition)
-        { return pTransition->GetStartState()->GetID() == nodeID || pTransition->GetEndState()->GetID() == nodeID; };
+        auto predicate = [&](const auto* pConduit)
+        { return pConduit->GetStartState()->GetID() == nodeID || pConduit->GetEndState()->GetID() == nodeID; };
 
         // Erase-remove idiom but we delete each ptr
         // We might be able to use stable_partion as well
-        auto first = std::find_if(m_transitions.begin(), m_transitions.end(), predicate);
-        auto last = m_transitions.end();
+        auto first = std::find_if(m_conduits.begin(), m_conduits.end(), predicate);
+        auto last = m_conduits.end();
         if (first != last)
         {
             for (auto it = first; it != last; ++it)
@@ -58,11 +58,11 @@ class EditorAnimationStateMachine : public EditorGraph
                 }
             }
         }
-        m_transitions.erase(first, m_transitions.end());
+        m_conduits.erase(first, m_conduits.end());
 
         EditorGraph::RemoveGraphNode(nodeID);
     }
 
-    const std::vector<EditorTransition*>& GetTransitions() const { return m_transitions; }
+    const std::vector<Conduit*>& GetConduits() const { return m_conduits; }
 };
 } // namespace aln

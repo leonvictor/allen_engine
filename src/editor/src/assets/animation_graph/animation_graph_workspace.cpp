@@ -166,12 +166,12 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
                 pSecondaryGraph = pLastSelectedNode->GetChildGraph();
             }
         }
-        else if (m_primaryGraphView.IsViewingStateMachine() && m_primaryGraphView.HasSelectedTransition()) // Selected nodes take precedence over links
+        else if (m_primaryGraphView.IsViewingStateMachine() && m_primaryGraphView.HasSelectedConduit()) // Selected nodes take precedence over links
         {
-            auto pTransition = m_primaryGraphView.GetSelectedTransition();
-            if (pTransition->HasChildGraph())
+            auto pConduit = m_primaryGraphView.GetSelectedConduit();
+            if (pConduit->HasChildGraph())
             {
-                pSecondaryGraph = pTransition->GetChildGraph();
+                pSecondaryGraph = pConduit->GetChildGraph();
             }
         }
         m_secondaryGraphView.SetViewedGraph(pSecondaryGraph);
@@ -209,10 +209,10 @@ void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const As
     m_statePath = m_compiledDefinitionPath;
     m_statePath.replace_filename(".json");
 
-    auto HandleDoubleClick = [this](auto* pTransitionOrNode)
-    { if (pTransitionOrNode->HasChildGraph())
+    auto HandleDoubleClick = [this](auto* pConduitOrNode)
+    { if (pConduitOrNode->HasChildGraph())
         {
-            auto pChildGraph = pTransitionOrNode->GetChildGraph();
+            auto pChildGraph = pConduitOrNode->GetChildGraph();
             if (m_primaryGraphView.GetViewedGraph() != pChildGraph)
             {
                 m_primaryGraphView.SetViewedGraph(pChildGraph);
@@ -232,10 +232,10 @@ void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const As
     };
 
     m_primaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
-    m_primaryGraphView.OnTransitionDoubleClicked().BindListener(HandleDoubleClick);
+    m_primaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
     m_primaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
     m_secondaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
-    m_secondaryGraphView.OnTransitionDoubleClicked().BindListener(HandleDoubleClick);
+    m_secondaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
     m_secondaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
 
     m_primaryGraphView.SetViewedGraph(&m_rootGraph);

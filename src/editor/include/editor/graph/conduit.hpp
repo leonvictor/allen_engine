@@ -10,10 +10,9 @@ namespace aln
 
 class StateEditorNode;
 
-/// @brief Unique directed conduit from one node to another
-/// @todo Rename. EditorConduit ? Simply "Conduit" ?
-// Conduits can hold multiple transitions between two nodes
-class EditorTransition
+/// @brief Unique oriented conduit from one node to another
+// Conduits can hold multiple transitions between the two nodes
+class Conduit
 {
     friend class EditorAnimationStateMachine;
     friend class GraphView;
@@ -24,7 +23,6 @@ class EditorTransition
     const StateEditorNode* m_pEndState = nullptr;
 
     EditorAnimationGraph* m_pChildGraph = nullptr;
-    // TODO: Compilation
 
   public:
     void Shutdown()
@@ -48,11 +46,5 @@ class EditorTransition
 
     bool HasChildGraph() const { return m_pChildGraph != nullptr; }
     EditorAnimationGraph* GetChildGraph() const { return m_pChildGraph; }
-    
-    // void Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition* pGraphDefinition) const
-    //{
-    //     TransitionRuntimeNode::Settings* pSettings = nullptr;
-    //     auto compiled = context.GetSettings<TransitionRuntimeNode>(this, pGraphDefinition, pSettings);
-    // }
 };
 } // namespace aln
