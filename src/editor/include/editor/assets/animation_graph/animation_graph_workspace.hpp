@@ -15,6 +15,13 @@ class EditorAnimationGraphNode;
 /// @brief Editing window for animation graphs. Holds a single animation graph, and displays several it through several views
 class AnimationGraphWorkspace : public IAssetWorkspace
 {
+    struct GraphViewEventIDs
+    {
+        UUID m_nodeDoubleClickedEventID = UUID::InvalidID;
+        UUID m_conduitDoubleClickedEventID = UUID::InvalidID;
+        UUID m_canvasDoubleClickedEventID = UUID::InvalidID;
+    };
+
   private:
     // TODO: Load this definition if necessary, and use it when compiling
     AssetHandle<AnimationGraphDefinition> m_pGraphDefinition;
@@ -38,6 +45,9 @@ class AnimationGraphWorkspace : public IAssetWorkspace
     bool m_firstUpdate = true;
     float m_primaryGraphViewHeight = 0;
     float m_secondaryGraphViewHeight = 0;
+
+    GraphViewEventIDs m_primaryGraphViewEventIDs;
+    GraphViewEventIDs m_secondaryGraphViewEventIDs;
 
   public:
     // ----------- Window lifetime

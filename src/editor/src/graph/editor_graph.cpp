@@ -7,6 +7,7 @@
 #include <reflection/type_info.hpp>
 
 #include <imnodes.h>
+#include <imnodes_internal.h>
 
 #include <assert.h>
 
@@ -15,20 +16,15 @@ namespace aln
 
 EditorGraph::~EditorGraph()
 {
-    for (auto pNode : m_graphNodes)
-    {
-        pNode->Shutdown();
-        aln::Delete(pNode);
-    }
-
-    if (m_pImNodesEditorContext != nullptr)
-    {
-        ImNodes::EditorContextFree(m_pImNodesEditorContext);
-    }
+    assert(!IsInitialized());
+    assert(m_graphNodes.empty());
 }
 
 void EditorGraph::SaveState(nlohmann::json& json) const
 {
+    const auto pParentGraphContext = HasParentGraph() ? &ImNodes::EditorContextGet() : nullptr;
+    ImNodes::EditorContextSet(m_pImNodesEditorContext);
+
     auto& nodes = json["nodes"];
     for (auto pNode : m_graphNodes)
     {
@@ -50,11 +46,16 @@ void EditorGraph::SaveState(nlohmann::json& json) const
         linkJson["output_node"] = GetNodeIndex(link.m_pOutputNode->GetID());
         linkJson["output_pin"] = link.m_pOutputNode->GetOutputPinIndex(link.m_outputPinID);
     }
+
+    ImNodes::EditorContextSet(pParentGraphContext);
 }
 
 void EditorGraph::LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
 {
     assert(pTypeRegistryService != nullptr);
+
+    const auto pParentGraphContext = HasParentGraph() ? &ImNodes::EditorContextGet() : nullptr;
+    ImNodes::EditorContextSet(m_pImNodesEditorContext);
 
     for (const auto& nodeJson : json["nodes"])
     {
@@ -77,6 +78,7 @@ void EditorGraph::LoadState(nlohmann::json& json, const TypeRegistryService* pTy
 
         AddLink(pOutputNode->GetID(), pOutputNode->GetOutputPin(linkJson["output_pin"]).GetID(), pInputNode->GetID(), pInputNode->GetInputPin(linkJson["input_pin"]).GetID());
     }
+    ImNodes::EditorContextSet(pParentGraphContext);
 }
 
 void EditorGraph::Clear()
@@ -87,9 +89,9 @@ void EditorGraph::Clear()
 
     for (auto pNode : m_graphNodes)
     {
+        pNode->Shutdown();
         aln::Delete(pNode);
     }
-
     m_graphNodes.clear();
 }
 
@@ -180,6 +182,8 @@ void EditorGraph::RemoveGraphNode(const UUID& nodeID)
 
     // Actually remove the node from the graph
     std::erase(m_graphNodes, pNode);
+    
+    pNode->Shutdown();
     aln::Delete(pNode);
 
     SetDirty();
@@ -262,5 +266,21 @@ void EditorGraph::RemoveDynamicInputPin(EditorGraphNode* pNode, const UUID& pinI
 {
     m_pinLookupMap.erase(pinID);
     pNode->RemoveDynamicInputPin(pinID);
+}
+
+void EditorGraph::Initialize(EditorGraph* pParentGraph)
+{
+    m_pParentGraph = pParentGraph;
+    m_pImNodesEditorContext = ImNodes::EditorContextCreate();
+}
+
+void EditorGraph::Shutdown()
+{
+    Clear();
+
+    ImNodes::EditorContextFree(m_pImNodesEditorContext);
+    m_pImNodesEditorContext = nullptr;
+
+    m_pParentGraph = nullptr;
 }
 } // namespace aln

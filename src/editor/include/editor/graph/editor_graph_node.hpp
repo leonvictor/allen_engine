@@ -242,14 +242,10 @@ class EditorGraphNode : public reflect::IReflected
     bool HasChildGraph() const { return m_pChildGraph != nullptr; }
     EditorGraph* GetChildGraph() const { return m_pChildGraph; }
 
-    void SetChildGraph(EditorGraph* pChildGraph)
-    {
-        assert(pChildGraph != nullptr);
-        assert(m_pChildGraph == nullptr);
+    /// @brief Set a graph as child, taking ownership of it
+    void SetChildGraph(EditorGraph* pChildGraph);
 
-        m_pChildGraph = pChildGraph;
-    }
-
+    // ---- Graph handling
     const std::vector<Pin>& GetInputPins() const { return m_inputPins; }
     const std::vector<Pin>& GetOutputPins() const { return m_outputPins; }
     uint32_t GetInputPinsCount() const { return m_inputPins.size(); }
@@ -321,8 +317,9 @@ class EditorGraphNode : public reflect::IReflected
 
     // ----- Lifetime
     virtual void Initialize() = 0;
-    virtual void Shutdown() {}
+    virtual void Shutdown();
 
+    // ---- State serialization
     void SaveNodeState(nlohmann::json& json) const
     {
         if (IsRenamable())
@@ -341,6 +338,7 @@ class EditorGraphNode : public reflect::IReflected
         LoadState(json, pTypeRegistryService);
     }
 
+    // ---- Drawing
     void DrawNode(GraphDrawingContext& ctx)
     {
         ctx.m_currentNodeWidth = CalcNodeWidth();

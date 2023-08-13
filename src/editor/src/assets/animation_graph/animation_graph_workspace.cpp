@@ -231,13 +231,15 @@ void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const As
         }
     };
 
-    m_primaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
-    m_primaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
-    m_primaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
-    m_secondaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
-    m_secondaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
-    m_secondaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
+    m_primaryGraphViewEventIDs.m_nodeDoubleClickedEventID = m_primaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
+    m_primaryGraphViewEventIDs.m_conduitDoubleClickedEventID = m_primaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
+    m_primaryGraphViewEventIDs.m_canvasDoubleClickedEventID = m_primaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
+    
+    m_secondaryGraphViewEventIDs.m_nodeDoubleClickedEventID = m_secondaryGraphView.OnNodeDoubleClicked().BindListener(HandleDoubleClick);
+    m_secondaryGraphViewEventIDs.m_conduitDoubleClickedEventID = m_secondaryGraphView.OnConduitDoubleClicked().BindListener(HandleDoubleClick);
+    m_secondaryGraphViewEventIDs.m_canvasDoubleClickedEventID = m_secondaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
 
+    m_rootGraph.Initialize();
     m_primaryGraphView.SetViewedGraph(&m_rootGraph);
 
     if (readAssetFile)
@@ -268,6 +270,16 @@ void AnimationGraphWorkspace::Shutdown()
         std::ofstream outputStream(m_statePath);
         outputStream << json;
     }
+
+    m_primaryGraphView.OnNodeDoubleClicked().UnbindListener(m_primaryGraphViewEventIDs.m_nodeDoubleClickedEventID);
+    m_primaryGraphView.OnConduitDoubleClicked().UnbindListener(m_primaryGraphViewEventIDs.m_conduitDoubleClickedEventID);
+    m_primaryGraphView.OnCanvasDoubleClicked().UnbindListener(m_primaryGraphViewEventIDs.m_canvasDoubleClickedEventID);
+    
+    m_secondaryGraphView.OnNodeDoubleClicked().UnbindListener(m_secondaryGraphViewEventIDs.m_nodeDoubleClickedEventID);
+    m_secondaryGraphView.OnConduitDoubleClicked().UnbindListener(m_secondaryGraphViewEventIDs.m_conduitDoubleClickedEventID);
+    m_secondaryGraphView.OnCanvasDoubleClicked().UnbindListener(m_secondaryGraphViewEventIDs.m_canvasDoubleClickedEventID);
+
+    m_rootGraph.Shutdown();
 
     Clear();
     IAssetWorkspace::Shutdown();

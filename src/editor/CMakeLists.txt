@@ -25,6 +25,7 @@ add_library(${LIB_NAME}
 
     src/graph/editor_graph.cpp 
     src/graph/editor_graph_node.cpp
+    src/graph/conduit.cpp
 
     src/module/module.cpp
     

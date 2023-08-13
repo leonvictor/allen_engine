@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graph/editor_graph.hpp"
 #include "graph/conduit.hpp"
+#include "graph/editor_graph.hpp"
 
 #include "assets/animation_graph/nodes/state_editor_node.hpp"
 
@@ -25,7 +25,7 @@ class EditorAnimationStateMachine : public EditorGraph
         auto pConduit = aln::New<Conduit>();
         pConduit->m_pStartState = pStartState;
         pConduit->m_pEndState = pEndState;
-        pConduit->Initialize();
+        pConduit->Initialize(this);
 
         m_conduits.push_back(pConduit);
 
@@ -33,7 +33,9 @@ class EditorAnimationStateMachine : public EditorGraph
     }
 
   public:
-    void RemoveGraphNode(const UUID& nodeID) override
+    const std::vector<Conduit*>& GetConduits() const { return m_conduits; }
+
+    virtual void RemoveGraphNode(const UUID& nodeID) override
     {
         auto predicate = [&](const auto* pConduit)
         { return pConduit->GetStartState()->GetID() == nodeID || pConduit->GetEndState()->GetID() == nodeID; };
@@ -63,6 +65,17 @@ class EditorAnimationStateMachine : public EditorGraph
         EditorGraph::RemoveGraphNode(nodeID);
     }
 
-    const std::vector<Conduit*>& GetConduits() const { return m_conduits; }
+    virtual void Clear() override
+    {
+        for (auto pConduit : m_conduits)
+        {
+            pConduit->Shutdown();
+            aln::Delete(pConduit);
+        }
+        m_conduits.clear();
+
+        EditorGraph::Clear();
+    }
+
 };
 } // namespace aln

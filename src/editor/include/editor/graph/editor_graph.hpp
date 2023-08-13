@@ -36,7 +36,7 @@ class EditorGraph
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;
 
-    // UI Context. Set by the viewer when first displaying this graph
+    // UI Context
     ImNodesEditorContext* m_pImNodesEditorContext = nullptr;
 
   protected:
@@ -48,8 +48,11 @@ class EditorGraph
     bool HasParentGraph() const { return m_pParentGraph != nullptr; }
     EditorGraph* GetParentGraph() const { return m_pParentGraph; }
 
+    virtual void Initialize(EditorGraph* pParentGraph = nullptr);
+    void Shutdown();
+    bool IsInitialized() const { return m_pImNodesEditorContext != nullptr; }
+
     // TODO: Shared behavior ?
-    void Clear();
     bool IsDirty() const { return m_dirty; }
     void SetDirty() { m_dirty = true; }
     void SetClean() { m_dirty = false; }
@@ -126,6 +129,9 @@ class EditorGraph
         }
         return nullptr;
     }
+
+    /// @brief Clear the graph's content (nodes, links, etc.). Override in derived classes to clean up additional data
+    virtual void Clear();
 
     // -------------- Saving/Loading
     virtual void SaveState(nlohmann::json& json) const;

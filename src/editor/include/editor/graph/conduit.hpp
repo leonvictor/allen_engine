@@ -25,26 +25,14 @@ class Conduit
     EditorAnimationGraph* m_pChildGraph = nullptr;
 
   public:
-    void Shutdown()
-    {
-        aln::Delete(m_pChildGraph);
-    }
-
-    void Initialize()
-    {
-        m_pChildGraph = aln::New<EditorAnimationGraph>();
-
-        // TODO: Rework node adding routines
-        auto pTransitionNode = aln::New<TransitionEditorNode>();
-        pTransitionNode->Initialize();
-        m_pChildGraph->AddGraphNode(pTransitionNode);
-    }
-
     const UUID& GetID() const { return m_id; }
     const StateEditorNode* GetStartState() const { return m_pStartState; }
     const StateEditorNode* GetEndState() const { return m_pEndState; }
 
     bool HasChildGraph() const { return m_pChildGraph != nullptr; }
     EditorAnimationGraph* GetChildGraph() const { return m_pChildGraph; }
+
+    void Initialize(EditorAnimationStateMachine* pOwningGraph);
+    void Shutdown();
 };
 } // namespace aln
