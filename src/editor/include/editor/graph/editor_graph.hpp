@@ -23,6 +23,13 @@ class EditorGraph
 {
     friend class GraphView;
 
+  public:
+    enum class NodeSearchScope : uint8_t
+    {
+        Local,
+        Recursive,
+    };
+
   private:
     EditorGraph* m_pParentGraph = nullptr;
 
@@ -69,19 +76,21 @@ class EditorGraph
     const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const;
     const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const;
 
+    void GetAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope = NodeSearchScope::Local) const;
+
     template <typename T>
-    std::vector<const T*> GetAllNodesOfType() const
+    std::vector<const T*> GetAllNodesOfType(NodeSearchScope searchScope = NodeSearchScope::Local) const
     {
         static_assert(std::is_base_of_v<EditorGraphNode, T>);
+        std::vector<const EditorGraphNode*> searchResult;
+        GetAllNodesOfType(searchResult, T::GetStaticTypeInfo()->GetTypeID(), searchScope);
 
         std::vector<const T*> matchingTypeNodes;
-        for (const auto& [id, pNode] : m_nodeLookupMap)
+        matchingTypeNodes.reserve(searchResult.size());
+        for (const auto pNode : searchResult)
         {
-            const auto pTypedNode = dynamic_cast<const T*>(pNode);
-            if (pTypedNode != nullptr)
-            {
-                matchingTypeNodes.push_back(pTypedNode);
-            }
+            const auto pTypedNode = static_cast<const T*>(pNode);
+            matchingTypeNodes.push_back(pTypedNode);
         }
 
         return matchingTypeNodes;

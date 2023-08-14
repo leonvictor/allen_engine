@@ -133,6 +133,22 @@ const EditorGraphNode* EditorGraph::GetNodeLinkedToOutputPin(const UUID& outputP
     return nullptr;
 }
 
+void EditorGraph::GetAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const
+{
+    for (const auto& [id, pNode] : m_nodeLookupMap)
+    {
+        if (pNode->GetTypeInfo()->GetTypeID() == typeID)
+        {
+            outResult.push_back(pNode);
+        }
+
+        if (searchScope == NodeSearchScope::Recursive && pNode->HasChildGraph())
+        {
+            pNode->GetChildGraph()->GetAllNodesOfType(outResult, typeID, searchScope);
+        }
+    }
+}
+
 void EditorGraph::AddGraphNode(EditorGraphNode* pNode)
 {
     assert(pNode != nullptr);
@@ -182,7 +198,7 @@ void EditorGraph::RemoveGraphNode(const UUID& nodeID)
 
     // Actually remove the node from the graph
     std::erase(m_graphNodes, pNode);
-    
+
     pNode->Shutdown();
     aln::Delete(pNode);
 

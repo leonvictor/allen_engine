@@ -52,16 +52,27 @@ NodeIndex EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationConte
 
 bool EditorAnimationGraph::CompileDataset(AnimationGraphCompilationContext& context, AnimationGraphDataset& graphDataset) const
 {
+    const auto animationClipNodes = GetAllNodesOfType<AnimationClipEditorNode>(NodeSearchScope::Recursive);
+    
+    std::map<UUID, const AnimationClipEditorNode*> animationClipNodeLookupMap;
+    for (const auto pNode : animationClipNodes)
+    {
+        animationClipNodeLookupMap[pNode->GetID()] = pNode;
+    }
+
     auto& registeredDataSlots = context.GetRegisteredDataSlots();
+    graphDataset.m_animationClips.reserve(registeredDataSlots.size());
     for (auto& slotOwnerNodeID : registeredDataSlots)
     {
-        const auto pOwnerNode = static_cast<const AnimationClipEditorNode*>(GetNode(slotOwnerNodeID));
-        auto& clipID = pOwnerNode->GetAnimationClipID();
+        const auto pOwnerNode = animationClipNodeLookupMap[slotOwnerNodeID];
+        const auto& clipID = pOwnerNode->GetAnimationClipID();
+        
         if (!clipID.IsValid())
         {
             context.LogError("Wrong animation clip ID provided to AnimationClip node.", pOwnerNode);
             return false;
         }
+
         graphDataset.m_animationClips.emplace_back(clipID);
     }
     return true;
