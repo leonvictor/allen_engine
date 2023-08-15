@@ -16,13 +16,8 @@ void StateEditorNode::Initialize()
     m_name = "State";
 
     auto pChildGraph = aln::New<EditorAnimationGraph>();
-    
-    // TODO: Rework node creation routines
-    auto pResultNode = aln::New<PoseEditorNode>();
-    pResultNode->Initialize();
-    pChildGraph->AddGraphNode(pResultNode);
-    
     SetChildGraph(pChildGraph);
+    pChildGraph->CreateGraphNode<PoseEditorNode>();
 }
 
 NodeIndex StateEditorNode::Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const

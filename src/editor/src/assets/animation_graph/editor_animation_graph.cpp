@@ -11,6 +11,9 @@
 
 namespace aln
 {
+ALN_REGISTER_IMPL_BEGIN(GRAPH_EDITORS, EditorAnimationGraph)
+ALN_REFLECT_BASE(EditorGraph)
+ALN_REGISTER_IMPL_END()
 
 NodeIndex EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {

@@ -14,6 +14,9 @@
 namespace aln
 {
 
+ALN_REGISTER_ABSTRACT_IMPL_BEGIN(EditorGraph)
+ALN_REGISTER_IMPL_END()
+
 EditorGraph::~EditorGraph()
 {
     assert(!IsInitialized());
@@ -31,7 +34,8 @@ void EditorGraph::SaveState(nlohmann::json& json) const
         auto& nodeJson = nodes.emplace_back();
         nodeJson["type"] = pNode->GetTypeInfo()->GetTypeID().GetHash();
 
-        auto position = ImNodes::GetNodeEditorSpacePos(pNode->GetID());
+        // Hack-ish : When saving a graph that has not been viewed, ImNodes' position lookup would throw
+        ImVec2 position = m_pImNodesEditorContext->Nodes.InUse.Size > 0 ? ImNodes::GetNodeEditorSpacePos(pNode->GetID()) : ImVec2(0.0f, 0.0f );
         nodeJson["position"] = {position.x, position.y};
 
         pNode->SaveNodeState(nodeJson);
@@ -50,23 +54,22 @@ void EditorGraph::SaveState(nlohmann::json& json) const
     ImNodes::EditorContextSet(pParentGraphContext);
 }
 
-void EditorGraph::LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+void EditorGraph::LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
 {
     assert(pTypeRegistryService != nullptr);
+    assert(IsInitialized());
 
     const auto pParentGraphContext = HasParentGraph() ? &ImNodes::EditorContextGet() : nullptr;
     ImNodes::EditorContextSet(m_pImNodesEditorContext);
-
     for (const auto& nodeJson : json["nodes"])
     {
         uint32_t typeID = nodeJson["type"];
         auto pTypeInfo = pTypeRegistryService->GetTypeInfo(typeID);
 
-        auto pNode = pTypeInfo->CreateTypeInstance<EditorGraphNode>();
-        pNode->Initialize();
-        pNode->LoadNodeState(nodeJson, pTypeRegistryService);
+        auto pNode = CreateGraphNode(pTypeInfo);
+        ImNodes::ObjectPoolFindOrCreateIndex(m_pImNodesEditorContext->Nodes, pNode->GetID());
 
-        AddGraphNode(pNode);
+        pNode->LoadNodeState(nodeJson, pTypeRegistryService);
 
         ImNodes::SetNodeEditorSpacePos(pNode->GetID(), {nodeJson["position"][0], nodeJson["position"][1]});
     }
@@ -78,6 +81,7 @@ void EditorGraph::LoadState(nlohmann::json& json, const TypeRegistryService* pTy
 
         AddLink(pOutputNode->GetID(), pOutputNode->GetOutputPin(linkJson["output_pin"]).GetID(), pInputNode->GetID(), pInputNode->GetInputPin(linkJson["input_pin"]).GetID());
     }
+
     ImNodes::EditorContextSet(pParentGraphContext);
 }
 
@@ -149,9 +153,20 @@ void EditorGraph::GetAllNodesOfType(std::vector<const EditorGraphNode*>& outResu
     }
 }
 
-void EditorGraph::AddGraphNode(EditorGraphNode* pNode)
+EditorGraphNode* EditorGraph::CreateGraphNode(const reflect::TypeInfo* pTypeInfo)
 {
-    assert(pNode != nullptr);
+    assert(IsInitialized());
+    assert(pTypeInfo != nullptr);
+    
+    auto pNode = pTypeInfo->CreateTypeInstance<EditorGraphNode>();
+    pNode->m_pOwningGraph = this;
+    pNode->Initialize();
+
+    // Initialize the node's child graph's parent
+    if (pNode->HasChildGraph())
+    {
+        pNode->GetChildGraph()->m_pParentGraph = this;
+    }
 
     m_graphNodes.push_back(pNode);
 
@@ -166,12 +181,8 @@ void EditorGraph::AddGraphNode(EditorGraphNode* pNode)
         m_pinLookupMap[pin.GetID()] = &pin;
     }
 
-    if (pNode->HasChildGraph())
-    {
-        pNode->GetChildGraph()->m_pParentGraph = this;
-    }
-
     SetDirty();
+    return pNode;
 }
 
 void EditorGraph::RemoveGraphNode(const UUID& nodeID)
@@ -286,6 +297,7 @@ void EditorGraph::RemoveDynamicInputPin(EditorGraphNode* pNode, const UUID& pinI
 
 void EditorGraph::Initialize(EditorGraph* pParentGraph)
 {
+    assert(m_graphNodes.empty());
     m_pParentGraph = pParentGraph;
     m_pImNodesEditorContext = ImNodes::EditorContextCreate();
 }

@@ -5,6 +5,7 @@
 
 #include <common/hash_vector.hpp>
 #include <reflection/services/type_registry_service.hpp>
+#include <reflection/reflected_type.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
@@ -19,8 +20,10 @@ class Pin;
 class EditorGraphNode;
 
 /// @brief Base class for in-editor graph types. This class holds the data, use GraphView for visualization
-class EditorGraph
+class EditorGraph : public reflect::IReflected
 {
+    ALN_REGISTER_TYPE();
+
     friend class GraphView;
 
   public:
@@ -72,6 +75,7 @@ class EditorGraph
         return m_nodeLookupMap.at(nodeID);
     }
 
+    const EditorGraphNode* GetNodeByIndex(uint32_t nodeIndex) const { return m_graphNodes[nodeIndex]; }
     uint32_t GetNodeIndex(const UUID& nodeID) const;
     const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const;
     const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const;
@@ -97,7 +101,14 @@ class EditorGraph
     }
 
     /// @brief Add a node to the graph
-    void AddGraphNode(EditorGraphNode* pNode);
+    EditorGraphNode* CreateGraphNode(const reflect::TypeInfo* pTypeInfo);
+
+    template<typename T>
+    T* CreateGraphNode()
+    {
+        static_assert(std::is_base_of_v<EditorGraphNode, T>);
+        return static_cast<T*>(CreateGraphNode(T::GetStaticTypeInfo()));
+    }
 
     /// @brief Remove a node from the graph
     virtual void RemoveGraphNode(const UUID& nodeID);
@@ -144,7 +155,7 @@ class EditorGraph
 
     // -------------- Saving/Loading
     virtual void SaveState(nlohmann::json& json) const;
-    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService);
+    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService);
 };
 
 } // namespace aln

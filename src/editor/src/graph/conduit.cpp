@@ -11,11 +11,6 @@ void Conduit::Initialize(EditorAnimationStateMachine* pOwningGraph)
 
     m_pChildGraph = aln::New<EditorAnimationGraph>();
     m_pChildGraph->Initialize(pOwningGraph);
-
-    // TODO: Rework node adding routines
-    auto pTransitionNode = aln::New<TransitionEditorNode>();
-    pTransitionNode->Initialize();
-    m_pChildGraph->AddGraphNode(pTransitionNode);
 }
 
 void Conduit::Shutdown()

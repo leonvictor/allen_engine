@@ -14,6 +14,8 @@ class AnimationGraphCompilationContext;
 /// @todo Rename to Blend Tree
 class EditorAnimationGraph : public EditorGraph
 {
+    ALN_REGISTER_TYPE()
+
   public:
     // -------------- Asset compilation
     NodeIndex CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const;

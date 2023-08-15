@@ -12,12 +12,14 @@ namespace aln
 
 class EditorAnimationStateMachine : public EditorGraph
 {
+    ALN_REGISTER_TYPE()
+
     friend class GraphView;
 
   private:
     std::vector<Conduit*> m_conduits;
 
-    // TODO: 
+    // TODO:
     // Entry State Overrides
     // Global transitions
 
@@ -81,5 +83,39 @@ class EditorAnimationStateMachine : public EditorGraph
         EditorGraph::Clear();
     }
 
+    virtual void SaveState(nlohmann::json& json) const override
+    {
+        EditorGraph::SaveState(json);
+        auto& conduitsArrayJson = json["conduits"];
+        for (auto pConduit : m_conduits)
+        {
+            auto& conduitJson = conduitsArrayJson.emplace_back();
+            conduitJson["start_state"] = GetNodeIndex(pConduit->m_pStartState->GetID());
+            conduitJson["end_state"] = GetNodeIndex(pConduit->m_pEndState->GetID());
+
+            if (pConduit->HasChildGraph())
+            {
+                pConduit->m_pChildGraph->SaveState(conduitJson["child_graph"]);
+            }
+        }
+    }
+
+    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+    {
+        EditorGraph::LoadState(json, pTypeRegistryService);
+
+        for (const auto& conduitJson : json["conduits"])
+        {
+            const auto pStartState = static_cast<const StateEditorNode*>(GetNodeByIndex(conduitJson["start_state"]));
+            const auto pEndState = static_cast<const StateEditorNode*>(GetNodeByIndex(conduitJson["end_state"]));
+
+            auto pConduit = CreateConduit(pStartState, pEndState);
+
+            if (conduitJson.contains("child_graph"))
+            {
+                pConduit->m_pChildGraph->LoadState(conduitJson["child_graph"], pTypeRegistryService);
+            }
+        }
+    }
 };
 } // namespace aln

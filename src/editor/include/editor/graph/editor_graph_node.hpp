@@ -30,7 +30,7 @@ class EditorGraphNode : public reflect::IReflected
     std::vector<Pin> m_inputPins;
     std::vector<Pin> m_outputPins;
 
-    EditorGraph* m_pOwningGraph = nullptr;
+    EditorGraph* m_pOwningGraph = nullptr; // The graph this node is in
     EditorGraph* m_pChildGraph = nullptr;
 
     // TODO: This is an awful lot of state
@@ -320,23 +320,8 @@ class EditorGraphNode : public reflect::IReflected
     virtual void Shutdown();
 
     // ---- State serialization
-    void SaveNodeState(nlohmann::json& json) const
-    {
-        if (IsRenamable())
-        {
-            json["name"] = m_name;
-        }
-        SaveState(json);
-    }
-
-    void LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
-    {
-        if (IsRenamable())
-        {
-            m_name = json["name"];
-        }
-        LoadState(json, pTypeRegistryService);
-    }
+    void SaveNodeState(nlohmann::json& json) const;
+    void LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService);
 
     // ---- Drawing
     void DrawNode(GraphDrawingContext& ctx)

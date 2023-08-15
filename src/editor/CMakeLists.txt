@@ -22,6 +22,7 @@ add_library(${LIB_NAME}
     src/assets/animation_graph/nodes/transition_editor_node.cpp
     src/assets/animation_graph/nodes/state_editor_node.cpp
     src/assets/animation_graph/editor_animation_graph.cpp   
+    src/assets/animation_graph/editor_animation_state_machine.cpp
 
     src/graph/editor_graph.cpp 
     src/graph/editor_graph_node.cpp
@@ -30,7 +31,7 @@ add_library(${LIB_NAME}
     src/module/module.cpp
     
     ${IMGUI_SOURCE}
- )
+  )
 
 set(LIB_DEPENDENCIES ${IMGUI_INCLUDE_DIRS})
 

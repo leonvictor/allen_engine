@@ -75,6 +75,8 @@ class GraphView
     Event<const Conduit*> m_conduitDoubleClickedEvent;
     // Links could also fire events, but its not needed right now
 
+    bool m_isFirstDraw = true;
+
   public:
     ~GraphView()
     {
@@ -95,6 +97,7 @@ class GraphView
         }
 
         m_pGraph = pGraph;
+        m_isFirstDraw = true;
     }
 
     // TODO: Use base classes to further decouple view from anim stuff
@@ -160,11 +163,7 @@ class GraphView
                 auto pSelectedNodeType = m_pGraph->AvailableNodeTypesMenuItems(pTypeRegistryService);
                 if (pSelectedNodeType != nullptr)
                 {
-                    auto pNode = pSelectedNodeType->CreateTypeInstance<EditorGraphNode>();
-                    pNode->Initialize();
-
-                    m_pGraph->AddGraphNode(pNode);
-
+                    auto pNode = m_pGraph->CreateGraphNode(pSelectedNodeType);
                     ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
                 }
                 ImGui::EndMenu();
@@ -234,12 +233,7 @@ class GraphView
             auto pSelectedNodeType = m_pGraph->AvailableNodeTypesMenuItems(pTypeRegistryService);
             if (pSelectedNodeType != nullptr)
             {
-                // TODO: Change AddGraphNode to accept a node's typeInfo ?
-                auto pNode = pSelectedNodeType->CreateTypeInstance<EditorGraphNode>();
-                pNode->Initialize();
-
-                m_pGraph->AddGraphNode(pNode);
-
+                auto pNode = m_pGraph->CreateGraphNode(pSelectedNodeType);
                 ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
             }
             ImGui::EndPopup();
@@ -301,42 +295,47 @@ class GraphView
             }
 
             // Draw conduits
-            for (auto& pConduit : pStateMachine->m_conduits)
+            // Do not draw them on the first frame since the node dimensions might not be known
+            if (!m_isFirstDraw)
             {
-                const auto& startStateID = pConduit->m_pStartState->GetID();
-                const auto& endStateID = pConduit->m_pEndState->GetID();
 
-                auto startStateCenter = GetNodeScreenSpaceCenter(startStateID);
-                auto endStateCenter = GetNodeScreenSpaceCenter(endStateID);
-
-                auto direction = glm::normalize(endStateCenter - startStateCenter);
-                glm::vec2 orthogonalDirection = {-direction.y, direction.x};
-
-                auto startPosition = GetNodeBorderIntersection(startStateID, endStateCenter, startStateCenter) + ConduitArrowsOffset * orthogonalDirection;
-                auto endPosition = GetNodeBorderIntersection(endStateID, startStateCenter, endStateCenter) + ConduitArrowsOffset * orthogonalDirection;
-
-                auto conduitColor = RGBColor::Blue;
-                // Handle hovering and selection
-                glm::vec2 mousePosition = ImGui::GetMousePos();
-                glm::vec2 closestPointOnConduitFromMouse = ImLineClosestPoint(startPosition, endPosition, ImGui::GetMousePos());
-                auto distanceToConduit = glm::length2(mousePosition - closestPointOnConduitFromMouse);
-
-                if (distanceToConduit < 25.0f)
+                for (auto& pConduit : pStateMachine->m_conduits)
                 {
-                    m_pHoveredConduit = pConduit;
-                    conduitColor = RGBColor::Green;
-                    // TODO: Change color
+                    const auto& startStateID = pConduit->m_pStartState->GetID();
+                    const auto& endStateID = pConduit->m_pEndState->GetID();
 
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    auto startStateCenter = GetNodeScreenSpaceCenter(startStateID);
+                    auto endStateCenter = GetNodeScreenSpaceCenter(endStateID);
+
+                    auto direction = glm::normalize(endStateCenter - startStateCenter);
+                    glm::vec2 orthogonalDirection = {-direction.y, direction.x};
+
+                    auto startPosition = GetNodeBorderIntersection(startStateID, endStateCenter, startStateCenter) + ConduitArrowsOffset * orthogonalDirection;
+                    auto endPosition = GetNodeBorderIntersection(endStateID, startStateCenter, endStateCenter) + ConduitArrowsOffset * orthogonalDirection;
+
+                    auto conduitColor = RGBColor::Blue;
+                    // Handle hovering and selection
+                    glm::vec2 mousePosition = ImGui::GetMousePos();
+                    glm::vec2 closestPointOnConduitFromMouse = ImLineClosestPoint(startPosition, endPosition, ImGui::GetMousePos());
+                    auto distanceToConduit = glm::length2(mousePosition - closestPointOnConduitFromMouse);
+
+                    if (distanceToConduit < 25.0f)
                     {
-                        ClearLinkSelection();
-                        ClearNodeSelection();
-                        m_pSelectedConduit = pConduit;
-                    }
-                }
+                        m_pHoveredConduit = pConduit;
+                        conduitColor = RGBColor::Green;
+                        // TODO: Change color
 
-                conduitColor = (pConduit == m_pSelectedConduit) ? RGBColor::Pink : conduitColor;
-                ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, conduitColor.U32());
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                        {
+                            ClearLinkSelection();
+                            ClearNodeSelection();
+                            m_pSelectedConduit = pConduit;
+                        }
+                    }
+
+                    conduitColor = (pConduit == m_pSelectedConduit) ? RGBColor::Pink : conduitColor;
+                    ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, conduitColor.U32());
+                }
             }
         }
 
@@ -446,6 +445,7 @@ class GraphView
         }
 
         ImGui::PopID();
+        m_isFirstDraw = false;
     }
 
     // ------ Helpers
