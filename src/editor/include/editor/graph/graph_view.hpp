@@ -112,6 +112,48 @@ class GraphView
         m_pGraph = nullptr;
     }
 
+    // ---- Drawing
+    void DrawNodeContextPopUp()
+    {
+        // This is not ideal... But the context menu is an exception that can alter the hovered node
+        auto pNode = const_cast<EditorGraphNode*>(m_contextPopupState.m_pNode);
+
+        if (ImGui::MenuItem("Remove node"))
+        {
+            if (ImNodes::IsNodeSelected(pNode->GetID()))
+            {
+                ImNodes::ClearNodeSelection(pNode->GetID());
+            }
+
+            m_pGraph->RemoveGraphNode(pNode->GetID());
+            m_contextPopupState.m_pNode = nullptr;
+            return;
+        }
+
+        if (pNode->IsRenamable() && ImGui::MenuItem("Rename"))
+        {
+            pNode->BeginRenaming();
+        }
+
+        if (pNode->SupportsDynamicInputPins() && ImGui::MenuItem("Add input pin"))
+        {
+            m_pGraph->AddDynamicInputPin(pNode);
+        }
+
+        if (pNode->SupportsDynamicOutputPins() && ImGui::MenuItem("Add output pin"))
+        {
+            // TODO
+        }
+
+        auto pStateNode = dynamic_cast<const StateEditorNode*>(pNode);
+        if (pStateNode != nullptr && IsViewingStateMachine() && ImGui::MenuItem("Conduit to..."))
+        {
+            m_conduitDragState.m_dragging = true;
+            m_conduitDragState.m_pStartNode = pStateNode;
+            m_conduitDragState.m_startPosition = GetNodeScreenSpaceCenter(pStateNode->GetID());
+        }
+    }
+
     // TODO: Move registry in the context ?
     // TODO: Should context be shared between view instances ?
     void Draw(const TypeRegistryService* pTypeRegistryService, GraphDrawingContext& drawingContext)
@@ -181,39 +223,7 @@ class GraphView
 
         if (ImGui::BeginPopup("graph_editor_node_popup"))
         {
-            // This is not ideal... But the context menu is an exception that can alter the hovered node
-            auto pNode = const_cast<EditorGraphNode*>(m_contextPopupState.m_pNode);
-
-            if (ImGui::MenuItem("Remove node"))
-            {
-                if (ImNodes::IsNodeSelected(pNode->GetID()))
-                {
-                    ImNodes::ClearNodeSelection(pNode->GetID());
-                }
-
-                m_pGraph->RemoveGraphNode(pNode->GetID());
-                m_contextPopupState.m_pNode = nullptr;
-                pNode = nullptr;
-            }
-
-            if (pNode != nullptr && pNode->SupportsDynamicInputPins() && ImGui::MenuItem("Add input pin"))
-            {
-                m_pGraph->AddDynamicInputPin(pNode);
-            }
-
-            if (pNode != nullptr && pNode->SupportsDynamicOutputPins() && ImGui::MenuItem("Add output pin"))
-            {
-                // TODO
-            }
-
-            auto pStateNode = dynamic_cast<const StateEditorNode*>(pNode);
-            if (pStateNode != nullptr && IsViewingStateMachine() && ImGui::MenuItem("Conduit to..."))
-            {
-                m_conduitDragState.m_dragging = true;
-                m_conduitDragState.m_pStartNode = pStateNode;
-                m_conduitDragState.m_startPosition = GetNodeScreenSpaceCenter(pStateNode->GetID());
-            }
-
+            DrawNodeContextPopUp();
             ImGui::EndPopup();
         }
 
