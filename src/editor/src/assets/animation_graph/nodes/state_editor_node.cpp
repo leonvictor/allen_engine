@@ -34,6 +34,6 @@ NodeIndex StateEditorNode::Compile(AnimationGraphCompilationContext& context, An
             return InvalidIndex;
         }
     }
-    return pSettings->m_childNodeIdx;
+    return pSettings->GetNodeIndex();
 };
 } // namespace aln
