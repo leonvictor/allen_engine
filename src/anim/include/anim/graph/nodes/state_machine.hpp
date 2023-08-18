@@ -15,7 +15,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
     {
         TransitionRuntimeNode* m_pTransitionNode = nullptr;
         BoolValueNode* m_pConditionNode = nullptr;
-        uint16_t m_targetStateIndex = InvalidIndex; // Index of the target state in the node's states array
+        uint16_t m_endStateIndex = InvalidIndex; // Index of the end state in the node's states array
     };
 
     /// @brief Holds a ptr to a state node and info about available transitions from it
@@ -34,7 +34,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
 
         struct TransitionSettings
         {
-            uint32_t m_targetStateIndex = InvalidIndex; // Index of the target state in the node's states array
+            uint32_t m_endStateIndex = InvalidIndex; // Index of the end state in the node's states array
             NodeIndex m_transitionNodeIndex = InvalidIndex;
             NodeIndex m_conditionNodeIndex = InvalidIndex;
         };
@@ -43,6 +43,20 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
         {
             NodeIndex m_stateNodeIndex = InvalidIndex;
             std::vector<TransitionSettings> m_transitionSettings;
+
+            template<class Archive>
+            void Serialize(Archive& archive) const
+            {
+                archive << m_stateNodeIndex;
+                archive << m_transitionSettings;
+            }
+
+            template <class Archive>
+            void Deserialize(Archive& archive)
+            {
+                archive >> m_stateNodeIndex;
+                archive >> m_transitionSettings;
+            }
         };
 
       private:
@@ -60,7 +74,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
                 for (auto& transitionSettings : stateSettings.m_transitionSettings)
                 {
                     auto& transition = state.m_transitions.emplace_back();
-                    transition.m_targetStateIndex = transitionSettings.m_targetStateIndex;
+                    transition.m_endStateIndex = transitionSettings.m_endStateIndex;
                     SetNodePtrFromIndex(nodePtrs, transitionSettings.m_transitionNodeIndex, transition.m_pTransitionNode);
                     SetNodePtrFromIndex(nodePtrs, transitionSettings.m_conditionNodeIndex, transition.m_pConditionNode);
                 }
@@ -92,6 +106,8 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
     {
         assert(m_activeStateIndex != InvalidIndex);
 
+        auto pActiveStateNode = GetActiveState().m_pStateNode;
+
         // Shutdown completed transitions
         if (IsTransitionActive() && m_pActiveTransitionNode->TransitionComplete())
         {
@@ -99,6 +115,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
             m_pActiveTransitionNode = nullptr;
         }
 
+        // Update current transition if one is active, otherwise update current state
         PoseNodeResult result;
         if (IsTransitionActive())
         {
@@ -109,15 +126,66 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
         }
         else
         {
-            auto pActiveStateNode = GetActiveState().m_pStateNode;
-
             result = pActiveStateNode->Update(context);
             m_duration = pActiveStateNode->GetDuration();
             m_currentTime = pActiveStateNode->GetCurrentTime();
             m_previousTime = pActiveStateNode->GetPreviousTime();
         }
 
-        // TODO: Start transitions if necessary
+        // Find if a new transition should be started
+        uint32_t newTransitionIdx = InvalidIndex;
+        const auto& availableTransitions = GetAvailableTransitionsFromActiveState();
+        const auto availableTransitionsCount = availableTransitions.size();
+        for (auto transitionIdx = 0; transitionIdx < availableTransitionsCount; ++transitionIdx)
+        {
+            const auto& transition = availableTransitions[transitionIdx];
+            if (transition.m_pConditionNode->GetValue<bool>(context))
+            {
+                if (m_pActiveTransitionNode != nullptr)
+                {
+                    assert(false); // TODO: Whats happens when a transition is triggered while the previous one is not finished ?
+                }
+
+                newTransitionIdx = transitionIdx;
+                break;
+            }
+        }
+
+        // Start the new transition
+        if (newTransitionIdx != InvalidIndex)
+        {
+            // Shutdown the previous state's outgoing transitions' condition nodes
+            for (auto& previouslyAvailableTransition : m_states[m_activeStateIndex].m_transitions)
+            {
+                if (previouslyAvailableTransition.m_pConditionNode != nullptr)
+                {
+                    previouslyAvailableTransition.m_pConditionNode->Shutdown();
+                }
+            }
+
+            // Set active transition
+            const auto& transition = GetAvailableTransitionsFromActiveState()[newTransitionIdx];
+            m_pActiveTransitionNode = transition.m_pTransitionNode;
+            m_pActiveTransitionNode->StartFrom(context, pActiveStateNode, result);
+
+            // Switch active state
+            m_activeStateIndex = transition.m_endStateIndex;
+
+            // Initialize the next state's outgoing transitions' condition nodes
+            for (auto& newlyAvailableTransition : m_states[m_activeStateIndex].m_transitions)
+            {
+                if (newlyAvailableTransition.m_pConditionNode != nullptr)
+                {
+                    newlyAvailableTransition.m_pConditionNode->Initialize(context);
+                }
+            }
+
+            // Update internal state to that of the target node
+            auto pNewState = GetActiveState().m_pStateNode;
+            m_duration = pNewState->GetDuration();
+            m_currentTime = pNewState->GetCurrentTime();
+            m_previousTime = pNewState->GetPreviousTime();
+        }
 
         return result;
     }
@@ -126,6 +194,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
     {
         // TODO
         PoseNodeResult result;
+        assert(false); 
         return result;
     }
 

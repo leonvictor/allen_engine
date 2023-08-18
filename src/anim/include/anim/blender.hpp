@@ -2,6 +2,7 @@
 
 #include "bone_mask.hpp"
 #include "pose.hpp"
+#include "skeleton.hpp"
 
 #include <assert.h>
 
@@ -12,7 +13,7 @@
 namespace aln
 {
 
-    template <typename T>
+template <typename T>
 class BitFlags
 {
     // TODO

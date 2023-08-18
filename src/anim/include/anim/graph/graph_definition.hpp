@@ -23,6 +23,7 @@ class AnimationGraphDefinition : public IAsset
 
     friend class EditorAnimationGraph;
     friend class AnimationGraphWorkspace;
+    friend class StateMachineEditorNode;
     friend class AnimationGraphCompilationContext;
     friend class AnimationGraphDefinitionLoader;
     friend class RuntimeAnimationGraphInstance;

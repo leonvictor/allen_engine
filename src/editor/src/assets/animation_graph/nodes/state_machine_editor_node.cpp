@@ -117,7 +117,7 @@ NodeIndex StateMachineEditorNode::Compile(AnimationGraphCompilationContext& cont
 
                         // Set the state machine node's settings
                         auto& transitionSettings = pStateMachineNodeSettings->m_stateSettings[startStateNodeIdx].m_transitionSettings.emplace_back();
-                        transitionSettings.m_targetStateIndex = endStateSettingsIdx;
+                        transitionSettings.m_endStateIndex = endStateSettingsIdx;
                         transitionSettings.m_transitionNodeIndex = transitionNodeIndex;
                         transitionSettings.m_conditionNodeIndex = conditionNodeIndex;
                     }
@@ -132,13 +132,16 @@ NodeIndex StateMachineEditorNode::Compile(AnimationGraphCompilationContext& cont
 
 NodeIndex StateMachineEditorNode::CompileTransition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition, const TransitionEditorNode* pTransitionNode, NodeIndex endStateNodeIdx) const
 {
+    assert(endStateNodeIdx != InvalidIndex);
+    assert(pTransitionNode != nullptr);
+
     TransitionRuntimeNode::Settings* pTransitionNodeSettings = nullptr;
-    bool compiled = context.GetSettings<TransitionRuntimeNode>(this, graphDefinition, pTransitionNodeSettings);
+    bool compiled = context.GetSettings<TransitionRuntimeNode>(pTransitionNode, graphDefinition, pTransitionNodeSettings);
     if (!compiled)
     {
         // Set the transition node's runtime settings
-        pTransitionNodeSettings->m_duration = pTransitionNode->m_duration;
-        pTransitionNodeSettings->m_targetStateNodeIdx = endStateNodeIdx;
+        pTransitionNodeSettings->m_transitionDuration = pTransitionNode->m_duration;
+        pTransitionNodeSettings->m_endStateNodeIdx = endStateNodeIdx;
     }
     return pTransitionNodeSettings->GetNodeIndex();
 }

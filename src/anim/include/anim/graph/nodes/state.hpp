@@ -10,6 +10,8 @@ namespace aln
 // TODO: State events can also be checked from within the graph (entry state overrides or transitions)
 class StateRuntimeNode : public PassthroughRuntimeNode
 {
+    friend class TransitionRuntimeNode;
+
   public:
     struct Settings : public PassthroughRuntimeNode::Settings
     {
@@ -18,8 +20,6 @@ class StateRuntimeNode : public PassthroughRuntimeNode
         friend class AnimationGraphCompilationContext;
         friend class StateEditorNode;
 
-      private:
-      public:
         virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<StateRuntimeNode>(nodePtrs, options);
@@ -37,18 +37,17 @@ class StateRuntimeNode : public PassthroughRuntimeNode
 
   private:
     TransitionState m_transitionState = TransitionState::None;
+    float m_timeSpentInState = 0.0f;
 
   private:
-    void StartTransitionFrom(GraphContext& context)
+    void StartTransitioningFrom(GraphContext& context)
     {
-        assert(false);
-        // TODO
+        m_transitionState = TransitionState::TransitionOutgoing;
     }
 
-    void StartTransitionTo(GraphContext& context)
+    void StartTransitioningTo(GraphContext& context)
     {
-        assert(false);
-        // TODO
+        m_transitionState = TransitionState::TransitionIncoming;
     }
 
   public:
@@ -59,28 +58,34 @@ class StateRuntimeNode : public PassthroughRuntimeNode
     PoseNodeResult Update(GraphContext& context) override
     {
         auto result = PassthroughRuntimeNode::Update(context);
-        // TODO: Track time spent in current state
+        m_timeSpentInState += context.m_deltaTime;
+
         // TODO: Sample events
+
         return result;
     }
 
     PoseNodeResult Update(GraphContext& context, const SyncTrackTimeRange& updateRange) override
     {
         auto result = PassthroughRuntimeNode::Update(context, updateRange);
-        // TODO: Track time spent in current state
+        m_timeSpentInState += context.m_deltaTime;
+
         // TODO: Sample events
+
         return result;
     }
 
     void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
         PassthroughRuntimeNode::Initialize(context, initialTime);
-        // TODO
+        m_transitionState = TransitionState::None;
+        m_timeSpentInState = 0.0f;
     }
 
     void ShutdownInternal() override
     {
-        // TODO
+        m_timeSpentInState = 0.0f;
+        m_transitionState = TransitionState::None;
         PassthroughRuntimeNode::Shutdown();
     }
 };

@@ -13,15 +13,16 @@ class PassthroughRuntimeNode : public PoseRuntimeNode
         ALN_REGISTER_TYPE();
 
         friend class AnimationGraphCompilationContext;
+        friend class StateEditorNode; // TODO: Giving access through friend everytime there's a new passthrough node is not goog. Make it public ?
 
       private:
-        NodeIndex m_childNodexIndex = InvalidIndex;
+        NodeIndex m_childNodeIdx = InvalidIndex;
 
       public:
         virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<PassthroughRuntimeNode>(nodePtrs, options);
-            SetNodePtrFromIndex(nodePtrs, m_childNodexIndex, pNode->m_pChildNode);
+            SetNodePtrFromIndex(nodePtrs, m_childNodeIdx, pNode->m_pChildNode);
         }
     };
 

@@ -32,14 +32,14 @@ class PoseRuntimeNode : public RuntimeGraphNode
 {
   protected:
     uint32_t m_loopCount = 0;
-    Seconds m_duration = 0.0f;
+    Seconds m_duration = 0.0f; // Duration of the resulting animation
     Percentage m_currentTime = 0.0f;  // Clamped percentage over the duration
     Percentage m_previousTime = 0.0f; // Clamped percentage over the duration
 
   private:
-    virtual void Initialize(GraphContext& context) override final { Initialize(context, SyncTrackTime()); }
-    virtual void InitializeInternal(GraphContext& context) override final { Initialize(context, SyncTrackTime()); }
-    virtual NodeValueType GetValueType() const override final { return NodeValueType::Pose; }
+    void Initialize(GraphContext& context) override final { Initialize(context, SyncTrackTime()); }
+    void InitializeInternal(GraphContext& context) override final { Initialize(context, SyncTrackTime()); }
+    NodeValueType GetValueType() const override final { return NodeValueType::Pose; }
 
   public:
     // Get internal animation state
