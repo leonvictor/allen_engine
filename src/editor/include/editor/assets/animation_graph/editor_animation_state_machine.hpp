@@ -83,6 +83,22 @@ class EditorAnimationStateMachine : public EditorGraph
         EditorGraph::Clear();
     }
 
+    virtual void FindAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const override
+    {
+        if (searchScope == NodeSearchScope::Recursive)
+        {
+            for (auto& conduit : m_conduits)
+            {
+                if (conduit->HasChildGraph())
+                {
+                    conduit->GetChildGraph()->FindAllNodesOfType(outResult, typeID, searchScope);
+                }
+            }
+        }
+
+        EditorGraph::FindAllNodesOfType(outResult, typeID, searchScope);
+    }
+
     virtual void SaveState(nlohmann::json& json) const override
     {
         EditorGraph::SaveState(json);

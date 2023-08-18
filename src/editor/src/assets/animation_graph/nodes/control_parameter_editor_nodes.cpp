@@ -9,6 +9,7 @@ namespace aln
 // ------ Float control parameter node
 
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, FloatControlParameterEditorNode)
+ALN_REFLECT_BASE(IControlParameterEditorNode)
 ALN_REGISTER_IMPL_END()
 
 void FloatControlParameterEditorNode::Initialize()
@@ -27,6 +28,7 @@ NodeIndex FloatControlParameterEditorNode::Compile(AnimationGraphCompilationCont
 // ------ Bool control parameter node
 
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, BoolControlParameterEditorNode)
+ALN_REFLECT_BASE(IControlParameterEditorNode)
 ALN_REGISTER_IMPL_END()
 
 void BoolControlParameterEditorNode::Initialize()
@@ -45,6 +47,7 @@ NodeIndex BoolControlParameterEditorNode::Compile(AnimationGraphCompilationConte
 // ------ StringID control parameter node
 
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, IDControlParameterEditorNode)
+ALN_REFLECT_BASE(IControlParameterEditorNode)
 ALN_REGISTER_IMPL_END()
 
 void IDControlParameterEditorNode::Initialize()
@@ -62,4 +65,4 @@ NodeIndex IDControlParameterEditorNode::Compile(AnimationGraphCompilationContext
 
 // ------- TODO: ...
 
-}
+} // namespace aln

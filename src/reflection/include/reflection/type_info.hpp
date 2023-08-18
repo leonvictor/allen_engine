@@ -172,6 +172,24 @@ class TypeInfo
     const ClassMemberInfo* GetMemberInfo(size_t memberIdx) const { return &m_members[memberIdx]; }
     virtual bool IsPrimitive() const { return false; }
 
+    /// @brief Whether this type is equal to or derived from the specified base type
+    bool IsDerivedFrom(const StringID& baseTypeID) const {
+        assert(baseTypeID.IsValid());
+        if (m_typeID == baseTypeID)
+        {
+            return true;
+        }
+        if (m_pBaseTypeInfo == nullptr)
+        {
+            return false;
+        }
+        if (m_pBaseTypeInfo->GetTypeID() == baseTypeID)
+        {
+            return true;
+        }
+        return m_pBaseTypeInfo->IsDerivedFrom(baseTypeID);
+    }
+
     /// @brief Create an instance of the described type
     /// @tparam T: Type to cast the instanciated object to
     /// @return A pointer to the instanciated object

@@ -6,8 +6,8 @@
 #include "assets/animation_graph/nodes/pose_editor_node.hpp"
 
 #include <anim/graph/graph_definition.hpp>
-#include <common/serialization/binary_archive.hpp>
 #include <assets/asset_archive_header.hpp>
+#include <common/serialization/binary_archive.hpp>
 
 namespace aln
 {
@@ -15,22 +15,37 @@ ALN_REGISTER_IMPL_BEGIN(GRAPH_EDITORS, EditorAnimationGraph)
 ALN_REFLECT_BASE(EditorGraph)
 ALN_REGISTER_IMPL_END()
 
+bool EditorAnimationGraph::CompileControlParameters(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
+{
+    // Parameter nodes are compiled first to be easier to find
+    assert(graphDefinition.m_controlParameterNames.empty());
+    assert(graphDefinition.GetNumNodes() == 0);
+
+    auto parameterNodes = GetAllNodesOfType<IControlParameterEditorNode>(NodeSearchScope::Recursive);
+    graphDefinition.m_controlParameterNames.reserve(parameterNodes.size());
+    for (auto& pParameterNode : parameterNodes)
+    {
+        auto parameterIdx = pParameterNode->Compile(context, graphDefinition);
+        if (parameterIdx == InvalidIndex)
+        {
+            context.LogError("An error occured while compiling one of the graph's parameter nodes.", pParameterNode);
+            return false;
+        }
+        
+        graphDefinition.m_controlParameterNames.push_back(pParameterNode->GetName());
+    }
+    return true;
+}
+
 NodeIndex EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
 {
     auto pPreviousGraph = context.GetCurrentGraph();
     context.SetCurrentGraph(this);
 
     // ---- Compile graph definition
-    // Parameter nodes are compiled first to be easier to find
-    auto parameterNodes = GetAllNodesOfType<IControlParameterEditorNode>();
-    graphDefinition.m_controlParameterNames.reserve(graphDefinition.m_controlParameterNames.size() + parameterNodes.size());
-    for (auto& pParameterNode : parameterNodes)
-    {
-        pParameterNode->Compile(context, graphDefinition);
-        graphDefinition.m_controlParameterNames.push_back(pParameterNode->GetName());
-    }
+    
 
-    auto outputNodes = GetAllNodesOfType<PoseEditorNode>();
+    auto outputNodes = GetAllNodesOfType<PoseEditorNode>(NodeSearchScope::Local);
     // TODO: Identify the graph by a user-readable name
     if (outputNodes.size() < 1)
     {
@@ -47,7 +62,7 @@ NodeIndex EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationConte
 
     auto rootNodeIndex = outputNodes[0]->Compile(context, graphDefinition);
     // TODO: Record an error if necessary, them read them back in the reverse order as a stack trace
-    
+
     context.SetCurrentGraph(pPreviousGraph);
 
     return rootNodeIndex;
@@ -56,7 +71,7 @@ NodeIndex EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationConte
 bool EditorAnimationGraph::CompileDataset(AnimationGraphCompilationContext& context, AnimationGraphDataset& graphDataset) const
 {
     const auto animationClipNodes = GetAllNodesOfType<AnimationClipEditorNode>(NodeSearchScope::Recursive);
-    
+
     std::map<UUID, const AnimationClipEditorNode*> animationClipNodeLookupMap;
     for (const auto pNode : animationClipNodes)
     {
@@ -69,7 +84,7 @@ bool EditorAnimationGraph::CompileDataset(AnimationGraphCompilationContext& cont
     {
         const auto pOwnerNode = animationClipNodeLookupMap[slotOwnerNodeID];
         const auto& clipID = pOwnerNode->GetAnimationClipID();
-        
+
         if (!clipID.IsValid())
         {
             context.LogError("Wrong animation clip ID provided to AnimationClip node.", pOwnerNode);

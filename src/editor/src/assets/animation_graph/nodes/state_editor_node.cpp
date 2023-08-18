@@ -24,7 +24,16 @@ NodeIndex StateEditorNode::Compile(AnimationGraphCompilationContext& context, An
 {
     StateRuntimeNode::Settings* pSettings = nullptr;
     bool compiled = context.GetSettings<StateRuntimeNode>(this, graphDefinition, pSettings);
-    auto pChildBlendTree = static_cast<const EditorAnimationGraph*>(GetChildGraph());
-    return pChildBlendTree->CompileDefinition(context, graphDefinition);
+    if (!compiled)
+    {
+        auto pChildBlendTree = static_cast<const EditorAnimationGraph*>(GetChildGraph());
+        pSettings->m_childNodeIdx = pChildBlendTree->CompileDefinition(context, graphDefinition);
+        if (pSettings->m_childNodeIdx == InvalidIndex)
+        {
+            context.LogError("There was an error while compiling the state's child graph", this);
+            return InvalidIndex;
+        }
+    }
+    return pSettings->m_childNodeIdx;
 };
 } // namespace aln

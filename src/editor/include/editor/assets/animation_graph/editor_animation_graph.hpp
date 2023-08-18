@@ -18,6 +18,7 @@ class EditorAnimationGraph : public EditorGraph
 
   public:
     // -------------- Asset compilation
+    bool CompileControlParameters(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const;
     NodeIndex CompileDefinition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const;
     bool CompileDataset(AnimationGraphCompilationContext& context, AnimationGraphDataset& graphDataset) const;
 };

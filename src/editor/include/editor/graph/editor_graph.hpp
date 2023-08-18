@@ -80,14 +80,14 @@ class EditorGraph : public reflect::IReflected
     const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const;
     const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const;
 
-    void GetAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope = NodeSearchScope::Local) const;
+    virtual void FindAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope = NodeSearchScope::Local) const;
 
     template <typename T>
     std::vector<const T*> GetAllNodesOfType(NodeSearchScope searchScope = NodeSearchScope::Local) const
     {
         static_assert(std::is_base_of_v<EditorGraphNode, T>);
         std::vector<const EditorGraphNode*> searchResult;
-        GetAllNodesOfType(searchResult, T::GetStaticTypeInfo()->GetTypeID(), searchScope);
+        FindAllNodesOfType(searchResult, T::GetStaticTypeInfo()->GetTypeID(), searchScope);
 
         std::vector<const T*> matchingTypeNodes;
         matchingTypeNodes.reserve(searchResult.size());

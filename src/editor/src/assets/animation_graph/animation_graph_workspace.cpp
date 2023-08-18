@@ -21,6 +21,7 @@ void AnimationGraphWorkspace::Compile()
 
     // TODO: Decouple dataset from the graph, use a dedicated dataset editor to associate anim clip node's user name to a given anim clip ID
     // TODO: Compile directly to this workspace's associated assets
+    m_rootGraph.CompileControlParameters(context, graphDefinition);
     auto rootNodeIndex = m_rootGraph.CompileDefinition(context, graphDefinition);
     if (rootNodeIndex != InvalidIndex)
     {
@@ -254,6 +255,7 @@ void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const As
     m_secondaryGraphViewEventIDs.m_canvasDoubleClickedEventID = m_secondaryGraphView.OnCanvasDoubleClicked().BindListener(HandleCanvasDoubleClick);
 
     m_rootGraph.Initialize();
+
     m_primaryGraphView.SetViewedGraph(&m_rootGraph);
 
     if (readAssetFile)

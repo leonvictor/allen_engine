@@ -137,18 +137,18 @@ const EditorGraphNode* EditorGraph::GetNodeLinkedToOutputPin(const UUID& outputP
     return nullptr;
 }
 
-void EditorGraph::GetAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const
+void EditorGraph::FindAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const
 {
     for (const auto& [id, pNode] : m_nodeLookupMap)
     {
-        if (pNode->GetTypeInfo()->GetTypeID() == typeID)
+        if (pNode->GetTypeInfo()->IsDerivedFrom(typeID))
         {
             outResult.push_back(pNode);
         }
 
         if (searchScope == NodeSearchScope::Recursive && pNode->HasChildGraph())
         {
-            pNode->GetChildGraph()->GetAllNodesOfType(outResult, typeID, searchScope);
+            pNode->GetChildGraph()->FindAllNodesOfType(outResult, typeID, searchScope);
         }
     }
 }
