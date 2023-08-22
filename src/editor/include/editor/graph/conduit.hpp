@@ -32,7 +32,7 @@ class Conduit
     bool HasChildGraph() const { return m_pChildGraph != nullptr; }
     EditorAnimationGraph* GetChildGraph() const { return m_pChildGraph; }
 
-    void Initialize(EditorAnimationStateMachine* pOwningGraph);
+    void Initialize();
     void Shutdown();
 };
 } // namespace aln

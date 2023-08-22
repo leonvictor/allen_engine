@@ -5,12 +5,10 @@
 namespace aln
 {
 
-void Conduit::Initialize(EditorAnimationStateMachine* pOwningGraph)
+void Conduit::Initialize()
 {
-    assert(pOwningGraph != nullptr);
-
     m_pChildGraph = aln::New<EditorAnimationGraph>();
-    m_pChildGraph->Initialize(pOwningGraph);
+    m_pChildGraph->Initialize();
 }
 
 void Conduit::Shutdown()

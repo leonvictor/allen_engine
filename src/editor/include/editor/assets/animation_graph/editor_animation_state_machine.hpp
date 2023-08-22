@@ -31,7 +31,8 @@ class EditorAnimationStateMachine : public EditorGraph
         auto pConduit = aln::New<Conduit>();
         pConduit->m_pStartState = pStartState;
         pConduit->m_pEndState = pEndState;
-        pConduit->Initialize(this);
+        pConduit->Initialize();
+        pConduit->m_pChildGraph->m_pParentGraph = this;
 
         m_conduits.push_back(pConduit);
 

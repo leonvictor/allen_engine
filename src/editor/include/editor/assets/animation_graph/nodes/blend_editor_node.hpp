@@ -18,13 +18,6 @@ class BlendEditorNode : public EditorAnimationGraphNode
   protected:
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override {
         m_blendParameterValues = json["blend_parameter_values"].get<std::vector<float>>();
-        
-        auto dynamicPinsCount = m_blendParameterValues.size() - 2;
-        for (auto i = 0; i < dynamicPinsCount; ++i)
-        {
-            AddDynamicInputPin(DynamicInputPinValueType(), DynamicInputPinName());
-        }
-
     }
     
     virtual void SaveState(nlohmann::json& json) const override {

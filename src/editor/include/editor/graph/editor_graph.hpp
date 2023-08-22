@@ -4,8 +4,8 @@
 #include "graph/link.hpp"
 
 #include <common/hash_vector.hpp>
-#include <reflection/services/type_registry_service.hpp>
 #include <reflection/reflected_type.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
@@ -25,6 +25,7 @@ class EditorGraph : public reflect::IReflected
     ALN_REGISTER_TYPE();
 
     friend class GraphView;
+    friend class EditorAnimationStateMachine;
 
   public:
     enum class NodeSearchScope : uint8_t
@@ -49,6 +50,8 @@ class EditorGraph : public reflect::IReflected
     // UI Context
     ImNodesEditorContext* m_pImNodesEditorContext = nullptr;
 
+    /// @brief Helper function used to add a node to the graph and register it in lookup maps
+    void RegisterNode(EditorGraphNode* pNode);
   protected:
     const std::vector<EditorGraphNode*>& GetNodes() const { return m_graphNodes; }
 
@@ -100,14 +103,36 @@ class EditorGraph : public reflect::IReflected
         return matchingTypeNodes;
     }
 
+    template <typename T>
+    std::vector<T*> GetAllNodesOfType(NodeSearchScope searchScope = NodeSearchScope::Local)
+    {
+        static_assert(std::is_base_of_v<EditorGraphNode, T>);
+        std::vector<const EditorGraphNode*> searchResult;
+        FindAllNodesOfType(searchResult, T::GetStaticTypeInfo()->GetTypeID(), searchScope);
+
+        std::vector<T*> matchingTypeNodes;
+        matchingTypeNodes.reserve(searchResult.size());
+        for (const auto pNode : searchResult)
+        {
+            // Static cast should be avoided, this is the lazy solution to avoid creating two versions of each getters
+            const auto pTypedNode = const_cast<T*>(static_cast<const T*>(pNode));
+            matchingTypeNodes.push_back(pTypedNode);
+        }
+
+        return matchingTypeNodes;
+    }
+
     /// @brief Add a node to the graph
     EditorGraphNode* CreateGraphNode(const reflect::TypeInfo* pTypeInfo);
 
-    template<typename T>
-    T* CreateGraphNode()
+    template <typename T, typename... ConstructorParameters>
+    T* CreateGraphNode(ConstructorParameters&&... parameters)
     {
         static_assert(std::is_base_of_v<EditorGraphNode, T>);
-        return static_cast<T*>(CreateGraphNode(T::GetStaticTypeInfo()));
+        auto pNode = aln::New<T>(std::forward<ConstructorParameters>(parameters)...);
+        pNode->Initialize();
+        RegisterNode(pNode);
+        return pNode;
     }
 
     /// @brief Remove a node from the graph

@@ -16,14 +16,13 @@ void EditorGraphNode::SetChildGraph(EditorGraph* pChildGraph)
 {
     assert(pChildGraph != nullptr && m_pChildGraph == nullptr);
     assert(!pChildGraph->IsInitialized());
-    assert(m_pOwningGraph != nullptr);
 
-    pChildGraph->Initialize(m_pOwningGraph);
+    pChildGraph->Initialize();
 
     m_pChildGraph = pChildGraph;
 }
 
- void EditorGraphNode::Shutdown()
+void EditorGraphNode::Shutdown()
 {
     if (m_pChildGraph != nullptr)
     {
@@ -33,44 +32,72 @@ void EditorGraphNode::SetChildGraph(EditorGraph* pChildGraph)
     }
 }
 
- void EditorGraphNode::SaveNodeState(nlohmann::json& json) const
+void EditorGraphNode::SaveNodeState(nlohmann::json& json) const
 {
-    if (IsRenamable())
+    json["name"] = m_name;
+
+    if (!m_inputPins.empty())
     {
-        json["name"] = m_name;
+        auto& inputPinsJson = json["input_pins"];
+        for (auto& pin : m_inputPins)
+        {
+            auto& pinJson = inputPinsJson.emplace_back();
+            pinJson["name"] = pin.m_name;
+            pinJson["value_type"] = pin.m_valueType;
+            pinJson["allows_multiple_links"] = pin.m_allowMultipleLinks;
+            pinJson["dynamic"] = pin.m_dynamic;
+        }
+    }
+
+    if (!m_outputPins.empty())
+    {
+        auto& outputPinsJson = json["output_pins"];
+        for (auto& pin : m_outputPins)
+        {
+            auto& pinJson = outputPinsJson.emplace_back();
+            pinJson["name"] = pin.m_name;
+            pinJson["value_type"] = pin.m_valueType;
+            pinJson["allows_multiple_links"] = pin.m_allowMultipleLinks;
+            pinJson["dynamic"] = pin.m_dynamic;
+        }
     }
 
     SaveState(json);
-
-    if (HasChildGraph())
-    {
-        auto& childGraphJson = json["child_graph"];
-        childGraphJson["type"] = m_pChildGraph->GetTypeInfo()->GetTypeID().GetHash();
-        m_pChildGraph->SaveState(childGraphJson);
-    }
 }
 
 void EditorGraphNode::LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
 {
-    if (IsRenamable())
+    m_name = json["name"];
+
+    if (json.contains("input_pins"))
     {
-        m_name = json["name"];
+        auto& inputPinsJson = json["input_pins"];
+        for (auto& pinJson : inputPinsJson)
+        {
+            auto& pin = m_inputPins.emplace_back();
+            pin.m_name = pinJson["name"];
+            pin.m_valueType = pinJson["value_type"];
+            pin.m_allowMultipleLinks = pinJson["allows_multiple_links"];
+            pin.m_dynamic = pinJson["dynamic"];
+            pin.m_type = Pin::Type::In;
+        }
+    }
+
+    if (json.contains("output_pins"))
+    {
+        auto& outputPinsJson = json["output_pins"];
+        for (auto& pinJson : outputPinsJson)
+        {
+            auto& pin = m_outputPins.emplace_back();
+            pin.m_name = pinJson["name"];
+            pin.m_valueType = pinJson["value_type"];
+            pin.m_allowMultipleLinks = pinJson["allows_multiple_links"];
+            pin.m_dynamic = pinJson["dynamic"];
+            pin.m_type = Pin::Type::Out;
+        }
     }
 
     LoadState(json, pTypeRegistryService);
-
-    if (json.contains("child_graph"))
-    {
-        assert(m_pOwningGraph != nullptr);
-
-        const auto& childGraphJson = json["child_graph"];
-        uint32_t typeID = childGraphJson["type"];
-        const auto pTypeInfo = pTypeRegistryService->GetTypeInfo(typeID);
-
-        m_pChildGraph = pTypeInfo->CreateTypeInstance<EditorGraph>();
-        m_pChildGraph->Initialize(m_pOwningGraph);
-        m_pChildGraph->LoadState(childGraphJson, pTypeRegistryService);
-    }
 }
 
 } // namespace aln

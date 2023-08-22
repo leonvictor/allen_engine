@@ -16,19 +16,35 @@ namespace aln
 void AnimationGraphWorkspace::Compile()
 {
     AnimationGraphCompilationContext context(&m_rootGraph);
-    AnimationGraphDefinition graphDefinition;
-    AnimationGraphDataset graphDataset;
+
+    // Clear definition
+    // TODO: Graph definition load/unload should only happen through the loader. Replace this one with an editor-specific version ?
+    m_graphDefinition.m_controlParameterNames.clear();
+    m_graphDefinition.m_nodeIndices.clear();
+    m_graphDefinition.m_nodeOffsets.clear();
+    for (auto pNodeSettings : m_graphDefinition.m_nodeSettings)
+    {
+        aln::Delete(pNodeSettings);
+    }
+    m_graphDefinition.m_nodeSettings.clear();
+    m_graphDefinition.m_requiredMemoryAlignement = 0;
+    m_graphDefinition.m_requiredMemorySize = 0;
+    m_graphDefinition.m_rootNodeIndex = InvalidIndex;
+
+    // Clear dataset
+    m_graphDataset.m_animationClips.clear();
+    m_graphDataset.m_derivations.clear();
 
     // TODO: Decouple dataset from the graph, use a dedicated dataset editor to associate anim clip node's user name to a given anim clip ID
     // TODO: Compile directly to this workspace's associated assets
-    m_rootGraph.CompileControlParameters(context, graphDefinition);
-    auto rootNodeIndex = m_rootGraph.CompileDefinition(context, graphDefinition);
+    m_rootGraph.CompileControlParameters(context, m_graphDefinition);
+    auto rootNodeIndex = m_rootGraph.CompileDefinition(context, m_graphDefinition);
     if (rootNodeIndex != InvalidIndex)
     {
         // Finalize the definition
-        graphDefinition.m_rootNodeIndex = rootNodeIndex;
-        graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
-        graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
+        m_graphDefinition.m_rootNodeIndex = rootNodeIndex;
+        m_graphDefinition.m_requiredMemoryAlignement = context.GetNodeMemoryAlignement();
+        m_graphDefinition.m_requiredMemorySize = context.GetNodeMemoryOffset();
 
         // TODO: Where does runtime asset serialization+saving occur ?
         // Serialize graph definition
@@ -36,7 +52,7 @@ void AnimationGraphWorkspace::Compile()
         auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
 
         reflect::TypeCollectionDescriptor typeCollectionDesc;
-        for (auto& pSettings : graphDefinition.m_nodeSettings)
+        for (auto& pSettings : m_graphDefinition.m_nodeSettings)
         {
             auto pSettingsTypeInfo = pSettings->GetTypeInfo();
             auto& descriptor = typeCollectionDesc.m_descriptors.emplace_back();
@@ -44,7 +60,7 @@ void AnimationGraphWorkspace::Compile()
         }
 
         dataArchive << typeCollectionDesc;
-        dataArchive << graphDefinition;
+        dataArchive << m_graphDefinition;
 
         auto header = AssetArchiveHeader(AnimationGraphDefinition::GetStaticAssetTypeID());
 
@@ -61,15 +77,15 @@ void AnimationGraphWorkspace::Compile()
         }
     }
 
-    if (m_rootGraph.CompileDataset(context, graphDataset))
+    if (m_rootGraph.CompileDataset(context, m_graphDataset))
     {
         // Serialize graph dataset
         std::vector<std::byte> data;
         auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
-        graphDataset.Serialize(dataArchive);
+        m_graphDataset.Serialize(dataArchive);
 
         auto header = AssetArchiveHeader(AnimationGraphDataset::GetStaticAssetTypeID());
-        for (auto& handle : graphDataset.m_animationClips)
+        for (auto& handle : m_graphDataset.m_animationClips)
         {
             header.AddDependency(handle.GetAssetID());
         }

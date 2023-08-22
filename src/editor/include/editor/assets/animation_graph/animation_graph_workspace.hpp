@@ -49,6 +49,10 @@ class AnimationGraphWorkspace : public IAssetWorkspace
     GraphViewEventIDs m_primaryGraphViewEventIDs;
     GraphViewEventIDs m_secondaryGraphViewEventIDs;
 
+    // Asset data
+    AnimationGraphDefinition m_graphDefinition;
+    AnimationGraphDataset m_graphDataset;
+
   public:
     // ----------- Window lifetime
     virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;

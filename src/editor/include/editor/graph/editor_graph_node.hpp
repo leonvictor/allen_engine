@@ -316,6 +316,7 @@ class EditorGraphNode : public reflect::IReflected
     }
 
     // ----- Lifetime
+    /// @note Nodes can either be initialized through this function or by deserialization
     virtual void Initialize() = 0;
     virtual void Shutdown();
 
