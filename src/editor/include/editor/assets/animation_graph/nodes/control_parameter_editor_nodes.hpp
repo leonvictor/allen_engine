@@ -10,6 +10,8 @@ namespace aln
 /// @todo Control Parameters names must be unique
 class IControlParameterEditorNode : public EditorAnimationGraphNode
 {
+    ALN_REGISTER_TYPE()
+
     virtual bool IsRenamable() const final override { return true; }
 };
 

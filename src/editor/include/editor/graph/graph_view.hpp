@@ -6,6 +6,8 @@
 #include "aln_imgui_widgets.hpp"
 #include "assets/animation_graph/editor_animation_state_machine.hpp"
 #include "assets/animation_graph/nodes/state_editor_node.hpp"
+#include "assets/animation_graph/nodes/control_parameter_editor_nodes.hpp"
+#include "assets/animation_graph/nodes/parameter_reference_editor_node.hpp"
 
 #include <common/event.hpp>
 
@@ -130,7 +132,7 @@ class GraphView
             return;
         }
 
-        if (pNode->IsRenamable() && ImGui::MenuItem("Rename"))
+        if (pNode->IsRenamable() && ImGui::MenuItem("Rename..."))
         {
             pNode->BeginRenaming();
         }
@@ -151,6 +153,34 @@ class GraphView
             m_conduitDragState.m_dragging = true;
             m_conduitDragState.m_pStartNode = pStateNode;
             m_conduitDragState.m_startPosition = GetNodeScreenSpaceCenter(pStateNode->GetID());
+        }
+    }
+
+    void DrawCanvasContextPopUp(const TypeRegistryService* pTypeRegistryService, GraphDrawingContext& context)
+    {
+        const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
+        if (ImGui::BeginMenu("Add Node"))
+        {
+            auto pSelectedNodeType = m_pGraph->AvailableNodeTypesMenuItems(pTypeRegistryService);
+            if (pSelectedNodeType != nullptr)
+            {
+                auto pNode = m_pGraph->CreateGraphNode(pSelectedNodeType);
+                ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
+            }
+            if (ImGui::BeginMenu("Reference Parameter..."))
+            {
+                auto controlParameters = m_pGraph->GetRootGraph()->GetAllNodesOfType<IControlParameterEditorNode>(EditorGraph::NodeSearchScope::Recursive);
+                for (auto& pParameter : controlParameters)
+                {
+                    if (ImGui::MenuItem(pParameter->GetName().c_str()))
+                    {
+                        auto pNode = m_pGraph->CreateGraphNode<ParameterReferenceEditorNode>(pParameter);
+                        ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
+                    }
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
         }
     }
 
@@ -199,18 +229,7 @@ class GraphView
 
         if (ImGui::BeginPopup("graph_editor_canvas_popup"))
         {
-            const ImVec2 mousePos = ImGui::GetMousePosOnOpeningCurrentPopup();
-            if (ImGui::BeginMenu("Add Node"))
-            {
-                auto pSelectedNodeType = m_pGraph->AvailableNodeTypesMenuItems(pTypeRegistryService);
-                if (pSelectedNodeType != nullptr)
-                {
-                    auto pNode = m_pGraph->CreateGraphNode(pSelectedNodeType);
-                    ImNodes::SetNodeScreenSpacePos(pNode->GetID(), mousePos);
-                }
-                ImGui::EndMenu();
-            }
-
+            DrawCanvasContextPopUp(pTypeRegistryService, drawingContext);
             ImGui::EndPopup();
         }
 

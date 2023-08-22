@@ -52,6 +52,8 @@ class EditorGraph : public reflect::IReflected
 
     /// @brief Helper function used to add a node to the graph and register it in lookup maps
     void RegisterNode(EditorGraphNode* pNode);
+    void RefreshParameterReferences();
+
   protected:
     const std::vector<EditorGraphNode*>& GetNodes() const { return m_graphNodes; }
 
@@ -60,6 +62,19 @@ class EditorGraph : public reflect::IReflected
 
     bool HasParentGraph() const { return m_pParentGraph != nullptr; }
     EditorGraph* GetParentGraph() const { return m_pParentGraph; }
+
+    /// @brief Recursively find the root graph of the hierarchy
+    const EditorGraph* GetRootGraph() const
+    {
+        if (HasParentGraph())
+        {
+            return m_pParentGraph->GetRootGraph();
+        }
+        else
+        {
+            return this;
+        }
+    }
 
     virtual void Initialize(EditorGraph* pParentGraph = nullptr);
     void Shutdown();

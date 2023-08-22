@@ -218,7 +218,7 @@ class EditorGraphNode : public reflect::IReflected
     ~EditorGraphNode();
 
     const UUID& GetID() const { return m_id; }
-    const std::string& GetName() const { return m_name; }
+    virtual const std::string& GetName() const { return m_name; }
 
     NodeValueType GetValueType() const
     {

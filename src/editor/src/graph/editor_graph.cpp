@@ -1,5 +1,6 @@
 #include "graph/editor_graph.hpp"
 
+#include "assets/animation_graph/nodes/parameter_reference_editor_node.hpp"
 #include "graph/editor_graph_node.hpp"
 
 #include <config/path.h>
@@ -21,6 +22,36 @@ EditorGraph::~EditorGraph()
 {
     assert(!IsInitialized());
     assert(m_graphNodes.empty());
+}
+
+void EditorGraph::RefreshParameterReferences()
+{
+    assert(!HasParentGraph()); // Should only be used on root graphs
+
+    const auto parameters = GetAllNodesOfType<IControlParameterEditorNode>(NodeSearchScope::Recursive);
+    const auto parameterReferences = GetAllNodesOfType<ParameterReferenceEditorNode>(NodeSearchScope::Recursive);
+
+    for (auto& pReference : parameterReferences)
+    {
+        for (const auto& pParameter : parameters)
+        {
+            auto id = StringID(pParameter->GetName());
+            if (id == pReference->GetReferencedParameterID())
+            {
+                pReference->m_pParameter = pParameter;
+                break;
+            }
+            else if (pReference->GetReferencedParameter() == pParameter)
+            {
+                // Update the reference's id in cases the parameter name has changed
+                // TODO: This wouldnt be necessary if we used the node's static ID, but it would require us to serialize it
+                pReference->m_parameterID = id;
+                break;
+            }
+
+        }
+        // TODO: Handle cases where the paramter node is not found, if it has been removed for example
+    }
 }
 
 void EditorGraph::SaveState(nlohmann::json& json) const
@@ -45,7 +76,7 @@ void EditorGraph::SaveState(nlohmann::json& json) const
             auto& childGraphJson = nodeJson["child_graph"];
             childGraphJson["type"] = pNode->m_pChildGraph->GetTypeInfo()->GetTypeID().GetHash();
             pNode->m_pChildGraph->SaveState(childGraphJson);
-    }
+        }
     }
 
     auto& links = json["links"];
@@ -91,6 +122,11 @@ void EditorGraph::LoadState(const nlohmann::json& json, const TypeRegistryServic
 
         ImNodes::ObjectPoolFindOrCreateIndex(m_pImNodesEditorContext->Nodes, pNode->GetID());
         ImNodes::SetNodeEditorSpacePos(pNode->GetID(), {nodeJson["position"][0], nodeJson["position"][1]});
+    }
+
+    if (!HasParentGraph())
+    {
+        RefreshParameterReferences();
     }
 
     for (const auto& linkJson : json["links"])
@@ -175,7 +211,7 @@ void EditorGraph::FindAllNodesOfType(std::vector<const EditorGraphNode*>& outRes
 void EditorGraph::RegisterNode(EditorGraphNode* pNode)
 {
     assert(pNode != nullptr);
-    
+
     pNode->m_pOwningGraph = this;
 
     // Initialize the node's child graph's parent

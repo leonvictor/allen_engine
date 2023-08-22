@@ -6,6 +6,10 @@
 namespace aln
 {
 
+ALN_REGISTER_ABSTRACT_IMPL_BEGIN(IControlParameterEditorNode)
+ALN_REFLECT_BASE(EditorGraphNode)
+ALN_REGISTER_IMPL_END()
+
 // ------ Float control parameter node
 
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, FloatControlParameterEditorNode)
