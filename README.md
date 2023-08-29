@@ -15,13 +15,13 @@ It sports all sorts of modules, some of which are in a good shape, some others t
  - an entity/component system based on [this talk from Bobby Anguelov](https://www.youtube.com/watch?v=jjEsB611kxs)
  - a runtime type reflection system
  - an asynchronous asset loading system
- - an animation system based on [this other talk also from Bobby](https://www.youtube.com/watch?v=Jkv0pbp0ckQ)
+ - an animation system based on [this other talk also from Bobby](https://www.youtube.com/watch?v=Jkv0pbp0ckQ), including blend trees and state machines (wip).
  - a rough editor UI
 
 I had planned to clean things up before making the repo public *but* I found myself in a position where I need to show off what I know before I've  had the time to do it. Please excuse the mess !
 
 ## Dependencies
- - vulkan SDK
+ - Vulkan
  - [assimp](https://github.com/assimp/assimp)
  - [fmt](https://github.com/fmtlib/fmt) (while waiting for `std::format`)
  - [glfw](https://github.com/glfw/glfw)
