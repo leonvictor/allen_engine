@@ -3,9 +3,10 @@
 #include <assert.h>
 #include <memory>
 
-#include "asset_system/asset_system.hpp"
+#include <common/serialization/binary_archive.hpp>
 
 #include "asset.hpp"
+#include "asset_archive_header.hpp"
 #include "handle.hpp"
 #include "record.hpp"
 
@@ -18,34 +19,51 @@ class IAssetLoader
     friend class AssetRequest;
 
   private:
+    // Concrete loading functions called by the asset service
     bool LoadAsset(AssetRecord* pRecord)
     {
-        assets::AssetFile file;
-        auto loaded = assets::LoadBinaryFile(pRecord->GetAssetPath(), file);
-        if (!loaded)
+        assert(pRecord->IsUnloaded());
+
+        // TODO: Is this the right place for loading *from disk* ?
+        // The full archive could be dumped to a std::vector<byte> earlier (and it would possibly be faster)
+        auto archive = BinaryFileArchive(pRecord->GetAssetPath(), IBinaryArchive::IOMode::Read);
+        if (!archive.IsValid())
         {
             // TODO: Properly handle load failure
             assert(0);
             return false;
         }
 
-        for (auto& dependency : file.m_dependencies)
+        AssetArchiveHeader header;
+        archive >> header;
+
+        std::vector<std::byte> data;
+        archive >> data;
+
+        for (auto& dependency : header.GetDependencies())
         {
             pRecord->AddDependency(dependency);
         }
 
-        return Load(pRecord, file);
+        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Read);
+        return Load(pRecord, dataArchive);
     }
 
     void UnloadAsset(AssetRecord* pRecord)
     {
         assert(pRecord->IsLoaded());
+
         Unload(pRecord);
+
+        auto pAsset = pRecord->GetAsset();
+        aln::Delete(pAsset);
+        pRecord->m_pAsset = nullptr;
     }
 
-    virtual void InstallAsset(const AssetID& assetID, AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies)
+    void InstallAsset(const AssetID& assetID, AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies)
     {
         assert(pRecord->IsUnloaded());
+        assert(pRecord->m_pAsset != nullptr);
         assert(assetID.IsValid());
 
         pRecord->m_pAsset->m_id = assetID;
@@ -53,16 +71,16 @@ class IAssetLoader
     }
 
   protected:
-    virtual bool Load(AssetRecord* pRecord, const assets::AssetFile& file) = 0;
-
-    virtual void Unload(AssetRecord* pRecord)
-    {
-        auto pAsset = pRecord->GetAsset();
-        aln::Delete(pAsset);
-        pRecord->m_pAsset = nullptr;
-    };
-
+    // Virtual loading functions, overload in specialized loader classes to implement asset-specific behavior
+    virtual bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
+    virtual void Unload(AssetRecord* pRecord){};
     virtual void InstallDependencies(AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies) {}
+
+    const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, size_t dependencyIndex)
+    {
+        assert(dependencyIndex >= 0 && dependencyIndex < dependencies.size());
+        return dependencies[dependencyIndex].GetRecord();
+    }
 
     const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
     {

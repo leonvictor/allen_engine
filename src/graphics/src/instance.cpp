@@ -68,9 +68,9 @@ bool Instance::CheckExtensionSupport(std::vector<const char*> extensions)
     return true;
 }
 
-void Instance::Create()
+void Instance::Initialize(std::vector<const char*>& requestedExtensions)
 {
-    if (!CheckExtensionSupport(m_requestedExtensions))
+    if (!CheckExtensionSupport(requestedExtensions))
     {
         throw std::runtime_error("Vulkan extension requested but not available.");
     }
@@ -82,12 +82,11 @@ void Instance::Create()
 
     if (m_validationLayersEnabled)
     {
-        // TODO: Move to ValidationExtension
-        m_requestedExtensions.push_back("VK_EXT_debug_utils");
+        requestedExtensions.push_back("VK_EXT_debug_utils");
     }
 
     // Populate the ApplicationInfo struct. Optionnal but may provide useful info to the driver
-    vk::ApplicationInfo appInfo{
+    vk::ApplicationInfo appInfo = {
         .pApplicationName = "Allen Game Editor",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
         .pEngineName = "AllenEngine",
@@ -95,42 +94,36 @@ void Instance::Create()
         .apiVersion = VK_API_VERSION_1_2,
     };
 
-    vk::InstanceCreateInfo iCreateInfo;
-    iCreateInfo.pApplicationInfo = &appInfo,
-    iCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requestedExtensions.size());
-    iCreateInfo.ppEnabledExtensionNames = m_requestedExtensions.data();
+    vk::InstanceCreateInfo instanceCreateInfo = {
+        .pApplicationInfo = &appInfo,
+        .enabledExtensionCount = static_cast<uint32_t>(requestedExtensions.size()),
+        .ppEnabledExtensionNames = requestedExtensions.data(),
+    };
 
     // Enable validation layers if needed
-    vk::DebugUtilsMessengerCreateInfoEXT dCreateInfo;
+    vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo;
     if (m_validationLayersEnabled)
     {
-        iCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
-        iCreateInfo.ppEnabledLayerNames = m_validationLayers.data();
+        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
+        instanceCreateInfo.ppEnabledLayerNames = m_validationLayers.data();
 
         // Create the debugger
-        dCreateInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
-        dCreateInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
-        //TODO: Is there something like "all flags" ?
-        dCreateInfo.pfnUserCallback = (PFN_vkDebugUtilsMessengerCallbackEXT) DebugCallback;
-
-        iCreateInfo.pNext = (vk::DebugUtilsMessengerCreateInfoEXT*) &dCreateInfo;
-    }
-    else
-    {
-        iCreateInfo.enabledLayerCount = 0;
-        iCreateInfo.pNext = nullptr;
+        debugUtilsMessengerCreateInfo = {
+            .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning,
+            .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
+            .pfnUserCallback = (PFN_vkDebugUtilsMessengerCallbackEXT) DebugCallback,
+        };
+        instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
     }
 
-    m_vkInstance = vk::createInstanceUnique(iCreateInfo);
+    m_vkInstance = vk::createInstanceUnique(instanceCreateInfo);
 
     if (m_validationLayersEnabled)
     {
         m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{m_vkInstance.get(), vkGetInstanceProcAddr};
         m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(
-            dCreateInfo,
+            debugUtilsMessengerCreateInfo,
             nullptr, m_dispatchLoaderDynamic);
     }
-
-    m_status = State::Initialized;
 }
 }; // namespace aln::vkg

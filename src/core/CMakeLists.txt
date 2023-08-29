@@ -12,16 +12,17 @@ add_library(${LIB_NAME} SHARED
     src/components/camera.cpp
     src/components/light.cpp
     src/components/animation_player_component.cpp
+    src/components/animation_graph.cpp
     
     src/entity_systems/script.cpp
     src/entity_systems/camera_controller.cpp
     src/entity_systems/animation_system.cpp
-
-    src/type_descriptors/assets.cpp
+    src/entity_systems/player_controller.cpp    
+    
+    src/module/module.cpp
 )
 
 set(LIB_DEPENDENCIES 
-    ${Vulkan_INCLUDE_DIRS}
     TracyClient
 )
 

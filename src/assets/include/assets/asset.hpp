@@ -9,7 +9,7 @@ namespace aln
 class IAsset;
 
 template <class T>
-concept AssetType = std::is_base_of<IAsset, T>::value;
+concept AssetType = std::is_convertible<T*, IAsset*>::value;
 
 /// @brief Abstract base class for all assets (textures, meshes, animation...).
 class IAsset
@@ -31,6 +31,9 @@ class IAsset
 };
 } // namespace aln
 
+/// @brief Use this macro in each asset type to define file extension
+/// @todo Accept a human-readable name as well
+/// @todo Register the known types somewhere
 #define ALN_REGISTER_ASSET_TYPE(assetTypeExtension)                                                 \
   public:                                                                                           \
     static AssetTypeID GetStaticAssetTypeID() { return AssetTypeID(assetTypeExtension); }           \

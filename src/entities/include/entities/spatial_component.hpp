@@ -3,7 +3,8 @@
 #include "component.hpp"
 
 #include <common/transform.hpp>
-#include <utils/uuid.hpp>
+#include <common/uuid.hpp>
+#include <reflection/type_info.hpp>
 
 #include <vector>
 
@@ -14,10 +15,11 @@ namespace aln
 /// They can be attached to other spatial entities to form hierarchies.
 class SpatialComponent : public IComponent
 {
-  private:
-    using UUID = aln::utils::UUID;
+    ALN_REGISTER_TYPE()
 
+  private:
     friend class Entity;
+    friend class EntityDescriptor;
 
     /// @brief List of attached children components.
     std::vector<SpatialComponent*> m_spatialChildren;
@@ -41,13 +43,13 @@ class SpatialComponent : public IComponent
   public:
     virtual ~SpatialComponent() {}
 
-    bool HasSocket(const aln::utils::UUID& socketID);
+    bool HasSocket(const UUID& socketID);
 
     /// @brief Attach this component to another one.
     /// @param pParentComponent: The component to attach to.
     /// @param socketId: TODO
     /// @todo Document Attached/Detached state
-    void AttachTo(SpatialComponent* pParentComponent, const aln::utils::UUID& socketID = aln::utils::UUID::InvalidID());
+    void AttachTo(SpatialComponent* pParentComponent, const aln::UUID& socketID = UUID::InvalidID);
 
     /// @brief Detach this component from its parent.
     void Detach();

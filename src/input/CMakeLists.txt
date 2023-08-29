@@ -2,12 +2,15 @@ set(LIB_NAME input)
 
 add_library(
     ${LIB_NAME} SHARED
+
     src/input_action.cpp
     src/input_service.cpp
     src/input_context.cpp
-    src/mouse.cpp
-    src/keyboard.cpp
-    src/controls/input_control.cpp
+    
+    src/devices/mouse.cpp
+    src/devices/keyboard.cpp
+    
+    src/input_control.cpp
     )
 
 set(CMAKE_CXX_STANDARD 20) 

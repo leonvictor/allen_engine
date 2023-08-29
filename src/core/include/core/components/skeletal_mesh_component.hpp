@@ -1,26 +1,24 @@
 #pragma once
 
-#include "../drawing_context.hpp"
 #include "../skeletal_mesh.hpp"
 #include "mesh_component.hpp"
 
-#include <common/transform.hpp>
-
 #include <anim/animation_clip.hpp>
 #include <anim/skeleton.hpp>
-
+#include <common/drawing_context.hpp>
+#include <common/transform.hpp>
 #include <entities/spatial_component.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
-#include <memory>
-
 namespace aln
 {
+
 class SkeletalMeshComponent : public MeshComponent
 {
     friend class GraphicsSystem;
+    friend class SceneRenderer;
 
     ALN_REGISTER_TYPE();
 
@@ -28,21 +26,16 @@ class SkeletalMeshComponent : public MeshComponent
     AssetHandle<SkeletalMesh> m_pMesh;
     AssetHandle<Skeleton> m_pSkeleton; // Animation Skeleton
 
-    std::vector<Transform> m_boneTransforms; // Bone transforms, in global character space
-
+    // Rendering bone transforms in global character space
+    std::vector<Transform> m_boneTransforms;
     std::vector<glm::mat4x4> m_skinningTransforms;
-    vkg::resources::Buffer m_skinningBuffer;
-    vk::UniqueDescriptorSet m_vkSkinDescriptorSet;
 
-    // AssetHandle<Skeleton> m_pSkeleton; // Rendering skeleton
-
-    // // TODO: Runtime state:
     // Bone mapping between animation and render skeletons
     std::vector<BoneIndex> m_animToRenderBonesMap;
 
     // Editor toggles
     /// @todo : Disable in release / move out to anoter class
-    bool m_drawDebugSkeleton = true;
+    bool m_drawDebugSkeleton = false;
     bool m_drawRootBone = false;
 
     // TODO: Procedural Bones Solver
@@ -51,21 +44,10 @@ class SkeletalMeshComponent : public MeshComponent
     inline const SkeletalMesh* GetMesh() const { return m_pMesh.get(); }
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
 
-    void SetMesh(const std::string& path) override
-    {
-        assert(IsUnloaded());
-        m_pMesh = AssetHandle<SkeletalMesh>(path);
-    }
-
-    void SetSkeleton(const std::string& path)
-    {
-        assert(IsUnloaded());
-        m_pSkeleton = AssetHandle<Skeleton>(path);
-    }
-
     void SetPose(const Pose* pPose)
     {
         assert(pPose != nullptr);
+
         // Map from animation to render bones
         auto animBoneCount = pPose->GetBonesCount();
         for (BoneIndex animBoneIdx = 0; animBoneIdx < animBoneCount; ++animBoneIdx)
@@ -75,120 +57,46 @@ class SkeletalMeshComponent : public MeshComponent
         }
     }
 
-    /// @brief Reset the pose to the reference one
+    /// @brief Reset the pose to the rendering bind pose
+    /// @todo We could alternatively reset to the animation skeleton's reference pose
     void ResetPose()
     {
         m_boneTransforms = m_pMesh->GetBindPose();
     }
 
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
-    {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings{
-            {
-                // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
-                // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)
-
-                // UBO
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-                .pImmutableSamplers = nullptr,
-            },
-            {
-                // Sampler
-                .binding = 1,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                .pImmutableSamplers = nullptr,
-            },
-            {
-                // Material
-                .binding = 2,
-                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-            },
-            {
-                .binding = 3,
-                .descriptorType = vk::DescriptorType::eStorageBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex,
-            }};
-
-        return bindings;
-    }
-
-    void CreateDescriptorSet() override
-    {
-        m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<SkeletalMeshComponent>();
-        m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), "SkeletalMeshComponent Descriptor Set");
-
-        std::array<vk::WriteDescriptorSet, 4> writeDescriptors = {};
-
-        writeDescriptors[0].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[0].dstBinding = 0;
-        writeDescriptors[0].dstArrayElement = 0;
-        writeDescriptors[0].descriptorType = vk::DescriptorType::eUniformBuffer;
-        writeDescriptors[0].descriptorCount = 1;
-        auto uniformDescriptor = m_uniformBuffer.GetDescriptor();
-        writeDescriptors[0].pBufferInfo = &uniformDescriptor;
-
-        writeDescriptors[1].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[1].dstBinding = 1;
-        writeDescriptors[1].dstArrayElement = 0;
-        writeDescriptors[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-        writeDescriptors[1].descriptorCount = 1;
-        auto textureDescriptor = m_pMaterial->GetAlbedoMap()->GetDescriptor();
-        writeDescriptors[1].pImageInfo = &textureDescriptor;
-
-        // TODO: Materials presumably don't change so they don't need a binding
-        writeDescriptors[2].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[2].dstBinding = 2;
-        writeDescriptors[2].dstArrayElement = 0;
-        writeDescriptors[2].descriptorType = vk::DescriptorType::eUniformBuffer;
-        writeDescriptors[2].descriptorCount = 1;
-        auto materialDescriptor = m_pMaterial->GetBuffer().GetDescriptor();
-        writeDescriptors[2].pBufferInfo = &materialDescriptor; // TODO: Replace w/ push constants ?
-
-        writeDescriptors[3].dstSet = m_vkDescriptorSet.get();
-        writeDescriptors[3].dstBinding = 3;
-        writeDescriptors[3].dstArrayElement = 0;
-        writeDescriptors[3].descriptorType = vk::DescriptorType::eStorageBuffer;
-        writeDescriptors[3].descriptorCount = 1;
-        auto skinningBufferDescriptor = m_skinningBuffer.GetDescriptor();
-        writeDescriptors[3].pBufferInfo = &skinningBufferDescriptor; // TODO: Replace w/ push constants ?
-
-        m_pDevice->GetVkDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
-    }
+    /// @brief Number of render bones
+    size_t GetBonesCount() const { return m_boneTransforms.size(); }
 
   private:
-    void UpdateSkinningBuffer();
+    /// @brief Compute the skinning matrices of the rendering skeleton from the current associated transforms
+    void UpdateSkinningTransforms();
 
     void Initialize() override
     {
         assert(m_pMesh.IsLoaded() && m_pSkeleton.IsLoaded());
         assert(m_pMesh->m_bindPose.size() > 0);
 
-        // TODO:
-        m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
-        // TODO: The buffer should be device-local
-        m_skinningBuffer = vkg::resources::Buffer(m_pDevice, m_pMesh->m_inverseBindPose.size() * sizeof(glm::mat4x4), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-        // Initialize the bone mapping
-        /// @todo: For now skeletal meshes don't have a specific skeleton
-        const auto boneCount = m_pSkeleton->GetBonesCount();
-        m_animToRenderBonesMap.resize(boneCount, InvalidIndex);
-        for (BoneIndex boneIdx = 0; boneIdx < boneCount; ++boneIdx)
+        // Initialize bone mapping
+        const auto animBoneCount = m_pSkeleton->GetBonesCount();
+        m_animToRenderBonesMap.resize(animBoneCount, InvalidIndex);
+        for (BoneIndex boneIdx = 0; boneIdx < animBoneCount; ++boneIdx)
         {
-            // TODO: Actually map
-            auto animBoneIdx = boneIdx;
-            m_animToRenderBonesMap[boneIdx] = animBoneIdx;
+            const auto& animBoneName = m_pSkeleton->GetBoneName(boneIdx);
+            const auto& boneIndex = m_pMesh->GetBoneIndex(animBoneName);
+            m_animToRenderBonesMap[boneIdx] = boneIndex;
         }
 
-        // TODO: Set to bind pose
-        m_boneTransforms = m_pSkeleton->GetGlobalReferencePose();
+        m_boneTransforms = m_pMesh->GetBindPose();
+
+        // TODO: Maybe set to anim's skeleton reference pose instead ?
+        /*m_boneTransforms.resize(m_pMesh->GetBonesCount());
+        auto pose = Pose(m_pSkeleton.get());
+        pose.CalculateGlobalTransforms();
+        SetPose(&pose);*/
+
+        m_skinningTransforms.resize(m_pMesh->m_bindPose.size());
+        UpdateSkinningTransforms();
+
         MeshComponent::Initialize();
     }
 
@@ -204,28 +112,29 @@ class SkeletalMeshComponent : public MeshComponent
     {
         loadingContext.m_pAssetService->Load(m_pMesh);
         loadingContext.m_pAssetService->Load(m_pSkeleton);
-        MeshComponent::Load(loadingContext);
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
         loadingContext.m_pAssetService->Unload(m_pMesh);
         loadingContext.m_pAssetService->Unload(m_pSkeleton);
-        MeshComponent::Unload(loadingContext);
     }
 
     bool UpdateLoadingStatus() override
     {
-        if (m_pMesh.IsLoaded() && m_pSkeleton.IsLoaded() && m_pMaterial.IsLoaded())
+        if (m_pMesh.IsLoaded() && m_pSkeleton.IsLoaded())
         {
             m_status = Status::Loaded;
         }
-
+        else if (!m_pMesh.IsValid() || m_pMesh.HasFailedLoading() || !m_pSkeleton.IsValid() || m_pSkeleton.HasFailedLoading())
+        {
+            m_status = Status::LoadingFailed;
+        }
         return IsLoaded();
     }
 
-    /// @brief Draw this skeletal mesh's skeleton
-    void DrawPose(DrawingContext& drawingContext)
+    /// @brief Draw this skeletal mesh's render skeleton
+    void DrawPose(DrawingContext& drawingContext) const
     {
         const Transform& worldTransform = GetWorldTransform();
         Transform boneWorldTransform = worldTransform * m_boneTransforms[0];
@@ -235,18 +144,15 @@ class SkeletalMeshComponent : public MeshComponent
         auto boneCount = m_boneTransforms.size();
         for (BoneIndex boneIndex = 1; boneIndex < boneCount; boneIndex++)
         {
-            const auto parentBoneIndex = m_pSkeleton->GetParentBoneIndex(boneIndex);
-            if (m_drawRootBone || parentBoneIndex != 0)
-            {
-                boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
-                const Transform parentWorldTransform = worldTransform * m_boneTransforms[parentBoneIndex];
-                drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
-            }
+            const auto parentBoneIndex = m_pMesh->GetParentBoneIndex(boneIndex);
+            boneWorldTransform = worldTransform * m_boneTransforms[boneIndex];
+            const Transform parentWorldTransform = worldTransform * m_boneTransforms[parentBoneIndex];
+            drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);
         }
     }
 
     /// @brief Draw the bind pose
-    void DrawBindPose(DrawingContext& drawingContext)
+    void DrawBindPose(DrawingContext& drawingContext) const
     {
         // Debug: Draw a single line from 0 to somewhere
         drawingContext.DrawCoordinateAxis(Transform::Identity);
@@ -261,7 +167,7 @@ class SkeletalMeshComponent : public MeshComponent
         {
             boneWorldTransform = worldTransform * bindPose[boneIndex];
 
-            const auto parentBoneIndex = m_pSkeleton->GetParentBoneIndex(boneIndex);
+            const auto parentBoneIndex = m_pMesh->GetParentBoneIndex(boneIndex);
             const Transform parentWorldTransform = worldTransform * bindPose[parentBoneIndex];
 
             drawingContext.DrawLine(parentWorldTransform.GetTranslation(), boneWorldTransform.GetTranslation(), RGBColor::Red);

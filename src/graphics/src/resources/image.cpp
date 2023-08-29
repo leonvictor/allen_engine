@@ -2,8 +2,6 @@
 #include "resources/allocation.hpp"
 #include "resources/buffer.hpp"
 
-#include <assets/asset_system/asset_system.hpp>
-#include <assets/asset_system/texture_asset.hpp>
 #include <config/path.h>
 
 #include <cmath>

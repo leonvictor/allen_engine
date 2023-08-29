@@ -74,7 +74,7 @@ class Pose
     size_t GetBonesCount() const { return m_localTransforms.size(); };
 
     // Local Transforms
-    Transform GetTransform(BoneIndex boneIdx);
+    Transform GetTransform(BoneIndex boneIdx) const;
 
     void SetTransform(BoneIndex boneIdx, const Transform& transform);
     void SetTranslation(BoneIndex boneIdx, const glm::vec3& translation);

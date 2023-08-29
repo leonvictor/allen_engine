@@ -3,12 +3,10 @@
 namespace aln
 {
 /// @brief Save the full file in memory
-BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in)
+BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, BinaryFileArchive& in)
 {
     assert(out.IsWriting() && in.IsReading());
     auto pFileStream = reinterpret_cast<std::ifstream*>(in.m_pFileStream);
-
-    auto currentFilePos = pFileStream->tellg();
 
     // Find the file's size
     pFileStream->seekg(0, pFileStream->end);
@@ -25,13 +23,10 @@ BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchiv
     auto pEnd = out.m_memory.data() + originalSize;
     pFileStream->read(reinterpret_cast<char*>(pEnd), size);
 
-    // Put the file reader back to its original position, just in case
-    pFileStream->seekg(currentFilePos);
-
     return out;
 };
 
-const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out)
+BinaryMemoryArchive& operator>>(BinaryMemoryArchive& in, BinaryFileArchive& out)
 {
     assert(out.IsWriting() && in.IsReading());
     auto pFileStream = reinterpret_cast<std::ofstream*>(out.m_pFileStream);
@@ -53,14 +48,14 @@ const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileA
     return in;
 };
 
-BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in)
+BinaryFileArchive& operator<<(BinaryFileArchive& out, BinaryMemoryArchive& in)
 {
     assert(out.IsWriting() && in.IsReading());
     out << in.m_memory;
     return out;
 };
 
-const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out)
+BinaryFileArchive& operator>>(BinaryFileArchive& in, BinaryMemoryArchive& out)
 {
     assert(out.IsWriting() && in.IsReading());
     in >> out.m_memory;

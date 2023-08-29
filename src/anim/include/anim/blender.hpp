@@ -2,6 +2,7 @@
 
 #include "bone_mask.hpp"
 #include "pose.hpp"
+#include "skeleton.hpp"
 
 #include <assert.h>
 
@@ -11,6 +12,18 @@
 
 namespace aln
 {
+
+template <typename T>
+class BitFlags
+{
+    // TODO
+};
+
+enum class PoseBlend
+{
+    // TODO
+};
+
 struct InterpolativeBlender
 {
     inline static glm::quat BlendRotation(const glm::quat& quat0, const glm::quat& quat1, const float t)
@@ -49,9 +62,9 @@ struct AdditiveBlender
     }
 };
 
-struct BlendWeightImplementation
+/// @todo : Do we actually want to use another type than float as weights ?
+struct BlendWeight
 {
-    // TODO ! Multiple implementations ?
     /// @brief
     inline static float GetBlendWeight(float blendWeight, const BoneMask* pBoneMask, uint32_t boneIdx)
     {
@@ -71,7 +84,7 @@ struct BlendWeightImplementation
 /// @param blendWeight: 0 = source pose, 1 = target pose
 /// @param pBoneMask:
 /// @param pResultPose:
-template <typename Blender, typename BlendWeight>
+template <typename Blender>
 void BlenderLocal(const Pose* pSourcePose, const Pose* pTargetPose, const float blendWeight, const BoneMask* pBoneMask, Pose* pResultPose)
 {
     assert(blendWeight >= 0.0f && blendWeight <= 1.0f);
@@ -108,4 +121,14 @@ void BlenderLocal(const Pose* pSourcePose, const Pose* pTargetPose, const float 
         }
     }
 }
+
+struct Blender
+{
+    /// @brief Perform a standard interpolative blend
+    /// @todo Perform a different blend based on options. The bitmask might be a bit much ?
+    static void Blend(const Pose* pSourcePose, const Pose* pTargetPose, const float blendWeight, BitFlags<PoseBlend> blendOptions, const BoneMask* pBoneMask, Pose* pResultPose)
+    {
+        BlenderLocal<InterpolativeBlender>(pSourcePose, pTargetPose, blendWeight, pBoneMask, pResultPose);
+    }
+};
 } // namespace aln

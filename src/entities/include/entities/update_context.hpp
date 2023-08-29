@@ -1,12 +1,10 @@
 #pragma once
 
-#include <cstdint>
-
 #include <common/services/service_provider.hpp>
 #include <common/types.hpp>
+#include <common/update_stages.hpp>
 
-#include "../update_stages.hpp"
-
+#include <cstdint>
 namespace aln
 {
 class Engine;

@@ -104,7 +104,7 @@ Transform Pose::GetGlobalTransform(BoneIndex boneIdx) const
     return m_globalTransforms[boneIdx];
 }
 
-Transform Pose::GetTransform(BoneIndex boneIdx)
+Transform Pose::GetTransform(BoneIndex boneIdx) const
 {
     assert(boneIdx < m_pSkeleton->GetBonesCount() && boneIdx < m_localTransforms.size());
     return m_localTransforms[boneIdx];

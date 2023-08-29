@@ -2,16 +2,16 @@
 
 #include <config/path.h>
 
-#include "IconsFontAwesome4.h"
+#include "IconsFontAwesome6.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
+#include "imnodes.h"
 
 #include "device.hpp"
 #include "instance.hpp"
 #include "render_pass.hpp"
-#include "window.hpp"
 
 namespace aln::vkg
 {
@@ -26,6 +26,7 @@ class ImGUI
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
+        ImNodes::DestroyContext();
     }
 
     void Initialize(GLFWwindow* pGlfwWindow, Device* pDevice, RenderPass& renderPass, int nSwapchainImages)
@@ -33,6 +34,8 @@ class ImGUI
         // Initialize Imgui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+        ImNodes::CreateContext();
+
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         (void) io;
@@ -123,7 +126,8 @@ class ImGUI
         icons_config.MergeMode = true;
         icons_config.GlyphOffset.y = 1;
         // icons_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fontawesome-webfont.ttf", 13.0f, &icons_config, icons_ranges);
+        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fa-regular-400.ttf", 13.0f, &icons_config, icons_ranges);
+        io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fa-solid-900.ttf", 13.0f, &icons_config, icons_ranges);
 
         // Use any command queue
         pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)

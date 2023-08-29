@@ -5,7 +5,10 @@
 
 namespace aln
 {
-using aln::utils::UUID;
+
+ALN_REGISTER_ABSTRACT_IMPL_BEGIN(SpatialComponent)
+ALN_REFLECT_MEMBER(m_localTransform, Transform)
+ALN_REGISTER_IMPL_END()
 
 void SpatialComponent::CalculateWorldTransform(bool callback)
 {
@@ -82,7 +85,7 @@ void SpatialComponent::Detach()
 
     // Remove component hierarchy values
     m_pSpatialParent = nullptr;
-    m_parentAttachmentSocketID = UUID::InvalidID();
+    m_parentAttachmentSocketID = UUID::InvalidID;
 
     // Offset local transform to account for the old parent's one
     m_localTransform = m_worldTransform;

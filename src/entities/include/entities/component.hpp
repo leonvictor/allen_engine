@@ -1,8 +1,8 @@
 #pragma once
 
+#include <common/uuid.hpp>
 #include <future>
-#include <reflection/reflection.hpp>
-#include <utils/uuid.hpp>
+#include <reflection/reflected_type.hpp>
 
 #include "loading_context.hpp"
 
@@ -11,15 +11,18 @@ namespace aln
 
 /// @brief Data storage attached to Entities.
 /// @note https://www.youtube.com/watch?v=jjEsB611kxs : 1:34:50
-class IComponent
+class IComponent : public reflect::IReflected
 {
     friend class Entity;
-    // TODO: Serialization
+    friend class WorldEntity;
 
   private:
-    const aln::utils::UUID m_ID;
-    bool m_isSingleton = false;                                  // Whether you can have multiple components of this type per entity
-    aln::utils::UUID m_entityID = aln::utils::UUID::InvalidID(); // Entity this component is attached to.
+    const UUID m_ID = UUID::Generate();
+    UUID m_entityID = UUID::InvalidID; // Entity this component is attached to.
+    bool m_isSingleton = false;          // Whether you can have multiple components of this type per entity
+
+    bool m_registeredWithEntitySystems = false;
+    bool m_registeredWithWorldSystems = false;
 
     std::future<bool> m_loadingTask;
 
@@ -56,6 +59,7 @@ class IComponent
     virtual void Unload(const LoadingContext& loadingContext) = 0;
 
     /// @brief Check the loading status of necessary resources and update the component status accordingly
+    /// @todo For now each component needs to override this and manually handle its status.
     virtual bool UpdateLoadingStatus()
     {
         m_status = Status::Loaded;
@@ -68,16 +72,20 @@ class IComponent
 
   public:
     virtual ~IComponent() {}
+
     inline bool IsInitialized() const { return m_status == Status::Initialized; }
     inline bool IsUnloaded() const { return m_status == Status::Unloaded; }
     inline bool IsLoading() const { return m_status == Status::Loading; }
     inline bool IsLoaded() const { return m_status == Status::Loaded; }
+    inline bool HasFailedLoading() const { return m_status == Status::LoadingFailed; }
 
-    const aln::utils::UUID& GetID() const { return m_ID; }
+    inline bool IsRegisteredWithEntitySystems() const { return m_registeredWithEntitySystems; }
+    inline bool IsRegisteredWithWorldSystems() const { return m_registeredWithWorldSystems; }
+
+    const UUID& GetID() const { return m_ID; }
+    const UUID& GetEntityID() const { return m_entityID; }
 
     bool operator==(const IComponent& other) const { return m_ID == other.GetID(); }
     bool operator!=(const IComponent& other) const { return !operator==(other); }
-
-    ALN_REGISTER_TYPE()
 };
 } // namespace aln

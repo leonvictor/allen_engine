@@ -11,8 +11,9 @@
 #include <string>
 #include <vector>
 
-#include <reflection/reflection.hpp>
-#include <utils/uuid.hpp>
+#include <common/event.hpp>
+#include <common/uuid.hpp>
+#include <reflection/type_info.hpp>
 
 #include <Tracy.hpp>
 
@@ -22,6 +23,7 @@ namespace aln
 // fwd
 class IComponent;
 class SpatialComponent;
+class TypeRegistryService;
 
 class EntityInternalStateAction
 {
@@ -35,9 +37,9 @@ class EntityInternalStateAction
         DestroySystem,
     };
 
-    Type m_type;           // Type of action
-    const void* m_ptr;     // Pointer to the designed IComponent or system TypeInfo
-    aln::utils::UUID m_ID; // Optional: ID of the spatial parent component
+    Type m_type;       // Type of action
+    const void* m_ptr; // Pointer to the designed IComponent or system TypeInfo
+    UUID m_ID;         // Optional: ID of the spatial parent component
 };
 
 /// @brief An Entity represents a single element in a scene/world. They're actual objects,
@@ -45,11 +47,10 @@ class EntityInternalStateAction
 /// Entities can be organized in hierarchies.
 class Entity
 {
-    using UUID = aln::utils::UUID;
-
     friend Command;
     friend class EntityMap;
-    friend class std::set<Entity>;
+    friend class EntityDescriptor;
+    friend class EntityMapDescriptor;
 
     enum class Status
     {
@@ -59,7 +60,7 @@ class Entity
     };
 
   private:
-    const aln::utils::UUID m_ID;
+    const UUID m_ID = UUID::Generate();
     std::string m_name;
     Status m_status = Status::Unloaded;
 
@@ -71,29 +72,31 @@ class Entity
 
     // Spatial attributes
     SpatialComponent* m_pRootSpatialComponent = nullptr;
-    Entity* m_pParentSpatialEntity = nullptr;    // A spatial entity may request to be attached to another spatial entity
-    std::vector<Entity*> m_attachedEntities;     // Children spatial entities
-    aln::utils::UUID m_parentAttachmentSocketID; // TODO: ?
+    Entity* m_pParentSpatialEntity = nullptr; // A spatial entity may request to be attached to another spatial entity
+    std::vector<Entity*> m_attachedEntities;  // Children spatial entities
+    aln::UUID m_parentAttachmentSocketID;     // TODO: ?
     bool m_isAttachedToParent = false;
 
-    // TODO:
-    inline static Command EntityStateUpdatedEvent;
+    static Event<Entity*> EntityStateUpdatedEvent;
     std::vector<EntityInternalStateAction> m_deferredActions;
 
     SpatialComponent* GetSpatialComponent(const UUID& spatialComponentID);
 
     /// @brief Create a new system and add it to this Entity.
     /// An Entity can only have one system of a given type (subtypes included).
-    void CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void CreateSystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo);
 
-    void CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
-    void DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo);
-    void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo);
+    void CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo);
+    void DestroySystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo);
+    void DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo);
 
     void DestroyComponentImmediate(IComponent* pComponent);
     void DestroyComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent);
     void AddComponentImmediate(IComponent* pComponent, SpatialComponent* pParentComponent);
     void AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent);
+
+    void RegisterComponentWithEntitySystems(IComponent* pComponent);
+    void UnregisterComponentWithEntitySystems(IComponent* pComponent);
 
     /// @brief Attach to the parent entity.
     void AttachToParent();
@@ -103,6 +106,8 @@ class Entity
     void RemoveChild(Entity* pEntity);
     void AddChild(Entity* pEntity);
     void RefreshEntityAttachments();
+
+    void HandleDeferredActions(const LoadingContext& loadingContext);
 
   public:
     /// @todo: Constructor is private to prevent extending this class
@@ -155,10 +160,10 @@ class Entity
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>, "Invalid system type");
         // TODO: assert that this entity doesn't already have a system of this type
-        CreateSystem(T::GetStaticType());
+        CreateSystem(T::GetStaticTypeInfo());
     }
 
-    void CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
+    void CreateSystem(const aln::reflect::TypeInfo* pTypeInfo);
 
     /// @brief Destroy the system of type T of this Entity. The destruction is effective
     /// immediately if the entity is unloaded, otherwise it will be effective in the next frame.
@@ -166,12 +171,12 @@ class Entity
     inline void DestroySystem()
     {
         static_assert(std::is_base_of_v<IEntitySystem, T>);
-        DestroySystem(T::GetStaticType());
+        DestroySystem(T::GetStaticTypeInfo());
     }
 
     /// @brief Destroy a system.
     /// @todo used by the editor, should this be public ?
-    void DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor);
+    void DestroySystem(const aln::reflect::TypeInfo* pTypeInfo);
 
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context) const;
@@ -189,7 +194,7 @@ class Entity
     /// @brief Add a component to this entity, taking ownership of it
     /// @param pComponent: Component to add.
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
-    void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID());
+    void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID);
 
     const std::vector<IComponent*>& GetComponents() { return m_components; }
 
@@ -204,6 +209,12 @@ class Entity
 
     /// @brief Add a parent entity.
     void SetParentEntity(Entity* pEntity);
+
+    // -------- Editing
+    // TODO: Disable in prod
+
+    void StartComponentEditing(const LoadingContext& loadingContext, IComponent* pComponent);
+    void EndComponentEditing(const LoadingContext& loadingContext);
 
     inline bool operator==(const Entity& other) const { return other.GetID() == GetID(); }
     inline bool operator!=(const Entity& other) const { return !operator==(other); }

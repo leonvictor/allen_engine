@@ -6,6 +6,8 @@
 #include <common/memory.hpp>
 #include <memory>
 
+#include <reflection/type_info.hpp>
+
 namespace aln
 {
 
@@ -39,9 +41,24 @@ class IAssetHandle
     // ------------------------------
     // Status management
     // ------------------------------
+    inline bool IsValid() const { return m_assetID.IsValid(); }
     inline bool IsLoaded() const { return GetStatus() == AssetStatus::Loaded; }
     inline bool IsUnloaded() const { return GetStatus() == AssetStatus::Unloaded; }
+    inline bool HasFailedLoading() const { return GetStatus() == AssetStatus::LoadingFailed; }
     operator bool() const { return m_pAssetRecord != nullptr; }
+
+    // --------- Serialization
+    template <class Archive>
+    void Serialize(Archive& archive) const
+    {
+        archive << m_assetID;
+    }
+
+    template <class Archive>
+    void Deserialize(Archive& archive)
+    {
+        archive >> m_assetID;
+    }
 };
 
 template <AssetType T>
@@ -75,4 +92,44 @@ class AssetHandle : public IAssetHandle
         return m_pAssetRecord != nullptr && other.m_pAssetRecord != nullptr && m_pAssetRecord == other.m_pAssetRecord;
     }
 };
+
+namespace reflect
+{
+template <>
+struct TypeInfoResolver<AssetHandle<IAsset>>
+{
+    static const TypeInfo* Get()
+    {
+        static PrimitiveTypeInfo typeInfo;
+        if (!typeInfo.IsValid())
+        {
+            typeInfo.m_name = "AssetHandle";
+            typeInfo.m_typeID = StringID(typeInfo.m_name);
+            typeInfo.m_alignment = alignof(AssetHandle<IAsset>);
+            typeInfo.m_size = sizeof(AssetHandle<IAsset>);
+            typeInfo.m_createType = []()
+            { return aln::New<AssetHandle<IAsset>>(); };
+            typeInfo.m_createTypeInPlace = [](void* pMemory)
+            { return aln::PlacementNew<AssetHandle<IAsset>>(pMemory); };
+            typeInfo.m_serialize = [](BinaryMemoryArchive& archive, const void* pTypeInstance)
+            { archive << *((IAssetHandle*) pTypeInstance); };
+            typeInfo.m_deserialize = [](BinaryMemoryArchive& archive, void* pTypeInstance)
+            { archive >> *((IAssetHandle*) pTypeInstance); };
+
+            TypeInfo::RegisterTypeInfo(&typeInfo);
+        }
+
+        return &typeInfo;
+    }
+};
+
+template <typename T>
+struct TypeInfoResolver<AssetHandle<T>>
+{
+    static const TypeInfo* Get()
+    {
+        return TypeInfoResolver<AssetHandle<IAsset>>::Get();
+    }
+};
+} // namespace reflect
 } // namespace aln

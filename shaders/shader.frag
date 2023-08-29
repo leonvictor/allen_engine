@@ -9,16 +9,16 @@ layout(location = 3) in vec3 in_position;
 
 layout(location = 0) out vec4 o_color;
 
-layout(set = 1, binding = 0) uniform UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 projection;
-    vec3 camera_position;
-} ubo;
+layout (set = 0, binding = 0) uniform SceneUBO
+{
+	mat4 view;
+	mat4 projection;
+	vec3 camera_position;
+} sceneData;
 
-layout(set = 1, binding = 1) uniform sampler2D tex_sampler;
+layout(set = 2, binding = 0) uniform sampler2D tex_sampler;
 
-layout(set = 1, binding = 2) uniform Material {
+layout(set = 2, binding = 1) uniform Material {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -35,7 +35,7 @@ struct Light {
     // vec3 specular;
 };
 
-layout(set = 0, binding = 0) buffer Lights {
+layout(set = 1, binding = 0) buffer Lights {
     uint count;
     Light light[];
 } lights;
@@ -53,7 +53,7 @@ vec3 apply_directional_light(uint index, vec3 normal) {
     vec3 diffuse = light_diffuse * diff * vec3(texture(tex_sampler, in_tex_coord));
 
     // Specular
-    vec3 view_dir = normalize(ubo.camera_position - in_position);
+    vec3 view_dir = normalize(sceneData.camera_position - in_position);
     vec3 reflect_dir = reflect(-light_dir, normal);
     float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.shininess);
     vec3 specular = light_specular * (material.specular * spec);
@@ -62,7 +62,7 @@ vec3 apply_directional_light(uint index, vec3 normal) {
 }
 
 vec3 apply_spot_light(uint index, vec3 normal) {
-
+    // TODO
     return vec3(0.0f);
 }
 
@@ -78,7 +78,7 @@ vec3 apply_point_light(uint index, vec3 normal) {
     vec3 diffuse = light_diffuse * diff * vec3(texture(tex_sampler, in_tex_coord));
 
     // Specular
-    vec3 view_dir = normalize(ubo.camera_position - in_position);
+    vec3 view_dir = normalize(sceneData.camera_position - in_position);
     vec3 reflect_dir = reflect(-light_dir, normal);
     float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.shininess);
     // vec3 specular = light_specular * spec * vec3(texture(material.specular, in_tex_coord)); // Using specular maps

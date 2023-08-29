@@ -5,20 +5,9 @@
 namespace aln
 {
 
-void MeshComponent::CreateUniformBuffer()
-{
-    m_uniformBuffer = vkg::resources::Buffer(m_pDevice, sizeof(vkg::UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-}
-
-void MeshComponent::UpdateUniformBuffers(vkg::UniformBufferObject& ubo)
-{
-    // TODO: We should only map once and unmap right before deletion
-    m_uniformBuffer.Map(0, sizeof(ubo));
-    m_uniformBuffer.Copy(&ubo, sizeof(ubo));
-    m_uniformBuffer.Unmap();
-}
-
-vk::DescriptorSet& MeshComponent::GetDescriptorSet() { return m_vkDescriptorSet.get(); }
+ALN_REGISTER_ABSTRACT_IMPL_BEGIN(MeshComponent)
+ALN_REFLECT_BASE(SpatialComponent)
+ALN_REGISTER_IMPL_END()
 
 // -------------------------------------------------
 // Components Methods
@@ -26,24 +15,9 @@ vk::DescriptorSet& MeshComponent::GetDescriptorSet() { return m_vkDescriptorSet.
 
 void MeshComponent::Initialize()
 {
-    assert(m_pMaterial.IsLoaded());
-    CreateUniformBuffer();
-    CreateDescriptorSet();
 }
 
 void MeshComponent::Shutdown()
 {
-    m_vkDescriptorSet.reset();
-    m_uniformBuffer = vkg::resources::Buffer();
-}
-
-void MeshComponent::Load(const LoadingContext& loadingContext)
-{
-    loadingContext.m_pAssetService->Load(m_pMaterial);
-}
-
-void MeshComponent::Unload(const LoadingContext& loadingContext)
-{
-    loadingContext.m_pAssetService->Unload(m_pMaterial);
 }
 } // namespace aln

@@ -3,9 +3,13 @@ cmake_minimum_required(VERSION 3.17)
 include(FetchContent)
 
 project(ALLEN VERSION 0.1)
+cmake_policy(SET CMP0077 NEW)
+
+set(CMAKE_CXX_STANDARD 20) 
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(SOURCE 
-    src/main.cpp)
+    src/applications/glfw_application.cpp)
 
 enable_testing()
 
@@ -74,6 +78,7 @@ set(IMGUI_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/external/imgui_plugins
 )
 
+add_compile_definitions(IMNODES_USER_CONFIG)
 add_executable(main ${SOURCE})
 
 # fmt
@@ -86,10 +91,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(fmt)
 
 # enkiTS
-set(ENKITS_BUILD_C_INTERFACE OFF)
-set(ENKITS_BUILD_EXAMPLES OFF)
-set(ENKITS_BUILD_SHARED ON)
-set(ENKITS_INSTALL OFF)
+set(ENKITS_BUILD_C_INTERFACE OFF CACHE INTERNAL "")
+set(ENKITS_BUILD_EXAMPLES OFF CACHE INTERNAL "")
+set(ENKITS_BUILD_SHARED ON CACHE INTERNAL "")
+set(ENKITS_INSTALL OFF CACHE INTERNAL "")
 
 # TODO: Use a fixed release when the CMakeFile patch makes it there
 FetchContent_Declare(
@@ -132,21 +137,22 @@ target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 find_package(Vulkan REQUIRED)
 target_include_directories(main PUBLIC ${Vulkan_INCLUDE_DIRS})
-file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_SDK) # Translate env path to CMake style 
 
 # shaderc
-add_library(shaderc UNKNOWN IMPORTED)
-set_target_properties(shaderc PROPERTIES IMPORTED_LOCATION ${VULKAN_SDK}/Lib/shaderc_shared.lib)
-set_property(TARGET shaderc PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}/Include)
+add_library(Vulkan::shaderc UNKNOWN IMPORTED)
+file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_SDK) # Translate env path to CMake style 
+set_target_properties(Vulkan::shaderc PROPERTIES 
+    IMPORTED_LOCATION ${VULKAN_SDK}/Lib/shaderc_shared.lib
+    INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}/Include)
 
 # GSL
 set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/gsl)
 
 # GLFW
-set(GLFW_BUILD_EXAMPLE OFF CACHE BOOL "GLFW lib only")
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
-set(GLFW_BUILD_INSTALL OFF CACHE BOOL "GLFW lib only")
+set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "")
+set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "")
+set(GLFW_BUILD_DOCS OFF CACHE INTERNAL "")
+set(GLFW_BUILD_INSTALL OFF CACHE INTERNAL "")
 
 FetchContent_Declare(
     glfw
@@ -186,24 +192,23 @@ SET(JSON_BuildTests OFF)
 
 FetchContent_Declare(
     json
-    GIT_URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
 )
 
 FetchContent_MakeAvailable(json)
 
 # assimp
 MESSAGE(STATUS "Configuring assimp...")
-set(ASSIMP_BUILD_TESTS OFF)
-set(ASSIMP_NO_EXPORT ON)
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
-set(ASSIMP_BUILD_TESTS OFF)
-set(ASSIMP_INSTALL OFF)
-set(ASSIMP_WARNINGS_AS_ERRORS OFF)
-set(ASSIMP_INJECT_DEBUG_POSTFIX OFF)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE INTERNAL "")
+set(ASSIMP_BUILD_TESTS OFF CACHE INTERNAL "")
+set(ASSIMP_INSTALL OFF CACHE INTERNAL "")
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE INTERNAL "")
+set(ASSIMP_INJECT_DEBUG_POSTFIX OFF CACHE INTERNAL "")
 
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
-set(ASSIMP_BUILD_FBX_IMPORTER ON)
-set(ASSIMP_BUILD_GLTF_IMPORTER ON)
+set(ASSIMP_NO_EXPORT ON CACHE INTERNAL "")
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE INTERNAL "")
+set(ASSIMP_BUILD_FBX_IMPORTER ON CACHE INTERNAL "")
+set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE INTERNAL "")
 
 FetchContent_Declare(
     assimp
@@ -214,9 +219,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(assimp)
 
 # lz4
-set(LZ4_BUNDLED_MODE ON)
-set(LZ4_BUILD_CLI OFF)
-set(LZ4_BUILD_LEGACY_LZ4C OFF)
+set(LZ4_BUNDLED_MODE ON CACHE INTERNAL "")
+set(LZ4_BUILD_CLI OFF CACHE INTERNAL "")
+set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE INTERNAL "")
 
 FetchContent_Declare(
   lz4
@@ -226,6 +231,15 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(lz4)
+
+# xxhash
+FetchContent_Declare(
+    xxhash
+    URL https://github.com/Cyan4973/xxHash/archive/refs/tags/v0.8.1.tar.gz
+    SOURCE_SUBDIR cmake_unofficial
+)
+
+FetchContent_MakeAvailable(xxhash)
 
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
@@ -244,10 +258,7 @@ add_subdirectory(src/asset_converter)
 add_subdirectory(src/editor)
 add_subdirectory(src/anim)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 20) 
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-target_compile_features(main PUBLIC cxx_std_20)
+# target_compile_features(main PUBLIC cxx_std_20)
 
 # target_include_directories(main PUBLIC TracyClient)
 target_link_libraries(main PUBLIC 
@@ -257,8 +268,6 @@ target_link_libraries(main PUBLIC
     common 
     reflection 
     glfw 
-    shaderc 
-    ${Vulkan_LIBRARIES} 
     imm32 
     utils 
     input 
@@ -267,7 +276,10 @@ target_link_libraries(main PUBLIC
     core
     editor
     anim
-    assimp::assimp)
+    assimp::assimp
+    Vulkan::Vulkan
+    Vulkan::shaderc
+    )
 
 set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
 message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})

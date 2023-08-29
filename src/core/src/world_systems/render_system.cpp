@@ -4,9 +4,8 @@
 
 #include "components/camera.hpp"
 #include "components/light.hpp"
-#include "components/mesh_component.hpp"
-#include "components/skeletal_mesh_component.hpp"
-#include "components/static_mesh_component.hpp"
+
+#include "renderers/scene_renderer.hpp"
 
 #include <entities/entity.hpp>
 #include <entities/update_context.hpp>
@@ -22,27 +21,6 @@
 
 namespace aln
 {
-
-void GraphicsSystem::CreateLightsDescriptorSet()
-{
-    m_lightsVkDescriptorSet = m_pRenderer->GetDevice()->AllocateDescriptorSet<Light>();
-    m_pRenderer->GetDevice()->SetDebugUtilsObjectName(m_lightsVkDescriptorSet.get(), "Lights Descriptor Set");
-
-    vk::DescriptorBufferInfo lightsBufferInfo;
-    lightsBufferInfo.buffer = m_lightsBuffer.GetVkBuffer(); // TODO: How do we update the lights array ?
-    lightsBufferInfo.offset = 0;
-    lightsBufferInfo.range = VK_WHOLE_SIZE;
-
-    vk::WriteDescriptorSet writeDescriptor;
-    writeDescriptor.dstSet = m_lightsVkDescriptorSet.get();
-    writeDescriptor.dstBinding = 0;
-    writeDescriptor.dstArrayElement = 0;
-    writeDescriptor.descriptorType = vk::DescriptorType::eStorageBuffer;
-    writeDescriptor.descriptorCount = 1;
-    writeDescriptor.pBufferInfo = &lightsBufferInfo;
-
-    m_pRenderer->GetDevice()->GetVkDevice().updateDescriptorSets(1, &writeDescriptor, 0, nullptr);
-}
 
 void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext)
 {
@@ -63,7 +41,8 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     // Update UBO
     LinesRenderState::UBO ubo;
     ubo.m_viewProjectionMatrix = m_pCameraComponent->GetViewProjectionMatrix(m_aspectRatio);
-    m_linesRenderState.m_viewProjectionUBO.Copy(&ubo, sizeof(ubo));
+
+    m_linesRenderState.m_viewProjectionUBO.Copy(ubo);
 
     // Update vertex buffer
     m_linesRenderState.m_vertexBuffer.Copy(vertexBuffer);
@@ -74,23 +53,22 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     auto& pipeline = m_linesRenderState.m_pipeline;
     pipeline.Bind(cb);
 
-    vk::DeviceSize offset = 0;
     pipeline.BindDescriptorSet(cb, m_linesRenderState.m_descriptorSet.get(), 0);
-    cb.bindVertexBuffers(0, m_linesRenderState.m_vertexBuffer.GetVkBuffer(), offset);
+    cb.bindVertexBuffers(0, m_linesRenderState.m_vertexBuffer.GetVkBuffer(), (vk::DeviceSize) 0);
     cb.draw(vertexBuffer.size(), 1, 0, 0);
 }
 
 void GraphicsSystem::Shutdown()
 {
-    m_lightsVkDescriptorSet.reset();
-    m_lightsBuffer = vkg::resources::Buffer();
+    // TODO
+    m_linesRenderState.Shutdown();
 }
 
 void GraphicsSystem::Initialize()
 {
-    m_lightsBuffer = vkg::resources::Buffer(m_pRenderer->GetDevice(), 16 + (5 * sizeof(LightUniform)), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    CreateLightsDescriptorSet();
+    auto pDevice = m_pRenderer->GetDevice();
 
+    // Debug resources
     m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
 }
 
@@ -108,83 +86,57 @@ void GraphicsSystem::Update(const UpdateContext& context)
     // Update viewport info
     m_aspectRatio = context.GetDisplayWidth() / context.GetDisplayHeight();
 
-    aln::vkg::render::RenderContext ctx =
-        {.backgroundColor = m_pCameraComponent->m_backgroundColor};
+    aln::vkg::render::RenderContext ctx = {.backgroundColor = m_pCameraComponent->m_backgroundColor};
     m_pRenderer->BeginFrame(ctx);
 
-    // Get the active command buffer
+    m_visibleStaticMeshComponents.clear();
+    for (auto& meshInstance : m_staticMeshRenderInstances)
+    {
+        for (const auto& pStaticMeshComponent : meshInstance.m_components)
+        {
+            // TODO: Cull
+            m_visibleStaticMeshComponents.push_back(pStaticMeshComponent);
+        }
+    }
+
+    m_visibleSkeletalMeshComponents.clear();
+    for (auto& meshInstance : m_skeletalMeshRenderInstances)
+    {
+        for (auto pSkeletalMeshComponent : meshInstance.m_components)
+        {
+            // TODO: Cull
+            pSkeletalMeshComponent->UpdateSkinningTransforms();
+            m_visibleSkeletalMeshComponents.push_back(pSkeletalMeshComponent);
+        }
+    }
+
+    SceneRenderer::RenderData data{
+        .m_skeletalMeshComponents = m_visibleSkeletalMeshComponents,
+        .m_staticMeshComponents = m_visibleStaticMeshComponents,
+        .m_lights = m_lightComponents,
+        .m_sceneData = {
+            .m_view = m_pCameraComponent->GetViewMatrix(),
+            .m_projection = m_pCameraComponent->GetProjectionMatrix(m_aspectRatio),
+            .m_cameraPosition = m_pCameraComponent->GetLocalTransform().GetTranslation(),
+        }};
+
+    /// @todo Keep cb inside the renderer once we've moved debug rendering
     auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();
-    auto& staticMeshesPipeline = m_pRenderer->GetStaticMeshesPipeline();
-
-    // Bind the pipeline
-    staticMeshesPipeline.Bind(cb);
-
-    // Update the lights buffer
-    int nLights = m_lightComponents.GetRegisterComponentsCount();
-    m_lightsBuffer.Map(0, sizeof(int)); // TODO: Respect spec alignment for int
-    m_lightsBuffer.Copy(&nLights, sizeof(int));
-    m_lightsBuffer.Unmap();
-
-    int i = 0;
-    for (auto pLight : m_lightComponents)
-    {
-        auto ubo = pLight->GetUniform();
-        m_lightsBuffer.Map(sizeof(int) + i * sizeof(LightUniform), sizeof(LightUniform));
-        m_lightsBuffer.Copy(&ubo, sizeof(LightUniform));
-        m_lightsBuffer.Unmap();
-    }
-
-    staticMeshesPipeline.BindDescriptorSet(cb, m_lightsVkDescriptorSet.get(), 0);
-
-    vkg::UniformBufferObject ubo;
-    Transform t = m_pCameraComponent->GetWorldTransform();
-    ubo.cameraPos = t.GetTranslation();
-    ubo.view = m_pCameraComponent->GetViewMatrix();
-    ubo.projection = glm::perspective(
-        glm::radians(m_pCameraComponent->fov),
-        m_aspectRatio,
-        m_pCameraComponent->nearPlane,
-        m_pCameraComponent->farPlane);
-
-    // GLM is designed for OpenGL which uses inverted y coordinates
-    ubo.projection[1][1] *= -1;
-
-    // Loop over the registered static meshes
-    for (const auto& pStaticMesh : m_staticMeshComponents)
-    {
-        // Compute this mesh's model matrix
-        ubo.model = pStaticMesh->GetWorldTransform().ToMatrix();
-
-        // Update the ubo
-        pStaticMesh->UpdateUniformBuffers(ubo);
-
-        // Bind the mesh buffers
-        staticMeshesPipeline.BindDescriptorSet(cb, pStaticMesh->GetDescriptorSet(), 1);
-        vk::DeviceSize offset = 0;
-        pStaticMesh->GetMesh()->Bind(cb, offset);
-    }
-
-    m_pRenderer->GetSkeletalMeshesPipeline().Bind(cb);
-    for (auto pSkeletalMesh : m_skeletalMeshComponents)
-    {
-        pSkeletalMesh->UpdateSkinningBuffer();
-
-        ubo.model = pSkeletalMesh->GetWorldTransform().ToMatrix();
-        pSkeletalMesh->UpdateUniformBuffers(ubo);
-
-        m_pRenderer->GetSkeletalMeshesPipeline().BindDescriptorSet(cb, pSkeletalMesh->GetDescriptorSet(), 1);
-        pSkeletalMesh->GetMesh()->Bind(cb, 0);
-    }
+    m_pRenderer->Render(data, cb);
 
     // Debug drawing
+    /// @todo: Move to a dedicated renderer
     DrawingContext drawingContext;
-    for (const auto& pSkeletalMeshComponent : m_skeletalMeshComponents)
+    for (auto& meshInstance : m_skeletalMeshRenderInstances)
     {
-        if (pSkeletalMeshComponent->m_drawDebugSkeleton)
+        for (const auto& pSkeletalMeshComponent : meshInstance.m_components)
         {
-            pSkeletalMeshComponent->DrawPose(drawingContext);
+            if (pSkeletalMeshComponent->m_drawDebugSkeleton)
+            {
+                pSkeletalMeshComponent->DrawPose(drawingContext);
+            }
+            // pSkeletalMeshComponent->DrawBindPose(drawingContext);
         }
-        // pSkeletalMeshComponent->DrawBindPose(drawingContext);
     }
 
     RenderDebugLines(cb, drawingContext);
@@ -194,36 +146,34 @@ void GraphicsSystem::Update(const UpdateContext& context)
 
 void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pComponent)
 {
+    // Set the first registered camera as the active one
     auto pCamera = dynamic_cast<Camera*>(pComponent);
-    if (pCamera != nullptr)
+    if (m_pCameraComponent == nullptr && pCamera != nullptr)
     {
-        if (m_pCameraComponent != nullptr)
-        {
-            std::runtime_error("The render system already has a camera registered.");
-        }
-
         m_pCameraComponent = pCamera;
         return;
     }
 
-    auto pStaticMesh = dynamic_cast<StaticMeshComponent*>(pComponent);
-    if (pStaticMesh != nullptr)
+    auto pStaticMeshComponent = dynamic_cast<StaticMeshComponent*>(pComponent);
+    if (pStaticMeshComponent != nullptr)
     {
-        m_staticMeshComponents.AddRecordEntry(pEntity->GetID(), pStaticMesh);
+        auto& meshInstance = m_staticMeshRenderInstances.TryEmplace(pStaticMeshComponent->GetMesh()->GetID(), pStaticMeshComponent->GetMesh());
+        meshInstance.m_components.PushBack(pStaticMeshComponent);
         return;
     }
 
-    auto pSkeletalMesh = dynamic_cast<SkeletalMeshComponent*>(pComponent);
-    if (pSkeletalMesh != nullptr)
+    auto pSkeletalMeshComponent = dynamic_cast<SkeletalMeshComponent*>(pComponent);
+    if (pSkeletalMeshComponent != nullptr)
     {
-        m_skeletalMeshComponents.AddRecordEntry(pEntity->GetID(), pSkeletalMesh);
+        auto& meshInstance = m_skeletalMeshRenderInstances.TryEmplace(pSkeletalMeshComponent->GetMesh()->GetID(), pSkeletalMeshComponent->GetMesh());
+        meshInstance.m_components.PushBack(pSkeletalMeshComponent);
         return;
     }
 
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        m_lightComponents.AddRecordEntry(pEntity->GetID(), pLight);
+        m_lightComponents.PushBack(pLight);
         return;
     }
 }
@@ -233,33 +183,39 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     auto pCamera = dynamic_cast<Camera*>(pComponent);
     if (pCamera != nullptr)
     {
-        if (m_pCameraComponent == nullptr)
-        {
-            std::runtime_error("Tried to remove a non-existing camera component");
-        }
-
+        assert(m_pCameraComponent != nullptr);
         m_pCameraComponent = nullptr;
         return;
     }
 
-    auto pStaticMesh = dynamic_cast<StaticMeshComponent*>(pComponent);
-    if (pStaticMesh != nullptr)
+    auto pStaticMeshComponent = dynamic_cast<StaticMeshComponent*>(pComponent);
+    if (pStaticMeshComponent != nullptr)
     {
-        m_staticMeshComponents.RemoveRecordEntry(pEntity->GetID(), pStaticMesh);
+        auto& meshInstance = m_staticMeshRenderInstances.Get(pStaticMeshComponent->GetMesh()->GetID());
+        meshInstance.m_components.Erase(pStaticMeshComponent);
+        if (meshInstance.m_components.Empty())
+        {
+            m_staticMeshRenderInstances.Erase(meshInstance);
+        }
         return;
     }
 
-    auto pSkeletalMesh = dynamic_cast<SkeletalMeshComponent*>(pComponent);
-    if (pSkeletalMesh != nullptr)
+    auto pSkeletalMeshComponent = dynamic_cast<SkeletalMeshComponent*>(pComponent);
+    if (pSkeletalMeshComponent != nullptr)
     {
-        m_skeletalMeshComponents.RemoveRecordEntry(pEntity->GetID(), pSkeletalMesh);
+        auto& meshInstance = m_skeletalMeshRenderInstances.Get(pSkeletalMeshComponent->GetMesh()->GetID());
+        meshInstance.m_components.Erase(pSkeletalMeshComponent);
+        if (meshInstance.m_components.Empty())
+        {
+            m_skeletalMeshRenderInstances.Erase(meshInstance);
+        }
         return;
     }
 
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        m_lightComponents.RemoveRecordEntry(pEntity->GetID(), pLight);
+        m_lightComponents.Erase(pLight);
         return;
     }
 }
@@ -271,8 +227,4 @@ const UpdatePriorities& GraphicsSystem::GetUpdatePriorities()
     return up;
 };
 
-GraphicsSystem::GraphicsSystem(vkg::render::IRenderer* pRenderer)
-{
-    m_pRenderer = pRenderer;
-}
 } // namespace aln

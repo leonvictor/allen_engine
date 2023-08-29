@@ -1,5 +1,6 @@
 #pragma once
 
+#include <reflection/type_info.hpp>
 #include <common/colors.hpp>
 #include <entities/spatial_component.hpp>
 

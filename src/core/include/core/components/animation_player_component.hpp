@@ -7,8 +7,6 @@
 #include <assets/handle.hpp>
 #include <entities/component.hpp>
 
-#include <assets/type_descriptors/handles.hpp>
-
 #include <common/types.hpp>
 
 #include <math.h>
@@ -37,6 +35,7 @@ class AnimationPlayerComponent : public IComponent
 
   public:
     inline const Pose* GetPose() { return m_pPose; }
+    inline const AssetHandle<AnimationClip>& GetAnimationClip() const { return m_pAnimationClip; }
 
     void Update(Seconds deltaTime);
 
@@ -56,12 +55,12 @@ class AnimationPlayerComponent : public IComponent
     {
         assert(m_pAnimationClip.IsLoaded());
         assert(m_pSkeleton.IsLoaded());
-        m_pPose = new Pose(m_pSkeleton.get()); // TODO
+        m_pPose = aln::New<Pose>(m_pSkeleton.get()); // TODO
     }
 
     void Shutdown() override
     {
-        delete m_pPose;
+        aln::Delete(m_pPose);
     }
 
     void Load(const LoadingContext& loadingContext) override
@@ -81,6 +80,11 @@ class AnimationPlayerComponent : public IComponent
         if (m_pAnimationClip.IsLoaded() && m_pSkeleton.IsLoaded())
         {
             m_status = Status::Loaded;
+        }
+        else if (!m_pAnimationClip.IsValid() || m_pAnimationClip.HasFailedLoading() ||
+                 !m_pSkeleton.IsValid() || m_pSkeleton.HasFailedLoading())
+        {
+            m_status = Status::LoadingFailed;
         }
 
         return IsLoaded();

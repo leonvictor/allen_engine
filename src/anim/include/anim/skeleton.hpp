@@ -19,6 +19,7 @@ class Skeleton : public IAsset
     friend class SkeletonLoader;
 
   private:
+    // TODO: Use StringID
     std::vector<std::string> m_boneNames;
     std::vector<BoneIndex> m_parentBoneIndices;
 

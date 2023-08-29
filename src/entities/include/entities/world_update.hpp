@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../update_stages.hpp"
+#include <common/update_stages.hpp>
+
 #include <assert.h>
 #include <unordered_map>
 

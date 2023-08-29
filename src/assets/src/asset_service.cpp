@@ -56,6 +56,13 @@ void AssetService::Update()
     {
         assert(pendingRequest.IsValid());
 
+        if (pendingRequest.m_pAssetRecord->GetAssetPath().empty())
+        {
+            pendingRequest.m_status = AssetRequest::State::Complete;
+            pendingRequest.m_pAssetRecord->m_status = AssetStatus::LoadingFailed;
+            continue;
+        }
+
         auto pActiveRequest = FindActiveRequest(pendingRequest.m_pAssetRecord->GetAssetID());
         if (pendingRequest.IsLoadingRequest())
         {
@@ -167,6 +174,11 @@ void AssetService::Load(IAssetHandle& assetHandle)
 {
     std::lock_guard lock(m_mutex);
 
+    if (!assetHandle.GetAssetID().IsValid())
+    {
+        return;
+    }
+
     auto pRecord = GetOrCreateRecord(assetHandle.GetAssetID());
     // Update the handle
     assetHandle.m_pAssetRecord = pRecord;
@@ -185,6 +197,10 @@ void AssetService::Load(IAssetHandle& assetHandle)
 void AssetService::Unload(IAssetHandle& assetHandle)
 {
     std::lock_guard lock(m_mutex);
+
+    if (!assetHandle.GetAssetID().IsValid())
+        return;
+
     assetHandle.m_pAssetRecord = nullptr;
 
     auto pRecord = FindRecord(assetHandle.GetAssetID());

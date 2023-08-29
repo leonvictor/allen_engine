@@ -1,58 +1,68 @@
 #pragma once
 
 #include "../debug_render_states.hpp"
-#include "../drawing_context.hpp"
+#include "../components/skeletal_mesh_component.hpp"
+#include "../components/static_mesh_component.hpp"
+#include "../components/light.hpp"
 
-#include <graphics/resources/buffer.hpp>
-
-#include <entities/components_registry.hpp>
+#include <common/drawing_context.hpp>
+#include <common/hash_vector.hpp>
 #include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
 
-#include <common/vertex.hpp>
+#include <vulkan/vulkan.hpp>
 
-#include <map>
+#include <vector>
 
 namespace aln
 {
 
-class StaticMeshComponent;
-class SkeletalMeshComponent;
-class Light;
 class Camera;
 
 class Entity;
 class IComponent;
-
-namespace vkg::render
-{
-class IRenderer;
-}
+class SkeletalMesh;
+class StaticMesh;
 
 class GraphicsSystem : public IWorldSystem
 {
-    vkg::render::IRenderer* m_pRenderer = nullptr;
+    // Mesh components are grouped by mesh instance so that we can have one descriptor per mesh instance
+    // This also allows us to decouple rendering stuff from the base mesh classes
+    struct SkeletalMeshRenderInstance
+    {
+        const SkeletalMesh* m_pMesh;
+        IDVector<SkeletalMeshComponent*> m_components;
 
-    ComponentsRegistry<StaticMeshComponent> m_staticMeshComponents;
-    ComponentsRegistry<SkeletalMeshComponent> m_skeletalMeshComponents;
-    ComponentsRegistry<Light> m_lightComponents;
+        SkeletalMeshRenderInstance(const SkeletalMesh* pMesh) : m_pMesh(pMesh) {}
+        uint32_t GetID() const { return m_pMesh->GetID(); }
+    };
 
-    Camera* m_pCameraComponent = nullptr;
+    struct StaticMeshRenderInstance
+    {
+        const StaticMesh* m_pMesh;
+        IDVector<StaticMeshComponent*> m_components;
+
+        StaticMeshRenderInstance(const StaticMesh* pMesh) : m_pMesh(pMesh) {}
+        uint32_t GetID() const { return m_pMesh->GetID(); }
+    };
+
+    SceneRenderer* m_pRenderer = nullptr;
 
     // Viewport info
     /// @todo: Move to a specific Viewport class that get passed around
     float m_aspectRatio = 1.0f;
 
-    // Lights use a shared buffer and descriptorSet, so it's held in the system
-    /// @todo: Bundle in a specific class
-    vkg::resources::Buffer m_lightsBuffer;
-    vk::UniqueDescriptorSet m_lightsVkDescriptorSet;
-
     // Debuging render state(s)
     LinesRenderState m_linesRenderState;
 
-    void CreateLightsDescriptorSet();
-    void CreateLinesRenderContext();
+    // Registered components
+    const Camera* m_pCameraComponent = nullptr;
+    IDVector<SkeletalMeshRenderInstance> m_skeletalMeshRenderInstances;
+    IDVector<StaticMeshRenderInstance> m_staticMeshRenderInstances;
+    IDVector<Light*> m_lightComponents;
+
+    std::vector<const SkeletalMeshComponent*> m_visibleSkeletalMeshComponents;
+    std::vector<const StaticMeshComponent*> m_visibleStaticMeshComponents;
 
     // -------------------------------------------------
     // System Methods
@@ -64,11 +74,16 @@ class GraphicsSystem : public IWorldSystem
     void UnregisterComponent(const Entity* pEntity, IComponent* pComponent) override;
     const UpdatePriorities& GetUpdatePriorities() override;
 
+    void SetRenderCamera(const Camera* pCameraComponent)
+    {
+        assert(pCameraComponent != nullptr);
+        m_pCameraComponent = pCameraComponent;
+    }
+
     // Rendering calls
-    void RenderSkeletalMeshes();
     void RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext);
 
   public:
-    GraphicsSystem(vkg::render::IRenderer* pRenderer);
+    GraphicsSystem(SceneRenderer* pRenderer) : m_pRenderer(pRenderer) {}
 };
 } // namespace aln

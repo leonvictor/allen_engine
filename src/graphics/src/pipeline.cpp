@@ -1,6 +1,7 @@
 #include "pipeline.hpp"
 
 #include <fstream>
+#include <iostream>
 
 using namespace aln::utils;
 
@@ -70,6 +71,8 @@ void Pipeline::Create(std::string cachePath)
     vk::PipelineLayoutCreateInfo layoutInfo = {
         .setLayoutCount = static_cast<uint32_t>(m_descriptorSetLayouts.size()), // Update when we have more layouts
         .pSetLayouts = m_descriptorSetLayouts.data(),
+        .pushConstantRangeCount = static_cast<uint32_t>(m_pushConstants.size()),
+        .pPushConstantRanges = m_pushConstants.data(),
     };
 
     m_layout = m_pDevice->GetVkDevice().createPipelineLayoutUnique(layoutInfo);
@@ -213,7 +216,7 @@ void Pipeline::Bind(vk::CommandBuffer& cb)
     cb.bindPipeline(m_bindPoint, m_vkPipeline.get());
 }
 
-void Pipeline::BindDescriptorSet(vk::CommandBuffer& cb, vk::DescriptorSet& descriptorSet, uint32_t index)
+void Pipeline::BindDescriptorSet(vk::CommandBuffer& cb, const vk::DescriptorSet& descriptorSet, uint32_t index)
 {
     // TODO: firstSet and offsets.
     cb.bindDescriptorSets(m_bindPoint, m_layout.get(), index, descriptorSet, nullptr);
@@ -294,13 +297,13 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
 
         // Clean up and print results
         readCacheStream.close();
-        std::cout << "  Pipeline cache HIT!\n";
-        std::cout << "  cacheData loaded from " << path << "\n";
+        std::cout << "  Pipeline cache HIT!" << std::endl;
+        std::cout << "  cacheData loaded from " << path << std::endl;
     }
     else
     {
         // No cache found on disk
-        std::cout << "  Pipeline cache miss!\n";
+        std::cout << "  Pipeline cache miss!" << std::endl;
     }
 
     if (startCacheData)
@@ -349,8 +352,8 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
         {
             badCache = true;
             std::cout << "  UUID mismatch in " << path << ".\n";
-            std::cout << "    Cache contains: " << utils::UUID(pipelineCacheUUID) << "\n";
-            std::cout << "    Driver expects: " << utils::UUID(m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID) << "\n";
+            std::cout << "    Cache contains: " << UUID(pipelineCacheUUID) << "\n";
+            std::cout << "    Driver expects: " << UUID(m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID) << "\n";
         }
         if (badCache)
         {

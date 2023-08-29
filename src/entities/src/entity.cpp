@@ -6,11 +6,12 @@
 #include "spatial_component.hpp"
 
 #include <future>
+#include <reflection/services/type_registry_service.hpp>
 
 namespace aln
 {
 
-using aln::utils::UUID;
+Event<Entity*> Entity::EntityStateUpdatedEvent;
 
 Entity::~Entity()
 {
@@ -35,10 +36,50 @@ Entity::~Entity()
 // State management
 // -------------------------------------------------
 
+void Entity::HandleDeferredActions(const LoadingContext& loadingContext)
+{
+    // TODO: Maybe early out if the entity is in the "remove" list ?
+    for (auto& action : m_deferredActions)
+    {
+        switch (action.m_type)
+        {
+        case EntityInternalStateAction::Type::AddComponent:
+        {
+            auto pParentComponent = GetSpatialComponent(action.m_ID);
+            AddComponentDeferred(loadingContext, (IComponent*) action.m_ptr, pParentComponent);
+            break;
+        }
+
+        case EntityInternalStateAction::Type::DestroyComponent:
+        {
+            DestroyComponentDeferred(loadingContext, (IComponent*) action.m_ptr);
+            break;
+        }
+
+        case EntityInternalStateAction::Type::CreateSystem:
+        {
+            CreateSystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
+            break;
+        }
+
+        case EntityInternalStateAction::Type::DestroySystem:
+        {
+            DestroySystemDeferred(loadingContext, (aln::reflect::TypeInfo*) action.m_ptr);
+            break;
+        }
+
+        default:
+            assert(false);
+        }
+    }
+
+    m_deferredActions.clear();
+}
+
 bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
 {
-    assert(m_status == Status::Unloaded);
-    bool allLoaded = true;
+    HandleDeferredActions(loadingContext);
+    // TODO: Maybe fire entity state updated event here rather than in each separate action
 
     for (auto pComponent : m_components)
     {
@@ -46,23 +87,26 @@ bool Entity::UpdateLoadingAndEntityState(const LoadingContext& loadingContext)
         {
             pComponent->LoadComponent(loadingContext);
         }
+
         if (pComponent->IsLoading())
         {
             if (!pComponent->UpdateLoadingStatus())
             {
                 return false;
             }
-            else
-            {
-                pComponent->InitializeComponent();
-            }
         }
 
-        // For now ! We should register components with systems as they become loaded
-        assert(!IsActivated());
+        if (pComponent->IsLoaded())
+        {
+            pComponent->InitializeComponent();
+            if (IsActivated())
+            {
+                RegisterComponentWithEntitySystems(pComponent);
+                loadingContext.m_registerWithWorldSystems(this, pComponent);
+            }
+        }
     }
 
-    m_status = Status::Loaded;
     return true;
 }
 
@@ -87,6 +131,8 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
 
     for (auto pComponent : m_components)
     {
+        assert(!pComponent->IsRegisteredWithEntitySystems() && !pComponent->IsRegisteredWithWorldSystems());
+
         if (pComponent->IsInitialized())
         {
             pComponent->ShutdownComponent();
@@ -94,7 +140,6 @@ void Entity::UnloadComponents(const LoadingContext& loadingContext)
         // TODO: Component *should* be loaded in all cases
         if (pComponent->IsLoaded() || pComponent->IsLoading())
         {
-            // TODO: What do we do with loadingContext ?
             pComponent->UnloadComponent(loadingContext);
         }
     }
@@ -121,14 +166,7 @@ void Entity::Activate(const LoadingContext& loadingContext)
     {
         if (pComponent->IsInitialized())
         {
-            // Register each component with all local systems...
-            for (auto pSystem : m_systems)
-            {
-                pSystem->RegisterComponent(pComponent);
-            }
-
-            // ... and all global systems
-            // This is the non-parallelizable part
+            RegisterComponentWithEntitySystems(pComponent);
             loadingContext.m_registerWithWorldSystems(this, pComponent);
         }
     }
@@ -173,12 +211,14 @@ void Entity::Deactivate(const LoadingContext& loadingContext)
     // Unregister components from systems
     for (auto pComponent : m_components)
     {
-        for (auto pSystem : m_systems)
+        if (pComponent->IsRegisteredWithEntitySystems())
         {
-            pSystem->UnregisterComponent(pComponent);
+            UnregisterComponentWithEntitySystems(pComponent);
         }
-
-        loadingContext.m_unregisterWithWorldSystems(this, pComponent);
+        if (pComponent->IsRegisteredWithWorldSystems())
+        {
+            loadingContext.m_unregisterWithWorldSystems(this, pComponent);
+        }
     }
 
     m_status = Status::Loaded;
@@ -213,24 +253,24 @@ void Entity::GenerateSystemUpdateList()
 // -------------------------------------------------
 // Systems
 // -------------------------------------------------
-void Entity::CreateSystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+void Entity::CreateSystem(const aln::reflect::TypeInfo* pTypeInfo)
 {
     if (IsUnloaded())
     {
-        CreateSystemImmediate(pTypeDescriptor);
+        CreateSystemImmediate(pTypeInfo);
     }
     else
     {
         // Delegate the action to whoever is in charge
         auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
         action.m_type = EntityInternalStateAction::Type::CreateSystem;
-        action.m_ptr = pTypeDescriptor;
+        action.m_ptr = pTypeInfo;
 
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
-void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::CreateSystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     assert(pSystemTypeInfo != nullptr);
     // TODO: assert that pSystemTypeInfo describes a type that is derived from IEntitySystem
@@ -239,7 +279,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
     // Make sure we only have one system of this type
     for (auto pExistingSystem : m_systems)
     {
-        auto const pExistingSystemTypeInfo = pExistingSystem->GetType();
+        auto const pExistingSystemTypeInfo = pExistingSystem->GetTypeInfo();
         // TODO: Add inheritance info to the reflection system and put back the test.
         // if (pSystemTypeInfo->IsDerivedFrom(pExistingSystemTypeInfo->m_ID) || pSystemTypeInfo == pExistingSystemTypeInfo)
         if (pSystemTypeInfo == pExistingSystemTypeInfo)
@@ -248,8 +288,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
         }
     }
 
-    // TODO: new and shared_ptr(...) are not good.
-    auto pSystem = pSystemTypeInfo->typeHelper->CreateType<IEntitySystem>();
+    auto pSystem = pSystemTypeInfo->CreateTypeInstance<IEntitySystem>();
 
     if (IsActivated())
     {
@@ -262,7 +301,7 @@ void Entity::CreateSystemImmediate(const aln::reflect::TypeDescriptor* pSystemTy
     m_systems.push_back(std::move(pSystem));
 }
 
-void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     CreateSystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -274,36 +313,37 @@ void Entity::CreateSystemDeferred(const LoadingContext& loadingContext, const al
         loadingContext.m_registerEntityUpdate(this);
     }
 }
-void Entity::DestroySystem(const aln::reflect::TypeDescriptor* pTypeDescriptor)
+
+void Entity::DestroySystem(const aln::reflect::TypeInfo* pTypeInfo)
 {
     assert(std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
-               { return pSystem->GetType()->m_ID == pTypeDescriptor->m_ID; }) != m_systems.end());
+               { return pSystem->GetTypeInfo() == pTypeInfo; }) != m_systems.end());
 
     if (IsUnloaded())
     {
-        DestroySystemImmediate(pTypeDescriptor);
+        DestroySystemImmediate(pTypeInfo);
     }
     else
     {
         auto& action = m_deferredActions.emplace_back(EntityInternalStateAction());
         action.m_type = EntityInternalStateAction::Type::DestroySystem;
-        action.m_ptr = pTypeDescriptor;
+        action.m_ptr = pTypeInfo;
 
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
-void Entity::DestroySystemImmediate(const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::DestroySystemImmediate(const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     auto it = std::find_if(m_systems.begin(), m_systems.end(), [&](auto& pSystem)
-        { return pSystem->GetType()->m_ID == pSystemTypeInfo->m_ID; });
+        { return pSystem->GetTypeInfo() == pSystemTypeInfo; });
 
     assert(it != m_systems.end());
     aln::Delete(*it);
     m_systems.erase(it);
 }
 
-void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeDescriptor* pSystemTypeInfo)
+void Entity::DestroySystemDeferred(const LoadingContext& loadingContext, const aln::reflect::TypeInfo* pSystemTypeInfo)
 {
     DestroySystemImmediate(pSystemTypeInfo);
     GenerateSystemUpdateList();
@@ -359,7 +399,7 @@ void Entity::DestroyComponent(const UUID& componentID)
         action.m_ptr = pComponent;
 
         // Notify the world system
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
@@ -392,12 +432,13 @@ void Entity::DestroyComponentDeferred(const LoadingContext& loadingContext, ICom
 {
     if (IsActivated())
     {
-        // Unregister the component from local and world systems
-        loadingContext.m_unregisterWithWorldSystems(this, pComponent);
-
-        for (auto pSystem : m_systems)
+        if (pComponent->IsRegisteredWithWorldSystems())
         {
-            pSystem->UnregisterComponent(pComponent);
+            loadingContext.m_unregisterWithWorldSystems(this, pComponent);
+        }
+        if (pComponent->IsRegisteredWithEntitySystems())
+        {
+            UnregisterComponentWithEntitySystems(pComponent);
         }
     }
 
@@ -441,7 +482,7 @@ void Entity::AddComponent(IComponent* pComponent, const UUID& parentSpatialCompo
         action.m_ID = parentSpatialComponentID;
 
         // Send notification that the internal state changed
-        EntityStateUpdatedEvent.Execute(this);
+        EntityStateUpdatedEvent.Fire(this);
     }
 }
 
@@ -487,23 +528,27 @@ void Entity::AddComponentImmediate(IComponent* pComponent, SpatialComponent* pPa
 void Entity::AddComponentDeferred(const LoadingContext& loadingContext, IComponent* pComponent, SpatialComponent* pParentComponent)
 {
     AddComponentImmediate(pComponent, pParentComponent);
+    pComponent->LoadComponent(loadingContext);
+}
 
-    if (IsLoaded())
+void Entity::RegisterComponentWithEntitySystems(IComponent* pComponent)
+{
+    assert(!pComponent->m_registeredWithEntitySystems);
+    for (auto pSystem : m_systems)
     {
-        // TODO: Async ?
-        pComponent->LoadComponent(loadingContext);
-        pComponent->InitializeComponent();
+        pSystem->RegisterComponent(pComponent);
     }
+    pComponent->m_registeredWithEntitySystems = true;
+}
 
-    if (IsActivated())
+void Entity::UnregisterComponentWithEntitySystems(IComponent* pComponent)
+{
+    assert(pComponent->m_registeredWithEntitySystems);
+    for (auto pSystem : m_systems)
     {
-        // Register with local and world systems
-        for (auto pSystem : m_systems)
-        {
-            pSystem->RegisterComponent(pComponent);
-        }
-        loadingContext.m_registerWithWorldSystems(this, pComponent);
+        pSystem->UnregisterComponent(pComponent);
     }
+    pComponent->m_registeredWithEntitySystems = false;
 }
 
 // -------------------------------------------------
@@ -615,21 +660,8 @@ void Entity::AttachToParent()
     }
 
     // Perform attachment
-    // TODO: Recompute local transform so as not to move if we change root component
+    assert(pParentRootComponent != nullptr);
     m_pRootSpatialComponent->AttachTo(pParentRootComponent, m_parentAttachmentSocketID);
-
-    // assert(pParentRootComponent != nullptr);
-
-    // Set component hierarchy values
-    // m_pRootSpatialComponent->m_pSpatialParent = pParentRootComponent;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = m_parentAttachmentSocketID;
-
-    // TODO: should we calculate world transform everytime a component is attached to another ?
-    // Or only here ?
-    // m_pRootSpatialComponent->CalculateWorldTransform();
-
-    // Add to the list of child components on the component to attach to
-    // pParentRootComponent->m_spatialChildren.emplace_back(m_pRootSpatialComponent);
 
     m_isAttachedToParent = true;
 }
@@ -639,18 +671,7 @@ void Entity::DetachFromParent()
     assert(IsSpatialEntity());
     assert(m_pParentSpatialEntity != nullptr && m_isAttachedToParent);
 
-    // TODO: Is there a reason *not* to use component.Detach() ?
-    // Remove from parent component child list
     m_pRootSpatialComponent->Detach();
-    // auto pParentComponent = m_pRootSpatialComponent->m_pSpatialParent;
-    // auto foundIter = std::find(pParentComponent->m_spatialChildren.begin(), pParentComponent->m_spatialChildren.end(), m_pRootSpatialComponent);
-    // assert(foundIter != pParentComponent->m_spatialChildren.end());
-    // pParentComponent->m_spatialChildren.erase(foundIter);
-
-    // Remove component hierarchy values
-    // m_pRootSpatialComponent->m_pSpatialParent = nullptr;
-    // m_pRootSpatialComponent->m_parentAttachmentSocketID = UUID::InvalidID();
-
     m_isAttachedToParent = false;
 }
 
@@ -664,6 +685,43 @@ void Entity::RefreshEntityAttachments()
         {
             pAttachedEntity->DetachFromParent();
             pAttachedEntity->AttachToParent();
+        }
+    }
+}
+
+// ---------- Live Editing. TODO: Disable in prod
+void Entity::StartComponentEditing(const LoadingContext& loadingContext, IComponent* pComponent)
+{
+    assert(pComponent != nullptr);
+
+    // Deactivate
+    if (pComponent->IsRegisteredWithEntitySystems())
+    {
+        UnregisterComponentWithEntitySystems(pComponent);
+    }
+    if (pComponent->IsRegisteredWithWorldSystems())
+    {
+        loadingContext.m_unregisterWithWorldSystems(this, pComponent);
+    }
+
+    // Unload
+    if (!pComponent->IsUnloaded())
+    {
+        if (pComponent->IsInitialized())
+        {
+            pComponent->ShutdownComponent();
+        }
+        pComponent->UnloadComponent(loadingContext);
+    }
+}
+
+void Entity::EndComponentEditing(const LoadingContext& loadingContext)
+{
+    for (auto pComponent : m_components)
+    {
+        if (pComponent->IsUnloaded())
+        {
+            pComponent->LoadComponent(loadingContext);
         }
     }
 }

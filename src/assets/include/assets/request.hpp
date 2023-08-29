@@ -4,7 +4,7 @@
 #include "loader.hpp"
 #include "record.hpp"
 
-#include <utils/uuid.hpp>
+#include <common/uuid.hpp>
 
 namespace aln
 {

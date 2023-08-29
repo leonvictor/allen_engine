@@ -5,6 +5,7 @@
 
 #include <aln_common_export.h>
 
+// TODO: Move to core
 namespace aln
 {
 
@@ -12,9 +13,21 @@ namespace aln
 /// @todo vec3 is overkill, colors can be represented on 3*8bits
 class ALN_COMMON_EXPORT RGBColor : public glm::vec3
 {
+    static_assert(std::is_trivial_v<glm::vec3>);
+
   public:
-    RGBColor() : glm::vec3(0.0f, 0.0f, 0.0f) {}
+    RGBColor() = default;
     RGBColor(float r, float g, float b) : glm::vec3(r, g, b) {}
+
+    /// @brief Convert to a 32-bit integer
+    uint32_t U32() const {
+        uint32_t out;
+        out = ((uint32_t) (this->x * 255.0f + 0.5f));
+        out |= ((uint32_t) (this->y * 255.0f + 0.5f)) << 8;
+        out |= ((uint32_t) (this->z * 255.0f + 0.5f)) << 16;
+        out |= (uint32_t) 255 << 24;
+        return out;
+    }
 
     static const RGBColor Red;
     static const RGBColor Pink;
@@ -30,7 +43,11 @@ class ALN_COMMON_EXPORT RGBColor : public glm::vec3
 class RGBAColor : public glm::vec4
 {
   public:
-    RGBAColor() : glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) {}
+    RGBAColor() = default;
     RGBAColor(float r, float g, float b, float a) : glm::vec4(r, g, b, a) {}
 };
+
+static_assert(std::is_trivial_v<RGBAColor>);
+static_assert(std::is_trivial_v<RGBColor>);
+
 } // namespace aln

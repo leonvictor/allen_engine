@@ -1,7 +1,5 @@
 #pragma once
 
-#include <lz4.h>
-
 #include <assert.h>
 #include <concepts>
 #include <filesystem>
@@ -22,11 +20,37 @@ template <typename T>
 concept TriviallyCopyableType = std::is_trivially_copyable_v<T>;
 
 template <typename T>
-concept ContiguousContainer = requires(T a)
+concept ContiguousContainer = requires(T a) {
+                                  std::contiguous_iterator<typename T::iterator>;
+                              };
+
+/// @brief Access point for types whose serialization methods need to be private. Set as friend in class definitions
+/// to allow the serialization system to access them.
+/// @todo This is not functionnal ! I haven't found a good way to restrict access AND keep the constrained concept specialization
+/// @note Not functionnal ! Serialization function need to be public for now
+struct ArchiveAccess
 {
-    T::size_type;
-    std::contiguous_iterator<typename T::iterator>;
+    template <typename T, typename Archive>
+    static void Serialize(const T& a, Archive& archive)
+    {
+        a.Serialize(archive);
+    }
+
+    template <typename T, typename Archive>
+    static void Deserialize(T& a, Archive& archive)
+    {
+        a.Deserialize(archive);
+    }
 };
+
+template <typename T>
+concept CustomSerializable = requires(T a, BinaryMemoryArchive archive) {
+                                 a.Serialize<BinaryMemoryArchive>(archive);
+                                 a.Deserialize<BinaryMemoryArchive>(archive);
+                             };
+
+template <typename T>
+concept Serializable = TriviallyCopyableType<T> || CustomSerializable<T>;
 
 /// @brief Base class for binary archives
 /// @note Supports IO operations for trivially copyable types and contiguous containers of trivially copyable types.
@@ -60,6 +84,7 @@ class BinaryFileArchive : public IBinaryArchive
     const std::filesystem::path& m_path;
 
   public:
+    BinaryFileArchive(BinaryFileArchive&) = delete;
     BinaryFileArchive(const std::filesystem::path& path, IOMode mode) : IBinaryArchive(mode), m_path(path)
     {
         if (IsReading())
@@ -121,13 +146,26 @@ class BinaryFileArchive : public IBinaryArchive
         }
     }
 
+    void Write(const void* pData, size_t size)
+    {
+        assert(IsWriting());
+        auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
+        pFileStream->write(reinterpret_cast<const char*>(pData), size);
+    }
+
+    void Read(void* pData, size_t size)
+    {
+        assert(IsReading());
+        auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
+        pFileStream->read(reinterpret_cast<char*>(pData), size);
+    }
+
     // --------------------------
     //  Trivially copyable types
     // --------------------------
     template <TriviallyCopyableType T>
     BinaryFileArchive& operator<<(const T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsWriting());
 
         auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
@@ -137,9 +175,8 @@ class BinaryFileArchive : public IBinaryArchive
     }
 
     template <TriviallyCopyableType T>
-    const BinaryFileArchive& operator>>(T& data) const
+    BinaryFileArchive& operator>>(T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsReading());
 
         auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
@@ -168,7 +205,7 @@ class BinaryFileArchive : public IBinaryArchive
     }
 
     template <ContiguousContainer T>
-    const BinaryFileArchive& operator>>(T& container) const
+    BinaryFileArchive& operator>>(T& container)
     {
         assert(IsReading());
         auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
@@ -186,8 +223,8 @@ class BinaryFileArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
-        BinaryFileArchive& operator<<(const T& container)
+        requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    BinaryFileArchive& operator<<(const T& container)
     {
         assert(IsWriting());
         auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
@@ -200,8 +237,8 @@ class BinaryFileArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
-    const BinaryFileArchive& operator>>(T& container) const
+        requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    BinaryFileArchive& operator>>(T& container)
     {
         assert(IsReading());
         auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
@@ -216,12 +253,32 @@ class BinaryFileArchive : public IBinaryArchive
     }
 
     // --------------------------
+    //  Custom serializable types
+    // --------------------------
+    template <CustomSerializable T>
+    BinaryFileArchive& operator<<(const T& object)
+    {
+
+        assert(IsWriting());
+        ArchiveAccess::Serialize(object, *this);
+        return *this;
+    }
+
+    template <CustomSerializable T>
+    BinaryFileArchive& operator>>(T& object)
+    {
+        assert(IsReading());
+        ArchiveAccess::Deserialize(object, *this);
+        return *this;
+    }
+
+    // --------------------------
     //  Binary archives
     // --------------------------
-    friend const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out);
-    friend BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in);
-    friend const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out);
-    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in);
+    friend BinaryFileArchive& operator>>(BinaryFileArchive& in, BinaryMemoryArchive& out);
+    friend BinaryFileArchive& operator<<(BinaryFileArchive& out, BinaryMemoryArchive& in);
+    friend BinaryMemoryArchive& operator>>(BinaryMemoryArchive& in, BinaryFileArchive& out);
+    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, BinaryFileArchive& in);
 };
 
 /// @brief Archive view of an existing binary memory array
@@ -229,9 +286,10 @@ class BinaryMemoryArchive : public IBinaryArchive
 {
   private:
     std::vector<std::byte>& m_memory;
-    mutable std::vector<std::byte>::iterator m_pReader;
+    std::vector<std::byte>::iterator m_pReader;
 
   public:
+    BinaryMemoryArchive(BinaryMemoryArchive&) = delete;
     BinaryMemoryArchive(std::vector<std::byte>& memory, IOMode mode) : IBinaryArchive(mode), m_memory(memory)
     {
         if (IsReading())
@@ -242,13 +300,26 @@ class BinaryMemoryArchive : public IBinaryArchive
 
     bool IsValid() const override { return m_pReader != m_memory.begin(); }
 
+    void Write(const void* pData, size_t size)
+    {
+        assert(IsWriting());
+        auto pBytes = reinterpret_cast<const std::byte*>(pData);
+        m_memory.insert(m_memory.end(), pBytes, pBytes + size);
+    }
+
+    void Read(void* pData, size_t size)
+    {
+        assert(IsReading());
+        memcpy(pData, &*m_pReader, size);
+        m_pReader += size;
+    }
+
     // --------------------------
     //  Trivially copyable types
     // --------------------------
     template <TriviallyCopyableType T>
     BinaryMemoryArchive& operator<<(const T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsWriting());
 
         auto pData = reinterpret_cast<const std::byte*>(&data);
@@ -258,9 +329,8 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     template <TriviallyCopyableType T>
-    const BinaryMemoryArchive& operator>>(T& data) const
+    BinaryMemoryArchive& operator>>(T& data)
     {
-        static_assert(std::is_trivial_v<T>);
         assert(IsReading());
 
         memcpy(&data, &*m_pReader, sizeof(T));
@@ -289,7 +359,7 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     template <ContiguousContainer T>
-    const BinaryMemoryArchive& operator>>(T& container) const
+    BinaryMemoryArchive& operator>>(T& container)
     {
         assert(IsReading());
 
@@ -306,8 +376,8 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
-        BinaryMemoryArchive& operator<<(const T& container)
+        requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    BinaryMemoryArchive& operator<<(const T& container)
     {
         assert(IsWriting());
 
@@ -321,8 +391,8 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     template <typename T>
-    requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
-    const BinaryMemoryArchive& operator>>(T& container) const
+        requires ContiguousContainer<T> && TriviallyCopyableType<typename T::value_type>
+    BinaryMemoryArchive& operator>>(T& container)
     {
         assert(IsReading());
 
@@ -338,12 +408,32 @@ class BinaryMemoryArchive : public IBinaryArchive
     }
 
     // --------------------------
+    //  Custom serializable types
+    // --------------------------
+    template <CustomSerializable T>
+    BinaryMemoryArchive& operator<<(const T& object)
+    {
+
+        assert(IsWriting());
+        ArchiveAccess::Serialize(object, *this);
+        return *this;
+    }
+
+    template <CustomSerializable T>
+    BinaryMemoryArchive& operator>>(T& object)
+    {
+        assert(IsReading());
+        ArchiveAccess::Deserialize(object, *this);
+        return *this;
+    }
+
+    // --------------------------
     //  Binary archives
     // --------------------------
-    friend const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out);
-    friend BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in);
-    friend const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out);
-    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in);
+    friend BinaryFileArchive& operator>>(BinaryFileArchive& in, BinaryMemoryArchive& out);
+    friend BinaryFileArchive& operator<<(BinaryFileArchive& out, BinaryMemoryArchive& in);
+    friend BinaryMemoryArchive& operator>>(BinaryMemoryArchive& in, BinaryFileArchive& out);
+    friend BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, BinaryFileArchive& in);
 };
 
 // --------------------
@@ -351,9 +441,9 @@ class BinaryMemoryArchive : public IBinaryArchive
 // --------------------
 
 /// @brief Save the full file in memory
-BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, const BinaryFileArchive& in);
-const BinaryMemoryArchive& operator>>(const BinaryMemoryArchive& in, BinaryFileArchive& out);
-BinaryFileArchive& operator<<(BinaryFileArchive& out, const BinaryMemoryArchive& in);
-const BinaryFileArchive& operator>>(const BinaryFileArchive& in, BinaryMemoryArchive& out);
+BinaryMemoryArchive& operator<<(BinaryMemoryArchive& out, BinaryFileArchive& in);
+BinaryMemoryArchive& operator>>(BinaryMemoryArchive& in, BinaryFileArchive& out);
+BinaryFileArchive& operator<<(BinaryFileArchive& out, BinaryMemoryArchive& in);
+BinaryFileArchive& operator>>(BinaryFileArchive& in, BinaryMemoryArchive& out);
 
 } // namespace aln

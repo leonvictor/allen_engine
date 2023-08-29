@@ -74,6 +74,10 @@ void AssetRequest::Unload()
         auto& dependencyHandle = m_dependencies.emplace_back(IAssetHandle(dependencyID));
         m_requestAssetUnload(dependencyHandle);
     }
+
+    // To be perfectly symetric unloading should go through an "uninstalling" step which is not necessary
+    m_pAssetRecord->m_dependencies.clear();
+
     m_pAssetRecord->m_status = AssetStatus::Unloaded;
     m_status = State::Complete;
 }

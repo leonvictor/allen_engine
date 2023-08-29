@@ -42,14 +42,12 @@ WorldEntity::~WorldEntity()
 
 void WorldEntity::Cleanup()
 {
-    m_entityMap.Clear(m_loadingContext);
-
     for (auto& [id, system] : m_systems)
     {
         system->Shutdown();
     }
-
     m_systems.clear();
+    m_entityMap.Clear(m_loadingContext);
 }
 
 void WorldEntity::Update(const UpdateContext& context)
@@ -107,20 +105,22 @@ void WorldEntity::RegisterComponent(Entity* pEntity, IComponent* pComponent)
     // TODO: Also delay registration till components are ready.
     // In the rare case multiple systems are interdependant, use the same thread for all of them.
     assert(!pComponent->IsUnloaded());
-    std::cout << "Register component for entity: " << pEntity->GetName() << std::endl;
+    assert(!pComponent->m_registeredWithWorldSystems);
     for (auto& [id, system] : m_systems)
     {
         system->RegisterComponent(pEntity, pComponent);
     }
+    pComponent->m_registeredWithWorldSystems = true;
 }
 
 void WorldEntity::UnregisterComponent(Entity* pEntity, IComponent* pComponent)
 {
-    std::cout << "Unregister component for entity: " << pEntity->GetName() << std::endl;
+    assert(pComponent->m_registeredWithWorldSystems);
     for (auto& [id, system] : m_systems)
     {
         system->UnregisterComponent(pEntity, pComponent);
     }
+    pComponent->m_registeredWithWorldSystems = false;
 }
 
 void WorldEntity::RegisterEntityUpdate(Entity* pEntity)
@@ -144,10 +144,5 @@ void WorldEntity::DeactivateEntity(Entity* pEntity)
 {
     m_entityMap.DeactivateEntity(pEntity);
 }
-
-// std::map<aln::utils::UUID, Entity>& WorldEntity::GetEntitiesCollection()
-// {
-//     return m_entityMap.Collection();
-// }
 
 } // namespace aln

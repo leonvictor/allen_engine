@@ -11,14 +11,14 @@ class ButtonControl : public InputControl<ButtonState>
 {
     friend class Keyboard;
     friend class Mouse;
+    friend class Gamepad;
 
   private:
+    void Press() { SetValue(ButtonState::Pressed); }
+    void Release() { SetValue(ButtonState::Released); }
+
   public:
-    ButtonControl()
-    {
-        m_defaultValue = ButtonState::None;
-        m_value = ButtonState::None;
-    }
+    ButtonControl() : InputControl<ButtonState>(ButtonState::None) {}
 
     bool IsHeld() const { return m_value == ButtonState::Held || m_value == ButtonState::Pressed; }
     bool WasPressed() const { return m_value == ButtonState::Pressed; }
@@ -26,6 +26,7 @@ class ButtonControl : public InputControl<ButtonState>
 
     void Update() override
     {
+        // TODO: Frame lag ?!
         // Mark the control for update *next frame* if it has changed during this one
         if (m_updateState == UpdateState::Changed)
         {
@@ -43,6 +44,8 @@ class ButtonControl : public InputControl<ButtonState>
             {
                 m_value = ButtonState::None;
             }
+
+            m_updateState = UpdateState::None;
         }
     }
 };

@@ -4,16 +4,19 @@
 #include "../imgui.hpp"
 #include "../pipeline.hpp"
 #include "../render_pass.hpp"
+#include "../resources/buffer.hpp"
 #include "../resources/image.hpp"
 #include "../swapchain.hpp"
-#include "../window.hpp"
 #include "render_target.hpp"
 
 #include <common/colors.hpp>
+#include <common/hash_vector.hpp>
 
 #include <config/path.h>
-#include <cstring>
 #include <vulkan/vulkan.hpp>
+
+#include <cstring>
+#include <vector>
 
 namespace aln
 {
@@ -22,6 +25,7 @@ namespace aln
 class StaticMeshComponent;
 class SkeletalMeshComponent;
 class Light;
+class Mesh;
 
 namespace vkg::render
 {
@@ -63,7 +67,9 @@ class IRenderer
     virtual RenderTarget& GetNextTarget() = 0;
 
   protected:
-    const int MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr uint32_t MAX_MODELS = 1000;
+    static constexpr uint32_t MAX_SKINNING_TRANSFORMS = 255 * 50;
 
     State m_state = State::Uninitialized;
 
@@ -87,13 +93,7 @@ class IRenderer
     RenderPass m_renderpass;
     uint32_t m_width, m_height;
 
-    Pipeline m_staticMeshesPipeline;
-    Pipeline m_skeletalMeshesPipeline;
-    Pipeline m_skyboxPipeline;
-
-    IRenderer() {}
-
-    void CreateInternal(Device* pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
+    virtual void CreateInternal(Device* pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
     {
         m_pDevice = pDevice;
         m_width = width;
@@ -101,15 +101,28 @@ class IRenderer
         m_colorImageFormat = colorImageFormat;
 
         // Create color attachment resources for multisampling
-        m_colorImage = Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(), m_colorImageFormat,
-            vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
+        m_colorImage = Image(
+            m_pDevice,
+            width,
+            height,
+            1,
+            m_pDevice->GetMSAASamples(),
+            m_colorImageFormat,
+            vk::ImageTiling::eOptimal,
+            vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
         m_colorImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_colorImage.AddView(vk::ImageAspectFlagBits::eColor);
         m_colorImage.SetDebugName("Renderer Color Attachment");
 
         // Create depth attachment ressources
-        m_depthImage = Image(m_pDevice, width, height, 1, m_pDevice->GetMSAASamples(),
-            m_pDevice->FindDepthFormat(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
+        m_depthImage = Image(
+            m_pDevice,
+            width,
+            height,
+            1,
+            m_pDevice->GetMSAASamples(),
+            m_pDevice->FindDepthFormat(),
+            vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
         m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
         m_depthImage.SetDebugName("Renderer Depth Attachment");
@@ -123,35 +136,37 @@ class IRenderer
         m_renderTargets.clear();
         for (uint32_t i = 0; i < m_targetImages.size(); i++)
         {
-            std::vector<vk::ImageView> attachments = {
-                m_colorImage.GetVkView(),
-                m_depthImage.GetVkView(),
-                m_targetImages[i]->GetVkView(),
-            };
+            std::vector<vk::ImageView> attachments =
+                {
+                    m_colorImage.GetVkView(),
+                    m_depthImage.GetVkView(),
+                    m_targetImages[i]->GetVkView(),
+                };
 
-            vk::FramebufferCreateInfo framebufferInfo = {
-                .renderPass = m_renderpass.GetVkRenderPass(),
-                .attachmentCount = static_cast<uint32_t>(attachments.size()),
-                .pAttachments = attachments.data(),
-                .width = width,
-                .height = height,
-                .layers = 1, // Nb of layers in image array.
-            };
+            vk::FramebufferCreateInfo framebufferInfo =
+                {
+                    .renderPass = m_renderpass.GetVkRenderPass(),
+                    .attachmentCount = static_cast<uint32_t>(attachments.size()),
+                    .pAttachments = attachments.data(),
+                    .width = width,
+                    .height = height,
+                    .layers = 1, // Nb of layers in image array.
+                };
 
-            RenderTarget rt = {
-                .index = i,
-                .framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo),
-                .commandBuffer = std::move(commandBuffers[i]),
-                .fence = vk::Fence(),
-            };
+            RenderTarget rt =
+                {
+                    .index = i,
+                    .framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo),
+                    .commandBuffer = std::move(commandBuffers[i]),
+                    .fence = vk::Fence(),
+                };
 
             m_renderTargets.push_back(std::move(rt));
         }
 
         // Create sync objects
         // Create fences in the signaled state
-        vk::FenceCreateInfo fenceInfo;
-        fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+        vk::FenceCreateInfo fenceInfo = {.flags = vk::FenceCreateFlagBits::eSignaled};
 
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
@@ -161,59 +176,6 @@ class IRenderer
                 .inFlight = m_pDevice->GetVkDevice().createFenceUnique(fenceInfo, nullptr),
             });
         }
-
-        // CreatePipelines();
-    }
-
-    void CreatePipelines()
-    {
-        // ---------------
-        // Static Meshes Pipeline
-        // ---------------
-        m_staticMeshesPipeline = Pipeline(m_pDevice);
-        m_staticMeshesPipeline.SetVertexType<Vertex>();
-        m_staticMeshesPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
-        m_staticMeshesPipeline.SetExtent({m_width, m_height});
-        // TODO: Handle default shader dir in case of separate projects
-        // How do we bundle them ?
-        m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
-        m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
-
-        // TODO: Get rid of the hard-coded descriptor layout registration.
-        // We could discover them from the cache ? Or they could be associated with pipelines when they're created ?
-        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
-        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::StaticMeshComponent>());
-        m_staticMeshesPipeline.Create("pipeline_cache_data.bin");
-        m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Static Meshes Pipeline");
-
-        // ---------------
-        // Skeletal Meshes Pipeline
-        // ---------------
-        m_skeletalMeshesPipeline = Pipeline(m_pDevice);
-        m_skeletalMeshesPipeline.SetVertexType<SkinnedVertex>();
-        m_skeletalMeshesPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
-        m_skeletalMeshesPipeline.SetExtent({m_width, m_height});
-        m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/skeletal_mesh.vert", vk::ShaderStageFlagBits::eVertex);
-        m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
-        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
-        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::SkeletalMeshComponent>());
-        m_skeletalMeshesPipeline.Create("pipeline_cache_data.bin");
-        m_pDevice->SetDebugUtilsObjectName(m_skeletalMeshesPipeline.GetVkPipeline(), "Skeletal Meshes Pipeline");
-
-        // ---------------
-        // Skybox Pipeline
-        // ---------------
-        // TODO: !! Put back skybox
-        // m_skyboxPipeline = Pipeline(m_pDevice);
-        // m_skyboxPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
-        // m_skyboxPipeline.SetExtent({m_width, m_height});
-        // m_skyboxPipeline.RegisterShader("shaders/skybox.vert", vk::ShaderStageFlagBits::eVertex);
-        // m_skyboxPipeline.RegisterShader("shaders/skybox.frag", vk::ShaderStageFlagBits::eFragment);
-        // m_skyboxPipeline.SetDepthTestWriteEnable(true, false);
-        // m_skyboxPipeline.SetRasterizerCullMode(vk::CullModeFlagBits::eNone);
-        // // m_skyboxPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<StaticMeshComponent>());
-        // m_skyboxPipeline.Create("skybox_pipeline_cache_data.bin");
-        // m_pDevice->SetDebugUtilsObjectName(m_skyboxPipeline.GetVkPipeline(), "Skybox Pipeline");
     }
 
     /// @brief Configure and create the render pass. Override this function in derived renderer if necessary.
@@ -335,11 +297,6 @@ class IRenderer
     {
         return m_targetImages[m_activeImageIndex];
     }
-
-    // TODO: Make the pipeline system more modular.
-    // i.e we should be able to register new pipelines according to the users shaders etc
-    Pipeline& GetStaticMeshesPipeline() { return m_staticMeshesPipeline; }
-    Pipeline& GetSkeletalMeshesPipeline() { return m_skeletalMeshesPipeline; }
 };
 } // namespace vkg::render
 } // namespace aln

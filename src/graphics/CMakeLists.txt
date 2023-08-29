@@ -10,7 +10,6 @@ add_library(
     src/shaders.cpp
     src/subpass.cpp
     src/swapchain.cpp
-    src/window.cpp
     src/resources/buffer.cpp
     src/resources/image.cpp
 
@@ -20,14 +19,13 @@ add_library(
     )
 
 set(LIB_INCLUDE_DIRS
-    ${Vulkan_INCLUDE_DIRS} 
     ${STB_INCLUDE_DIR}
     ${CONFIG_INCLUDE_DIRS}
     ${IMGUI_INCLUDE_DIRS}
 )
 
 set(LIB_DEPENDENCIES
-    ${Vulkan_LIBRARIES} glm glfw utils common shaderc assets TracyClient
+    Vulkan::Vulkan glm glfw utils common Vulkan::shaderc assets TracyClient
     assets
 )
 #todo: move assets out ?

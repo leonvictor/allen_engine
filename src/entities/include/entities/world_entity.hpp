@@ -9,21 +9,19 @@
 #include <typeinfo>
 
 #include <common/services/service_provider.hpp>
-#include <utils/uuid.hpp>
+#include <common/uuid.hpp>
 
 namespace aln
 {
-class Engine;
-namespace editor
-{
-class Editor;
-}
+
+class IComponent;
 
 /// @brief The one entity that represents the world. Holds entities and world systems.
 class WorldEntity
 {
-    friend class aln::Engine;
-    friend class aln::editor::Editor;
+    friend class Engine;
+    friend class Editor;
+    friend class EntityInspector;
 
   private:
     EntityMap m_entityMap;
@@ -88,5 +86,14 @@ class WorldEntity
     }
 
     const std::vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
+
+    // -------- Editing
+    // TODO: Disable in prod
+
+    void StartComponentEditing(IComponent* pComponent)
+    {
+        assert(pComponent != nullptr);
+        m_entityMap.StartComponentEditing(m_loadingContext, pComponent);
+    }
 };
 } // namespace aln

@@ -2,8 +2,9 @@
 
 #include <entities/entity_system.hpp>
 #include <entities/spatial_component.hpp>
-#include <reflection/reflection.hpp>
+#include <reflection/type_info.hpp>
 
+#include "../components/animation_graph.hpp"
 #include "../components/animation_player_component.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 
@@ -18,8 +19,9 @@ class AnimationSystem : public IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
-    AnimationPlayerComponent* m_pAnimationPlayerComponent;
-    SkeletalMeshComponent* m_pSkeletalMeshComponent;
+    AnimationGraphComponent* m_pAnimationGraphComponent = nullptr;
+    AnimationPlayerComponent* m_pAnimationPlayerComponent = nullptr;
+    SkeletalMeshComponent* m_pSkeletalMeshComponent = nullptr;
 
   public:
     AnimationSystem()
@@ -27,7 +29,6 @@ class AnimationSystem : public IEntitySystem
         m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::FrameStart, 10);
     }
 
-    // TODO: Hide UpdateContext from users
     void Update(const UpdateContext& ctx) override;
     void RegisterComponent(IComponent* pComponent) override;
     void UnregisterComponent(IComponent* pComponent) override;

@@ -1,185 +1,47 @@
 #include "editor.hpp"
 
-#include "misc/cpp/imgui_stdlib.h"
+#include "assets/animation_graph/animation_graph_workspace.hpp"
+#include "assets/animation_clip_workspace.hpp"
 
+#include <config/path.h>
 #include <assets/handle.hpp>
-#include <common/colors.hpp>
-#include <core/material.hpp>
-#include <core/mesh.hpp>
-#include <core/texture.hpp>
+#include <assets/asset_service.hpp>
+#include <reflection/services/type_registry_service.hpp>
+#include <core/components/camera.hpp>
+#include <core/entity_systems/camera_controller.hpp>
+#include <common/memory.hpp>
+#include <entities/world_entity.hpp>
 
-#include <anim/animation_clip.hpp>
+#include <vulkan/vulkan.hpp>
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <imnodes.h>
+#include <IconsFontAwesome6.h>
+#include <fmt/core.h>
 
-#include <entities/entity_system.hpp>
-
-#include <glm/vec3.hpp>
-
-namespace aln::editor
+namespace aln
 {
-void SetImGuiContext(ImGuiContext* pContext)
+namespace editor
 {
-    ImGui::SetCurrentContext(pContext);
+void SetImGuiContext(const EditorImGuiContext& context)
+{
+    ImGui::SetAllocatorFunctions(*context.m_pAllocFunc, *context.m_pFreeFunc, context.m_pUserData);
+    ImGui::SetCurrentContext(context.m_pImGuiContext);
+
+    ImNodes::SetCurrentContext(context.m_pImNodesContext);
+    ImNodes::SetImGuiContext(context.m_pImGuiContext);
 }
+} // namespace editor
 
-void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData)
-{
-    ImGui::SetAllocatorFunctions(*pAllocFunc, *pFreeFunc, *pUserData);
-}
+Editor::Editor(WorldEntity& worldEntity)
+    : m_worldEntity(worldEntity),
+      m_assetsBrowser(DEFAULT_ASSETS_DIR) {}
 
-template <typename T>
-void Editor::Display(void* obj, const char* label)
+void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context)
 {
-    std::string n = std::type_index(typeid(T)).name();
-    m_displayFuncs.at(std::type_index(typeid(T)))(obj, label);
-}
+    // TODO: Save service on initialization
+    const auto pTypeRegistryService = context.GetService<TypeRegistryService>();
 
-void Editor::Display(std::type_index typeIndex, void* obj, const char* label)
-{
-    m_displayFuncs.at(typeIndex)(obj, label);
-}
-
-void Editor::DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void* obj)
-{
-    ImGui::Indent();
-    {
-        for (auto& member : pType->members)
-        {
-            Editor::Display(member.type->m_typeIndex, (char*) obj + member.offset, member.GetPrettyName().c_str());
-        }
-    }
-    ImGui::Unindent();
-}
-
-template <>
-void Editor::Display<IComponent>(void* ptr, const char* label)
-{
-    auto pComp = (IComponent*) ptr;
-    auto pType = pComp->GetType();
-    DisplayTypeStruct(pType, pComp);
-}
-
-template <>
-void Editor::Display<IEntitySystem>(void* ptr, const char* label)
-{
-    auto pSys = (IEntitySystem*) ptr;
-    auto pType = pSys->GetType();
-    DisplayTypeStruct(pType, pSys);
-}
-
-template <>
-void Editor::Display<int>(void* i, const char* label)
-{
-    ImGui::InputInt(label, (int*) i);
-}
-
-template <>
-void Editor::Display<float>(void* i, const char* label)
-{
-    ImGui::InputFloat(label, (float*) i);
-}
-
-template <>
-void Editor::Display<bool>(void* b, const char* label)
-{
-    ImGui::Checkbox(label, (bool*) b);
-}
-
-template <typename T>
-void Editor::RegisterType()
-{
-    m_displayFuncs[std::type_index(typeid(T))] = std::bind(&Editor::Display<T>, this, std::placeholders::_1, std::placeholders::_2);
-}
-
-template <>
-void Editor::Display<AssetHandle<Mesh>>(void* pHandle, const char* label)
-{
-    auto pMesh = ((AssetHandle<Mesh>*) pHandle)->get();
-    if (ImGui::CollapsingHeader("Mesh"))
-    {
-        // TODO: Edition
-        ImGui::Text(pMesh->GetID().GetAssetPath().c_str());
-    }
-}
-
-template <>
-void Editor::Display<AssetHandle<AnimationClip>>(void* pHandle, const char* label)
-{
-    auto pAnim = ((AssetHandle<AnimationClip>*) pHandle)->get();
-    if (ImGui::CollapsingHeader("AnimationClip"))
-    {
-        // TODO: Edition
-        ImGui::Text(pAnim->GetID().GetAssetPath().c_str());
-    }
-}
-
-template <>
-void Editor::Display<AssetHandle<Material>>(void* pHandle, const char* label)
-{
-    auto pMaterial = ((AssetHandle<Material>*) pHandle)->get();
-
-    if (ImGui::CollapsingHeader("Material"))
-    {
-        // TODO: Edition
-        ImGui::Text(pMaterial->GetID().GetAssetPath().c_str());
-    }
-}
-
-template <>
-void Editor::Display<Texture>(void* pTexture, const char* label)
-{
-    ImGui::Text(((Texture*) pTexture)->GetID().GetAssetPath().c_str());
-}
-
-template <>
-void Editor::Display<aln::RGBAColor>(void* pColor, const char* label)
-{
-    ImGui::ColorEdit4("##picker", (float*) pColor);
-    ImGui::SameLine();
-    ImGui::Text(label);
-}
-
-template <>
-void Editor::Display<aln::RGBColor>(void* pColor, const char* label)
-{
-    ImGui::ColorEdit3("##picker", (float*) pColor);
-    ImGui::SameLine();
-    ImGui::Text(label);
-}
-
-template <>
-void Editor::Display<glm::vec3>(void* ptr, const char* label)
-{
-    glm::vec3* pVec = (glm::vec3*) ptr;
-    ImGui::DragFloat((std::string("x##") + label).c_str(), &pVec->x, 1.0f);
-    ImGui::SameLine();
-    ImGui::DragFloat((std::string("y##") + label).c_str(), &pVec->y, 1.0f);
-    ImGui::SameLine();
-    ImGui::DragFloat((std::string("z##") + label).c_str(), &pVec->z, 1.0f);
-}
-
-template <>
-void Editor::Display<std::string>(void* ptr, const char* label)
-{
-    auto pString = (std::string*) ptr;
-    ImGui::InputText(label, pString, pString->size());
-}
-// Poopy
-Editor::Editor(WorldEntity& worldEntity) : m_worldEntity(worldEntity)
-{
-    RegisterType<int>();
-    RegisterType<float>();
-    RegisterType<bool>();
-    RegisterType<AssetHandle<Mesh>>();
-    RegisterType<AssetHandle<Material>>();
-    RegisterType<AssetHandle<AnimationClip>>();
-    RegisterType<RGBColor>();
-    RegisterType<RGBAColor>();
-    RegisterType<glm::vec3>();
-    RegisterType<std::string>();
-}
-
-void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, float deltaTime)
-{
     // Draw ImGUI components
     ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
@@ -194,14 +56,51 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
         {
             if (ImGui::BeginMenu("File"))
             {
-                ImGui::MenuItem("Item");
+                if (ImGui::MenuItem("New Project"))
+                {
+                }
+                if (ImGui::MenuItem("Open Project"))
+                {
+                }
+                if (ImGui::MenuItem("Save..."))
+                {
+                    SaveScene();
+                    SaveState();
+                    // TODO: Save assets !
+                }
+                if (ImGui::MenuItem("Export..."))
+                {
+                    // TODO: Export a portable folder with everything we need to run a game
+                    // Compile assets / Recompile paths
+                }
+
                 ImGui::EndMenu();
             }
+
             if (ImGui::BeginMenu("View"))
             {
                 ImGui::MenuItem("Item");
                 ImGui::EndMenu();
             }
+
+            if (ImGui::BeginMenu("Assets"))
+            {
+                if (ImGui::BeginMenu("Create..."))
+                {
+                    for (auto pFactory : m_assetWindowsFactory.m_factories)
+                    {
+                        if (ImGui::MenuItem(pFactory->m_assetEditorName.c_str()))
+                        {
+                            // TODO: Handle default asset name better
+                            AssetID id = AssetID(std::string(DEFAULT_ASSETS_DIR) + "/default." + pFactory->m_supportedAssetType.ToString());
+                            CreateAssetWindow(id, false);
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu("Debug"))
             {
                 ImGui::EndMenu();
@@ -217,11 +116,11 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
         {
             // Compute current FPS
             // Use std::format (C++20). Not available in most compilers as of 04/06/2021
-            ImGui::Text(fmt::format("{:.0f} FPS", 1.0f / deltaTime).c_str());
+            ImGui::Text(fmt::format("{:.0f} FPS", 1.0f / context.GetDeltaTime()).c_str());
             ImGui::EndMenuBar();
         }
     }
-    ImGui::End();
+    ImGui::End(); 
 
     if (ImGui::Begin(ICON_FA_GLOBE " Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
     {
@@ -247,183 +146,6 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
         }
     }
     ImGui::End();
-
-    // Inspector panel
-    if (m_pSelectedEntity != nullptr)
-    {
-        if (ImGui::Begin(ICON_FA_INFO_CIRCLE " Inspector", nullptr))
-        {
-            ImGui::PushID(m_pSelectedEntity->GetID().ToString().c_str());
-
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text(ICON_FA_CUBES);
-            ImGui::SameLine();
-            ImGui::InputText("", &m_pSelectedEntity->GetName());
-            ImGui::SameLine(ImGui::GetWindowWidth() - 30);
-
-            if (m_pSelectedEntity->IsActivated())
-            {
-                ImGui::Text(ICON_FA_EYE);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Disable entity");
-                }
-                if (ImGui::IsItemClicked())
-                {
-                    m_worldEntity.DeactivateEntity(m_pSelectedEntity);
-                }
-            }
-            else
-            {
-                ImGui::Text(ICON_FA_EYE_SLASH);
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::SetTooltip("Enable entity");
-                }
-                if (ImGui::IsItemClicked())
-                {
-                    m_worldEntity.ActivateEntity(m_pSelectedEntity);
-                }
-            }
-
-            if (m_pSelectedEntity->IsSpatialEntity())
-            {
-                if (ImGui::CollapsingHeader("Transform"))
-                {
-                    ImGui::PushItemWidth(60);
-
-                    // TODO: vec3 might deserve a helper function to create ui for the 3 components...
-                    // Position
-                    bool changed = false;
-                    auto pos = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetTranslation();
-                    ImGui::Text("Position");
-                    changed |= ImGui::DragFloat("x##Position", &pos.x, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("y##Position", &pos.y, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("z##Position", &pos.z, 1.0f);
-
-                    if (changed)
-                        m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformPosition(pos);
-
-                    // Rotation
-                    changed = false;
-                    ImGui::Text("Rotation");
-                    changed |= ImGui::DragFloat("x##Rotation", &m_currentEulerRotation.x, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("y##Rotation", &m_currentEulerRotation.y, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("z##Rotation", &m_currentEulerRotation.z, 1.0f);
-
-                    if (changed)
-                        m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformRotationEuler(m_currentEulerRotation);
-
-                    // Scale
-                    auto scale = m_pSelectedEntity->GetRootSpatialComponent()->GetLocalTransform().GetScale();
-                    changed = false;
-                    ImGui::Text("Scale");
-                    changed |= ImGui::DragFloat("x##Scale", &scale.x, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("y##Scale", &scale.y, 1.0f);
-                    ImGui::SameLine();
-                    changed |= ImGui::DragFloat("z##Scale", &scale.z, 1.0f);
-
-                    if (changed)
-                        m_pSelectedEntity->GetRootSpatialComponent()->SetLocalTransformScale(scale);
-
-                    ImGui::PopItemWidth();
-                }
-            }
-
-            for (auto pComponent : m_pSelectedEntity->GetComponents())
-            {
-                ImGui::PushID(pComponent->GetID().ToString().c_str());
-
-                auto typeDesc = pComponent->GetType();
-                // TODO: This should happen through the partial template specialization for components
-
-                if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
-                {
-                    InInspector(pComponent, "");
-                }
-
-                if (ImGui::BeginPopupContextItem("context_popup", ImGuiPopupFlags_MouseButtonRight))
-                {
-                    if (ImGui::MenuItem("Remove Component", "", false, true))
-                    {
-                        m_pSelectedEntity->DestroyComponent(pComponent->GetID());
-                    }
-                    ImGui::EndPopup();
-                }
-
-                ImGui::PopID();
-            }
-
-            for (auto pSystem : m_pSelectedEntity->GetSystems())
-            {
-                auto typeDesc = pSystem->GetType();
-
-                ImGui::PushID(typeDesc->GetPrettyName().c_str());
-                if (ImGui::CollapsingHeader(typeDesc->GetPrettyName().c_str()))
-                {
-                    InInspector(pSystem, "");
-                }
-
-                if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
-                {
-                    if (ImGui::MenuItem("Remove System", "", false, true))
-                    {
-                        m_pSelectedEntity->DestroySystem(pSystem->GetType());
-                    }
-                    ImGui::EndPopup();
-                }
-
-                ImGui::PopID();
-            }
-
-            if (ImGui::Button("Add Component"))
-            {
-                // Open a dropdown with all components types
-                ImGui::OpenPopup("add_component_popup");
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button("Add System"))
-            {
-                ImGui::OpenPopup("add_system_popup");
-            }
-
-            if (ImGui::BeginPopup("add_system_popup"))
-            {
-                auto& systemTypes = aln::reflect::GetTypesInScope("SYSTEMS");
-                for (auto& sys : systemTypes)
-                {
-                    if (ImGui::Selectable(sys->GetPrettyName().c_str()))
-                    {
-                        m_pSelectedEntity->CreateSystem(sys);
-                    }
-                }
-                ImGui::EndPopup();
-            }
-
-            if (ImGui::BeginPopup("add_component_popup"))
-            {
-                auto& componentTypes = aln::reflect::GetTypesInScope("COMPONENTS");
-                for (auto& comp : componentTypes)
-                {
-                    if (ImGui::Selectable(comp->GetPrettyName().c_str()))
-                    {
-                        auto newComp = comp->typeHelper->CreateType<IComponent>();
-                        m_pSelectedEntity->AddComponent(newComp);
-                    }
-                }
-                ImGui::EndPopup();
-            }
-
-            ImGui::PopID();
-        }
-        ImGui::End();
-    }
 
     // Outline panel
     if (ImGui::Begin(ICON_FA_LIST " Outline"))
@@ -456,17 +178,29 @@ void Editor::DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, fl
     ImGui::End();
 
     ImGui::ShowDemoWindow();
+
+    // Windows
+    m_assetsBrowser.Update(context);
+    m_entityInspector.Update(context);
+
+    for (auto& [id, pWindow] : m_assetWindows)
+    {
+        pWindow->Update(context);
+    }
+
+    // Process requests by child windows
+    ResolveAssetWindowRequests();
 }
 
 void Editor::RecurseEntityTree(Entity* pEntity)
 {
-    ImGui::PushID(pEntity->GetID().ToString().c_str());
+    ImGui::PushID(pEntity);
     static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
     // Disable the default "open on single-click behavior" + set Selected flag according to our selection.
     ImGuiTreeNodeFlags node_flags = base_flags;
 
-    if (m_pSelectedEntity != nullptr && m_pSelectedEntity == pEntity)
+    if (m_editorWindowContext.m_pSelectedEntity == pEntity)
     {
         node_flags |= ImGuiTreeNodeFlags_Selected;
     }
@@ -489,11 +223,7 @@ void Editor::RecurseEntityTree(Entity* pEntity)
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
-        m_pSelectedEntity = pEntity;
-        if (pEntity->IsSpatialEntity())
-        {
-            m_currentEulerRotation = pEntity->GetRootSpatialComponent()->GetLocalTransform().GetRotationEuler();
-        }
+        m_editorWindowContext.m_pSelectedEntity = pEntity;
     }
 
     if (ImGui::BeginDragDropSource())
@@ -541,34 +271,186 @@ void Editor::RecurseEntityTree(Entity* pEntity)
     ImGui::PopID();
 }
 
-void Editor::EntityOutlinePopup(Entity* pEntity)
+void Editor::EntityOutlinePopup(Entity* pContextEntity)
 {
     if (ImGui::BeginPopupContextItem("entity_outline_popup", ImGuiPopupFlags_MouseButtonRight))
     {
-        auto contextEntityAndNotSpatial = (pEntity != nullptr && !pEntity->IsSpatialEntity());
-
-        if (pEntity != nullptr)
+        if (pContextEntity != nullptr)
         {
-            ImGui::Text(pEntity->GetID().ToString().c_str());
+            ImGui::Text(pContextEntity->GetID().ToString().c_str());
+            ImGui::Separator();
             if (ImGui::MenuItem("Remove Entity"))
             {
-                if (m_pSelectedEntity == pEntity)
+                if (m_editorWindowContext.m_pSelectedEntity == pContextEntity)
                 {
-                    m_pSelectedEntity = nullptr;
+                    m_editorWindowContext.m_pSelectedEntity = nullptr;
                 }
-                m_worldEntity.m_entityMap.RemoveEntity(pEntity);
+                m_worldEntity.m_entityMap.RemoveEntity(pContextEntity);
             }
         }
-        if (ImGui::MenuItem("Add Empty Entity", "", false, pEntity == nullptr))
+
+        if (ImGui::MenuItem("Create Empty Entity", "", false, pContextEntity == nullptr))
         {
-            auto* pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
-            // TODO: This will be useful with other options, but empty entities are not spatial so they can't be attached to others.
-            // if (pEntity != nullptr)
-            // {
-            //     pNewEntity->SetParentEntity(pEntity);
-            // }
+            auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
         }
+
+        ImGui::Separator();
+
+        // Clipboard management
+        // TODO: Handle keyboard shortcuts
+        // TODO: Handle removing, copying, pasting, hierarchies of entities
+        // TODO: Handle removing, copying, pasting, multiple selected entities
+        if (pContextEntity != nullptr)
+        {
+            if (ImGui::MenuItem("Cut", "Ctrl + X"))
+            {
+                m_entityClipboard = EntityDescriptor(pContextEntity, m_pTypeRegistryService);
+                if (m_editorWindowContext.m_pSelectedEntity == pContextEntity)
+                {
+                    m_editorWindowContext.m_pSelectedEntity = nullptr;
+                }
+                m_worldEntity.m_entityMap.RemoveEntity(pContextEntity);
+            }
+
+            if (ImGui::MenuItem("Copy", "Ctrl + C"))
+            {
+                m_entityClipboard = EntityDescriptor(pContextEntity, m_pTypeRegistryService);
+            }
+        }
+
+        if (ImGui::MenuItem("Paste", "Ctrl + V", false, m_entityClipboard.IsValid()))
+        {
+            // TODO: Disable paste on non-spatial entities
+            auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("");
+            m_entityClipboard.InstanciateEntity(pNewEntity, m_pTypeRegistryService);
+            if (pContextEntity != nullptr)
+            {
+                pNewEntity->SetParentEntity(pContextEntity);
+            }
+        }
+
         ImGui::EndPopup();
     }
 }
-} // namespace aln::editor
+
+void Editor::CreateAssetWindow(const AssetID& id, bool readAssetFile)
+{
+    assert(id.IsValid());
+
+    // TODO: Wouldn't be necessary with a default asset editor window
+    if (!m_assetWindowsFactory.IsTypeRegistered(id.GetAssetTypeID()))
+    {
+        return;
+    }
+
+    auto [it, inserted] = m_assetWindows.try_emplace(id, nullptr);
+    if (inserted)
+    {
+        it->second = m_assetWindowsFactory.CreateWorkspace(id.GetAssetTypeID());
+        it->second->Initialize(&m_editorWindowContext, id, readAssetFile);
+    }
+}
+
+void Editor::RemoveAssetWindow(const AssetID& id)
+{
+    assert(id.IsValid());
+
+    auto pWindow = m_assetWindows.extract(id).mapped();
+    pWindow->Shutdown();
+    aln::Delete(pWindow);
+}
+
+void Editor::ResolveAssetWindowRequests()
+{
+    for (auto& assetID : m_editorWindowContext.m_requestedAssetWindowsDeletions)
+    {
+        RemoveAssetWindow(assetID);
+    }
+    m_editorWindowContext.m_requestedAssetWindowsDeletions.clear();
+
+    for (auto& assetID : m_editorWindowContext.m_requestedAssetWindowsCreations)
+    {
+        // TODO: Find the right window type
+        CreateAssetWindow(assetID, true);
+    }
+    m_editorWindowContext.m_requestedAssetWindowsCreations.clear();
+}
+
+void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath)
+{
+    m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+
+    // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
+    m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
+    m_editorWindowContext.m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+    m_editorWindowContext.m_pWorldEntity = &m_worldEntity;
+
+    m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
+    // TODO: Animation clips can't be created from scratch in the editor. Remove them from the list
+    m_assetWindowsFactory.RegisterFactory<AnimationClip, AnimationClipEditorWindowFactory>("Animation Clip");
+
+    m_assetsBrowser.Initialize(&m_editorWindowContext);
+    m_entityInspector.Initialize(&m_editorWindowContext);
+
+    m_scenePath = scenePath;
+
+    // TODO: Usability stuff: automatically load last used scene etc
+    if (std::filesystem::exists(scenePath))
+    {
+        LoadScene();
+        LoadState();
+    }
+    else
+    {
+        m_pCamera = aln::New<Camera>();
+        m_pEditorEntity = m_worldEntity.m_entityMap.CreateEntity("Editor");
+        m_pEditorEntity->AddComponent(m_pCamera);
+        m_pEditorEntity->CreateSystem<EditorCameraController>();
+    }
+}
+
+void Editor::Shutdown()
+{
+    for (auto& [id, pWindow] : m_assetWindows)
+    {
+        pWindow->Shutdown();
+        aln::Delete(pWindow);
+    }
+    m_assetWindows.clear();
+
+    m_assetsBrowser.Shutdown();
+    m_entityInspector.Shutdown();
+
+    ReflectedTypeEditor::Shutdown();
+}
+
+void Editor::SaveScene() const
+{
+    EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_worldEntity.m_entityMap, *m_pTypeRegistryService);
+    BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Write);
+    archive << mapDescriptor;
+}
+
+void Editor::LoadScene()
+{
+    // TODO
+    EntityMapDescriptor mapDescriptor;
+    BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Read);
+    archive >> mapDescriptor;
+
+    mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, m_worldEntity.m_loadingContext, *m_pTypeRegistryService);
+}
+
+void Editor::SaveState() const
+{
+    // TODO: Save the current state of the editor
+    // including all subwindows
+    for (auto& [assetID, pWindow] : m_assetWindows)
+    {
+    }
+}
+
+void Editor::LoadState()
+{
+}
+} // namespace aln

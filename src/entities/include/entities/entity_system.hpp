@@ -2,16 +2,16 @@
 
 #include <assert.h>
 
-#include "../update_stages.hpp"
-
 #include "update_context.hpp"
 #include "world_update.hpp"
+
+#include <common/update_stages.hpp>
+#include <reflection/reflected_type.hpp>
 
 #include <map>
 #include <string>
 #include <vector>
 
-#include <reflection/reflection.hpp>
 
 namespace aln
 {
@@ -19,15 +19,10 @@ namespace aln
 class Entity;
 class IComponent;
 
-namespace impl
-{
-
 /// @brief Abstract base class for systems operating on entities. Systems are singletons (only one of each type associated to an entity).
 /// Systems are added to a single entity an can only operate on its components.
-class IEntitySystem
+class IEntitySystem : public reflect::IReflected
 {
-    ALN_REGISTER_TYPE();
-
     friend Entity;
 
   protected:
@@ -55,6 +50,4 @@ class IEntitySystem
     virtual ~IEntitySystem() {}
     std::string GetName() const { return m_name; }
 };
-} // namespace impl
-using impl::IEntitySystem;
 } // namespace aln

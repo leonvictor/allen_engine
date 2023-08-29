@@ -1,72 +1,102 @@
 #pragma once
 
-#include <assert.h>
-#include <concepts>
-#include <functional>
-#include <typeindex>
+#include "assets/animation_graph/animation_graph_workspace.hpp"
+#include "asset_editor_workspace.hpp"
+#include "assets_browser.hpp"
+#include "editor_window.hpp"
+#include "entity_inspector.hpp"
+#include "reflected_types/reflected_type_editor.hpp"
 
-#include <vulkan/vulkan.hpp>
+#include <entities/entity_descriptors.hpp>
 
-#include <imgui.h>
-
-#include <IconsFontAwesome4.h>
-#include <imgui_internal.h>
-#include <imgui_stdlib.h>
-
-#include <glm/gtc/random.hpp>
 #include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
 
-#include <fmt/core.h>
+#include <filesystem>
+#include <map>
 
-#include <common/memory.hpp>
-#include <reflection/reflection.hpp>
-
-#include <entities/component.hpp>
-#include <entities/entity.hpp>
-#include <entities/spatial_component.hpp>
-#include <entities/world_entity.hpp>
-
-namespace aln::editor
+namespace vk
 {
-// ImGui methods to set the context and allocator functions in case reflection is in a separate library.
-void SetImGuiContext(ImGuiContext* pContext);
-void SetImGuiAllocatorFunctions(ImGuiMemAllocFunc* pAllocFunc, ImGuiMemFreeFunc* pFreeFunc, void** pUserData);
+class DescriptorSet;
+}
+
+struct ImNodesContext;
+struct ImGuiContext;
+typedef void* (*ImGuiMemAllocFunc)(size_t, void*);
+typedef void (*ImGuiMemFreeFunc)(void*, void*);
+
+namespace aln
+{
+class Entity;
+class Camera;
+class WorldEntity;
+class TypeRegistryService;
+class ServiceProvider;
+
+struct EditorImGuiContext
+{
+    ImGuiContext* m_pImGuiContext = nullptr;
+    ImNodesContext* m_pImNodesContext = nullptr;
+    ImGuiMemAllocFunc m_pAllocFunc = nullptr;
+    ImGuiMemFreeFunc m_pFreeFunc = nullptr;
+    void* m_pUserData = nullptr;
+};
+
+namespace editor
+{
+/// @brief Set ImGui contexts and allocator functions in case reflection is in a separate library.
+void SetImGuiContext(const EditorImGuiContext& context);
+} // namespace editor
 
 class Editor
 {
   private:
+    std::filesystem::path m_scenePath;
+
     WorldEntity& m_worldEntity;
-    Entity* m_pSelectedEntity = nullptr;
-    glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
+    Entity* m_pEditorEntity = nullptr;
+    Camera* m_pCamera = nullptr;
+
+    EntityDescriptor m_entityClipboard;
+
+    const TypeRegistryService* m_pTypeRegistryService = nullptr;
+
+    EditorWindowContext m_editorWindowContext;
+
+    AssetEditorWindowsFactories m_assetWindowsFactory;
+    std::map<AssetID, IAssetWorkspace*> m_assetWindows;
+
+    // TODO: Handle widget lifetime. For now they're always here !
+    AssetsBrowser m_assetsBrowser;
+    EntityInspector m_entityInspector;
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
 
-    std::unordered_map<std::type_index, std::function<void(void*, const char*)>> m_displayFuncs;
-
-    template <typename T>
-    void RegisterType();
-
-    template <typename T>
-    void Display(void* obj, const char* label);
-    void Display(std::type_index typeIndex, void* obj, const char* label);
-
-    template <typename T>
-    void InInspector(T* obj, const char* label) { Display<T>(obj, label); }
-
-    void DisplayTypeStruct(const reflect::TypeDescriptor_Struct* pType, void* obj);
     void EntityOutlinePopup(Entity* pEntity = nullptr);
     void RecurseEntityTree(Entity* pEntity);
+
+    void ResolveAssetWindowRequests();
 
   public:
     Editor(WorldEntity& worldEntity);
 
-    const glm::vec2& GetScenePreviewSize() const
-    {
-        return {m_scenePreviewWidth, m_scenePreviewHeight};
-    }
+    // -------------------
+    // Editor Lifetime
+    //--------------------
+    void Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath);
+    void Shutdown();
+    void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);
 
-    void DrawUI(const vk::DescriptorSet& renderedSceneImageDescriptorSet, float deltaTime);
+    const glm::vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
+
+    void CreateAssetWindow(const AssetID& id, bool readAssetFile);
+    void RemoveAssetWindow(const AssetID& id);
+
+    void SaveScene() const;
+    void LoadScene();
+
+    void SaveState() const;
+    void LoadState();
+
 };
-} // namespace aln::editor
+} // namespace aln

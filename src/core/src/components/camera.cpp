@@ -5,6 +5,14 @@
 namespace aln
 {
 
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, Camera)
+ALN_REFLECT_BASE(SpatialComponent)
+ALN_REFLECT_MEMBER(fov, Field of View)
+ALN_REFLECT_MEMBER(nearPlane, Near Plane)
+ALN_REFLECT_MEMBER(farPlane, Far Plane)
+ALN_REFLECT_MEMBER(m_backgroundColor, Background Color)
+ALN_REGISTER_IMPL_END()
+
 glm::mat4 Camera::GetViewMatrix() const
 {
     Transform t = GetWorldTransform();
@@ -22,11 +30,4 @@ glm::mat4 Camera::GetViewProjectionMatrix(float aspectRatio) const
 {
     return GetProjectionMatrix(aspectRatio) * GetViewMatrix();
 }
-
-ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::Camera)
-ALN_REFLECT_MEMBER(fov)
-ALN_REFLECT_MEMBER(nearPlane)
-ALN_REFLECT_MEMBER(farPlane)
-ALN_REFLECT_MEMBER(m_backgroundColor)
-ALN_REGISTER_IMPL_END()
 } // namespace aln
