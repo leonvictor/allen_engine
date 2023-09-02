@@ -21,7 +21,8 @@ class PassthroughRuntimeNode : public PoseRuntimeNode
       public:
         virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
-            auto pNode = CreateNode<PassthroughRuntimeNode>(nodePtrs, options);
+            // TODO: Make sure the node has already been created
+            auto pNode = reinterpret_cast<PassthroughRuntimeNode*>(nodePtrs[GetNodeIndex()]);
             SetNodePtrFromIndex(nodePtrs, m_childNodeIdx, pNode->m_pChildNode);
         }
     };

@@ -18,9 +18,32 @@ enum class BranchState : uint8_t
     Active,
 };
 
+/// @brief Holds all events sampled during a frame
 struct SampledEventsBuffer
 {
-    // TODO
+    using Iterator = std::vector<SampledEvent>::iterator;
+    
+    std::vector<SampledEvent> m_events;
+
+    SampledEvent& EmplaceStateEvent(NodeIndex sourceNodeIdx, const StringID& eventID)
+    {
+        return m_events.emplace_back(sourceNodeIdx, eventID);
+    }
+
+    void Clear() {        m_events.clear();}
+    bool Empty() const { return m_events.empty(); }
+    const std::vector<SampledEvent>& GetSampledEvents() const { return m_events; }
+
+    Iterator begin() { return m_events.begin(); }
+    Iterator end() { return m_events.end(); }
+
+};
+
+/// @brief The events sampled by a node during a frame, represented by the indices of said events in the buffer 
+struct SampledEventRange
+{
+    uint32_t m_startEventIdx = InvalidIndex;
+    uint32_t m_endEventIdx = InvalidIndex;
 };
 
 struct BoneMasksPool
@@ -49,7 +72,7 @@ class GraphContext
     Seconds m_deltaTime = 0.0f;
     Transform m_worldTransform = Transform::Identity;        // World transform of the considered character this frame
     Transform m_worldTransformInverse = Transform::Identity; // Inverse world transform of the character this frame
-    SampledEventsBuffer m_sampledEvents;                     // Event buffer to fill with sampled events
+    SampledEventsBuffer m_sampledEventsBuffer;                     // Event buffer to fill with sampled events
     uint32_t m_updateId = 0;
     BranchState m_branchState = BranchState::Active;
 
@@ -80,7 +103,7 @@ class GraphContext
         m_worldTransform = Transform::Identity;
         m_worldTransformInverse = Transform::Identity;
         m_branchState = BranchState::Active;
-        // m_sampledEvents // TODO: Reset
+        m_sampledEventsBuffer.Clear();
     }
 
     void Shutdown()
@@ -88,6 +111,7 @@ class GraphContext
         m_pSkeleton = nullptr;
         m_pPreviousPose = nullptr;
         m_pTaskSystem = nullptr;
+        m_sampledEventsBuffer.Clear();
         // TODO
     }
 
@@ -99,6 +123,7 @@ class GraphContext
         m_deltaTime = deltaTime;
         m_worldTransform = currentWorldTransform;
         m_worldTransformInverse = currentWorldTransform.GetInverse();
+        m_sampledEventsBuffer.Clear();
     }
 
 // Debugging

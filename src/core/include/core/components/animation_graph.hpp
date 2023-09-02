@@ -61,6 +61,9 @@ class AnimationGraphComponent : public IComponent
         return m_pGraphInstance->GetControlParameterValue<T>(m_graphContext, parameterIndex);
     }
 
+    // ---- Events
+    const SampledEventsBuffer& GetSampledEventsBuffer() const { return m_graphContext.m_sampledEventsBuffer; } 
+
     // --------- Evaluation/Execution
     /// @todo Maybe this could only be accessed by the animation system ?
     

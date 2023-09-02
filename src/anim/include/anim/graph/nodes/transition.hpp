@@ -111,6 +111,7 @@ class TransitionRuntimeNode : public PoseRuntimeNode
 
     void ShutdownInternal() override
     {
+        m_pEndNode->m_transitionState = StateRuntimeNode::TransitionState::None;
         m_transitionDuration = 0.0f;
         m_transitionProgress = 0.0f;
         PoseRuntimeNode::ShutdownInternal();
