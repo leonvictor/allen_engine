@@ -25,4 +25,4 @@ debug.ppm
 include/config/*.h
 
 # Development baked assets folders
-assets/*
+/assets
