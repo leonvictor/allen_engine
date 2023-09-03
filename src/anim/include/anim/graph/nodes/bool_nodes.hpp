@@ -36,7 +36,7 @@ class BoolAndRuntimeNode : public BoolValueNode
     {
         assert(context.IsValid());
         
-        const auto inputValue1 = m_pInputValueNode2->GetValue<bool>(context);
+        const auto inputValue1 = m_pInputValueNode1->GetValue<bool>(context);
         const auto inputValue2 = m_pInputValueNode2->GetValue<bool>(context);
         *((bool*) pValue) = inputValue1 && inputValue2;
     }
@@ -85,7 +85,7 @@ class BoolOrRuntimeNode : public BoolValueNode
     {
         assert(context.IsValid());
 
-        const auto inputValue1 = m_pInputValueNode2->GetValue<bool>(context);
+        const auto inputValue1 = m_pInputValueNode1->GetValue<bool>(context);
         const auto inputValue2 = m_pInputValueNode2->GetValue<bool>(context);
         *((bool*) pValue) = inputValue1 || inputValue2;
     }
