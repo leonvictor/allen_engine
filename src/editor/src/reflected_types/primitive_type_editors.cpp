@@ -68,6 +68,25 @@ class BoolEditor : public IPrimitiveTypeEditor
     }
 };
 
+class StringEditor : public IPrimitiveTypeEditor
+{
+    std::string m_editingValue;
+    std::string* m_pInstanceValue;
+
+    bool DrawWidget(std::byte* pTypeInstance) override
+    {
+        m_pInstanceValue = reinterpret_cast<std::string*>(pTypeInstance);
+        m_editingValue = *m_pInstanceValue;
+
+        return ImGui::InputText("##String", &m_editingValue);
+    }
+
+    void UpdateValue() override
+    {
+        *m_pInstanceValue = m_editingValue;
+    }
+};
+
 class Color4Editor : public IPrimitiveTypeEditor
 {
     RGBAColor m_editingValue;
@@ -210,6 +229,10 @@ IPrimitiveTypeEditor* IPrimitiveTypeEditor::CreateEditor(const StringID& typeID)
     if (typeID == aln::reflect::TypeInfoResolver<RGBAColor>::Get()->GetTypeID())
     {
         return aln::New<Color4Editor>();
+    }
+    if (typeID == aln::reflect::TypeInfoResolver<std::string>::Get()->GetTypeID())
+    {
+        return aln::New<StringEditor>();
     }
 }
 } // namespace aln

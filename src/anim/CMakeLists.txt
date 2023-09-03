@@ -17,6 +17,7 @@ add_library(${LIB_NAME} SHARED
     src/graph/nodes/state.cpp
     src/graph/nodes/transition.cpp
     src/graph/nodes/state_machine.cpp
+    src/graph/nodes/event_condition_node.cpp
 
     src/graph/tasks/sample_task.cpp
     
