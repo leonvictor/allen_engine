@@ -24,6 +24,7 @@ class StateRuntimeNode : public PassthroughRuntimeNode
       private:
         StringID m_entryEventID = StringID::InvalidID;
         StringID m_exitEventID = StringID::InvalidID;
+        StringID m_inStateEventID = StringID::InvalidID;
 
       public:
         virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
@@ -75,6 +76,10 @@ class StateRuntimeNode : public PassthroughRuntimeNode
         else if (IsTransitioningOut())
         {
             auto& sampledExitEvent = context.m_sampledEventsBuffer.EmplaceStateEvent(GetNodeIndex(), pSettings->m_exitEventID);
+        }
+        else
+        {
+            context.m_sampledEventsBuffer.EmplaceStateEvent(GetNodeIndex(), pSettings->m_inStateEventID);
         }
 
         return result;
