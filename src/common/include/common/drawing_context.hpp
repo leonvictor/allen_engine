@@ -24,11 +24,11 @@ class DrawingContext
     {
         auto& startVertex = m_vertices.emplace_back();
         startVertex.pos = start;
-        startVertex.color = color;
+        startVertex.color = color.Vec3();
 
         auto& endVertex = m_vertices.emplace_back();
         endVertex.pos = end;
-        endVertex.color = color;
+        endVertex.color = color.Vec3();
     }
 
     /// @brief Draw the 3 coordinate axis of the given transform
