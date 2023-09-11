@@ -26,6 +26,11 @@ NodeIndex StateEditorNode::Compile(AnimationGraphCompilationContext& context, An
     bool compiled = context.GetSettings<StateRuntimeNode>(this, graphDefinition, pSettings);
     if (!compiled)
     {
+        // TODO: For now event IDs are generated from the state name. Find something more robust ?
+        pSettings->m_entryEventID = StringID(m_name + "_StateEntry");
+        pSettings->m_exitEventID = StringID(m_name + "_StateExit");
+        pSettings->m_inStateEventID = StringID(m_name + "_InState");
+        
         auto pChildBlendTree = static_cast<const EditorAnimationGraph*>(GetChildGraph());
         pSettings->m_childNodeIdx = pChildBlendTree->CompileDefinition(context, graphDefinition);
         if (pSettings->m_childNodeIdx == InvalidIndex)

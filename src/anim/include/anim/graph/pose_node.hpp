@@ -1,4 +1,4 @@
-    #pragma once
+#pragma once
 
 #include <assert.h>
 #include <vector>
@@ -14,10 +14,6 @@
 namespace aln
 {
 
-struct SampledEventRange
-{
-};
-
 struct PoseNodeResult
 {
     TaskIndex m_taskIndex = InvalidIndex;              // Registered task index
@@ -32,7 +28,7 @@ class PoseRuntimeNode : public RuntimeGraphNode
 {
   protected:
     uint32_t m_loopCount = 0;
-    Seconds m_duration = 0.0f; // Duration of the resulting animation
+    Seconds m_duration = 0.0f;        // Duration of the resulting animation
     Percentage m_currentTime = 0.0f;  // Clamped percentage over the duration
     Percentage m_previousTime = 0.0f; // Clamped percentage over the duration
 

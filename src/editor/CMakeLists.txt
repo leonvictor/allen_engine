@@ -23,6 +23,7 @@ add_library(${LIB_NAME}
     src/assets/animation_graph/nodes/state_machine_editor_node.cpp
     src/assets/animation_graph/nodes/transition_editor_node.cpp
     src/assets/animation_graph/nodes/state_editor_node.cpp
+    src/assets/animation_graph/nodes/event_condition_editor_node.cpp
     src/assets/animation_graph/editor_animation_graph.cpp   
     src/assets/animation_graph/editor_animation_state_machine.cpp
 

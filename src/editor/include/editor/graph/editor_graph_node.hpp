@@ -62,6 +62,22 @@ class EditorGraphNode : public reflect::IReflected
         return nodeWidth;
     }
 
+    virtual void PushNodeStyle(const GraphDrawingContext& ctx) const
+    {
+        auto colorScheme = ctx.GetTypeColorScheme(GetValueType());
+
+        ImNodes::PushColorStyle(ImNodesCol_TitleBar, colorScheme.m_defaultColor.U32());
+        ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, colorScheme.m_hoveredColor.U32());
+        ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, colorScheme.m_selectedColor.U32());
+    }
+
+    virtual void PopNodeStyle(const GraphDrawingContext& ctx) const
+    {
+        ImNodes::PopColorStyle();
+        ImNodes::PopColorStyle();
+        ImNodes::PopColorStyle();
+    }
+
   protected:
     std::string m_name;
 
@@ -168,7 +184,10 @@ class EditorGraphNode : public reflect::IReflected
 
     virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx)
     {
-        ImNodes::PushColorStyle(ImNodesCol_Pin, ctx.GetTypeColor(pin.GetValueType()).U32());
+        auto colorScheme = ctx.GetTypeColorScheme(pin.GetValueType());
+        ImNodes::PushColorStyle(ImNodesCol_Pin, colorScheme.m_defaultColor.U32());
+        ImNodes::PushColorStyle(ImNodesCol_PinHovered, colorScheme.m_hoveredColor.U32());
+
         if (pin.IsInput())
         {
             ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
@@ -204,6 +223,8 @@ class EditorGraphNode : public reflect::IReflected
             ImNodes::EndOutputAttribute();
             ImNodes::PopAttributeFlag();
         }
+
+        ImNodes::PopColorStyle();
         ImNodes::PopColorStyle();
 
         return true;
@@ -325,10 +346,12 @@ class EditorGraphNode : public reflect::IReflected
     void LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService);
 
     // ---- Drawing
+
     void DrawNode(GraphDrawingContext& ctx)
     {
         ctx.m_currentNodeWidth = CalcNodeWidth();
 
+        PushNodeStyle(ctx);
         ImNodes::BeginNode(GetID());
 
         DrawNodeTitleBar(ctx);
@@ -347,6 +370,7 @@ class EditorGraphNode : public reflect::IReflected
         }
 
         ImNodes::EndNode();
+        PopNodeStyle(ctx);
     }
 
     bool operator==(const EditorGraphNode& other) { return m_id == other.m_id; }

@@ -13,7 +13,7 @@ LightUniform Light::GetUniform()
     LightUniform u;
     u.position = glm::vec4(t.GetTranslation(), (float) type);
     u.direction = glm::vec4(direction, range);
-    u.color = glm::vec4(m_color, intensity);
+    u.color = glm::vec4(m_color.Vec3(), intensity);
 
     return u;
 }

@@ -13,13 +13,20 @@ class StateRuntimeNode : public PassthroughRuntimeNode
     friend class TransitionRuntimeNode;
 
   public:
-    struct Settings : public PassthroughRuntimeNode::Settings
+    class Settings : public PassthroughRuntimeNode::Settings
     {
         ALN_REGISTER_TYPE();
 
         friend class AnimationGraphCompilationContext;
         friend class StateEditorNode;
+        friend class StateRuntimeNode;
 
+      private:
+        StringID m_entryEventID = StringID::InvalidID;
+        StringID m_exitEventID = StringID::InvalidID;
+        StringID m_inStateEventID = StringID::InvalidID;
+
+      public:
         virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<StateRuntimeNode>(nodePtrs, options);
@@ -59,8 +66,21 @@ class StateRuntimeNode : public PassthroughRuntimeNode
     {
         auto result = PassthroughRuntimeNode::Update(context);
         m_timeSpentInState += context.m_deltaTime;
+        
+        auto pSettings = GetSettings<StateRuntimeNode>();
 
-        // TODO: Sample events
+        if (IsTransitioningIn())
+        {
+            auto& sampledEntryEvent = context.m_sampledEventsBuffer.EmplaceStateEvent(GetNodeIndex(), pSettings->m_entryEventID);
+        }
+        else if (IsTransitioningOut())
+        {
+            auto& sampledExitEvent = context.m_sampledEventsBuffer.EmplaceStateEvent(GetNodeIndex(), pSettings->m_exitEventID);
+        }
+        else
+        {
+            context.m_sampledEventsBuffer.EmplaceStateEvent(GetNodeIndex(), pSettings->m_inStateEventID);
+        }
 
         return result;
     }
@@ -70,23 +90,33 @@ class StateRuntimeNode : public PassthroughRuntimeNode
         auto result = PassthroughRuntimeNode::Update(context, updateRange);
         m_timeSpentInState += context.m_deltaTime;
 
-        // TODO: Sample events
+        auto pSettings = GetSettings<StateRuntimeNode>();
+
+        if (IsTransitioningIn())
+        {
+            auto& sampledEntryEvent = context.m_sampledEventsBuffer.EmplaceStateEvent(GetNodeIndex(), pSettings->m_entryEventID);
+        }
+        else if (IsTransitioningOut())
+        {
+            auto& sampledExitEvent = context.m_sampledEventsBuffer.EmplaceStateEvent(GetNodeIndex(), pSettings->m_exitEventID);
+        }
 
         return result;
     }
 
     void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
-        PassthroughRuntimeNode::Initialize(context, initialTime);
+        PassthroughRuntimeNode::InitializeInternal(context, initialTime);
         m_transitionState = TransitionState::None;
         m_timeSpentInState = 0.0f;
+        
     }
 
     void ShutdownInternal() override
     {
         m_timeSpentInState = 0.0f;
         m_transitionState = TransitionState::None;
-        PassthroughRuntimeNode::Shutdown();
+        PassthroughRuntimeNode::ShutdownInternal();
     }
 };
 } // namespace aln

@@ -45,7 +45,11 @@ static std::string PrettifyName(const char* originalName)
     {
         if (std::isupper(prettyName[i]))
         {
-            prettyName.insert(i++, " ");
+            // Skip "ID" 
+            if (!(prettyName[i] == 'D' && prettyName[i - 1] == 'I'))
+            {
+                prettyName.insert(i++, " ");
+            }
         }
     }
 

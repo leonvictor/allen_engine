@@ -5,29 +5,56 @@
 
 #include <aln_common_export.h>
 
-// TODO: Move to core
 namespace aln
 {
 
-/// @brief Represents an RGB Color
-/// @todo vec3 is overkill, colors can be represented on 3*8bits
-class ALN_COMMON_EXPORT RGBColor : public glm::vec3
+// fwd
+class RGBColor;
+
+class ALN_COMMON_EXPORT HSVColor
 {
-    static_assert(std::is_trivial_v<glm::vec3>);
+  public:
+    float m_hue;        // [0, 360]
+    float m_saturation; // [0, 1]
+    float m_value;      // [0, 1]
+
+  public:
+    HSVColor() = default;
+    HSVColor(float hue, float saturation, float value) : m_hue(hue), m_saturation(saturation), m_value(value)
+    {
+        assert(m_hue >= 0.0f && m_hue <= 360.0f);
+        assert(m_saturation >= 0.0f && m_saturation <= 1.0f);
+        assert(m_value >= 0.0f && m_value <= 1.0f);
+    }
+
+    RGBColor ToRGB() const;
+};
+
+class ALN_COMMON_EXPORT RGBColor
+{
+  private:
+    uint8_t m_red; 
+    uint8_t m_green;
+    uint8_t m_blue;
 
   public:
     RGBColor() = default;
-    RGBColor(float r, float g, float b) : glm::vec3(r, g, b) {}
+    RGBColor(uint8_t red, uint8_t green, uint8_t blue) : m_red(red), m_green(green), m_blue(blue) {}
+
+    static RGBColor FromFloat(float red, float green, float blue)
+    {
+        assert(red >= 0.0f && red <= 1.0f);
+        assert(green >= 0.0f && green <= 1.0f);
+        assert(blue >= 0.0f && blue <= 1.0f);
+        return RGBColor(red * 255, green * 255, blue * 255);    
+    }
+
+    HSVColor ToHSV() const;
 
     /// @brief Convert to a 32-bit integer
-    uint32_t U32() const {
-        uint32_t out;
-        out = ((uint32_t) (this->x * 255.0f + 0.5f));
-        out |= ((uint32_t) (this->y * 255.0f + 0.5f)) << 8;
-        out |= ((uint32_t) (this->z * 255.0f + 0.5f)) << 16;
-        out |= (uint32_t) 255 << 24;
-        return out;
-    }
+    uint32_t U32() const { return m_red | m_green << 8 | m_blue << 16 | 255 << 24; }
+
+    glm::vec3 Vec3() const { return {m_red, m_green, m_blue}; }
 
     static const RGBColor Red;
     static const RGBColor Pink;
