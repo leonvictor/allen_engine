@@ -5,9 +5,9 @@
 
 #include "aln_imgui_widgets.hpp"
 #include "assets/animation_graph/editor_animation_state_machine.hpp"
-#include "assets/animation_graph/nodes/state_editor_node.hpp"
 #include "assets/animation_graph/nodes/control_parameter_editor_nodes.hpp"
 #include "assets/animation_graph/nodes/parameter_reference_editor_node.hpp"
+#include "assets/animation_graph/nodes/state_editor_node.hpp"
 
 #include <common/event.hpp>
 
@@ -375,12 +375,19 @@ class GraphView
         }
 
         // Draw links
-        for (auto& link : m_pGraph->m_links)
+        for (const auto& link : m_pGraph->m_links)
         {
             const auto pPin = m_pGraph->m_pinLookupMap[link.m_inputPinID];
+            auto colorScheme = drawingContext.GetTypeColorScheme(pPin->GetValueType());
 
-            ImNodes::PushColorStyle(ImNodesCol_Link, drawingContext.GetTypeColor(pPin->GetValueType()).U32());
+            ImNodes::PushColorStyle(ImNodesCol_Link, colorScheme.m_defaultColor.U32());
+            ImNodes::PushColorStyle(ImNodesCol_LinkHovered, colorScheme.m_hoveredColor.U32());
+            ImNodes::PushColorStyle(ImNodesCol_LinkSelected, colorScheme.m_selectedColor.U32());
+
             ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
+            
+            ImNodes::PopColorStyle();
+            ImNodes::PopColorStyle();
             ImNodes::PopColorStyle();
         }
 

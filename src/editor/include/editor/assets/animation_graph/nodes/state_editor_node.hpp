@@ -12,6 +12,14 @@ class StateEditorNode : public EditorAnimationGraphNode
     ALN_REGISTER_TYPE()
 
   private:
+    void PushNodeStyle(const GraphDrawingContext& ctx) const override
+    {
+    }
+
+    void PopNodeStyle(const GraphDrawingContext& ctx) const override
+    {
+    }
+
   protected:
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
     {
