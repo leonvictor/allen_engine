@@ -290,6 +290,9 @@ class SceneRenderer : public vkg::render::IRenderer
 
     void CreatePipelines()
     {
+        // TODO: Handle default shader dir in case of separate projects
+        // How do we bundle them ?
+
         // ---------------
         // Static Meshes Pipeline
         // ---------------
@@ -297,18 +300,15 @@ class SceneRenderer : public vkg::render::IRenderer
         m_staticMeshesPipeline.SetVertexType<Vertex>();
         m_staticMeshesPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
         m_staticMeshesPipeline.SetExtent({m_width, m_height});
-        // TODO: Handle default shader dir in case of separate projects
-        // How do we bundle them ?
         m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
         m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
-
-        // TODO: Get rid of the hard-coded descriptor layout registration.
-        // We could discover them from the cache ? Or they could be associated with pipelines when they're created ?
+        m_staticMeshesPipeline.AddPushConstant(vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant)); // Note: This is necessary for now so that static/skinned meshes pipelines are compatible and we can bind descriptor sets once for both
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pSceneDataDescriptorSetLayout.get());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Mesh>());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pModelTransformsDescriptorSetLayout.get());
-        m_staticMeshesPipeline.Create("pipeline_cache_data.bin");
+        
+        m_staticMeshesPipeline.Create("static_meshes_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Static Meshes Pipeline");
 
         // ---------------
@@ -327,7 +327,7 @@ class SceneRenderer : public vkg::render::IRenderer
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pModelTransformsDescriptorSetLayout.get());
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pSkinningBufferDescriptorSetLayout.get());
 
-        m_skeletalMeshesPipeline.Create("pipeline_cache_data.bin");
+        m_skeletalMeshesPipeline.Create("skeletal_meshes_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(m_skeletalMeshesPipeline.GetVkPipeline(), "Skeletal Meshes Pipeline");
 
         // ---------------
@@ -347,8 +347,6 @@ class SceneRenderer : public vkg::render::IRenderer
     }
 
   public:
-    SceneRenderer() {}
-
     void Create(vkg::Device* pDevice, int width, int height, int nTargetImages, vk::Format colorImageFormat)
     {
         m_nTargetImages = nTargetImages;
@@ -556,6 +554,8 @@ class SceneRenderer : public vkg::render::IRenderer
             RenderSkeletalMeshes(data, cb, meshIndex);
             meshIndex += data.m_skeletalMeshComponents.size();
         }
+
+        
 
         // ---- Render static meshes
         if (!data.m_staticMeshComponents.empty())

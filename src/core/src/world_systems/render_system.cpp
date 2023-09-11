@@ -77,11 +77,15 @@ void GraphicsSystem::Update(const UpdateContext& context)
     ZoneScoped;
 
     if (context.GetUpdateStage() != UpdateStage::FrameEnd)
+    {
         return;
+    }
 
     assert(m_pCameraComponent != nullptr);
     if (!m_pCameraComponent->IsInitialized())
+    {
         return; // Camera is the only necessary component, return if it's not loaded yet
+    }
 
     // Update viewport info
     m_aspectRatio = context.GetDisplayWidth() / context.GetDisplayHeight();

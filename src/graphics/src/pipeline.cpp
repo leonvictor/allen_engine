@@ -66,8 +66,6 @@ void Pipeline::Create(std::string cachePath)
         // We can also define custom blend constants in colorBlendInfo.blendConstants[0, 1, 2, 3]
     };
 
-    // Not used for now
-    // TODO: Pull out ?
     vk::PipelineLayoutCreateInfo layoutInfo = {
         .setLayoutCount = static_cast<uint32_t>(m_descriptorSetLayouts.size()), // Update when we have more layouts
         .pSetLayouts = m_descriptorSetLayouts.data(),
