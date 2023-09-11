@@ -13,18 +13,18 @@ class RGBColor;
 
 class ALN_COMMON_EXPORT HSVColor
 {
-  private:
-    float m_hue;        // [0, 1]
+  public:
+    float m_hue;        // [0, 360]
     float m_saturation; // [0, 1]
-    float m_value;      // [0, 360]
+    float m_value;      // [0, 1]
 
   public:
     HSVColor() = default;
     HSVColor(float hue, float saturation, float value) : m_hue(hue), m_saturation(saturation), m_value(value)
     {
-        assert(m_hue >= 0.0f && m_hue <= 1.0f);
+        assert(m_hue >= 0.0f && m_hue <= 360.0f);
         assert(m_saturation >= 0.0f && m_saturation <= 1.0f);
-        assert(m_value >= 0.0f && m_value <= 360.0f);
+        assert(m_value >= 0.0f && m_value <= 1.0f);
     }
 
     RGBColor ToRGB() const;
@@ -33,13 +33,21 @@ class ALN_COMMON_EXPORT HSVColor
 class ALN_COMMON_EXPORT RGBColor
 {
   private:
-    uint8_t m_red;
+    uint8_t m_red; 
     uint8_t m_green;
     uint8_t m_blue;
 
   public:
     RGBColor() = default;
     RGBColor(uint8_t red, uint8_t green, uint8_t blue) : m_red(red), m_green(green), m_blue(blue) {}
+
+    static RGBColor FromFloat(float red, float green, float blue)
+    {
+        assert(red >= 0.0f && red <= 1.0f);
+        assert(green >= 0.0f && green <= 1.0f);
+        assert(blue >= 0.0f && blue <= 1.0f);
+        return RGBColor(red * 255, green * 255, blue * 255);    
+    }
 
     HSVColor ToHSV() const;
 

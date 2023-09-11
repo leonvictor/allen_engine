@@ -18,9 +18,9 @@ const RGBColor RGBColor::White = RGBColor(255, 255, 255);
 RGBColor HSVColor::ToRGB() const
 {
     /// @note https://www.cs.rit.edu/~ncs/color/t_convert.html
-    if (m_saturation == 0) // Achromatic grey
+    if (m_saturation == 0.0f) // Achromatic grey
     {
-        return RGBColor(m_value, m_value, m_value);
+        return RGBColor::FromFloat(m_value, m_value, m_value);
     }
 
     float h = m_hue / 60;
@@ -33,17 +33,17 @@ RGBColor HSVColor::ToRGB() const
     switch (i)
     {
     case 0:
-        return RGBColor(m_value, t, p);
+        return RGBColor::FromFloat(m_value, t, p);
     case 1:
-        return RGBColor(q, m_value, p);
+        return RGBColor::FromFloat(q, m_value, p);
     case 2:
-        return RGBColor(p, m_value, t);
+        return RGBColor::FromFloat(p, m_value, t);
     case 3:
-        return RGBColor(p, q, m_value);
+        return RGBColor::FromFloat(p, q, m_value);
     case 4:
-        return RGBColor(t, p, m_value);
+        return RGBColor::FromFloat(t, p, m_value);
     case 5:
-        return RGBColor(m_value, p, q);
+        return RGBColor::FromFloat(m_value, p, q);
     }
 }
 
