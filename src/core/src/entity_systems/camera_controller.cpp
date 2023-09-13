@@ -1,10 +1,11 @@
 #include "entity_systems/camera_controller.hpp "
 
-#include <functional>
-#include <input/input_service.hpp>
 #include <input/devices/mouse.hpp>
+#include <input/input_service.hpp>
 
 #include <GLFW/glfw3.h>
+
+#include <functional>
 
 namespace aln
 {
@@ -43,10 +44,12 @@ void EditorCameraController::Update(const UpdateContext& context)
 void EditorCameraController::RegisterComponent(IComponent* pComponent)
 {
     // Associate the controlled camera
-    auto pCameraComponent = dynamic_cast<Camera*>(pComponent);
+    auto pCameraComponent = dynamic_cast<CameraComponent*>(pComponent);
 
     if (pCameraComponent == nullptr)
+    {
         return;
+    }
 
     m_pCameraInstance = pCameraComponent;
 }

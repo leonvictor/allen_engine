@@ -402,7 +402,7 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     }
     else
     {
-        m_pCamera = aln::New<Camera>();
+        m_pCamera = aln::New<CameraComponent>();
         m_pEditorEntity = m_worldEntity.m_entityMap.CreateEntity("Editor");
         m_pEditorEntity->AddComponent(m_pCamera);
         m_pEditorEntity->CreateSystem<EditorCameraController>();

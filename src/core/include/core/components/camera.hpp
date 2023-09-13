@@ -10,7 +10,7 @@
 
 namespace aln
 {
-class Camera : public SpatialComponent
+class CameraComponent : public SpatialComponent
 {
     ALN_REGISTER_TYPE();
 

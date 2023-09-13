@@ -27,7 +27,7 @@ typedef void (*ImGuiMemFreeFunc)(void*, void*);
 namespace aln
 {
 class Entity;
-class Camera;
+class CameraComponent;
 class WorldEntity;
 class TypeRegistryService;
 class ServiceProvider;
@@ -54,7 +54,7 @@ class Editor
 
     WorldEntity& m_worldEntity;
     Entity* m_pEditorEntity = nullptr;
-    Camera* m_pCamera = nullptr;
+    CameraComponent* m_pCamera = nullptr;
 
     EntityDescriptor m_entityClipboard;
 

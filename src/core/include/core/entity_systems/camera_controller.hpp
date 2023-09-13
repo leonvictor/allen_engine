@@ -30,6 +30,6 @@ class EditorCameraController : IEntitySystem
   private:
     float m_rotationSensitivity = 0.1f;
     float m_translationSensitivity = 0.006f;
-    Camera* m_pCameraInstance = nullptr;
+    CameraComponent* m_pCameraInstance = nullptr;
 };
 } // namespace aln
