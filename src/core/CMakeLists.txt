@@ -27,7 +27,7 @@ set(LIB_DEPENDENCIES
 )
 
 set(LIB_LINK_DEPENDENCIES 
-    glm utils common entities graphics input anim
+    utils common entities graphics input anim
     assets reflection)
 
 target_include_directories(${LIB_NAME} 

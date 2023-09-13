@@ -3,11 +3,11 @@
 #include "resources/image.hpp"
 #include "subpass.hpp"
 
-#include <assert.h>
-#include <glm/vec4.hpp>
+#include <common/colors.hpp>
+
 #include <vulkan/vulkan.hpp>
 
-#include <common/colors.hpp>
+#include <assert.h>
 
 namespace aln::vkg
 {

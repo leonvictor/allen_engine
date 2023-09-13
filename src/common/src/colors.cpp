@@ -57,7 +57,7 @@ HSVColor RGBColor::ToHSV() const
     float bluef = m_blue / 255.0f;
 
     float max = Maths::Max(redf, Maths::Max(greenf, bluef));
-    float min = std::min(redf, std::min(greenf, bluef));
+    float min = Maths::Min(redf, Maths::Min(greenf, bluef));
     float delta = max - min;
 
     value = max;

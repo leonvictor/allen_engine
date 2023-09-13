@@ -31,7 +31,7 @@ generate_export_header(${LIB_NAME}
 
 set(LIB_DEPENDENCIES  )
 
-set(LIB_LINK_DEPENDENCIES glm common assets)
+set(LIB_LINK_DEPENDENCIES common assets)
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 

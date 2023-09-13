@@ -2,8 +2,6 @@
 
 #include <assert.h>
 
-#include <glm/gtc/epsilon.hpp>
-
 #include "../../blender.hpp"
 #include "../../bone_mask.hpp"
 #include "../task.hpp"
@@ -28,7 +26,7 @@ class BlendTask : public Task
         assert(m_blendWeight >= 0.0f && m_blendWeight <= 1.0f);
 
         // TODO: Use a standard epsilon
-        if (glm::epsilonEqual(m_blendWeight, 1.0f, 0.000001f))
+        if (Maths::IsNearEqual(m_blendWeight, 1.0f, 0.000001f))
         {
             m_blendWeight = 1.0f;
         }

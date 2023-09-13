@@ -41,7 +41,7 @@ class FloatClampRuntimeNode : public FloatValueNode
         const auto pSettings = GetSettings<FloatClampRuntimeNode>();
         const auto inputValue = m_pInputValueNode->GetValue<float>(context);
 
-        *((float*) pValue) = glm::clamp(inputValue, m_min, m_max);
+        *((float*) pValue) = Maths::Clamp(inputValue, m_min, m_max);
     }
 
     virtual void InitializeInternal(GraphContext& context) override

@@ -4,7 +4,6 @@
 
 #include <config/path.h>
 
-#include <cmath>
 #include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION

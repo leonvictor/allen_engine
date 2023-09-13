@@ -5,8 +5,8 @@
 #include "event.hpp"
 
 #include <common/types.hpp>
+#include <common/maths/maths.hpp>
 
-#include <cmath>
 #include <string>
 #include <vector>
 #include <assert.h>
@@ -73,7 +73,7 @@ class ALN_ANIM_EXPORT SyncTrack
             // TODO: Scale the input tracks
 
             auto& event = blendedTrack.m_events.emplace_back();
-            event.m_duration = std::lerp(sourceEvent.m_duration, targetEvent.m_duration, blendWeight);
+            event.m_duration = Maths::Lerp(sourceEvent.m_duration, targetEvent.m_duration, blendWeight);
             event.m_startTime = 0.0f; // TODO
             event.m_name = blendWeight <= 0.5 ? sourceEvent.m_name : targetEvent.m_name;
         }
@@ -118,7 +118,7 @@ class ALN_ANIM_EXPORT SyncTrack
     {
         const float scaledSourceDuration = sourceDuration * ((float) blendedTrack.GetEventCount() / (float) sourceTrack.GetEventCount());
         const float scaledTargetDuration = targetDuration * ((float) blendedTrack.GetEventCount() / (float) targetTrack.GetEventCount());
-        return std::lerp(scaledSourceDuration, scaledTargetDuration, blendWeight);
+        return Maths::Lerp(scaledSourceDuration, scaledTargetDuration, blendWeight);
     }
 
     static const SyncTrack Default;

@@ -1,15 +1,14 @@
 #pragma once
 
+#include "texture.hpp"
+
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
+#include <common/maths/vec3.hpp>
 #include <entities/component.hpp>
 #include <graphics/resources/buffer.hpp>
 
 #include <assert.h>
-#include <glm/gtc/vec1.hpp>
-#include <common/maths/vec3.hpp>
-
-#include "texture.hpp"
 
 namespace aln
 {

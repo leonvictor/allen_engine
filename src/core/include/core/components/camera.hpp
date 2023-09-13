@@ -3,8 +3,6 @@
 #include <reflection/type_info.hpp>
 #include <common/colors.hpp>
 #include <entities/spatial_component.hpp>
-
-#include <glm/gtc/matrix_transform.hpp>
 #include <common/maths/matrix4x4.hpp>
 #include <common/maths/vec3.hpp>
 

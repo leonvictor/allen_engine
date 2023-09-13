@@ -7,9 +7,6 @@
 #include <assert.h>
 #include <common/maths/vec3.hpp>
 
-#include <glm/gtx/compatibility.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 namespace aln
 {
 

@@ -100,7 +100,7 @@ struct AssimpAnimationReader
                 assert(uniformScaling || pChannel->mNumRotationKeys == pChannel->mNumScalingKeys);
 
                 const auto keyCount = pChannel->mNumPositionKeys;
-                maxKeyCount = std::max(maxKeyCount, keyCount);
+                maxKeyCount = Maths::Max(maxKeyCount, keyCount);
 
                 track.m_transforms.reserve(pChannel->mNumPositionKeys);
                 for (auto keyIndex = 0; keyIndex < keyCount; ++keyIndex)

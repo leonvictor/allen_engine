@@ -13,8 +13,6 @@
 #include <imnodes.h>
 #include <nlohmann/json.hpp>
 
-#include <cmath>
-
 namespace aln
 {
 
@@ -41,22 +39,22 @@ class EditorGraphNode : public reflect::IReflected
     {
         constexpr float MIN_NODE_WIDTH = 120.0f;
 
-        float nodeWidth = std::max(MIN_NODE_WIDTH, ImGui::CalcTextSize(GetName().c_str()).x);
+        float nodeWidth = Maths::Max(MIN_NODE_WIDTH, ImGui::CalcTextSize(GetName().c_str()).x);
 
         for (const auto& pin : GetInputPins())
         {
-            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
         }
 
         for (const auto& pin : GetOutputPins())
         {
-            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
         }
 
         const auto pTypeInfo = GetTypeInfo();
         for (const auto& member : pTypeInfo->m_members)
         {
-            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(member.GetPrettyName().c_str()).x + 100);
+            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(member.GetPrettyName().c_str()).x + 100);
         }
 
         return nodeWidth;
