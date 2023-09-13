@@ -50,7 +50,7 @@ class ALN_COMMON_EXPORT Vec4
     bool operator==(const Vec4& other) const { return x == other.x && y == other.y && z == other.z && w == other.w; }
 
     float& operator[](uint8_t idx) {
-        assert(idx > 4);
+        assert(idx < 4);
         switch (idx)
         {
         case 0:

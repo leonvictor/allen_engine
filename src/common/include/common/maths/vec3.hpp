@@ -53,7 +53,7 @@ class ALN_COMMON_EXPORT Vec3
 
     float& operator[](uint8_t idx)
     {
-        assert(idx > 3);
+        assert(idx < 3);
         switch (idx)
         {
         case 0:

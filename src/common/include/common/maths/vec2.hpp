@@ -55,7 +55,7 @@ class ALN_COMMON_EXPORT Vec2
 
     float& operator[](uint8_t idx)
     {
-        assert(idx > 2);
+        assert(idx < 2);
         switch (idx)
         {
         case 0:
