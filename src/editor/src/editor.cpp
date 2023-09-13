@@ -11,6 +11,7 @@
 #include <core/entity_systems/camera_controller.hpp>
 #include <common/memory.hpp>
 #include <entities/world_entity.hpp>
+#include <core/world_systems/render_system.hpp>
 
 #include <vulkan/vulkan.hpp>
 #include <imgui.h>
@@ -122,8 +123,27 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
     }
     ImGui::End(); 
 
-    if (ImGui::Begin(ICON_FA_GLOBE " Scene", nullptr, ImGuiWindowFlags_NoScrollbar))
+    if (ImGui::Begin(ICON_FA_GLOBE " Scene", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar))
     {
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu(ICON_FA_VIDEO " " ICON_FA_CARET_DOWN))
+            {
+                auto availableCameras = GetAllComponentsOfType<CameraComponent>();
+                for (auto camera : availableCameras)
+                {
+                    if (ImGui::MenuItem((camera.m_pOwningEntity->GetName() + "::" + camera.m_pComponent->GetTypeInfo()->GetPrettyName()).c_str()))
+                    {
+                        auto pRenderingSystem = m_worldEntity.GetSystem<GraphicsSystem>();
+                        pRenderingSystem->SetRenderCamera(static_cast<CameraComponent*>(camera.m_pComponent));
+                    }
+                    // TODO: Tooltip with component ID to disambiguate an entity having mutliple cameras of the same type
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+
         // Update current scene preview dims
         // @todo: use a dedicated struct for dimensions
         auto dim = ImGui::GetContentRegionAvail();

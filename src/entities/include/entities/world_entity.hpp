@@ -85,6 +85,16 @@ class WorldEntity
         }
     }
 
+    template<typename T>
+    T* GetSystem()
+    {
+        static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
+        
+        auto iter = m_systems.find(std::type_index(typeid(T)));
+        assert(iter != m_systems.end());
+        return static_cast<T*>(iter->second.get());
+    }
+
     const std::vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
 
     // -------- Editing

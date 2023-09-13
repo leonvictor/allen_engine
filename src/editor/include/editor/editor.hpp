@@ -8,6 +8,7 @@
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <entities/entity_descriptors.hpp>
+#include <entities/world_entity.hpp>
 
 #include <glm/vec2.hpp>
 
@@ -49,6 +50,13 @@ void SetImGuiContext(const EditorImGuiContext& context);
 
 class Editor
 {
+  public:
+      struct ComponentSearchResult
+      {
+          Entity* m_pOwningEntity = nullptr;
+          IComponent* m_pComponent = nullptr;
+      };
+
   private:
     std::filesystem::path m_scenePath;
 
@@ -76,6 +84,24 @@ class Editor
     void RecurseEntityTree(Entity* pEntity);
 
     void ResolveAssetWindowRequests();
+
+    template<typename T>
+    std::vector<ComponentSearchResult> GetAllComponentsOfType()
+    {
+        std::vector<ComponentSearchResult> results;
+        auto pTypeInfo = T::GetStaticTypeInfo();
+        for (auto pEntity : m_worldEntity.GetEntities())
+        {
+            for (auto pComponent : pEntity->GetComponents())
+            {
+                if (pComponent->GetTypeInfo()->IsDerivedFrom(pTypeInfo->GetTypeID()))
+                {
+                    results.push_back({pEntity, pComponent});
+                }
+            }
+        }
+        return results;
+    }
 
   public:
     Editor(WorldEntity& worldEntity);
