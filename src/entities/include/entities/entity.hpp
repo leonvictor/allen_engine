@@ -1,6 +1,5 @@
 #pragma once
 
-#include "command.hpp"
 #include "entity_system.hpp"
 #include "loading_context.hpp"
 #include "update_context.hpp"
@@ -47,7 +46,6 @@ class EntityInternalStateAction
 /// Entities can be organized in hierarchies.
 class Entity
 {
-    friend Command;
     friend class EntityMap;
     friend class EntityDescriptor;
     friend class EntityMapDescriptor;
