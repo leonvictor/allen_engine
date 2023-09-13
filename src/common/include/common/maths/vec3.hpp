@@ -44,11 +44,26 @@ class ALN_COMMON_EXPORT Vec3
     Vec3 operator+(float value) const { return Vec3(x + value, y + value, z + value); }
     Vec3 operator-(const Vec3& other) const { return Vec3(x - other.x, y - other.y, z - other.z); }
     Vec3 operator-(float value) const { return Vec3(x - value, y - value, z - value); }
+    Vec3 operator-() const { return Vec3(-x, -y, -z); }
     Vec3 operator*(const Vec3& other) const { return Vec3(x * other.x, y * other.y, z * other.z); }
     Vec3 operator*(float value) const { return Vec3(x * value, y * value, z * value); }
     Vec3 operator/(const Vec3& other) const { return Vec3(x / other.x, y / other.y, z / other.z); }
     Vec3 operator/(float value) const { return Vec3(x / value, y / value, z / value); }
     bool operator==(const Vec3& other) const { return x == other.x && y == other.y && z == other.z; }
+
+    float& operator[](uint8_t idx)
+    {
+        assert(idx > 3);
+        switch (idx)
+        {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        }
+    }
 
     Vec3 Cross(const Vec3& other) const { return glm::cross(AsGLM(), other.AsGLM()); }
     float Dot(const Vec3& other) const { return glm::dot(AsGLM(), other.AsGLM()); }

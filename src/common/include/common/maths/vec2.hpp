@@ -44,6 +44,7 @@ class ALN_COMMON_EXPORT Vec2
     Vec2 operator+(float value) const { return Vec2(x + value, y + value); }
     Vec2 operator-(const Vec2& other) const { return Vec2(x - other.x, y - other.y); }
     Vec2 operator-(float value) const { return Vec2(x - value, y - value); }
+    Vec2 operator-() const { return Vec2(-x, -y); }
     Vec2 operator*(const Vec2& other) const { return Vec2(x * other.x, y * other.y); }
     Vec2 operator*(float value) const { return Vec2(x * value, y * value); }
     friend Vec2 operator*(float t, const Vec2& a);
@@ -51,6 +52,18 @@ class ALN_COMMON_EXPORT Vec2
     Vec2 operator/(float value) const { return Vec2(x / value, y / value); }
     friend Vec2 operator/(float t, const Vec2& a);
     bool operator==(const Vec2& other) const { return x == other.x && y == other.y; }
+
+    float& operator[](uint8_t idx)
+    {
+        assert(idx > 2);
+        switch (idx)
+        {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        }
+    }
 
     /// @brief Linear interpolation between a and b by a t factor
     inline static Vec2 Lerp(const Vec2& a, const Vec2& b, float t) { return glm::mix(a.AsGLM(), b.AsGLM(), t); }

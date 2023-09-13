@@ -42,11 +42,27 @@ class ALN_COMMON_EXPORT Vec4
     Vec4 operator+(float value) const { return Vec4(x + value, y + value, z + value, w + value); }
     Vec4 operator-(const Vec4& other) const { return Vec4(x - other.x, y - other.y, z - other.z, w - other.w); }
     Vec4 operator-(float value) const { return Vec4(x - value, y - value, z - value, w - value); }
+    Vec4 operator-() const { return Vec4(-x, -y, -z, -w); }
     Vec4 operator*(const Vec4& other) const { return Vec4(x * other.x, y * other.y, z * other.z, w * other.w); }
     Vec4 operator*(float value) const { return Vec4(x * value, y * value, z * value, w * value); }
     Vec4 operator/(const Vec4& other) const { return Vec4(x / other.x, y / other.y, z / other.z, w / other.w); }
     Vec4 operator/(float value) const { return Vec4(x / value, y / value, z / value, w / value); }
-    bool operator==(const Vec4& other) const { return x == other.x && y == other.y && z == other.z, w == other.w; }
+    bool operator==(const Vec4& other) const { return x == other.x && y == other.y && z == other.z && w == other.w; }
+
+    float& operator[](uint8_t idx) {
+        assert(idx > 4);
+        switch (idx)
+        {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        case 3:
+            return w;
+        }
+    }
 
     /// @brief Linear interpolation between a and b by a t factor
     inline static Vec4 Lerp(const Vec4& a, const Vec4& b, float t) { return glm::mix(a.AsGLM(), b.AsGLM(), t); }
