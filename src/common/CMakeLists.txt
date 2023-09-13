@@ -7,6 +7,11 @@ add_library(${LIB_NAME} SHARED
     src/memory.cpp
     src/uuid.cpp
     src/string_id.cpp
+    src/maths/vec2.cpp
+    src/maths/vec3.cpp 
+    src/maths/vec4.cpp
+    src/maths/quaternion.cpp
+    src/maths/matrix4x4.cpp
 )
 
 include(GenerateExportHeader)
@@ -56,7 +61,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests test/transform.cpp)
+add_executable(tests test/transform.cpp "src/maths/vec3.cpp" "src/maths/quaternion.cpp" "src/maths/matrix4x4.cpp" "src/maths/vec4.cpp")
 target_link_libraries(tests PRIVATE ${LIB_NAME} Catch2::Catch2WithMain)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
