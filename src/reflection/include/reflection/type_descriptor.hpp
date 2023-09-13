@@ -229,7 +229,7 @@ struct TypeCollectionDescriptor
             auto pTypeInfo = typeRegistryService.GetTypeInfo(descriptor.GetTypeID());
             elementTypeInfos.push_back(pTypeInfo);
 
-            requiredMemoryAlignment = std::max(requiredMemoryAlignment, pTypeInfo->m_alignment);
+            requiredMemoryAlignment = Maths::Max(requiredMemoryAlignment, pTypeInfo->m_alignment);
         }
 
         // 2 - Second one to calculate the total size + paddings

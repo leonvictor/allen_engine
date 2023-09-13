@@ -1,5 +1,9 @@
 #pragma once
 
+#include "../components/light.hpp"
+#include "../components/skeletal_mesh_component.hpp"
+#include "../components/static_mesh_component.hpp"
+
 #include <graphics/device.hpp>
 #include <graphics/rendering/render_target.hpp>
 #include <graphics/rendering/renderer.hpp>
@@ -7,12 +11,9 @@
 #include <graphics/swapchain.hpp>
 
 #include <Tracy.hpp>
-#include <functional>
 #include <vulkan/vulkan.hpp>
 
-#include "../components/light.hpp"
-#include "../components/skeletal_mesh_component.hpp"
-#include "../components/static_mesh_component.hpp"
+#include <functional>
 
 namespace aln
 {
@@ -22,9 +23,9 @@ class SceneRenderer : public vkg::render::IRenderer
   public:
     struct SceneGPUData
     {
-        alignas(16) glm::mat4 m_view;
-        alignas(16) glm::mat4 m_projection;
-        alignas(16) glm::vec3 m_cameraPosition;
+        alignas(16) Matrix4x4 m_view;
+        alignas(16) Matrix4x4 m_projection;
+        alignas(16) Vec3 m_cameraPosition;
     };
 
     struct SkinnedMeshPushConstant
@@ -205,7 +206,7 @@ class SceneRenderer : public vkg::render::IRenderer
         /// @todo Automatically grow the buffer if more objects are added
         m_modelTransformsBuffer = vkg::resources::Buffer(
             pDevice,
-            sizeof(glm::mat4x4) * MAX_MODELS,
+            sizeof(Matrix4x4) * MAX_MODELS,
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
@@ -230,7 +231,7 @@ class SceneRenderer : public vkg::render::IRenderer
             {
                 .buffer = m_modelTransformsBuffer.GetVkBuffer(),
                 .offset = 0,
-                .range = sizeof(glm::mat4x4) * MAX_MODELS,
+                .range = sizeof(Matrix4x4) * MAX_MODELS,
             };
 
         writeDescriptorSets.push_back(
@@ -247,7 +248,7 @@ class SceneRenderer : public vkg::render::IRenderer
         /// @todo What size ?
         m_skinningBuffer = vkg::resources::Buffer(
             pDevice,
-            MAX_SKINNING_TRANSFORMS * sizeof(glm::mat4x4),
+            MAX_SKINNING_TRANSFORMS * sizeof(Matrix4x4),
             vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
@@ -307,7 +308,7 @@ class SceneRenderer : public vkg::render::IRenderer
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Light>());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pDevice->GetDescriptorSetLayout<aln::Mesh>());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pModelTransformsDescriptorSetLayout.get());
-        
+
         m_staticMeshesPipeline.Create("static_meshes_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Static Meshes Pipeline");
 
@@ -512,29 +513,29 @@ class SceneRenderer : public vkg::render::IRenderer
 
         // ---- Upload all transforms to the GPU storage buffer
         // TODO: Only upload transforms that changed ? It would require keeping the same index between render passes
-        glm::mat4x4 modelMatrix;
-        auto pBufferMemory = m_modelTransformsBuffer.Map<glm::mat4x4>();
+        Matrix4x4 modelMatrix;
+        auto pBufferMemory = m_modelTransformsBuffer.Map<Matrix4x4>();
         for (const auto pSkeletalMeshComponent : data.m_skeletalMeshComponents)
         {
             modelMatrix = pSkeletalMeshComponent->GetWorldTransform().ToMatrix();
-            memcpy(pBufferMemory, &modelMatrix, sizeof(glm::mat4x4));
+            memcpy(pBufferMemory, &modelMatrix, sizeof(Matrix4x4));
             pBufferMemory++;
         }
 
         for (const auto pStaticMeshComponent : data.m_staticMeshComponents)
         {
             modelMatrix = pStaticMeshComponent->GetWorldTransform().ToMatrix();
-            memcpy(pBufferMemory, &modelMatrix, sizeof(glm::mat4x4));
+            memcpy(pBufferMemory, &modelMatrix, sizeof(Matrix4x4));
             pBufferMemory++;
         }
         m_modelTransformsBuffer.Unmap();
 
         // ---- Upload skeletal mesh's transform matrices
-        pBufferMemory = m_skinningBuffer.Map<glm::mat4x4>();
+        pBufferMemory = m_skinningBuffer.Map<Matrix4x4>();
         for (auto& pSkeletalMeshComponent : data.m_skeletalMeshComponents)
         {
             auto boneCount = pSkeletalMeshComponent->GetBonesCount();
-            memcpy(pBufferMemory, pSkeletalMeshComponent->m_skinningTransforms.data(), boneCount * sizeof(glm::mat4x4));
+            memcpy(pBufferMemory, pSkeletalMeshComponent->m_skinningTransforms.data(), boneCount * sizeof(Matrix4x4));
             pBufferMemory += boneCount;
         }
         m_skinningBuffer.Unmap();
@@ -554,8 +555,6 @@ class SceneRenderer : public vkg::render::IRenderer
             RenderSkeletalMeshes(data, cb, meshIndex);
             meshIndex += data.m_skeletalMeshComponents.size();
         }
-
-        
 
         // ---- Render static meshes
         if (!data.m_staticMeshComponents.empty())

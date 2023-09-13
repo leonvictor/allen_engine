@@ -3,6 +3,7 @@
 #include <graphics/pipeline.hpp>
 #include <graphics/rendering/renderer.hpp>
 #include <graphics/resources/buffer.hpp>
+#include <common/maths/matrix4x4.hpp>
 
 #include <vector>
 
@@ -17,7 +18,7 @@ class LinesRenderState
 
     struct UBO
     {
-        glm::mat4 m_viewProjectionMatrix;
+        Matrix4x4 m_viewProjectionMatrix;
     };
 
   private:

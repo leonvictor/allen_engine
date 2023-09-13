@@ -3,6 +3,8 @@
 #include "device.hpp"
 #include "resources/image.hpp"
 
+#include <common/maths/maths.hpp>
+
 #include <functional>
 
 namespace aln::vkg
@@ -172,8 +174,8 @@ vk::Extent2D Swapchain::ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilit
             static_cast<uint32_t>(height),
         };
 
-        extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        extent.width = Maths::Clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        extent.height = Maths::Clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
         return extent;
     }
 }

@@ -85,7 +85,7 @@ class GLFWApplication
         m_swapchain.Initialize(&m_device, &m_pSurface.get(), windowWidth, windowHeight);
 
         // --------- Initialize engine
-        m_engine.Initialize(m_pGlfwWindow, m_swapchain, m_device, {windowWidth, windowHeight});
+        m_engine.Initialize(m_pGlfwWindow, m_swapchain, m_device, {(float) windowWidth, (float) windowHeight});
     }
 
     void Shutdown()
@@ -106,7 +106,7 @@ class GLFWApplication
 
             double xpos, ypos;
             glfwGetCursorPos(m_pGlfwWindow, &xpos, &ypos);
-            m_engine.GetInputService().UpdateMousePosition({xpos, ypos});
+            m_engine.GetInputService().UpdateMousePosition({(float) xpos, (float) ypos});
 
             // Gamepad input needs to be handled separately since glfw doesn't provide callbacks for them
             PollGamepadInput();

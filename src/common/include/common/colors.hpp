@@ -1,9 +1,9 @@
 #pragma once
 
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-
 #include <aln_common_export.h>
+
+#include "maths/vec3.hpp"
+#include "maths/vec4.hpp"
 
 namespace aln
 {
@@ -33,7 +33,7 @@ class ALN_COMMON_EXPORT HSVColor
 class ALN_COMMON_EXPORT RGBColor
 {
   private:
-    uint8_t m_red; 
+    uint8_t m_red;
     uint8_t m_green;
     uint8_t m_blue;
 
@@ -41,20 +41,22 @@ class ALN_COMMON_EXPORT RGBColor
     RGBColor() = default;
     RGBColor(uint8_t red, uint8_t green, uint8_t blue) : m_red(red), m_green(green), m_blue(blue) {}
 
-    static RGBColor FromFloat(float red, float green, float blue)
+    Vec3 ToUnitRGB() const { return Vec3(m_red / 255.0f, m_green / 255.0f, m_blue / 255.0f); }
+
+    static RGBColor FromUnitRGB(const Vec3& unitRGB)
     {
-        assert(red >= 0.0f && red <= 1.0f);
-        assert(green >= 0.0f && green <= 1.0f);
-        assert(blue >= 0.0f && blue <= 1.0f);
-        return RGBColor(red * 255, green * 255, blue * 255);    
+        assert(unitRGB.x >= 0.0f && unitRGB.x <= 1.0f);
+        assert(unitRGB.y >= 0.0f && unitRGB.y <= 1.0f);
+        assert(unitRGB.z >= 0.0f && unitRGB.z <= 1.0f);
+        return RGBColor(unitRGB.x * 255, unitRGB.y * 255, unitRGB.z * 255);
     }
 
     HSVColor ToHSV() const;
 
     /// @brief Convert to a 32-bit integer
-    uint32_t U32() const { return m_red | m_green << 8 | m_blue << 16 | 255 << 24; }
+    uint32_t ToU32() const { return m_red | m_green << 8 | m_blue << 16 | 255 << 24; }
 
-    glm::vec3 Vec3() const { return {m_red, m_green, m_blue}; }
+    Vec3 ToVec3() const { return {(float) m_red, (float) m_green, (float) m_blue}; }
 
     static const RGBColor Red;
     static const RGBColor Pink;
@@ -67,11 +69,26 @@ class ALN_COMMON_EXPORT RGBColor
     static const RGBColor White;
 };
 
-class RGBAColor : public glm::vec4
+class RGBAColor
 {
   public:
+    uint8_t m_red, m_green, m_blue, m_alpha;
+
     RGBAColor() = default;
-    RGBAColor(float r, float g, float b, float a) : glm::vec4(r, g, b, a) {}
+    RGBAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : m_red(r), m_green(g), m_blue(b), m_alpha(a) {}
+
+    Vec4 ToVec4() const { return {(float) m_red, (float) m_green, (float) m_blue, (float) m_alpha}; }
+
+    Vec4 ToUnitRGBA() const { return Vec4(m_red / 255.0f, m_green / 255.0f, m_blue / 255.0f, m_alpha / 255.0f); }
+
+    static RGBAColor FromUnitRGBA(const Vec4& unitRGBA )
+    {
+        assert(unitRGBA.x >= 0.0f && unitRGBA.x <= 1.0f);
+        assert(unitRGBA.y >= 0.0f && unitRGBA.y <= 1.0f);
+        assert(unitRGBA.z >= 0.0f && unitRGBA.z <= 1.0f);
+        assert(unitRGBA.w >= 0.0f && unitRGBA.w <= 1.0f);
+        return RGBAColor(unitRGBA.x * 255, unitRGBA.y * 255, unitRGBA.z * 255, unitRGBA.w * 255);
+    }
 };
 
 static_assert(std::is_trivial_v<RGBAColor>);

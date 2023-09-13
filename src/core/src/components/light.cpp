@@ -1,7 +1,6 @@
 #include "components/light.hpp"
 
 #include <common/transform.hpp>
-#include <glm/vec4.hpp>
 
 namespace aln
 {
@@ -11,9 +10,9 @@ LightUniform Light::GetUniform()
     Transform t = GetWorldTransform();
 
     LightUniform u;
-    u.position = glm::vec4(t.GetTranslation(), (float) type);
-    u.direction = glm::vec4(direction, range);
-    u.color = glm::vec4(m_color.Vec3(), intensity);
+    u.position = Vec4(t.GetTranslation(), (float) type);
+    u.direction = Vec4(direction, range);
+    u.color = Vec4(m_color.ToVec3(), intensity);
 
     return u;
 }

@@ -1,15 +1,14 @@
 #pragma once
 
+#include "texture.hpp"
+
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
+#include <common/maths/vec3.hpp>
 #include <entities/component.hpp>
 #include <graphics/resources/buffer.hpp>
 
 #include <assert.h>
-#include <glm/gtc/vec1.hpp>
-#include <glm/vec3.hpp>
-
-#include "texture.hpp"
 
 namespace aln
 {
@@ -35,9 +34,9 @@ class Material : public IAsset
 // TODO: This is never used. Refactor the material system
 struct MaterialBufferObject
 {
-    alignas(16) glm::vec3 ambient = glm::vec3(1.0f, 0.5f, 0.31f);
-    alignas(16) glm::vec3 diffuse = glm::vec3(1.0f, 0.5f, 0.31);
-    alignas(16) glm::vec3 specular = glm::vec3(0.5f, 0.5f, 0.5);
-    alignas(4) glm::vec1 shininess = glm::vec1(8.0f);
+    alignas(16) Vec3 ambient = Vec3(1.0f, 0.5f, 0.31f);
+    alignas(16) Vec3 diffuse = Vec3(1.0f, 0.5f, 0.31);
+    alignas(16) Vec3 specular = Vec3(0.5f, 0.5f, 0.5);
+    alignas(4) float shininess = 8.0f;
 };
 } // namespace aln

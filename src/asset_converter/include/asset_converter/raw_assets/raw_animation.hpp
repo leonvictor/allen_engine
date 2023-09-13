@@ -100,7 +100,7 @@ struct AssimpAnimationReader
                 assert(uniformScaling || pChannel->mNumRotationKeys == pChannel->mNumScalingKeys);
 
                 const auto keyCount = pChannel->mNumPositionKeys;
-                maxKeyCount = std::max(maxKeyCount, keyCount);
+                maxKeyCount = Maths::Max(maxKeyCount, keyCount);
 
                 track.m_transforms.reserve(pChannel->mNumPositionKeys);
                 for (auto keyIndex = 0; keyIndex < keyCount; ++keyIndex)
@@ -126,21 +126,30 @@ struct AssimpAnimationReader
 
         animation.m_framesPerSecond = animation.m_duration / (maxKeyCount - 1);
 
-        // Extract root motion to a separate track and replace it with an empty one
-        auto& rootMotionTrack = animation.m_tracks[0];
-        auto rootMotionStartOffset = rootMotionTrack.m_transforms[0].GetTranslation();
+        // Extract root motion to a separate track
+        auto& rootBoneTrack = animation.m_tracks[0];
+        auto rootMotionStartOffset = rootBoneTrack.m_transforms[0].GetTranslation();
+        rootMotionStartOffset.y = 0; // TMP: See below
 
-        auto rootMotionFrameCount = rootMotionTrack.m_transforms.size();
+        auto rootMotionFrameCount = rootBoneTrack.m_transforms.size();
         animation.m_rootMotionTrack.reserve(rootMotionFrameCount);
         for (auto frameIdx = 0; frameIdx < rootMotionFrameCount; ++frameIdx)
         {
-            auto& transform = rootMotionTrack.m_transforms[frameIdx];
-            transform.AddTranslation(-rootMotionStartOffset);
-            animation.m_rootMotionTrack.push_back(transform);
+            auto& rootBoneTransform = rootBoneTrack.m_transforms[frameIdx];
+            rootBoneTransform.AddTranslation(-rootMotionStartOffset);
 
-            rootMotionTrack.m_transforms[frameIdx] = Transform::Identity;
+            // TMP fix: Root bone keeps its vertical component. Necessary for mixamo character whose root bone is the hips.
+            // Not ideal: will not work for vertical root motion, i.e. jumps
+            // Ideally we would let the user control the import process from the editor and pick whether to adjust or not
+            auto rootMotionTransform = rootBoneTransform;
+            rootMotionTransform.SetTranslation(rootMotionTransform.GetTranslation() * Vec3(1.0f, 0.0f, 1.0f));
+            rootMotionTransform.SetRotation(Quaternion(1.0f, 0.0f, 0.0f, 0.0f));
+            animation.m_rootMotionTrack.push_back(rootMotionTransform);
+
+            rootBoneTransform.SetTranslation(rootBoneTransform.GetTranslation() * Vec3::Y);
         }
 
+        // --- Serialization
         std::vector<std::byte> data;
         BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
         animation.Serialize(dataStream);

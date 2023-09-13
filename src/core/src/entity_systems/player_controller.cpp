@@ -14,7 +14,7 @@ void PlayerControllerSystem::Update(const UpdateContext& ctx)
     // TODO: Use our own math lib
     // TODO: Provide easier access to services in user-facing base script class
     const auto leftStickState = ctx.GetService<InputService>()->GetGamepad()->GetLeftStickValue();
-    auto speed = glm::length2(leftStickState);
+    auto speed = leftStickState.SquaredMagnitude();
     m_blendWeight = speed;
 
     m_pGraphComponent->SetControlParameterValue(m_blendWeightParameterIndex, m_blendWeight);

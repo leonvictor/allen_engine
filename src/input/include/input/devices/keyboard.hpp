@@ -4,8 +4,6 @@
 #include "controls/button_control.hpp"
 #include "input_device.hpp"
 
-#include <glm/vec2.hpp>
-
 #include <array>
 #include <map>
 #include <unordered_map>

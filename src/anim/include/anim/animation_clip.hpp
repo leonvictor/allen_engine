@@ -9,8 +9,8 @@
 #include <assets/handle.hpp>
 #include <common/types.hpp>
 #include <common/drawing_context.hpp>
+#include <common/maths/maths.hpp>
 
-#include <cmath>
 #include <vector>
 
 namespace aln
@@ -52,7 +52,7 @@ class AnimationClip : public IAsset
     FrameTime GetFrameTime(float percentageThroughAnimation) const
     {
         float frameIndex;
-        float percentageThroughFrame = std::modff(percentageThroughAnimation * (m_frameCount - 1), &frameIndex);
+        float percentageThroughFrame = Maths::Modf(percentageThroughAnimation * (m_frameCount - 1), frameIndex);
         return FrameTime(frameIndex, percentageThroughFrame);
     }
 
@@ -82,7 +82,7 @@ class AnimationClip : public IAsset
         const auto boneCount = pSkeleton->GetBonesCount();
 
         float frameIndex;
-        float frameProgress = std::modff(time / GetFramesPerSecond(), &frameIndex);
+        float frameProgress = Maths::Modf(time / GetFramesPerSecond(), frameIndex);
 
         for (BoneIndex boneIndex = 0; boneIndex < boneCount; ++boneIndex)
         {

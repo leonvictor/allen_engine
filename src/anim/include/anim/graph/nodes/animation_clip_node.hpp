@@ -6,6 +6,8 @@
 #include "../tasks/sample_task.hpp"
 #include "../value_node.hpp"
 
+#include <common/maths/maths.hpp>
+
 #include <vector>
 
 namespace aln
@@ -56,7 +58,7 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
        
         // TODO: Handle looping (or not)
         float integralPart;
-        m_currentTime = std::modff(m_currentTime, &integralPart);
+        m_currentTime = Maths::Modf(m_currentTime, integralPart);
 
         PoseNodeResult result;
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);

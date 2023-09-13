@@ -6,7 +6,7 @@ add_library(
     src/component.cpp
     src/entity_map.cpp
     src/spatial_component.cpp
-    src/command.cpp
+    
     src/world_entity.cpp
     src/world_system.cpp
     src/entity_system.cpp
@@ -27,7 +27,6 @@ target_include_directories(${LIB_NAME}
 
 target_link_libraries(${LIB_NAME} 
     PRIVATE 
-        glm
         utils
     PUBLIC
         reflection

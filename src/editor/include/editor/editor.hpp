@@ -8,8 +8,9 @@
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <entities/entity_descriptors.hpp>
+#include <entities/world_entity.hpp>
 
-#include <glm/vec2.hpp>
+#include <common/maths/vec2.hpp>
 
 #include <filesystem>
 #include <map>
@@ -27,7 +28,7 @@ typedef void (*ImGuiMemFreeFunc)(void*, void*);
 namespace aln
 {
 class Entity;
-class Camera;
+class CameraComponent;
 class WorldEntity;
 class TypeRegistryService;
 class ServiceProvider;
@@ -49,12 +50,19 @@ void SetImGuiContext(const EditorImGuiContext& context);
 
 class Editor
 {
+  public:
+      struct ComponentSearchResult
+      {
+          Entity* m_pOwningEntity = nullptr;
+          IComponent* m_pComponent = nullptr;
+      };
+
   private:
     std::filesystem::path m_scenePath;
 
     WorldEntity& m_worldEntity;
     Entity* m_pEditorEntity = nullptr;
-    Camera* m_pCamera = nullptr;
+    CameraComponent* m_pCamera = nullptr;
 
     EntityDescriptor m_entityClipboard;
 
@@ -77,6 +85,24 @@ class Editor
 
     void ResolveAssetWindowRequests();
 
+    template<typename T>
+    std::vector<ComponentSearchResult> GetAllComponentsOfType()
+    {
+        std::vector<ComponentSearchResult> results;
+        auto pTypeInfo = T::GetStaticTypeInfo();
+        for (auto pEntity : m_worldEntity.GetEntities())
+        {
+            for (auto pComponent : pEntity->GetComponents())
+            {
+                if (pComponent->GetTypeInfo()->IsDerivedFrom(pTypeInfo->GetTypeID()))
+                {
+                    results.push_back({pEntity, pComponent});
+                }
+            }
+        }
+        return results;
+    }
+
   public:
     Editor(WorldEntity& worldEntity);
 
@@ -87,7 +113,7 @@ class Editor
     void Shutdown();
     void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);
 
-    const glm::vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
+    const Vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
 
     void CreateAssetWindow(const AssetID& id, bool readAssetFile);
     void RemoveAssetWindow(const AssetID& id);

@@ -133,7 +133,7 @@ struct AssimpMeshReader
             //     int v1 = vertex.m_indices[faceIndex * 3 + 1];
             //     int v2 = vertex.m_indices[faceIndex * 3 + 2];
 
-            //     glm::vec3 normal = glm::normalize(glm::cross(
+            //     Vec3 normal = glm::normalize(glm::cross(
             //         vertices[v2].pos - vertices[v0].pos,
             //         vertices[v1].pos - vertices[v0].pos));
 

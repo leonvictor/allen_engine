@@ -39,7 +39,7 @@ class TextureLoader : public IAssetLoader
 
         // TODO: only RGBA8 supported for now
         auto vkFormat = vk::Format::eR8G8B8A8Srgb;
-        auto mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+        auto mipLevels = static_cast<uint32_t>(Maths::Floor(Maths::Log2(Maths::Max((float) width, (float) height)))) + 1;
 
         // Copy data to staging buffer
         // TODO: Skip the temporary buffer and stream directly to a vk::Buffer

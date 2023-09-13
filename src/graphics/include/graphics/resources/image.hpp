@@ -2,10 +2,9 @@
 
 #include "allocation.hpp"
 
-#include <memory>
-#include <stdexcept>
+#include <common/maths/vec3.hpp>
 
-#include <glm/vec3.hpp>
+#include <memory>
 #include <stdexcept>
 
 namespace aln::vkg::resources
@@ -171,7 +170,7 @@ class Image : public Allocation
     /// @brief Retrieve the pixel value at index
     /// FIXME: This won't work if the image is in GPU-specific format
     /// FIXME: This only works in 8-bits per channel formats
-    glm::vec3 PixelAt(int x, int y, bool colorSwizzle = false);
+    Vec3 PixelAt(int x, int y, bool colorSwizzle = false);
 
     // Accessors
     // TODO: Put const back when we've move to copyFrom functions

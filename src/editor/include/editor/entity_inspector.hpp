@@ -11,7 +11,7 @@ class EntityInspector : public IEditorWindow
     UUID m_entityStartedEditingEventID;
 
     // TODO: Move to the quaternion widget directly
-    glm::vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
+    Vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
     bool m_uniformScale = true;
     Entity* m_pEntity;
 

@@ -25,7 +25,7 @@ set(LIB_INCLUDE_DIRS
 )
 
 set(LIB_DEPENDENCIES
-    Vulkan::Vulkan glm glfw utils common Vulkan::shaderc assets TracyClient
+    Vulkan::Vulkan glfw utils common Vulkan::shaderc assets TracyClient
     assets
 )
 #todo: move assets out ?

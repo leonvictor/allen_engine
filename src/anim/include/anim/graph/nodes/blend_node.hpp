@@ -5,6 +5,8 @@
 #include "../tasks/blend_task.hpp"
 #include "../value_node.hpp"
 
+#include <common/maths/maths.hpp>
+
 #include <vector>
 
 namespace aln
@@ -102,7 +104,7 @@ class BlendNode : public PoseRuntimeNode
         timeRange.m_beginTime = m_blendedSyncTrack.GetTime(m_currentTime);
 
         float integralPart;
-        timeRange.m_endTime = m_blendedSyncTrack.GetTime(std::modff(m_currentTime + deltaPercentage, &integralPart));
+        timeRange.m_endTime = m_blendedSyncTrack.GetTime(Maths::Modf(m_currentTime + deltaPercentage, integralPart));
 
         const auto sourceNodeResult = pSourceNode->Update(context, timeRange);
         const auto targetNodeResult = pTargetNode->Update(context, timeRange);

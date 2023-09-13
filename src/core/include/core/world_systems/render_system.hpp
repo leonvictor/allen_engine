@@ -17,7 +17,7 @@
 namespace aln
 {
 
-class Camera;
+class CameraComponent;
 
 class Entity;
 class IComponent;
@@ -56,7 +56,7 @@ class GraphicsSystem : public IWorldSystem
     LinesRenderState m_linesRenderState;
 
     // Registered components
-    const Camera* m_pCameraComponent = nullptr;
+    const CameraComponent* m_pCameraComponent = nullptr;
     IDVector<SkeletalMeshRenderInstance> m_skeletalMeshRenderInstances;
     IDVector<StaticMeshRenderInstance> m_staticMeshRenderInstances;
     IDVector<Light*> m_lightComponents;
@@ -74,16 +74,16 @@ class GraphicsSystem : public IWorldSystem
     void UnregisterComponent(const Entity* pEntity, IComponent* pComponent) override;
     const UpdatePriorities& GetUpdatePriorities() override;
 
-    void SetRenderCamera(const Camera* pCameraComponent)
-    {
-        assert(pCameraComponent != nullptr);
-        m_pCameraComponent = pCameraComponent;
-    }
-
     // Rendering calls
     void RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext);
 
   public:
     GraphicsSystem(SceneRenderer* pRenderer) : m_pRenderer(pRenderer) {}
+
+    void SetRenderCamera(const CameraComponent* pCameraComponent)
+    {
+        assert(pCameraComponent != nullptr);
+        m_pCameraComponent = pCameraComponent;
+    }
 };
 } // namespace aln

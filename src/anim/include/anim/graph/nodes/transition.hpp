@@ -55,9 +55,9 @@ class TransitionRuntimeNode : public PoseRuntimeNode
         assert(IsInitialized());
 
         m_transitionProgress += context.m_deltaTime / m_transitionDuration;
-        m_transitionProgress = std::clamp(m_transitionProgress, 0.0f, 1.0f);
+        m_transitionProgress = Maths::Clamp(m_transitionProgress, 0.0f, 1.0f);
 
-        m_duration = glm::lerp(m_pStartNode->GetDuration(), m_pEndNode->GetDuration(), m_transitionProgress);
+        m_duration = Maths::Lerp(m_pStartNode->GetDuration(), m_pEndNode->GetDuration(), m_transitionProgress);
 
         // Update start node
         PoseNodeResult startNodeResult = m_pStartNode->Update(context);
@@ -87,9 +87,9 @@ class TransitionRuntimeNode : public PoseRuntimeNode
         assert(IsInitialized());
 
         m_transitionProgress += context.m_deltaTime / m_transitionDuration;
-        m_transitionProgress = std::clamp(m_transitionProgress, 0.0f, 1.0f);
+        m_transitionProgress = Maths::Clamp(m_transitionProgress, 0.0f, 1.0f);
 
-        m_duration = glm::lerp(m_pStartNode->GetDuration(), m_pEndNode->GetDuration(), m_transitionProgress);
+        m_duration = Maths::Lerp(m_pStartNode->GetDuration(), m_pEndNode->GetDuration(), m_transitionProgress);
         
         PoseNodeResult result;
 
@@ -151,7 +151,7 @@ class TransitionRuntimeNode : public PoseRuntimeNode
         const auto pSettings = GetSettings<TransitionRuntimeNode>();
 
         m_transitionProgress += context.m_deltaTime / m_transitionDuration;
-        m_transitionProgress = std::clamp(m_transitionProgress, 0.0f, 1.0f);
+        m_transitionProgress = Maths::Clamp(m_transitionProgress, 0.0f, 1.0f);
 
         // TODO : Handle other easing functions
         const auto blendWeight = m_transitionProgress;

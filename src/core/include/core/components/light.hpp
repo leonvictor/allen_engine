@@ -1,19 +1,20 @@
 #pragma once
 
-#include <reflection/type_info.hpp>
 #include <common/colors.hpp>
+#include <common/maths/vec3.hpp>
+#include <common/maths/vec4.hpp>
 #include <entities/spatial_component.hpp>
+#include <reflection/type_info.hpp>
 
-#include <glm/vec3.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace aln
 {
 struct LightUniform
 {
-    alignas(16) glm::vec4 position;  // position.w represents type of light
-    alignas(16) glm::vec3 direction; // direction.w represents range
-    alignas(16) glm::vec3 color;     // color.w represents intensity
+    alignas(16) Vec4 position;  // position.w represents type of light
+    alignas(16) Vec4 direction; // direction.w represents range
+    alignas(16) Vec4 color;     // color.w represents intensity
     // TODO: Add inner and outer cutoff for spot lights
 };
 
@@ -31,7 +32,7 @@ class Light : public SpatialComponent
 
     Type type;
 
-    glm::vec3 direction;
+    Vec3 direction;
     RGBColor m_color = RGBColor(1.0f, 1.0f, 1.0f);
 
     float intensity = 1.0f;

@@ -3,7 +3,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <glm/vec2.hpp>
+#include <common/maths/vec2.hpp>
 
 /// Custom widgets
 namespace aln::ImGuiWidgets
@@ -33,15 +33,15 @@ static bool SplitterV(float thickness, float* size1, float* size2, float min_siz
     return Splitter(true, thickness, size1, size2, min_size1, min_size2, splitter_long_axis_size);
 }
 
-static void DrawArrow(ImDrawList* pDrawList, const glm::vec2& startPosition, const glm::vec2& endPosition, ImU32 color, float lineThickness = 2.0f)
+static void DrawArrow(ImDrawList* pDrawList, const Vec2& startPosition, const Vec2& endPosition, ImU32 color, float lineThickness = 2.0f)
 {
-    auto direction = glm::normalize(endPosition - startPosition);
-    glm::vec2 orthogonal = {-direction.y, direction.x};
+    auto direction = (endPosition - startPosition).Normalized();
+    Vec2 orthogonal = {-direction.y, direction.x};
     
-    glm::vec2 triangleBase = endPosition - (direction * 16.0f);
-    glm::vec2 point1 = triangleBase + (orthogonal * 8.0f);
-    glm::vec2 point2 = triangleBase - (orthogonal * 8.0f);
-    glm::vec2 point3 = endPosition;
+    Vec2 triangleBase = endPosition - (direction * 16.0f);
+    Vec2 point1 = triangleBase + (orthogonal * 8.0f);
+    Vec2 point2 = triangleBase - (orthogonal * 8.0f);
+    Vec2 point3 = endPosition;
 
     pDrawList->AddTriangleFilled(point1, point2, point3, color);
     pDrawList->AddLine(

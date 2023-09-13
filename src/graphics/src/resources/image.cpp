@@ -4,7 +4,6 @@
 
 #include <config/path.h>
 
-#include <cmath>
 #include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -321,7 +320,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 // Retreive the pixel value at index
 // FIXME: This won't work if the image is in GPU-specific format
 // FIXME: This only works in 8-bits per channel formats
-glm::vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
+Vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
     auto subResourceLayout = m_pDevice->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
@@ -350,7 +349,7 @@ glm::vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
                     int r = (unsigned int) *(pixel + 2);
                     int g = (unsigned int) *(pixel + 1);
                     int b = (unsigned int) *pixel;
-                    return glm::vec3(r, g, b);
+                    return Vec3(r, g, b);
                 }
                 else
                 {
@@ -358,14 +357,14 @@ glm::vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
                     int r = (unsigned int) *pixel;
                     int g = (unsigned int) *(pixel + 1);
                     int b = (unsigned int) *(pixel + 2);
-                    return glm::vec3(r, g, b);
+                    return Vec3(r, g, b);
                 }
             }
             row++;
         }
         data += subResourceLayout.rowPitch;
     }
-    return glm::vec3();
+    return Vec3();
 }
 
 void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)

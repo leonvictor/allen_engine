@@ -1,10 +1,11 @@
 #include "entity_systems/camera_controller.hpp "
 
-#include <functional>
-#include <input/input_service.hpp>
 #include <input/devices/mouse.hpp>
+#include <input/input_service.hpp>
 
 #include <GLFW/glfw3.h>
+
+#include <functional>
 
 namespace aln
 {
@@ -32,21 +33,24 @@ void EditorCameraController::Update(const UpdateContext& context)
     if (pMouse->IsHeld(Mouse::Button::Right))
     {
         auto delta = pMouse->GetDelta() * m_rotationSensitivity;
-        m_pCameraInstance->OffsetLocalTransformRotation(glm::quat(glm::radians(glm::vec3(-delta.y, delta.x, 0.0f))));
+        m_pCameraInstance->OffsetLocalTransformRotation(Quaternion::FromEulerAngles(Vec3(-delta.y, delta.x, 0.0f).ToRadians()));
     }
 
-    m_pCameraInstance->forward = glm::vec3(0.0f, 0.0f, 1.0f) * m_pCameraInstance->GetWorldTransform().GetRotation();
-    m_pCameraInstance->right = glm::normalize(glm::cross(m_pCameraInstance->forward, m_pCameraInstance->world_up));
-    m_pCameraInstance->up = glm::normalize(glm::cross(m_pCameraInstance->right, m_pCameraInstance->forward));
+    m_pCameraInstance->forward = m_pCameraInstance->GetWorldTransform().GetForwardVector();
+    // TODO: Use GetRightVector and GetUpVector ?
+    m_pCameraInstance->right = m_pCameraInstance->forward.Cross(m_pCameraInstance->world_up).Normalized();
+    m_pCameraInstance->up = m_pCameraInstance->right.Cross(m_pCameraInstance->forward).Normalized();
 }
 
 void EditorCameraController::RegisterComponent(IComponent* pComponent)
 {
     // Associate the controlled camera
-    auto pCameraComponent = dynamic_cast<Camera*>(pComponent);
+    auto pCameraComponent = dynamic_cast<CameraComponent*>(pComponent);
 
     if (pCameraComponent == nullptr)
+    {
         return;
+    }
 
     m_pCameraInstance = pCameraComponent;
 }

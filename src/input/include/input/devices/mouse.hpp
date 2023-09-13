@@ -1,10 +1,10 @@
 #pragma once
 
-#include "controls/axis_control.hpp"
-#include "controls/button_control.hpp"
-#include "input_device.hpp"
+#include "../controls/axis_control.hpp"
+#include "../controls/button_control.hpp"
+#include "../input_device.hpp"
 
-#include <glm/vec2.hpp>
+#include <common/maths/vec2.hpp>
 
 #include <array>
 #include <unordered_map>
@@ -35,13 +35,13 @@ class Mouse : IInputDevice
     static const std::unordered_map<uint8_t, Button> GlfwButtonMap;
 
     // Position in screen space.
-    glm::vec2 m_position;
+    Vec2 m_position;
 
     // Difference in cursor position since last frame.
-    glm::vec2 m_delta = {0, 0};
+    Vec2 m_delta = {0, 0};
 
     // Difference in position of the scroller since last frame.
-    glm::vec2 m_scrollDelta = {0, 0};
+    Vec2 m_scrollDelta = {0, 0};
 
     /// Mouse buttons
     std::array<ButtonControl, 8> m_buttons;
@@ -51,7 +51,7 @@ class Mouse : IInputDevice
     AxisControl m_scrollControl;
 
     /// @brief Update position and delta according to the new provided position.
-    void SetCursorPosition(glm::vec2 position)
+    void SetCursorPosition(Vec2 position)
     {
         m_delta = position - m_position;
         m_position = position;
@@ -83,9 +83,9 @@ class Mouse : IInputDevice
     void UpdateScrollControlState(float xdelta, float ydelta);
 
   public:
-    inline const glm::vec2& GetPosition() const { return m_position; }
-    inline const glm::vec2& GetDelta() const { return m_delta; }
-    inline const glm::vec2& GetScrollDelta() const { return m_scrollDelta; };
+    inline const Vec2& GetPosition() const { return m_position; }
+    inline const Vec2& GetDelta() const { return m_delta; }
+    inline const Vec2& GetScrollDelta() const { return m_scrollDelta; };
 
     inline bool WasPressed(Button button) const { return m_buttons[(uint8_t) button].WasPressed(); }
     inline bool WasReleased(Button button) const { return m_buttons[(uint8_t) button].WasReleased(); }

@@ -3,13 +3,12 @@
 #include <assert.h>
 #include <string>
 
-#include <glm/vec3.hpp>
-
-#include <common/transform.hpp>
-
 #include "../bone_mask.hpp"
 #include "../sync_track.hpp"
 #include "runtime_graph_node.hpp"
+
+#include <common/maths/vec3.hpp>
+#include <common/transform.hpp>
 
 namespace aln
 {
@@ -40,7 +39,7 @@ struct ValueTypeValidation<float>
     static NodeValueType const Type = NodeValueType::Float;
 };
 template <>
-struct ValueTypeValidation<glm::vec3>
+struct ValueTypeValidation<Vec3>
 {
     static NodeValueType const Type = NodeValueType::Vector;
 };

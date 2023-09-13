@@ -366,13 +366,13 @@ class PrimitiveTypeInfo : public TypeInfo
 #include <common/colors.hpp>
 #include <common/transform.hpp>
 #include <common/string_id.hpp>
-#include <glm/vec3.hpp>
+#include <common/maths/vec3.hpp>
 
 namespace aln
 {
 ALN_REGISTER_PRIMITIVE(RGBAColor)
 ALN_REGISTER_PRIMITIVE(RGBColor)
-ALN_REGISTER_PRIMITIVE(glm::vec3)
+ALN_REGISTER_PRIMITIVE(Vec3)
 ALN_REGISTER_PRIMITIVE(int)
 ALN_REGISTER_PRIMITIVE(float)
 ALN_REGISTER_PRIMITIVE(bool)

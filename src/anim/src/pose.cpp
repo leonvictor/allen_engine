@@ -116,19 +116,19 @@ void Pose::SetTransform(BoneIndex boneIdx, const Transform& transform)
     m_localTransforms[boneIdx] = transform;
 }
 
-void Pose::SetTranslation(BoneIndex boneIdx, const glm::vec3& translation)
+void Pose::SetTranslation(BoneIndex boneIdx, const Vec3& translation)
 {
     assert(boneIdx < m_localTransforms.size());
     m_localTransforms[boneIdx].SetTranslation(translation);
 }
 
-void Pose::SetScale(BoneIndex boneIdx, const glm::vec3& scale)
+void Pose::SetScale(BoneIndex boneIdx, const Vec3& scale)
 {
     assert(boneIdx < m_localTransforms.size());
     m_localTransforms[boneIdx].SetScale(scale);
 }
 
-void Pose::SetRotation(BoneIndex boneIdx, const glm::quat& rotation)
+void Pose::SetRotation(BoneIndex boneIdx, const Quaternion& rotation)
 {
     assert(boneIdx < m_localTransforms.size());
     m_localTransforms[boneIdx].SetRotation(rotation);

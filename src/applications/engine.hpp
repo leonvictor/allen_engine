@@ -66,7 +66,7 @@ class Engine
     Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity) {}
 
     // TODO: Get rid of the glfwWindow
-    void Initialize(GLFWwindow* pGLFWWindow, vkg::Swapchain& swapchain, vkg::Device& device, const glm::vec2& windowSize)
+    void Initialize(GLFWwindow* pGLFWWindow, vkg::Swapchain& swapchain, vkg::Device& device, const Vec2& windowSize)
     {
         // Initialize the render engine
         m_uiRenderer.Create(&swapchain);

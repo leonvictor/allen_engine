@@ -2,9 +2,9 @@
 
 #include "types.hpp"
 
-#include <vector>
-
 #include <common/transform.hpp>
+
+#include <vector>
 
 namespace aln
 {
@@ -77,8 +77,8 @@ class Pose
     Transform GetTransform(BoneIndex boneIdx) const;
 
     void SetTransform(BoneIndex boneIdx, const Transform& transform);
-    void SetTranslation(BoneIndex boneIdx, const glm::vec3& translation);
-    void SetScale(BoneIndex boneIdx, const glm::vec3& scale);
-    void SetRotation(BoneIndex boneIdx, const glm::quat& rotation);
+    void SetTranslation(BoneIndex boneIdx, const Vec3& translation);
+    void SetScale(BoneIndex boneIdx, const Vec3& scale);
+    void SetRotation(BoneIndex boneIdx, const Quaternion& rotation);
 };
 } // namespace aln

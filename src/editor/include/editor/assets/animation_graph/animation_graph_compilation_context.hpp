@@ -74,7 +74,7 @@ class AnimationGraphCompilationContext
 
         // Update instance required memory info
         graphDefinition.m_nodeOffsets.push_back(m_currentNodeMemoryOffset);
-        m_maxNodeMemoryAlignement = std::max(m_maxNodeMemoryAlignement, alignof(T));
+        m_maxNodeMemoryAlignement = Maths::Max(m_maxNodeMemoryAlignement, alignof(T));
         const auto requiredPadding = (alignof(T) - (m_currentNodeMemoryOffset % m_maxNodeMemoryAlignement)) % m_maxNodeMemoryAlignement;
         m_currentNodeMemoryOffset += (sizeof(T) + requiredPadding);
 

@@ -13,8 +13,6 @@
 #include <imnodes.h>
 #include <nlohmann/json.hpp>
 
-#include <cmath>
-
 namespace aln
 {
 
@@ -41,22 +39,22 @@ class EditorGraphNode : public reflect::IReflected
     {
         constexpr float MIN_NODE_WIDTH = 120.0f;
 
-        float nodeWidth = std::max(MIN_NODE_WIDTH, ImGui::CalcTextSize(GetName().c_str()).x);
+        float nodeWidth = Maths::Max(MIN_NODE_WIDTH, ImGui::CalcTextSize(GetName().c_str()).x);
 
         for (const auto& pin : GetInputPins())
         {
-            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
         }
 
         for (const auto& pin : GetOutputPins())
         {
-            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
+            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
         }
 
         const auto pTypeInfo = GetTypeInfo();
         for (const auto& member : pTypeInfo->m_members)
         {
-            nodeWidth = std::max(nodeWidth, ImGui::CalcTextSize(member.GetPrettyName().c_str()).x + 100);
+            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(member.GetPrettyName().c_str()).x + 100);
         }
 
         return nodeWidth;
@@ -66,9 +64,9 @@ class EditorGraphNode : public reflect::IReflected
     {
         auto colorScheme = ctx.GetTypeColorScheme(GetValueType());
 
-        ImNodes::PushColorStyle(ImNodesCol_TitleBar, colorScheme.m_defaultColor.U32());
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, colorScheme.m_hoveredColor.U32());
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, colorScheme.m_selectedColor.U32());
+        ImNodes::PushColorStyle(ImNodesCol_TitleBar, colorScheme.m_defaultColor.ToU32());
+        ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, colorScheme.m_hoveredColor.ToU32());
+        ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, colorScheme.m_selectedColor.ToU32());
     }
 
     virtual void PopNodeStyle(const GraphDrawingContext& ctx) const
@@ -185,8 +183,8 @@ class EditorGraphNode : public reflect::IReflected
     virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx)
     {
         auto colorScheme = ctx.GetTypeColorScheme(pin.GetValueType());
-        ImNodes::PushColorStyle(ImNodesCol_Pin, colorScheme.m_defaultColor.U32());
-        ImNodes::PushColorStyle(ImNodesCol_PinHovered, colorScheme.m_hoveredColor.U32());
+        ImNodes::PushColorStyle(ImNodesCol_Pin, colorScheme.m_defaultColor.ToU32());
+        ImNodes::PushColorStyle(ImNodesCol_PinHovered, colorScheme.m_hoveredColor.ToU32());
 
         if (pin.IsInput())
         {
