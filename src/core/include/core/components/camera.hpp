@@ -5,8 +5,8 @@
 #include <entities/spatial_component.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
+#include <common/maths/matrix4x4.hpp>
+#include <common/maths/vec3.hpp>
 
 namespace aln
 {
@@ -26,12 +26,12 @@ class CameraComponent : public SpatialComponent
     Type m_type = Type::SceneView;
 
   public:
-    glm::vec3 forward;
-    glm::vec3 up;
-    glm::vec3 right;
+    Vec3 forward;
+    Vec3 up;
+    Vec3 right;
 
     // TODO: This shouldn't be in the camera component.
-    glm::vec3 world_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    Vec3 world_up = Vec3(0.0f, 1.0f, 0.0f);
 
     // TODO
     float fov = 45.0f;
@@ -39,12 +39,12 @@ class CameraComponent : public SpatialComponent
     float farPlane = 300.f;
 
     // TODO: Optionnaly render the skybox as background
-    RGBAColor m_backgroundColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    RGBAColor m_backgroundColor = {0, 0, 0, 255};
 
-    glm::mat4 GetViewMatrix() const;
+    Matrix4x4 GetViewMatrix() const;
     // TODO: aspectRatio could be kept in a similar class representing a camera view
-    glm::mat4 GetProjectionMatrix(float aspectRatio) const;
-    glm::mat4 GetViewProjectionMatrix(float aspectRatio) const;
+    Matrix4x4 GetProjectionMatrix(float aspectRatio) const;
+    Matrix4x4 GetViewProjectionMatrix(float aspectRatio) const;
 
     void Initialize() override {}
     void Shutdown() override {}

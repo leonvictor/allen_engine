@@ -51,7 +51,7 @@ class InputService : public IService
     }
 
     /// @todo Should not be updated through the main loop. Pass the glfw window ?
-    void UpdateMousePosition(glm::vec2 position)
+    void UpdateMousePosition(Vec2 position)
     {
         m_mouse.SetCursorPosition(position);
     }

@@ -10,7 +10,7 @@
 #include <entities/entity_descriptors.hpp>
 #include <entities/world_entity.hpp>
 
-#include <glm/vec2.hpp>
+#include <common/maths/vec2.hpp>
 
 #include <filesystem>
 #include <map>
@@ -113,7 +113,7 @@ class Editor
     void Shutdown();
     void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);
 
-    const glm::vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
+    const Vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
 
     void CreateAssetWindow(const AssetID& id, bool readAssetFile);
     void RemoveAssetWindow(const AssetID& id);

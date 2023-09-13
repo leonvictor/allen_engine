@@ -41,7 +41,7 @@ struct FrameSync
 
 struct RenderContext
 {
-    aln::RGBAColor backgroundColor;
+    aln::RGBAColor backgroundColor = {0, 0, 0, 255};
 };
 
 /// TODO: Modify the API to allow offline rendering. The idea would be to render to a texture which we can display onto an imgui window.

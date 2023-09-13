@@ -25,7 +25,7 @@ class RenderPass
     {
         vk::CommandBuffer& commandBuffer;
         vk::Framebuffer& framebuffer;
-        aln::RGBAColor backgroundColor;
+        aln::RGBAColor backgroundColor = {0, 0, 0, 255};
     };
 
     RenderPass() {}

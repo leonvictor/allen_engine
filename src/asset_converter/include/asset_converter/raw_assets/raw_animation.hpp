@@ -142,11 +142,11 @@ struct AssimpAnimationReader
             // Not ideal: will not work for vertical root motion, i.e. jumps
             // Ideally we would let the user control the import process from the editor and pick whether to adjust or not
             auto rootMotionTransform = rootBoneTransform;
-            rootMotionTransform.SetTranslation(rootMotionTransform.GetTranslation() * glm::vec3(1.0f, 0.0f, 1.0f));
-            rootMotionTransform.SetRotation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+            rootMotionTransform.SetTranslation(rootMotionTransform.GetTranslation() * Vec3(1.0f, 0.0f, 1.0f));
+            rootMotionTransform.SetRotation(Quaternion(1.0f, 0.0f, 0.0f, 0.0f));
             animation.m_rootMotionTrack.push_back(rootMotionTransform);
 
-            rootBoneTransform.SetTranslation(rootBoneTransform.GetTranslation() * glm::vec3(0.0f, 1.0f, 0.0f));
+            rootBoneTransform.SetTranslation(rootBoneTransform.GetTranslation() * Vec3::Y);
         }
 
         // --- Serialization

@@ -1,22 +1,17 @@
 #include "world_systems/render_system.hpp"
 
-#include <graphics/rendering/renderer.hpp>
-
 #include "components/camera.hpp"
 #include "components/light.hpp"
-
 #include "renderers/scene_renderer.hpp"
 
+#include <graphics/rendering/renderer.hpp>
 #include <entities/entity.hpp>
 #include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
-
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/matrix.hpp>
-#include <glm/trigonometric.hpp>
+#include <common/maths/matrix4x4.hpp>
 
 #include <Tracy.hpp>
+
 #include <map>
 
 namespace aln

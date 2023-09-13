@@ -1,8 +1,10 @@
 #pragma once
 
-#include <glm/gtx/hash.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
+#include <common/maths/vec2.hpp>
+#include <common/maths/vec3.hpp>
+#include <common/maths/vec4.hpp>
+
+#include <array>
 
 namespace aln
 {
@@ -10,10 +12,10 @@ namespace aln
 struct Vertex
 {
   public:
-    alignas(16) glm::vec3 pos;
-    alignas(16) glm::vec3 color;
-    alignas(16) glm::vec2 texCoord;
-    alignas(16) glm::vec3 normal;
+    alignas(16) Vec3 pos;
+    alignas(16) Vec3 color;
+    alignas(16) Vec2 texCoord;
+    alignas(16) Vec3 normal;
 
     bool operator==(const Vertex& other) const
     {
@@ -28,18 +30,18 @@ struct Vertex
 
 struct SkinnedVertex : public Vertex
 {
-    alignas(16) glm::vec3 pos;
-    alignas(16) glm::vec3 color;
-    alignas(16) glm::vec2 texCoord;
-    alignas(16) glm::vec3 normal;
-    alignas(16) glm::vec4 weights;
-    alignas(16) glm::vec<4, uint32_t> boneIndices;
+    alignas(16) Vec3 pos;
+    alignas(16) Vec3 color;
+    alignas(16) Vec2 texCoord;
+    alignas(16) Vec3 normal;
+    alignas(16) Vec4 weights;
+    alignas(16) std::array<uint32_t, 4> boneIndices;
 };
 
 struct DebugVertex
 {
-    alignas(16) glm::vec3 pos;
-    alignas(16) glm::vec3 color;
+    alignas(16) Vec3 pos;
+    alignas(16) Vec3 color;
 };
 
 } // namespace aln
@@ -52,11 +54,11 @@ struct hash<aln::Vertex>
     size_t operator()(aln::Vertex const& vertex) const
     {
         return (
-                   (hash<glm::vec3>()(vertex.pos) ^
-                       (hash<glm::vec3>()(vertex.color) << 1)) >>
+                   (hash<aln::Vec3>()(vertex.pos) ^
+                       (hash<aln::Vec3>()(vertex.color) << 1)) >>
                    1) ^
-               (hash<glm::vec2>()(vertex.texCoord) << 1) ^
-               (hash<glm::vec3>()(vertex.normal));
+               (hash<aln::Vec2>()(vertex.texCoord) << 1) ^
+               (hash<aln::Vec3>()(vertex.normal));
     }
 };
 } // namespace std

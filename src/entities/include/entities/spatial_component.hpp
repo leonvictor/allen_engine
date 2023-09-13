@@ -68,23 +68,23 @@ class SpatialComponent : public IComponent
     }
 
     /// @brief Set this transform's rotation in quaternions
-    void SetLocalTransformRotation(const glm::quat quat);
+    void SetLocalTransformRotation(const Quaternion& quat);
 
     /// @brief Set this transform's rotation in euler angles
     /// @param euler: desired angles in degrees
-    void SetLocalTransformRotationEuler(const glm::vec3 euler);
+    void SetLocalTransformRotationEuler(const Vec3& euler);
 
     /// @brief Set this spatial component's position
-    void SetLocalTransformPosition(const glm::vec3 pos);
+    void SetLocalTransformPosition(const Vec3& pos);
 
     /// @brief Set this spatial component's scale
-    void SetLocalTransformScale(const glm::vec3 scale);
+    void SetLocalTransformScale(const Vec3& scale);
 
     /// @brief Offset this spatial component's position by a delta
-    void OffsetLocalTransformPosition(const glm::vec3 offset);
+    void OffsetLocalTransformPosition(const Vec3& offset);
 
     /// @brief Offset this spatial component's rotation by a delta
     /// @param quatOffset: delta rotation
-    void OffsetLocalTransformRotation(const glm::quat quatOffset);
+    void OffsetLocalTransformRotation(const Quaternion& quatOffset);
 };
 } // namespace aln

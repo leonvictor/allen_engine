@@ -8,9 +8,8 @@
 #include <common/drawing_context.hpp>
 #include <common/transform.hpp>
 #include <entities/spatial_component.hpp>
-
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
+#include <common/maths/matrix4x4.hpp>
+#include <common/maths/vec3.hpp>
 
 namespace aln
 {
@@ -28,7 +27,7 @@ class SkeletalMeshComponent : public MeshComponent
 
     // Rendering bone transforms in global character space
     std::vector<Transform> m_boneTransforms;
-    std::vector<glm::mat4x4> m_skinningTransforms;
+    std::vector<Matrix4x4> m_skinningTransforms;
 
     // Bone mapping between animation and render skeletons
     std::vector<BoneIndex> m_animToRenderBonesMap;

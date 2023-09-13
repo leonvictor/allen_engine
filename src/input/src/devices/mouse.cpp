@@ -89,6 +89,6 @@ void Mouse::UpdateScrollControlState(float xdelta, float ydelta)
     // auto& event = m_statesChanged.emplace(std::make_pair(TEMPORARY_SCROLL_ID, ControlStateChangedEvent()))->second;
     // event.pControl = &m_scrollControl;
 
-    m_scrollDelta = glm::vec2(xdelta, ydelta);
+    m_scrollDelta = Vec2(xdelta, ydelta);
 }
 } // namespace aln

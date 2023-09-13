@@ -8,10 +8,9 @@
 #include "assets/animation_graph/nodes/control_parameter_editor_nodes.hpp"
 #include "assets/animation_graph/nodes/parameter_reference_editor_node.hpp"
 #include "assets/animation_graph/nodes/state_editor_node.hpp"
-
+#include <common/maths/vec2.hpp>
 #include <common/event.hpp>
 
-#include <glm/vec2.hpp>
 #include <imgui.h>
 #include <imnodes.h>
 #include <imnodes_internal.h>
@@ -30,7 +29,7 @@ class GraphView
     {
         bool m_dragging = false;
         const EditorGraphNode* m_pStartNode = nullptr;
-        glm::vec2 m_startPosition;
+        Vec2 m_startPosition;
 
         void Reset()
         {
@@ -297,7 +296,7 @@ class GraphView
                 }
                 else
                 {
-                    glm::vec2 endPosition = ImGui::GetMousePos();
+                    Vec2 endPosition = ImGui::GetMousePos();
 
                     if (IsNodeHovered())
                     {
@@ -310,8 +309,8 @@ class GraphView
                         }
                     }
 
-                    auto direction = glm::normalize(endPosition - m_conduitDragState.m_startPosition);
-                    glm::vec2 orthogonalDirection = {-direction.y, direction.x};
+                    auto direction = (endPosition - m_conduitDragState.m_startPosition).Normalized();
+                    Vec2 orthogonalDirection = {-direction.y, direction.x};
 
                     auto startPosition = GetNodeBorderIntersection(m_conduitDragState.m_pStartNode->GetID(), endPosition, m_conduitDragState.m_startPosition) + orthogonalDirection * ConduitArrowsOffset;
                     if (IsNodeHovered())
@@ -336,17 +335,17 @@ class GraphView
                     auto startStateCenter = GetNodeScreenSpaceCenter(startStateID);
                     auto endStateCenter = GetNodeScreenSpaceCenter(endStateID);
 
-                    auto direction = glm::normalize(endStateCenter - startStateCenter);
-                    glm::vec2 orthogonalDirection = {-direction.y, direction.x};
+                    auto direction = (endStateCenter - startStateCenter).Normalized();
+                    Vec2 orthogonalDirection = {-direction.y, direction.x};
 
                     auto startPosition = GetNodeBorderIntersection(startStateID, endStateCenter, startStateCenter) + ConduitArrowsOffset * orthogonalDirection;
                     auto endPosition = GetNodeBorderIntersection(endStateID, startStateCenter, endStateCenter) + ConduitArrowsOffset * orthogonalDirection;
 
                     auto conduitColor = RGBColor::Blue;
                     // Handle hovering and selection
-                    glm::vec2 mousePosition = ImGui::GetMousePos();
-                    glm::vec2 closestPointOnConduitFromMouse = ImLineClosestPoint(startPosition, endPosition, ImGui::GetMousePos());
-                    auto distanceToConduit = glm::length2(mousePosition - closestPointOnConduitFromMouse);
+                    Vec2 mousePosition = ImGui::GetMousePos();
+                    Vec2 closestPointOnConduitFromMouse = ImLineClosestPoint(startPosition, endPosition, ImGui::GetMousePos());
+                    auto distanceToConduit = (mousePosition - closestPointOnConduitFromMouse).SquaredMagnitude();
 
                     if (distanceToConduit < 25.0f)
                     {
@@ -363,7 +362,7 @@ class GraphView
                     }
 
                     conduitColor = (pConduit == m_pSelectedConduit) ? RGBColor::Pink : conduitColor;
-                    ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, conduitColor.U32());
+                    ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, conduitColor.ToU32());
                 }
             }
         }
@@ -380,9 +379,9 @@ class GraphView
             const auto pPin = m_pGraph->m_pinLookupMap[link.m_inputPinID];
             auto colorScheme = drawingContext.GetTypeColorScheme(pPin->GetValueType());
 
-            ImNodes::PushColorStyle(ImNodesCol_Link, colorScheme.m_defaultColor.U32());
-            ImNodes::PushColorStyle(ImNodesCol_LinkHovered, colorScheme.m_hoveredColor.U32());
-            ImNodes::PushColorStyle(ImNodesCol_LinkSelected, colorScheme.m_selectedColor.U32());
+            ImNodes::PushColorStyle(ImNodesCol_Link, colorScheme.m_defaultColor.ToU32());
+            ImNodes::PushColorStyle(ImNodesCol_LinkHovered, colorScheme.m_hoveredColor.ToU32());
+            ImNodes::PushColorStyle(ImNodesCol_LinkSelected, colorScheme.m_selectedColor.ToU32());
 
             ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
             
@@ -486,32 +485,32 @@ class GraphView
 
     // ------ Helpers
     // TODO: Move to private
-    glm::vec2 GetNodeScreenSpaceCenter(const UUID& nodeID) const
+    Vec2 GetNodeScreenSpaceCenter(const UUID& nodeID) const
     {
-        return (glm::vec2) ImNodes::GetNodeScreenSpacePos(nodeID) + (glm::vec2) ImNodes::GetNodeDimensions(nodeID) / 2.0f;
+        return (Vec2) ImNodes::GetNodeScreenSpacePos(nodeID) + (Vec2) ImNodes::GetNodeDimensions(nodeID) / 2.0f;
     }
 
-    glm::vec2 GetNodeBorderIntersection(const UUID& nodeID, glm::vec2& start, glm::vec2& end) const
+    Vec2 GetNodeBorderIntersection(const UUID& nodeID, Vec2& start, Vec2& end) const
     {
         /// @note AABB Intersection https://noonat.github.io/intersect/#aabb-vs-segment
         auto nodeCenter = GetNodeScreenSpaceCenter(nodeID);
-        glm::vec2 nodeHalf = (glm::vec2) ImNodes::GetNodeDimensions(nodeID) / 2.0f;
+        Vec2 nodeHalf = (Vec2) ImNodes::GetNodeDimensions(nodeID) / 2.0f;
 
         const auto delta = end - start;
         const auto scale = 1.0f / delta;
-        const auto sign = glm::sign(scale);
+        const auto sign = scale.GetSign();
         const auto nearTimes = (nodeCenter - sign * nodeHalf - start) * scale;
         const auto farTimes = (nodeCenter + sign * nodeHalf - start) * scale;
 
         assert(!(nearTimes.x > farTimes.y || nearTimes.y > farTimes.x)); // No collision
 
-        const auto nearTime = glm::max(nearTimes.x, nearTimes.y);
-        const auto farTime = glm::min(farTimes.x, farTimes.y);
+        const auto nearTime = Maths::Max(nearTimes.x, nearTimes.y);
+        const auto farTime = Maths::Min(farTimes.x, farTimes.y);
 
         assert(nearTime < 1.0f); // Segment goes toward the AABB but does not reach it (TODO: Raycast ?)
         assert(farTime > 0.0f);  // Segment points away from the AABB
 
-        float hitTime = std::clamp<float>(nearTime, 0.0f, 1.0f);
+        float hitTime = Maths::Clamp(nearTime, 0.0f, 1.0f);
         // auto hitDelta = (1.0f - hitTime) * -delta;
         auto hitPos = start + delta * hitTime;
 

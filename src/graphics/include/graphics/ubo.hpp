@@ -1,15 +1,15 @@
 #pragma once
 
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
+#include <common/maths/matrix4x4.hpp>
+#include <common/maths/vec3.hpp>
 
 namespace aln::vkg
 {
 struct UniformBufferObject
 {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 projection;
-    alignas(16) glm::vec3 cameraPos;
+    alignas(16) Matrix4x4 model;
+    alignas(16) Matrix4x4 view;
+    alignas(16) Matrix4x4 projection;
+    alignas(16) Vec3 cameraPos;
 };
 } // namespace vkg

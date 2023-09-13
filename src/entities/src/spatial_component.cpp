@@ -21,7 +21,7 @@ void SpatialComponent::CalculateWorldTransform(bool callback)
     {
         // Calculate world transform from the parent's one
         Transform parent = m_pSpatialParent->GetWorldTransform();
-        m_worldTransform.SetTranslation(parent.GetTranslation() + (parent.GetRotation() * m_localTransform.GetTranslation()));
+        m_worldTransform.SetTranslation(parent.GetTranslation() + (parent.GetRotation().RotateVector(m_localTransform.GetTranslation())));
         m_worldTransform.SetRotation(parent.GetRotation() * m_localTransform.GetRotation());
         m_worldTransform.SetScale(m_localTransform.GetScale() * parent.GetScale());
     }
@@ -64,8 +64,8 @@ void SpatialComponent::AttachTo(SpatialComponent* pParentComponent, const UUID& 
     // Offset the current local transform so that the world transform stay identical when parent is changed
     auto parentTransform = pParentComponent->GetWorldTransform();
     m_localTransform.SetScale(m_localTransform.GetScale() / parentTransform.GetScale());
-    m_localTransform.SetTranslation((glm::conjugate(parentTransform.GetRotation()) * m_localTransform.GetTranslation()) - parentTransform.GetTranslation());
-    m_localTransform.SetRotation(glm::conjugate(parentTransform.GetRotation()) * m_localTransform.GetRotation()); // TODO: is that the correct order ?
+    m_localTransform.SetTranslation((parentTransform.GetRotation().GetConjugate().RotateVector(m_localTransform.GetTranslation())) - parentTransform.GetTranslation());
+    m_localTransform.SetRotation(parentTransform.GetRotation().GetConjugate() * m_localTransform.GetRotation()); // TODO: is that the correct order ?
 
     CalculateWorldTransform();
 
@@ -91,39 +91,39 @@ void SpatialComponent::Detach()
     m_localTransform = m_worldTransform;
 }
 
-void SpatialComponent::SetLocalTransformRotation(const glm::quat quat)
+void SpatialComponent::SetLocalTransformRotation(const Quaternion& quat)
 {
     m_localTransform.SetRotation(quat);
     CalculateWorldTransform(true);
 }
 
-void SpatialComponent::SetLocalTransformRotationEuler(const glm::vec3 euler)
+void SpatialComponent::SetLocalTransformRotationEuler(const Vec3& euler)
 {
     m_localTransform.SetRotationEuler(euler);
     CalculateWorldTransform(true);
 }
 
-void SpatialComponent::SetLocalTransformPosition(const glm::vec3 pos)
+void SpatialComponent::SetLocalTransformPosition(const Vec3& pos)
 {
     m_localTransform.SetTranslation(pos);
     CalculateWorldTransform(true);
 }
 
-void SpatialComponent::SetLocalTransformScale(const glm::vec3 scale)
+void SpatialComponent::SetLocalTransformScale(const Vec3& scale)
 {
     m_localTransform.SetScale(scale);
     CalculateWorldTransform(true);
 }
 
-void SpatialComponent::OffsetLocalTransformPosition(const glm::vec3 offset)
+void SpatialComponent::OffsetLocalTransformPosition(const Vec3& offset)
 {
     m_localTransform.SetTranslation(m_localTransform.GetTranslation() + offset);
     CalculateWorldTransform(true);
 }
 
-void SpatialComponent::OffsetLocalTransformRotation(const glm::quat quatOffset)
+void SpatialComponent::OffsetLocalTransformRotation(const Quaternion& quatOffset)
 {
-    m_localTransform.SetRotation(glm::normalize(m_localTransform.GetRotation() * quatOffset));
+    m_localTransform.SetRotation((m_localTransform.GetRotation() * quatOffset).Normalized());
     CalculateWorldTransform(true);
 }
 } // namespace aln

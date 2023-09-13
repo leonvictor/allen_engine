@@ -2,10 +2,10 @@
 
 namespace aln::assets::converter
 {
-glm::mat4x4 AssimpSceneContext::ToGLM(const aiMatrix4x4& from)
+Matrix4x4 AssimpSceneContext::ToGLM(const aiMatrix4x4& from)
 {
     // Row-major -> Column-major
-    glm::mat4 matrix;
+    Matrix4x4 matrix;
     for (int y = 0; y < 4; y++)
     {
         for (int x = 0; x < 4; x++)
@@ -35,7 +35,7 @@ Transform AssimpSceneContext::RevertSceneTransform(const Transform& transform) c
     return reverted;
 }
 
-glm::vec3 AssimpSceneContext::RevertSceneTransform(const glm::vec3& vector) const
+Vec3 AssimpSceneContext::RevertSceneTransform(const Vec3& vector) const
 {
     auto reverted = m_inverseSceneTransform.TransformPoint(vector);
     return reverted;

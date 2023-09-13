@@ -4,7 +4,7 @@
 
 #include "controls/2d_axis_control.hpp"
 
-#include <glm/gtx/norm.hpp>
+#include <common/maths/maths.hpp>
 
 namespace aln
 {
@@ -40,11 +40,11 @@ class Gamepad : public IInputDevice
 
   private:
     AxisControl2D m_rightStick;
-    glm::vec2 m_rightStickFilteredValue = {0.0f, 0.0f};
+    Vec2 m_rightStickFilteredValue = {0.0f, 0.0f};
     AnalogStickDeadzone m_rightStickDeadzone = {0.25, 0.1f};
     
     AxisControl2D m_leftStick;
-    glm::vec2 m_leftStickFilteredValue = {0.0f, 0.0f};
+    Vec2 m_leftStickFilteredValue = {0.0f, 0.0f};
     AnalogStickDeadzone m_leftStickDeadzone = {0.25, 0.1f};
     
     AxisControl m_rightTrigger;
@@ -53,12 +53,12 @@ class Gamepad : public IInputDevice
     std::array<ButtonControl, 15> m_buttons;
     
     
-    void SetRightStickState(const glm::vec2& value) { 
+    void SetRightStickState(const Vec2& value) { 
         m_rightStick.SetValue(value); 
         m_rightStickFilteredValue = ApplyDeadzone(value, m_rightStickDeadzone);
     }
 
-    void SetLeftStickState(const glm::vec2& value)
+    void SetLeftStickState(const Vec2& value)
     {
         m_leftStick.SetValue(value);
         m_leftStickFilteredValue = ApplyDeadzone(value, m_leftStickDeadzone);
@@ -70,14 +70,14 @@ class Gamepad : public IInputDevice
     void SetButtonPressed(Button button) { m_buttons[(uint8_t) button].Press(); }
     void SetButtonReleased(Button button) { m_buttons[(uint8_t) button].Release(); }
 
-    glm::vec2 ApplyDeadzone(const glm::vec2& rawValue, const AnalogStickDeadzone& deadzone)
+    Vec2 ApplyDeadzone(const Vec2& rawValue, const AnalogStickDeadzone& deadzone)
     {
-        const auto magnitude = glm::length2(rawValue);
+        const auto magnitude = rawValue.Magnitude();
         const auto direction = rawValue / magnitude;
         if (magnitude > deadzone.m_innerRange)
         {
             float const remainingRange = (1.0f - deadzone.m_innerRange - deadzone.m_outerRange);
-            float remaingMagnitude = glm::min(1.0f, (magnitude - deadzone.m_innerRange) / remainingRange);
+            float remaingMagnitude = Maths::Min(1.0f, (magnitude - deadzone.m_innerRange) / remainingRange);
             return direction * remaingMagnitude;
         }
         else
@@ -105,11 +105,11 @@ class Gamepad : public IInputDevice
     inline void SetLeftStickDeadzone(const AnalogStickDeadzone& deadzone) { m_leftStickDeadzone = deadzone; }
     
     // --- Analog sticks
-    inline const glm::vec2& GetRawLeftStickValue() const { return m_leftStick.GetValue(); } 
-    inline const glm::vec2& GetRawRightStickValue() const { return m_rightStick.GetValue(); } 
+    inline const Vec2& GetRawLeftStickValue() const { return m_leftStick.GetValue(); } 
+    inline const Vec2& GetRawRightStickValue() const { return m_rightStick.GetValue(); } 
     
-    inline const glm::vec2& GetLeftStickValue() const { return m_leftStickFilteredValue; }
-    inline const glm::vec2& GetRightStickValue() const { return m_rightStickFilteredValue; } 
+    inline const Vec2& GetLeftStickValue() const { return m_leftStickFilteredValue; }
+    inline const Vec2& GetRightStickValue() const { return m_rightStickFilteredValue; } 
     
     // --- Triggers
     inline float GetLeftTriggerValue() const { return m_leftTrigger.GetValue(); }

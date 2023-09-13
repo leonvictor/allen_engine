@@ -4,9 +4,10 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include <glm/gtx/quaternion.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
+#include <common/maths/quaternion.hpp>
+#include <common/maths/matrix4x4.hpp>
+#include <common/maths/vec2.hpp>
+#include <common/maths/vec3.hpp>
 
 #include <common/transform.hpp>
 
@@ -40,17 +41,17 @@ class AssimpSceneContext
 
     // Helpers translating assimp struct to ours
     /// @todo Rename to more descriptive names (ToVec3, ToTransform)...
-    static glm::mat4x4 ToGLM(const aiMatrix4x4& from);
-    static glm::vec3 ToGLM(const aiVector3D& in) { return glm::vec3(in.x, in.y, in.z); }
-    static glm::quat ToGLM(const aiQuaternion& in) { return glm::quat(in.w, in.x, in.y, in.z); }
-    static glm::vec2 ToVec2(const aiVector3D& in) { return glm::vec2{in.x, in.y}; }
-    static glm::vec3 ToVec3(const aiColor4D& in) { return glm::vec3{in[0], in[1], in[2]}; }
+    static Matrix4x4 ToGLM(const aiMatrix4x4& from);
+    static Vec3 ToGLM(const aiVector3D& in) { return Vec3(in.x, in.y, in.z); }
+    static Quaternion ToGLM(const aiQuaternion& in) { return Quaternion(in.w, in.x, in.y, in.z); }
+    static Vec2 ToVec2(const aiVector3D& in) { return Vec2{in.x, in.y}; }
+    static Vec3 ToVec3(const aiColor4D& in) { return Vec3{in[0], in[1], in[2]}; }
 
     /// @brief Decompose an assimp matrix in an aln transform
     static Transform DecomposeMatrix(const aiMatrix4x4& in);
 
     Transform RevertSceneTransform(const Transform& transform) const;
-    glm::vec3 RevertSceneTransform(const glm::vec3& vector) const;
+    Vec3 RevertSceneTransform(const Vec3& vector) const;
 
     /// @brief Try to find an existing skeleton with a matching name. If no skeleton is found, a new one is created.
     /// @param pOutSkeleton: a pointer to the existing or newly created skeleton

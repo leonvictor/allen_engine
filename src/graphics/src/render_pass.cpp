@@ -97,9 +97,9 @@ void RenderPass::Begin(RenderPass::Context& ctx)
     assert(IsInitialized());
 
     m_clearValues[0] = vk::ClearColorValue{std::array<float, 4>{
-        ctx.backgroundColor.x,
-        ctx.backgroundColor.y,
-        ctx.backgroundColor.z,
+        ctx.backgroundColor.m_red / 255.0f,
+        ctx.backgroundColor.m_green / 255.0f,
+        ctx.backgroundColor.m_blue / 255.0f,
         1.0f,
     }};
 

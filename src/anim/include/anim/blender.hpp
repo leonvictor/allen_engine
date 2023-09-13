@@ -5,10 +5,10 @@
 #include "skeleton.hpp"
 
 #include <assert.h>
+#include <common/maths/vec3.hpp>
 
 #include <glm/gtx/compatibility.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <glm/vec3.hpp>
 
 namespace aln
 {
@@ -26,37 +26,37 @@ enum class PoseBlend
 
 struct InterpolativeBlender
 {
-    inline static glm::quat BlendRotation(const glm::quat& quat0, const glm::quat& quat1, const float t)
+    inline static Quaternion BlendRotation(const Quaternion& quat0, const Quaternion& quat1, const float t)
     {
-        return glm::slerp(quat0, quat1, t);
+        return Quaternion::Slerp(quat0, quat1, t);
     }
 
-    inline static glm::vec3 BlendTranslation(const glm::vec3& trans0, const glm::vec3& trans1, const float t)
+    inline static Vec3 BlendTranslation(const Vec3& trans0, const Vec3& trans1, const float t)
     {
-        return glm::lerp(trans0, trans1, t);
+        return Vec3::Lerp(trans0, trans1, t);
     }
 
-    inline static glm::vec3 BlendScale(const glm::vec3& scale0, const glm::vec3& scale1, const float t)
+    inline static Vec3 BlendScale(const Vec3& scale0, const Vec3& scale1, const float t)
     {
-        return glm::lerp(scale0, scale1, t);
+        return Vec3::Lerp(scale0, scale1, t);
     }
 };
 
 struct AdditiveBlender
 {
-    inline static glm::quat BlendRotation(const glm::quat& quat0, const glm::quat& quat1, const float t)
+    inline static Quaternion BlendRotation(const Quaternion& quat0, const Quaternion& quat1, const float t)
     {
-        const glm::quat targetQuat = quat0 * quat1;
-        return glm::slerp(quat0, targetQuat, t);
+        const Quaternion targetQuat = quat0 * quat1;
+        return Quaternion::Slerp(quat0, targetQuat, t);
     }
 
-    inline static glm::vec3 BlendTranslation(const glm::vec3& trans0, const glm::vec3& trans1, const float t)
+    inline static Vec3 BlendTranslation(const Vec3& trans0, const Vec3& trans1, const float t)
     {
         // TODO
         // return Vector::MultiplyAdd(trans1, Vector(t), trans0).SetW1();
     }
 
-    inline static glm::vec3 BlendScale(const glm::vec3& scale0, const glm::vec3& scale1, const float t)
+    inline static Vec3 BlendScale(const Vec3& scale0, const Vec3& scale1, const float t)
     {
         // TODO (same as translation (multiplyadd))
     }
@@ -110,13 +110,13 @@ void BlenderLocal(const Pose* pSourcePose, const Pose* pTargetPose, const float 
             const Transform& targetTransform = pTargetPose->GetTransform(boneIdx);
 
             // Blend translations
-            const glm::vec3 translation = Blender::BlendTranslation(sourceTransform.GetTranslation(), targetTransform.GetTranslation(), boneBlendWeight);
+            const Vec3 translation = Blender::BlendTranslation(sourceTransform.GetTranslation(), targetTransform.GetTranslation(), boneBlendWeight);
             pResultPose->SetTranslation(boneIdx, translation);
 
-            const glm::vec3 scale = Blender::BlendScale(sourceTransform.GetScale(), targetTransform.GetScale(), boneBlendWeight);
+            const Vec3 scale = Blender::BlendScale(sourceTransform.GetScale(), targetTransform.GetScale(), boneBlendWeight);
             pResultPose->SetScale(boneIdx, scale);
 
-            const glm::quat rotation = Blender::BlendRotation(sourceTransform.GetRotation(), targetTransform.GetRotation(), boneBlendWeight);
+            const Quaternion rotation = Blender::BlendRotation(sourceTransform.GetRotation(), targetTransform.GetRotation(), boneBlendWeight);
             pResultPose->SetRotation(boneIdx, rotation);
         }
     }
