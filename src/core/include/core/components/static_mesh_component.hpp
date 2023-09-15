@@ -3,6 +3,8 @@
 #include "../static_mesh.hpp"
 #include "mesh_component.hpp"
 
+#include "assets/asset_service.hpp"
+
 namespace aln
 {
 

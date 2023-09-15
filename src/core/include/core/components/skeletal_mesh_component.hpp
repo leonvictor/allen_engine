@@ -8,6 +8,7 @@
 #include <common/transform.hpp>
 #include <entities/spatial_component.hpp>
 #include <common/maths/matrix4x4.hpp>
+#include <assets/asset_service.hpp>
 
 namespace aln
 {
