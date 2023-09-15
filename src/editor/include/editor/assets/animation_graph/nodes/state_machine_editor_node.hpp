@@ -18,11 +18,11 @@ class StateMachineEditorNode : public EditorAnimationGraphNode
     NodeIndex CompileTransition(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition, const TransitionEditorNode* pTransitionNode, NodeIndex endStateNodeIdx) const;
 
   protected:
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
     {
     }
 
-    virtual void SaveState(nlohmann::json& json) const override
+    virtual void SaveState(JSON& json) const override
     {
     }
 

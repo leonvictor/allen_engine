@@ -16,12 +16,12 @@ class EventConditionEditorNode : public EditorAnimationGraphNode
     std::string m_eventID;
 
   protected:
-    virtual void SaveState(nlohmann::json& json) const override
+    virtual void SaveState(JSON& json) const override
     {
         json["event_id"] = m_eventID;
     }
 
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
     {
         m_eventID = json["event_id"];
     }

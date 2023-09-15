@@ -17,12 +17,12 @@ class TransitionEditorNode : public EditorAnimationGraphNode
     float m_duration = 0.0f;
 
   protected:
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
     {
         m_duration = json["duration"];
     }
 
-    virtual void SaveState(nlohmann::json& json) const override
+    virtual void SaveState(JSON& json) const override
     {
         json["duration"] = m_duration;
     }

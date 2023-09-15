@@ -16,12 +16,12 @@ class BlendEditorNode : public EditorAnimationGraphNode
     Vector<float> m_blendParameterValues;
 
   protected:
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override {
-        m_blendParameterValues = json["blend_parameter_values"].get<std::vector<float>>();
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override {
+        from_json(json["blend_parameter_values"], m_blendParameterValues);
     }
     
-    virtual void SaveState(nlohmann::json& json) const override {
-        json["blend_parameter_values"] = m_blendParameterValues;
+    virtual void SaveState(JSON& json) const override {
+        to_json(json["blend_parameter_values"], m_blendParameterValues);
     }
 
     virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx) override

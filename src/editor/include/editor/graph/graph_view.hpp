@@ -573,11 +573,11 @@ class GraphView
     Event<const Conduit*>& OnConduitDoubleClicked() { return m_conduitDoubleClickedEvent; }
 
     // ------ Serialization
-    void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+    void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService)
     {
     }
 
-    void SaveState(nlohmann::json& json) const
+    void SaveState(JSON& json) const
     {
     }
 };

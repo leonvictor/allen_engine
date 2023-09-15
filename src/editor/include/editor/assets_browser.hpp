@@ -34,7 +34,7 @@ class AssetsBrowser : public IEditorWindow
 
     void Update(const UpdateContext& context) override;
 
-    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override{};
-    virtual void SaveState(nlohmann::json& json) const override{};
+    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override{};
+    virtual void SaveState(JSON& json) const override{};
 };
 } // namespace aln

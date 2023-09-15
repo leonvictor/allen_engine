@@ -32,7 +32,7 @@ void EditorGraphNode::Shutdown()
     }
 }
 
-void EditorGraphNode::SaveNodeState(nlohmann::json& json) const
+void EditorGraphNode::SaveNodeState(JSON& json) const
 {
     json["name"] = m_name;
 
@@ -65,7 +65,7 @@ void EditorGraphNode::SaveNodeState(nlohmann::json& json) const
     SaveState(json);
 }
 
-void EditorGraphNode::LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+void EditorGraphNode::LoadNodeState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
 {
     m_name = json["name"];
 

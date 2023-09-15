@@ -65,8 +65,8 @@ class AnimationGraphWorkspace : public IAssetWorkspace
     void SetClean() { m_dirty = false; }
 
     // -------------- Serialization
-    virtual void SaveState(nlohmann::json& json) const override;
-    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override;
+    virtual void SaveState(JSON& json) const override;
+    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override;
 
     // -------------- Asset compilation
     void Compile();

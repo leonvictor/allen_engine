@@ -100,7 +100,7 @@ class EditorAnimationStateMachine : public EditorGraph
         EditorGraph::FindAllNodesOfType(outResult, typeID, searchScope);
     }
 
-    virtual void SaveState(nlohmann::json& json) const override
+    virtual void SaveState(JSON& json) const override
     {
         EditorGraph::SaveState(json);
         auto& conduitsArrayJson = json["conduits"];
@@ -117,7 +117,7 @@ class EditorAnimationStateMachine : public EditorGraph
         }
     }
 
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
     {
         EditorGraph::LoadState(json, pTypeRegistryService);
 

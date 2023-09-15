@@ -104,14 +104,14 @@ void AnimationGraphWorkspace::Compile()
     }
 }
 
-void AnimationGraphWorkspace::SaveState(nlohmann::json& json) const
+void AnimationGraphWorkspace::SaveState(JSON& json) const
 {
     m_rootGraph.SaveState(json["graph"]);
     m_primaryGraphView.SaveState(json["main_view"]);
     m_secondaryGraphView.SaveState(json["secondary_view"]);
 }
 
-void AnimationGraphWorkspace::LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+void AnimationGraphWorkspace::LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService)
 {
     m_rootGraph.LoadState(json["graph"], pTypeRegistryService);
     m_primaryGraphView.LoadState(json["main_view"], pTypeRegistryService);
@@ -162,7 +162,7 @@ void AnimationGraphWorkspace::Update(const UpdateContext& context)
             Compile();
 
             // TODO: Save to a common folder with the rest of the editor ?
-            nlohmann::json json;
+            JSON json;
             SaveState(json);
             std::ofstream outputStream(m_statePath);
             outputStream << json;
@@ -280,7 +280,7 @@ void AnimationGraphWorkspace::Initialize(EditorWindowContext* pContext, const As
         {
             // TODO: Weird API
             std::ifstream inputStream(m_statePath);
-            nlohmann::json json;
+            JSON json;
             inputStream >> json;
 
             LoadState(json, pContext->m_pTypeRegistryService);
@@ -297,7 +297,7 @@ void AnimationGraphWorkspace::Shutdown()
     // TODO
     if (IsDirty() && !m_statePath.empty())
     {
-        nlohmann::json json;
+        JSON json;
         SaveState(json);
         std::ofstream outputStream(m_statePath);
         outputStream << json;

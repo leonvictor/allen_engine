@@ -7,11 +7,11 @@
 #include <common/uuid.hpp>
 #include <reflection/reflected_type.hpp>
 #include <reflection/type_info.hpp>
+#include <common/serialization/json.hpp>
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include <imnodes.h>
-#include <nlohmann/json.hpp>
 
 namespace aln
 {
@@ -229,8 +229,8 @@ class EditorGraphNode : public reflect::IReflected
     }
 
     // ---- Custom serialization
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) {}
-    virtual void SaveState(nlohmann::json& jsonObject) const {}
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) {}
+    virtual void SaveState(JSON& jsonObject) const {}
 
   public:
     // TODO: In initialize/shutdown?
@@ -340,8 +340,8 @@ class EditorGraphNode : public reflect::IReflected
     virtual void Shutdown();
 
     // ---- State serialization
-    void SaveNodeState(nlohmann::json& json) const;
-    void LoadNodeState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService);
+    void SaveNodeState(JSON& json) const;
+    void LoadNodeState(const JSON& json, const TypeRegistryService* pTypeRegistryService);
 
     // ---- Drawing
 

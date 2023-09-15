@@ -54,7 +54,7 @@ void EditorGraph::RefreshParameterReferences()
     }
 }
 
-void EditorGraph::SaveState(nlohmann::json& json) const
+void EditorGraph::SaveState(JSON& json) const
 {
     const auto pParentGraphContext = HasParentGraph() ? &ImNodes::EditorContextGet() : nullptr;
     ImNodes::EditorContextSet(m_pImNodesEditorContext);
@@ -92,7 +92,7 @@ void EditorGraph::SaveState(nlohmann::json& json) const
     ImNodes::EditorContextSet(pParentGraphContext);
 }
 
-void EditorGraph::LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService)
+void EditorGraph::LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
 {
     assert(pTypeRegistryService != nullptr);
     assert(IsInitialized());

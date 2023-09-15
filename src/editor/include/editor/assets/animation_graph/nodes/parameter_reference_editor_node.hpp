@@ -42,12 +42,12 @@ class ParameterReferenceEditorNode : public EditorAnimationGraphNode
     const IControlParameterEditorNode* GetReferencedParameter() const { return m_pParameter; }
     const StringID& GetReferencedParameterID() const { return m_parameterID; }
 
-    void SaveState(nlohmann::json& json) const override
+    void SaveState(JSON& json) const override
     {
         json["referenced_parameter"] = m_parameterID.GetHash();
     }
 
-    void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
     {
         uint32_t parameterIDHash = json["referenced_parameter"];
         m_parameterID = StringID(parameterIDHash);
