@@ -4,12 +4,12 @@
 
 #include "event.hpp"
 
-#include <common/types.hpp>
+#include <common/containers/vector.hpp>
 #include <common/maths/maths.hpp>
+#include <common/types.hpp>
 
-#include <string>
-#include <vector>
 #include <assert.h>
+#include <string>
 
 namespace aln
 {
@@ -41,7 +41,7 @@ class ALN_ANIM_EXPORT SyncTrack
         float m_duration = 1.0f;
     };
 
-    std::vector<SyncTrack::Event> m_events;
+    Vector<SyncTrack::Event> m_events;
 
   public:
     /// @brief Default construction creates a single sync event over the whole track
@@ -82,14 +82,15 @@ class ALN_ANIM_EXPORT SyncTrack
     }
 
     size_t GetEventCount() const { return m_events.size(); }
-    
+
     /// @brief Returns the sync time at the specified progress through the track
     /// @todo Handle looping
-    SyncTrackTime GetTime(float progressPercent) const {
+    SyncTrackTime GetTime(float progressPercent) const
+    {
         assert(progressPercent >= 0.0f && progressPercent <= 1.0f);
-        
+
         SyncTrackTime time;
-        
+
         const auto eventCount = m_events.size();
         for (auto eventIdx = 0; eventIdx < eventCount; ++eventIdx)
         {
@@ -101,19 +102,20 @@ class ALN_ANIM_EXPORT SyncTrack
                 break;
             }
         }
-        
+
         assert(time.m_eventIdx != InvalidIndex);
         return time;
     }
 
-    float GetPercentageThrough(const SyncTrackTime& time) const { 
+    float GetPercentageThrough(const SyncTrackTime& time) const
+    {
         assert(time.m_eventIdx < m_events.size());
         assert(time.m_percent >= 0.0f && time.m_percent <= 1.0f);
-        
+
         const auto& event = m_events[time.m_eventIdx];
         return event.m_startTime + (event.m_duration * time.m_percent);
     }
-    
+
     static float CalculateSynchronizedTrackDuration(float sourceDuration, float targetDuration, const SyncTrack& sourceTrack, const SyncTrack& targetTrack, const SyncTrack& blendedTrack, const float blendWeight)
     {
         const float scaledSourceDuration = sourceDuration * ((float) blendedTrack.GetEventCount() / (float) sourceTrack.GetEventCount());

@@ -190,7 +190,7 @@ class Image : public Allocation
         return vk::DescriptorImageInfo{m_vkSampler.get(), m_vkView.get(), m_layout};
     }
 
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
+    static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
 
     vk::DescriptorSet& GetDescriptorSet();
 };

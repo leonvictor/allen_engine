@@ -3,13 +3,13 @@
 #include <common/memory.hpp>
 #include <common/serialization/binary_archive.hpp>
 #include <common/string_id.hpp>
+#include <common/containers/vector.hpp>
 
 #include <assert.h>
 #include <concepts>
 #include <functional>
 #include <map>
 #include <string>
-#include <vector>
 
 namespace aln
 {
@@ -125,7 +125,7 @@ class TypeInfo
     std::string m_name;
     size_t m_size = 0;
     size_t m_alignment = 0;
-    std::vector<ClassMemberInfo> m_members;
+    Vector<ClassMemberInfo> m_members;
     const TypeInfo* m_pBaseTypeInfo = nullptr;
 
     // Bound lifetime functions
@@ -140,7 +140,7 @@ class TypeInfo
   protected:
     // Registry
     inline static std::map<StringID, const TypeInfo*> LookUpMap;
-    inline static std::map<std::string, std::vector<const TypeInfo*>> Scopes;
+    inline static std::map<std::string, Vector<const TypeInfo*>> Scopes;
 
     /// @brief Register a type to the dll-local maps. Polled from each dlls during module initialization
     static void RegisterTypeInfo(const TypeInfo* pTypeInfo, const std::string& scopeName = "")
@@ -171,7 +171,7 @@ class TypeInfo
     const std::string& GetPrettyName() const { return m_prettyName; }
     size_t GetSize() const { return m_size; }
     size_t GetAlignment() const { return m_alignment; }
-    const std::vector<ClassMemberInfo>& GetMembers() const { return m_members; }
+    const Vector<ClassMemberInfo>& GetMembers() const { return m_members; }
     size_t GetMemberCount() const { return m_members.size(); }
     const ClassMemberInfo* GetMemberInfo(size_t memberIdx) const { return &m_members[memberIdx]; }
     virtual bool IsPrimitive() const { return false; }
@@ -381,6 +381,6 @@ ALN_REGISTER_PRIMITIVE(uint8_t)
 ALN_REGISTER_PRIMITIVE(uint16_t)
 ALN_REGISTER_PRIMITIVE(Transform)
 ALN_REGISTER_PRIMITIVE(std::string)
-ALN_REGISTER_TEMPLATE_PRIMITIVE(std::vector)
+ALN_REGISTER_TEMPLATE_PRIMITIVE(Vector)
 ALN_REGISTER_PRIMITIVE(StringID)
 } // namespace aln

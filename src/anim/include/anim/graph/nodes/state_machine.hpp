@@ -22,7 +22,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
     struct State
     {
         StateRuntimeNode* m_pStateNode = nullptr;
-        std::vector<Transition> m_transitions;
+        Vector<Transition> m_transitions;
     };
 
     struct Settings : public PoseRuntimeNode::Settings
@@ -42,7 +42,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
         struct StateSettings
         {
             NodeIndex m_stateNodeIndex = InvalidIndex;
-            std::vector<TransitionSettings> m_transitionSettings;
+            Vector<TransitionSettings> m_transitionSettings;
 
             template<class Archive>
             void Serialize(Archive& archive) const
@@ -60,10 +60,10 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
         };
 
       private:
-        std::vector<StateSettings> m_stateSettings;
+        Vector<StateSettings> m_stateSettings;
 
       public:
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<StateMachineRuntimeNode>(nodePtrs, options);
 
@@ -83,7 +83,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
     };
 
   private:
-    std::vector<State> m_states;
+    Vector<State> m_states;
     TransitionRuntimeNode* m_pActiveTransitionNode = nullptr;
     uint16_t m_activeStateIndex = InvalidIndex;
 
@@ -93,7 +93,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
         return m_states[m_activeStateIndex];
     }
 
-    const std::vector<Transition>& GetAvailableTransitionsFromActiveState() const
+    const Vector<Transition>& GetAvailableTransitionsFromActiveState() const
     {
         assert(m_activeStateIndex != InvalidIndex);
         return m_states[m_activeStateIndex].m_transitions;

@@ -70,9 +70,9 @@ class RenderPass
 
     State m_status = State::Uninitialized;
 
-    std::vector<Subpass> m_subpasses;
-    std::vector<vk::SubpassDependency> m_subpassDependencies;
-    std::vector<vk::AttachmentDescription> m_attachmentDescriptions;
+    Vector<Subpass> m_subpasses;
+    Vector<vk::SubpassDependency> m_subpassDependencies;
+    Vector<vk::AttachmentDescription> m_attachmentDescriptions;
 
     uint32_t m_width, m_height;
 

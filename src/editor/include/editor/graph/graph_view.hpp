@@ -50,11 +50,11 @@ class GraphView
   private:
     EditorGraph* m_pGraph = nullptr;
 
-    std::vector<UUID> m_selectedNodeIDs;
-    std::vector<const EditorGraphNode*> m_selectedNodes;
+    Vector<UUID> m_selectedNodeIDs;
+    Vector<const EditorGraphNode*> m_selectedNodes;
 
-    std::vector<UUID> m_selectedLinkIDs;
-    std::vector<const Link*> m_selectedLinks;
+    Vector<UUID> m_selectedLinkIDs;
+    Vector<const Link*> m_selectedLinks;
 
     // TODO: Handle selection of multiple conduits
     const Conduit* m_pSelectedConduit = nullptr;
@@ -553,10 +553,10 @@ class GraphView
 
     // ------ Interactions
     bool HasSelectedNodes() const { return !m_selectedNodes.empty(); }
-    const std::vector<const EditorGraphNode*>& GetSelectedNodes() const { return m_selectedNodes; }
+    const Vector<const EditorGraphNode*>& GetSelectedNodes() const { return m_selectedNodes; }
 
     bool HasSelectedLinks() const { return !m_selectedLinks.empty(); }
-    const std::vector<const Link*>& GetSelectedLinks() const { return m_selectedLinks; }
+    const Vector<const Link*>& GetSelectedLinks() const { return m_selectedLinks; }
 
     bool HasSelectedConduit() const { return m_pSelectedConduit != nullptr; }
     const Conduit* GetSelectedConduit() const { return m_pSelectedConduit; }

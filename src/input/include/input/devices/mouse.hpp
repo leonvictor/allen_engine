@@ -8,7 +8,6 @@
 
 #include <array>
 #include <unordered_map>
-#include <vector>
 
 namespace aln
 {

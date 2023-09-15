@@ -5,8 +5,7 @@
 #include <common/transform.hpp>
 #include <common/vertex.hpp>
 #include <common/maths/vec3.hpp>
-
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -16,7 +15,7 @@ class DrawingContext
     friend class GraphicsSystem;
 
   private:
-    std::vector<DebugVertex> m_vertices; // CPU debug lines data
+    Vector<DebugVertex> m_vertices; // CPU debug lines data
 
   public:
     void DrawLine(const Vec3& start, const Vec3& end, const RGBColor color)

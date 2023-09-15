@@ -49,7 +49,7 @@ class RuntimeGraphNode
         /// @param nodePtrs: Pointers to the allocated node memory, by index
         /// @param options: TODO: Optionally only initialize ptrs (avoid new)
         template <typename T>
-        T* CreateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, InitOptions options) const
+        T* CreateNode(const Vector<RuntimeGraphNode*>& nodePtrs, InitOptions options) const
         {
             // TODO: Handle options
 
@@ -63,7 +63,7 @@ class RuntimeGraphNode
 
         /// @brief Set a node based on a given index, only if the index was set
         template<typename T>
-        void SetOptionalNodePtrFromIndex(const std::vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
+        void SetOptionalNodePtrFromIndex(const Vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
         {
             if (nodeIndex == InvalidIndex)
             {
@@ -77,7 +77,7 @@ class RuntimeGraphNode
 
         /// @brief Set a node based on a given index
         template<typename T>
-        void SetNodePtrFromIndex(const std::vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
+        void SetNodePtrFromIndex(const Vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
         {
             assert(nodeIndex != InvalidIndex);
             assert(nodeIndex >= 0 && nodeIndex < nodePtrs.size());
@@ -87,7 +87,7 @@ class RuntimeGraphNode
 
       public:
         /// @brief Instanciate a node and all its data. Override in derived nodes
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const = 0;
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const = 0;
         NodeIndex GetNodeIndex() const { return m_nodeIndex; }
     };
 

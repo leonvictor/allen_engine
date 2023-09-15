@@ -54,10 +54,10 @@ void WorldEntity::Update(const UpdateContext& context)
 {
     struct UpdateTask : public ITaskSet
     {
-        const std::vector<Entity*>& m_entities;
+        const Vector<Entity*>& m_entities;
         const UpdateContext& m_updateContext;
 
-        UpdateTask(const std::vector<Entity*>& entities, const UpdateContext& updateContext)
+        UpdateTask(const Vector<Entity*>& entities, const UpdateContext& updateContext)
             : ITaskSet(entities.size()), m_entities(entities), m_updateContext(updateContext) {}
 
         virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) override

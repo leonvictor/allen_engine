@@ -6,12 +6,12 @@
 #include <common/hash_vector.hpp>
 #include <reflection/reflected_type.hpp>
 #include <reflection/services/type_registry_service.hpp>
+#include <common/containers/vector.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
 
 #include <map>
-#include <vector>
 
 namespace aln
 {
@@ -38,7 +38,7 @@ class EditorGraph : public reflect::IReflected
     EditorGraph* m_pParentGraph = nullptr;
 
     // TODO: Replace node vector + lookup map with IDVector
-    std::vector<EditorGraphNode*> m_graphNodes;
+    Vector<EditorGraphNode*> m_graphNodes;
     IDVector<Link> m_links;
 
     std::map<UUID, const EditorGraphNode*> m_nodeLookupMap;
@@ -55,7 +55,7 @@ class EditorGraph : public reflect::IReflected
     void RefreshParameterReferences();
 
   protected:
-    const std::vector<EditorGraphNode*>& GetNodes() const { return m_graphNodes; }
+    const Vector<EditorGraphNode*>& GetNodes() const { return m_graphNodes; }
 
   public:
     ~EditorGraph();
@@ -98,16 +98,16 @@ class EditorGraph : public reflect::IReflected
     const EditorGraphNode* GetNodeLinkedToInputPin(const UUID& inputPinID) const;
     const EditorGraphNode* GetNodeLinkedToOutputPin(const UUID& outputPinID) const;
 
-    virtual void FindAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope = NodeSearchScope::Local) const;
+    virtual void FindAllNodesOfType(Vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope = NodeSearchScope::Local) const;
 
     template <typename T>
-    std::vector<const T*> GetAllNodesOfType(NodeSearchScope searchScope = NodeSearchScope::Local) const
+    Vector<const T*> GetAllNodesOfType(NodeSearchScope searchScope = NodeSearchScope::Local) const
     {
         static_assert(std::is_base_of_v<EditorGraphNode, T>);
-        std::vector<const EditorGraphNode*> searchResult;
+        Vector<const EditorGraphNode*> searchResult;
         FindAllNodesOfType(searchResult, T::GetStaticTypeInfo()->GetTypeID(), searchScope);
 
-        std::vector<const T*> matchingTypeNodes;
+        Vector<const T*> matchingTypeNodes;
         matchingTypeNodes.reserve(searchResult.size());
         for (const auto pNode : searchResult)
         {
@@ -119,13 +119,13 @@ class EditorGraph : public reflect::IReflected
     }
 
     template <typename T>
-    std::vector<T*> GetAllNodesOfType(NodeSearchScope searchScope = NodeSearchScope::Local)
+    Vector<T*> GetAllNodesOfType(NodeSearchScope searchScope = NodeSearchScope::Local)
     {
         static_assert(std::is_base_of_v<EditorGraphNode, T>);
-        std::vector<const EditorGraphNode*> searchResult;
+        Vector<const EditorGraphNode*> searchResult;
         FindAllNodesOfType(searchResult, T::GetStaticTypeInfo()->GetTypeID(), searchScope);
 
-        std::vector<T*> matchingTypeNodes;
+        Vector<T*> matchingTypeNodes;
         matchingTypeNodes.reserve(searchResult.size());
         for (const auto pNode : searchResult)
         {
@@ -194,8 +194,8 @@ class EditorGraph : public reflect::IReflected
     virtual void Clear();
 
     // -------------- Saving/Loading
-    virtual void SaveState(nlohmann::json& json) const;
-    virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService);
+    virtual void SaveState(JSON& json) const;
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService);
 };
 
 } // namespace aln

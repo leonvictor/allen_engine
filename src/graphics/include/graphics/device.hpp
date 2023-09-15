@@ -19,14 +19,22 @@ namespace aln::vkg
 struct SwapchainSupportDetails
 {
     vk::SurfaceCapabilitiesKHR capabilities;
-    std::vector<vk::SurfaceFormatKHR> formats;
-    std::vector<vk::PresentModeKHR> presentModes;
+    Vector<vk::SurfaceFormatKHR> formats;
+    Vector<vk::PresentModeKHR> presentModes;
 
     SwapchainSupportDetails(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface)
     {
         capabilities = device.getSurfaceCapabilitiesKHR(surface);
-        formats = device.getSurfaceFormatsKHR(surface);
-        presentModes = device.getSurfacePresentModesKHR(surface);
+        
+        uint32_t formatsCount;
+        device.getSurfaceFormatsKHR(surface, &formatsCount, nullptr);
+        formats.resize(formatsCount);
+        device.getSurfaceFormatsKHR(surface, &formatsCount, formats.data());
+
+        uint32_t presentModesCount;
+        device.getSurfacePresentModesKHR(surface, &presentModesCount, nullptr);
+        presentModes.resize(presentModesCount);
+        device.getSurfacePresentModesKHR(surface, &presentModesCount, presentModes.data());
     };
 };
 
@@ -45,7 +53,7 @@ class Device
     vk::PhysicalDeviceMemoryProperties m_memoryProperties;
     vk::PhysicalDeviceProperties m_gpuProperties;
 
-    std::vector<const char*> m_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    Vector<const char*> m_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     vk::SampleCountFlagBits m_msaaSamples = vk::SampleCountFlagBits::e1;
 
@@ -70,7 +78,7 @@ class Device
     vk::PhysicalDevice PickPhysicalDevice(const vk::SurfaceKHR& surface);
     vk::SampleCountFlagBits GetMaxUsableSampleCount();
 
-    static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, std::vector<const char*> requiredExtensions);
+    static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions);
 
   public:
     Device(){};
@@ -78,11 +86,11 @@ class Device
 
     SwapchainSupportDetails GetSwapchainSupport(const vk::SurfaceKHR& surface);
 
-    static bool CheckDeviceExtensionsSupport(const vk::PhysicalDevice& dev, std::vector<const char*> requiredExtensions);
+    static bool CheckDeviceExtensionsSupport(const vk::PhysicalDevice& dev, Vector<const char*> requiredExtensions);
 
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
     vk::Format FindDepthFormat();
-    vk::Format FindSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+    vk::Format FindSupportedFormat(const Vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
 
     /// @brief Pad a given size to meet the device's alignment requirements.
     /// @return: Adjusted size

@@ -9,7 +9,7 @@ namespace aln::vkg
 /// @brief Create a pool
 vk::UniqueDescriptorPool CreatePool(vk::Device* pDevice, const DescriptorAllocator::PoolSizes& poolSizes, int count, vk::DescriptorPoolCreateFlags flags)
 {
-    std::vector<vk::DescriptorPoolSize> sizes;
+    Vector<vk::DescriptorPoolSize> sizes;
     sizes.reserve(poolSizes.sizes.size());
     for (auto sz : poolSizes.sizes)
     {

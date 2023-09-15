@@ -25,7 +25,7 @@ class IAssetLoader
         assert(pRecord->IsUnloaded());
 
         // TODO: Is this the right place for loading *from disk* ?
-        // The full archive could be dumped to a std::vector<byte> earlier (and it would possibly be faster)
+        // The full archive could be dumped to a Vector<byte> earlier (and it would possibly be faster)
         auto archive = BinaryFileArchive(pRecord->GetAssetPath(), IBinaryArchive::IOMode::Read);
         if (!archive.IsValid())
         {
@@ -37,7 +37,7 @@ class IAssetLoader
         AssetArchiveHeader header;
         archive >> header;
 
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         archive >> data;
 
         for (auto& dependency : header.GetDependencies())
@@ -60,7 +60,7 @@ class IAssetLoader
         pRecord->m_pAsset = nullptr;
     }
 
-    void InstallAsset(const AssetID& assetID, AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies)
+    void InstallAsset(const AssetID& assetID, AssetRecord* pRecord, const Vector<IAssetHandle>& dependencies)
     {
         assert(pRecord->IsUnloaded());
         assert(pRecord->m_pAsset != nullptr);
@@ -74,15 +74,15 @@ class IAssetLoader
     // Virtual loading functions, overload in specialized loader classes to implement asset-specific behavior
     virtual bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
     virtual void Unload(AssetRecord* pRecord){};
-    virtual void InstallDependencies(AssetRecord* pRecord, const std::vector<IAssetHandle>& dependencies) {}
+    virtual void InstallDependencies(AssetRecord* pRecord, const Vector<IAssetHandle>& dependencies) {}
 
-    const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, size_t dependencyIndex)
+    const AssetRecord* GetDependencyRecord(const Vector<IAssetHandle>& dependencies, size_t dependencyIndex)
     {
         assert(dependencyIndex >= 0 && dependencyIndex < dependencies.size());
         return dependencies[dependencyIndex].GetRecord();
     }
 
-    const AssetRecord* GetDependencyRecord(const std::vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
+    const AssetRecord* GetDependencyRecord(const Vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
     {
         for (auto& dependencyHandle : dependencies)
         {

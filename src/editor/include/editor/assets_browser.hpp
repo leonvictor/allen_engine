@@ -3,10 +3,10 @@
 #include "editor_window.hpp"
 
 #include <assets/asset_id.hpp>
+#include <common/containers/vector.hpp>
 
 #include <filesystem>
 #include <string>
-#include <vector>
 
 namespace aln
 {
@@ -15,7 +15,7 @@ namespace aln
 class AssetsBrowser : public IEditorWindow
 {
   private:
-    static const std::vector<std::string> AssetExtensionsFilter;
+    static const Vector<std::string> AssetExtensionsFilter;
 
     std::filesystem::path m_currentFilePath;
     AssetID m_draggedAssetID;

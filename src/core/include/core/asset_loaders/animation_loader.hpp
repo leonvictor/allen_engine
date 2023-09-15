@@ -1,11 +1,7 @@
 #pragma once
 
 #include <assets/loader.hpp>
-
 #include <anim/animation_clip.hpp>
-
-#include <memory>
-#include <vector>
 
 namespace aln
 {

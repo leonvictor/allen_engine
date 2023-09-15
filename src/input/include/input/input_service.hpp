@@ -5,8 +5,7 @@
 #include "devices/mouse.hpp"
 #include "devices/gamepad.hpp"
 
-#include <vector>
-
+#include <common/containers/vector.hpp>
 #include <common/services/service.hpp>
 
 namespace aln
@@ -28,7 +27,7 @@ class InputService : public IService
     // - Register a name to allow manual lookup
 
     // List of active InputContexts
-    std::vector<InputContext*> m_contexts;
+    Vector<InputContext*> m_contexts;
 
     Keyboard m_keyboard;
     Mouse m_mouse;

@@ -83,10 +83,10 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
 {
     struct ActivationTask : public ITaskSet
     {
-        const std::vector<Entity*> m_entities;
+        const Vector<Entity*> m_entities;
         const LoadingContext& m_loadingContext;
 
-        ActivationTask(const std::vector<Entity*>& entities, const LoadingContext& loadingContext)
+        ActivationTask(const Vector<Entity*>& entities, const LoadingContext& loadingContext)
             : ITaskSet(m_entities.size()), m_entities(entities), m_loadingContext(loadingContext) {}
 
         virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) final override
@@ -168,7 +168,7 @@ void EntityMap::UpdateEntitiesState(const LoadingContext& loadingContext)
 
     // ------- Entities currently loading
     // TODO: Parallelize
-    std::vector<Entity*> stillLoadingEntities;
+    Vector<Entity*> stillLoadingEntities;
     for (auto pEntity : m_loadingEntities)
     {
         if (pEntity->UpdateLoadingAndEntityState(loadingContext))

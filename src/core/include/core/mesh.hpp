@@ -1,9 +1,7 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
 
+#include <common/containers/vector.hpp>
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
 #include <common/vertex.hpp>
@@ -33,10 +31,10 @@ class Mesh : public IAsset
     friend class GraphicsSystem;
 
   private:
-    std::vector<std::byte> m_vertices;
-    std::vector<uint32_t> m_indices;
+    Vector<std::byte> m_vertices;
+    Vector<uint32_t> m_indices;
 
-    std::vector<PrimitiveComponent> m_primitives;
+    Vector<PrimitiveComponent> m_primitives;
 
     AssetHandle<Material> m_pMaterial;
 
@@ -52,9 +50,9 @@ class Mesh : public IAsset
     size_t GetIndicesCount() const { return m_indices.size(); }
     const vk::DescriptorSet& GetDescriptorSet() const { return m_descriptorSet.get(); }
 
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
+    static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings =
+        Vector<vk::DescriptorSetLayoutBinding> bindings =
             {
                 {
                     // Sampler

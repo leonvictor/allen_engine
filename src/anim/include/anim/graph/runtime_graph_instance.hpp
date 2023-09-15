@@ -21,7 +21,7 @@ class RuntimeAnimationGraphInstance
 
     std::byte* m_pNodeInstancesMemory = nullptr;
 
-    std::vector<RuntimeGraphNode*> m_runtimeNodeInstances;
+    Vector<RuntimeGraphNode*> m_runtimeNodeInstances;
 
     PoseRuntimeNode* m_pRootNode = nullptr;
 

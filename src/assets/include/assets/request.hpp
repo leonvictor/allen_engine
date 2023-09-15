@@ -41,7 +41,7 @@ struct AssetRequest
     Type m_type = Type::Invalid;
     State m_status = State::Invalid;
 
-    std::vector<IAssetHandle> m_dependencies;
+    Vector<IAssetHandle> m_dependencies;
 
     bool IsValid() const { return m_type != Type::Invalid; }
     bool IsLoadingRequest() const { return m_type == Type::Load; }

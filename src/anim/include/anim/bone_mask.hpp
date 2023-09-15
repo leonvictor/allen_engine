@@ -2,7 +2,7 @@
 
 #include "types.hpp"
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -11,7 +11,7 @@ namespace aln
 class BoneMask
 {
   private:
-    std::vector<float> boneWeights;
+    Vector<float> boneWeights;
     // Based on animation skeleton
 
   public:

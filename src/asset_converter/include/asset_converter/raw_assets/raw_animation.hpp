@@ -8,8 +8,9 @@
 #include "raw_asset.hpp"
 #include "raw_skeleton.hpp"
 
+#include <common/containers/vector.hpp>
+
 #include <iostream>
-#include <vector>
 
 namespace aln::assets::converter
 {
@@ -19,11 +20,11 @@ class RawAnimation : public IRawAsset
 
     struct TrackData
     {
-        std::vector<Transform> m_transforms;
+        Vector<Transform> m_transforms;
     };
 
-    std::vector<TrackData> m_tracks;
-    std::vector<Transform> m_rootMotionTrack;
+    Vector<TrackData> m_tracks;
+    Vector<Transform> m_rootMotionTrack;
 
     std::string m_name;
     float m_duration; // Duration in seconds
@@ -150,7 +151,7 @@ struct AssimpAnimationReader
         }
 
         // --- Serialization
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
         animation.Serialize(dataStream);
 

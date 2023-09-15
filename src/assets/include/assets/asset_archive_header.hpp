@@ -3,7 +3,7 @@
 #include "asset_id.hpp"
 #include "asset_type_id.hpp"
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -27,7 +27,7 @@ class AssetArchiveHeader
 
     // Asset info
     AssetTypeID m_assetTypeID;
-    std::vector<AssetID> m_dependencies;
+    Vector<AssetID> m_dependencies;
 
     // Compression info
     /// @todo Set when compressing
@@ -39,7 +39,7 @@ class AssetArchiveHeader
     AssetArchiveHeader(const AssetTypeID& typeID) : m_assetTypeID(typeID) {}
     void AddDependency(const AssetID& assetID) { m_dependencies.push_back(assetID); }
 
-    const std::vector<AssetID>& GetDependencies() const { return m_dependencies; }
+    const Vector<AssetID>& GetDependencies() const { return m_dependencies; }
 
     // Serialization
     /// @todo Make private when serialization system allows it

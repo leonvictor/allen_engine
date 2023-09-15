@@ -11,12 +11,12 @@
 
 #include <common/colors.hpp>
 #include <common/hash_vector.hpp>
+#include <common/containers/vector.hpp>
 
 #include <config/path.h>
 #include <vulkan/vulkan.hpp>
 
 #include <cstring>
-#include <vector>
 
 namespace aln
 {
@@ -81,11 +81,11 @@ class IRenderer
     vk::Format m_colorImageFormat;
 
     // Sync objects
-    std::vector<FrameSync> m_frames;
+    Vector<FrameSync> m_frames;
 
     // Target images
-    std::vector<std::shared_ptr<Image>> m_targetImages;
-    std::vector<RenderTarget> m_renderTargets;
+    Vector<std::shared_ptr<Image>> m_targetImages;
+    Vector<RenderTarget> m_renderTargets;
 
     Image m_colorImage; // Color image attachment for multisampling.
     Image m_depthImage; // Depth image attachment.
@@ -136,7 +136,7 @@ class IRenderer
         m_renderTargets.clear();
         for (uint32_t i = 0; i < m_targetImages.size(); i++)
         {
-            std::vector<vk::ImageView> attachments =
+            Vector<vk::ImageView> attachments =
                 {
                     m_colorImage.GetVkView(),
                     m_depthImage.GetVkView(),

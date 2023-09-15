@@ -25,13 +25,13 @@ class AnimationGraphCompilationContext
     const EditorAnimationGraph const* m_pRootGraph = nullptr;
     const EditorAnimationGraph* m_pCurrentAnimationGraph = nullptr; // The (potentially child-) graph currently compiling
 
-    std::vector<const EditorAnimationGraphNode*> m_compiledNodes;
-    std::vector<UUID> m_registeredDataSlots;
+    Vector<const EditorAnimationGraphNode*> m_compiledNodes;
+    Vector<UUID> m_registeredDataSlots;
 
     size_t m_currentNodeMemoryOffset = 0;
     size_t m_maxNodeMemoryAlignement = 0;
 
-    std::vector<CompilationLogEntry> m_errorLog;
+    Vector<CompilationLogEntry> m_errorLog;
 
   public:
     AnimationGraphCompilationContext(const EditorAnimationGraph* pAnimationGraphEditor)
@@ -90,7 +90,7 @@ class AnimationGraphCompilationContext
         return id;
     }
 
-    const std::vector<UUID>& GetRegisteredDataSlots() const { return m_registeredDataSlots; }
+    const Vector<UUID>& GetRegisteredDataSlots() const { return m_registeredDataSlots; }
 
     size_t GetNodeMemoryOffset() const { return m_currentNodeMemoryOffset; }
     size_t GetNodeMemoryAlignement() const { return m_maxNodeMemoryAlignement; }
@@ -103,6 +103,6 @@ class AnimationGraphCompilationContext
         entry.m_message = message;
     }
 
-    const std::vector<CompilationLogEntry>& GetErrorLog() const { return m_errorLog; }
+    const Vector<CompilationLogEntry>& GetErrorLog() const { return m_errorLog; }
 };
 } // namespace aln

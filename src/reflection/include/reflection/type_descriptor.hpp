@@ -1,20 +1,18 @@
 #pragma once
 
-#include <cctype>
-#include <cstddef>
-#include <functional>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#include "reflected_type.hpp"
+#include "services/type_registry_service.hpp"
+#include "type_info.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/memory.hpp>
 #include <common/serialization/binary_archive.hpp>
 #include <common/string_id.hpp>
 
-#include "reflected_type.hpp"
-#include "services/type_registry_service.hpp"
-#include "type_info.hpp"
+#include <cctype>
+#include <cstddef>
+#include <functional>
+#include <string>
 
 namespace aln::reflect
 {
@@ -29,7 +27,7 @@ class ClassMemberDescriptor
     StringID m_typeID;
     std::string m_name;
 
-    std::vector<std::byte> m_value;
+    Vector<std::byte> m_value;
 
   public:
     // Serialization
@@ -54,7 +52,7 @@ class ClassMemberDescriptor
 class TypeDescriptor
 {
     StringID m_typeID;
-    std::vector<ClassMemberDescriptor> m_members;
+    Vector<ClassMemberDescriptor> m_members;
 
   public:
     // Serialization
@@ -189,7 +187,7 @@ class TypeDescriptor
 /// Used to instanciate the collection
 struct TypeCollectionDescriptor
 {
-    std::vector<TypeDescriptor> m_descriptors;
+    Vector<TypeDescriptor> m_descriptors;
 
     template <class Archive>
     void Serialize(Archive& archive) const
@@ -207,18 +205,18 @@ struct TypeCollectionDescriptor
     /// @tparam T Base class of instanciated types
     /// @param outCollection
     template <typename T>
-    void InstanciateFixedSizeCollection(std::vector<T*>& outCollection, const TypeRegistryService& typeRegistryService)
+    void InstanciateFixedSizeCollection(Vector<T*>& outCollection, const TypeRegistryService& typeRegistryService)
     {
         assert(outCollection.empty());
         assert(!m_descriptors.empty());
 
         size_t collectionSize = m_descriptors.size();
-        std::vector<const TypeInfo*> elementTypeInfos;
+        Vector<const TypeInfo*> elementTypeInfos;
 
         // Calculate the memory requirements for the settings array
         size_t requiredMemoryAlignment = 0;
         size_t requiredMemorySize = 0;
-        std::vector<size_t> requiredPaddings;
+        Vector<size_t> requiredPaddings;
 
         // 1 - First loop to get the maximum required alignement
         for (auto i = 0; i < collectionSize; ++i)
@@ -260,7 +258,7 @@ struct TypeCollectionDescriptor
     }
 
     template <typename T>
-    void DeleteFixedSizeCollection(std::vector<T*>& collection)
+    void DeleteFixedSizeCollection(Vector<T*>& collection)
     {
         for (auto& pInstance : collection)
         {

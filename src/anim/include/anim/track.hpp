@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
 #include "track_key.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/transform.hpp>
 #include <common/types.hpp>
+
+#include <string>
 
 namespace aln
 {
@@ -52,6 +52,6 @@ class Track
   private:
     // TODO: Compress !!
     // TrackCompressionSettings m_compressionSettings;
-    std::vector<Transform> m_transforms;
+    Vector<Transform> m_transforms;
 };
 } // namespace aln

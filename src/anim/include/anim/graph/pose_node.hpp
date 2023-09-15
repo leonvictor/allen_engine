@@ -1,15 +1,14 @@
 #pragma once
 
-#include <assert.h>
-#include <vector>
-
-#include <common/transform.hpp>
-
 #include "../event.hpp"
 #include "../sync_track.hpp"
 #include "../types.hpp"
 #include "graph_context.hpp"
 #include "runtime_graph_node.hpp"
+
+#include <common/transform.hpp>
+
+#include <assert.h>
 
 namespace aln
 {

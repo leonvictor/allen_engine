@@ -7,8 +7,6 @@
 
 #include "../texture.hpp"
 
-#include <memory>
-
 namespace aln
 {
 
@@ -31,7 +29,7 @@ class TextureLoader : public IAssetLoader
         Texture* pTex = aln::New<Texture>();
 
         int width, height;
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
 
         archive >> width;
         archive >> height;

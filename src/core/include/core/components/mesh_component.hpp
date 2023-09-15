@@ -1,23 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include <vulkan/vulkan.hpp>
-
-#include <graphics/resources/buffer.hpp>
-#include <graphics/resources/image.hpp>
-#include <graphics/ubo.hpp>
-
 #include <entities/spatial_component.hpp>
-
-#include "../material.hpp"
-#include "../mesh.hpp"
-#include "../texture.hpp"
-
-#include <assets/asset_service.hpp>
-#include <assets/handle.hpp>
 
 namespace aln
 {

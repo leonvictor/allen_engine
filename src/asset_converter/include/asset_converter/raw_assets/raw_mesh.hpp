@@ -1,17 +1,17 @@
 #pragma once
 
-#include <assets/asset_archive_header.hpp>
-#include <assets/asset_id.hpp>
-#include <common/serialization/binary_archive.hpp>
-#include <common/vertex.hpp>
-
 #include "../assimp_scene_context.hpp"
 #include "raw_asset.hpp"
 #include "raw_skeleton.hpp"
 
+#include <assets/asset_archive_header.hpp>
+#include <assets/asset_id.hpp>
+#include <common/containers/vector.hpp>
+#include <common/serialization/binary_archive.hpp>
+#include <common/vertex.hpp>
+
 #include <assert.h>
 #include <filesystem>
-#include <vector>
 
 namespace aln::assets::converter
 {
@@ -19,14 +19,14 @@ class RawStaticMesh : public IRawAsset
 {
     friend class AssimpMeshReader;
 
-    std::vector<uint32_t> m_indices;
-    std::vector<Vertex> m_vertices;
+    Vector<uint32_t> m_indices;
+    Vector<Vertex> m_vertices;
 
     void Serialize(BinaryMemoryArchive& archive) final override
     {
         archive << m_indices;
 
-        // Vertices need to be extracted in a std::vector<std::byte> format
+        // Vertices need to be extracted in a Vector<std::byte> format
         size_t byteSize = m_vertices.size() * sizeof(Vertex);
         archive << byteSize;
         archive.Write(m_vertices.data(), byteSize);
@@ -37,9 +37,9 @@ class RawSkeletalMesh : public IRawAsset
 {
     friend class AssimpMeshReader;
 
-    std::vector<uint32_t> m_indices;
-    std::vector<SkinnedVertex> m_vertices;
-    std::vector<Transform> m_inverseBindPose;
+    Vector<uint32_t> m_indices;
+    Vector<SkinnedVertex> m_vertices;
+    Vector<Transform> m_inverseBindPose;
 
     RawSkeleton m_skeleton;
 
@@ -47,7 +47,7 @@ class RawSkeletalMesh : public IRawAsset
     {
         archive << m_indices;
 
-        // Vertices need to be extracted in a std::vector<std::byte> format
+        // Vertices need to be extracted in a Vector<std::byte> format
         size_t byteSize = m_vertices.size() * sizeof(SkinnedVertex);
         archive << byteSize;
         archive.Write(m_vertices.data(), byteSize);
@@ -92,7 +92,7 @@ class RawSkeletalMesh : public IRawAsset
 struct AssimpMeshReader
 {
     template <typename T>
-    static void ReadMeshData(std::vector<T>& vertices, std::vector<uint32_t>& indices, const aiMesh* pMesh, const AssimpSceneContext& context)
+    static void ReadMeshData(Vector<T>& vertices, Vector<uint32_t>& indices, const aiMesh* pMesh, const AssimpSceneContext& context)
     {
         for (int vertexIndex = 0; vertexIndex < pMesh->mNumVertices; vertexIndex++)
         {
@@ -156,7 +156,7 @@ struct AssimpMeshReader
 
             ReadMeshData(mesh.m_vertices, mesh.m_indices, pMesh, context);
             AssimpSkeletonReader::ReadSkeleton(context, pMesh, &mesh.m_skeleton);
-            
+
             // TODO: This should be done directly in the skeleton reader method
             assert((mesh.m_skeleton.GetBonesCount()) == pMesh->mNumBones);
 
@@ -183,7 +183,7 @@ struct AssimpMeshReader
             AssetArchiveHeader header("smsh"); // TODO: Use SkeletalMesh::GetStaticAssetType();
             header.AddDependency(context.GetMaterial(pMesh->mMaterialIndex));
 
-            std::vector<std::byte> data;
+            Vector<std::byte> data;
             BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
             mesh.Serialize(dataStream);
 
@@ -205,7 +205,7 @@ struct AssimpMeshReader
             AssetArchiveHeader header("mesh"); // TODO: Use StaticMesh::GetStaticAssetType();
             header.AddDependency(context.GetMaterial(pMesh->mMaterialIndex));
 
-            std::vector<std::byte> data;
+            Vector<std::byte> data;
             BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
 
             mesh.Serialize(dataStream);

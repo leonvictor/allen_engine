@@ -4,9 +4,6 @@
 #include <assets/loader.hpp>
 #include <common/types.hpp>
 
-#include <memory>
-#include <vector>
-
 namespace aln
 {
 

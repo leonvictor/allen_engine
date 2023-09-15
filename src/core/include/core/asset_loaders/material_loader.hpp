@@ -1,11 +1,9 @@
 #pragma once
 
-#include <assets/asset.hpp>
-#include <assets/loader.hpp>
-
 #include "../material.hpp"
 
-#include <memory>
+#include <assets/asset.hpp>
+#include <assets/loader.hpp>
 
 namespace aln
 {
@@ -46,7 +44,7 @@ class MaterialLoader : public IAssetLoader
         return true;
     }
 
-    void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) override
+    void InstallDependencies(AssetRecord* pAssetRecord, const Vector<IAssetHandle>& dependencies) override
     {
         assert(dependencies.size() == 1);
         auto pMaterial = pAssetRecord->GetAsset<Material>();

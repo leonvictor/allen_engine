@@ -24,7 +24,7 @@ class BoolAndRuntimeNode : public BoolValueNode
         NodeIndex m_inputValueNode1Idx = InvalidIndex;
         NodeIndex m_inputValueNode2Idx = InvalidIndex;
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<BoolAndRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_inputValueNode1Idx, pNode->m_pInputValueNode1);
@@ -73,7 +73,7 @@ class BoolOrRuntimeNode : public BoolValueNode
         NodeIndex m_inputValueNode1Idx = InvalidIndex;
         NodeIndex m_inputValueNode2Idx = InvalidIndex;
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<BoolOrRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_inputValueNode1Idx, pNode->m_pInputValueNode1);
@@ -120,7 +120,7 @@ class BoolNotRuntimeNode : public BoolValueNode
       private:
         NodeIndex m_inputValueNodeIdx = InvalidIndex;
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<BoolNotRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_inputValueNodeIdx, pNode->m_pInputValueNode);

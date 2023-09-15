@@ -9,10 +9,10 @@
 #include <common/hash_vector.hpp>
 #include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
+#include <common/containers/vector.hpp>
 
 #include <vulkan/vulkan.hpp>
 
-#include <vector>
 
 namespace aln
 {
@@ -61,8 +61,8 @@ class GraphicsSystem : public IWorldSystem
     IDVector<StaticMeshRenderInstance> m_staticMeshRenderInstances;
     IDVector<Light*> m_lightComponents;
 
-    std::vector<const SkeletalMeshComponent*> m_visibleSkeletalMeshComponents;
-    std::vector<const StaticMeshComponent*> m_visibleStaticMeshComponents;
+    Vector<const SkeletalMeshComponent*> m_visibleSkeletalMeshComponents;
+    Vector<const StaticMeshComponent*> m_visibleStaticMeshComponents;
 
     // -------------------------------------------------
     // System Methods

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <assets/loader.hpp>
-
 #include "../mesh.hpp"
 
-#include <memory>
+#include <assets/loader.hpp>
+
 
 namespace aln
 {
@@ -75,7 +74,7 @@ class MeshLoader : public IAssetLoader
         return true;
     }
 
-    void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) override
+    void InstallDependencies(AssetRecord* pAssetRecord, const Vector<IAssetHandle>& dependencies) override
     {
         assert(dependencies.size() == 1);
         auto pMesh = pAssetRecord->GetAsset<Mesh>();
@@ -88,7 +87,7 @@ class MeshLoader : public IAssetLoader
         auto textureDescriptor = pMesh->m_pMaterial->GetAlbedoMap()->GetDescriptor();
         auto materialDescriptor = pMesh->GetMaterial()->GetBuffer().GetDescriptor();
 
-        std::vector<vk::WriteDescriptorSet> writeDescriptors = {
+        Vector<vk::WriteDescriptorSet> writeDescriptors = {
             {
                 .dstSet = descriptorSet.get(),
                 .dstBinding = 0,

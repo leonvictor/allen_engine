@@ -25,7 +25,7 @@ struct ShaderInfo
 
 vk::ShaderModule CreateShaderModule(Device* device, const std::string& filename);
 ShaderInfo LoadShader(Device* device, const std::string& filename, const vk::ShaderStageFlagBits stage, std::string entryPoint);
-std::vector<uint32_t> CompileGlslToSpvBinary(const std::string& source_name,
+Vector<uint32_t> CompileGlslToSpvBinary(const std::string& source_name,
     shaderc_shader_kind kind,
     bool optimize = false);
 } // namespace aln::vkg::shaders

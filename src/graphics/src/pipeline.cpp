@@ -76,7 +76,7 @@ void Pipeline::Create(std::string cachePath)
     m_layout = m_pDevice->GetVkDevice().createPipelineLayoutUnique(layoutInfo);
 
     // Shader stages
-    std::vector<vk::PipelineShaderStageCreateInfo> stages;
+    Vector<vk::PipelineShaderStageCreateInfo> stages;
     for (auto& info : m_shaderStages)
     {
         stages.push_back(info.GetCreateInfo());

@@ -64,7 +64,7 @@ struct AssimpTextureReader
 
         // Save to disk
         // TODO: Compress again
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
 
         texture.Serialize(dataStream);
@@ -106,7 +106,7 @@ struct FileTextureReader
 
         // Save to disk
         // TODO: Compress again
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         BinaryMemoryArchive dataStream(data, IBinaryArchive::IOMode::Write);
 
         texture.Serialize(dataStream);

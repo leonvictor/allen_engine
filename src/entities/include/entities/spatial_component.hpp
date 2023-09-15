@@ -6,7 +6,7 @@
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -22,11 +22,11 @@ class SpatialComponent : public IComponent
     friend class EntityDescriptor;
 
     /// @brief List of attached children components.
-    std::vector<SpatialComponent*> m_spatialChildren;
+    Vector<SpatialComponent*> m_spatialChildren;
 
     /// @brief Parent component.
     SpatialComponent* m_pSpatialParent = nullptr;
-    std::vector<UUID> m_sockets;
+    Vector<UUID> m_sockets;
 
     // TODO: Handle socket
     UUID m_parentAttachmentSocketID;

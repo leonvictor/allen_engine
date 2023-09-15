@@ -25,7 +25,7 @@ vk::ShaderModule CreateShaderModule(Device* device, const std::string& filename)
     else if (ext == "vert" || ext == "frag")
     {
         // TODO: Maybe infer entrypoint ?
-        std::vector<uint32_t> code = CompileGlslToSpvBinary(filename, shaderc_glsl_infer_from_source, false);
+        Vector<uint32_t> code = CompileGlslToSpvBinary(filename, shaderc_glsl_infer_from_source, false);
         vk::ShaderModuleCreateInfo info{
             .codeSize = code.size() * sizeof(uint32_t),
             .pCode = reinterpret_cast<uint32_t*>(code.data()),
@@ -57,7 +57,7 @@ ShaderInfo LoadShader(Device* device, const std::string& filename, const vk::Sha
 /// @param kind shaderc kind of shader (vertex, frag, compute)
 /// @param optimize whether to optimize the shader
 /// @return the binary as a vector of 32-bit words.
-std::vector<uint32_t> CompileGlslToSpvBinary(const std::string& source_name,
+Vector<uint32_t> CompileGlslToSpvBinary(const std::string& source_name,
     shaderc_shader_kind kind,
     bool optimize)
 {

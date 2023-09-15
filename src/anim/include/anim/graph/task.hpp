@@ -4,9 +4,8 @@
 #include "../types.hpp"
 #include "pose_buffer_pool.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/update_stages.hpp>
-
-#include <vector>
 
 namespace aln
 {
@@ -16,7 +15,7 @@ class Task;
 struct TaskContext
 {
     PoseBufferPool* m_pPoseBufferPool = nullptr;
-    std::vector<Task*> m_dependencies;
+    Vector<Task*> m_dependencies;
     Percentage m_deltaTime = 0.0f;
     Transform m_worldTransform = Transform::Identity;
 
@@ -34,7 +33,7 @@ class Task
     bool m_completed = false;
     NodeIndex m_sourceNodeIdx = InvalidIndex;
     PoseBufferIndex m_resultBufferIndex = InvalidIndex;
-    std::vector<TaskIndex> m_dependencies;
+    Vector<TaskIndex> m_dependencies;
 
     UpdateStage m_updateStage;
 
@@ -105,14 +104,14 @@ class Task
 
   public:
     Task(NodeIndex sourceNodeIdx) : m_sourceNodeIdx(sourceNodeIdx) {}
-    Task(NodeIndex sourceNodeIdx, UpdateStage updateStage, std::vector<TaskIndex> dependencies)
+    Task(NodeIndex sourceNodeIdx, UpdateStage updateStage, Vector<TaskIndex> dependencies)
         : m_sourceNodeIdx(sourceNodeIdx), m_updateStage(updateStage), m_dependencies(dependencies) {}
 
     bool IsComplete() const { return m_completed; }
     PoseBufferIndex GetResultBufferIndex() const { return m_resultBufferIndex; }
 
     bool HasDependencies() const { return !m_dependencies.empty(); }
-    const std::vector<TaskIndex>& GetDependencies() const { return m_dependencies; }
+    const Vector<TaskIndex>& GetDependencies() const { return m_dependencies; }
 
     virtual void Execute(const TaskContext& context) = 0;
 };

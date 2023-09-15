@@ -86,9 +86,9 @@ class Editor
     void ResolveAssetWindowRequests();
 
     template<typename T>
-    std::vector<ComponentSearchResult> GetAllComponentsOfType()
+    Vector<ComponentSearchResult> GetAllComponentsOfType()
     {
-        std::vector<ComponentSearchResult> results;
+        Vector<ComponentSearchResult> results;
         auto pTypeInfo = T::GetStaticTypeInfo();
         for (auto pEntity : m_worldEntity.GetEntities())
         {

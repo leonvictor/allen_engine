@@ -27,7 +27,7 @@ class StateRuntimeNode : public PassthroughRuntimeNode
         StringID m_inStateEventID = StringID::InvalidID;
 
       public:
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<StateRuntimeNode>(nodePtrs, options);
             PassthroughRuntimeNode::Settings::InstanciateNode(nodePtrs, pDataSet, options);

@@ -3,7 +3,7 @@
 #include "../pose.hpp"
 #include "../types.hpp"
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -17,7 +17,7 @@ struct PoseBuffer
 
     bool IsOwned() const { return m_owner != InvalidIndex; }
     // We have a problem here:
-    // Pose buffers are kept in a std::vector, which can be dynamically extended. When it does, it can either:
+    // Pose buffers are kept in a Vector, which can be dynamically extended. When it does, it can either:
     // * copy its elements around -> we can't do that, as poses shouldn't be copied
     // * create empty elements, and move from the old ones -> meh, but it's what we use here
     // In order to do this we need:
@@ -33,7 +33,7 @@ struct PoseBuffer
 
 struct PoseBufferPool
 {
-    std::vector<PoseBuffer> m_buffers;
+    Vector<PoseBuffer> m_buffers;
     const Skeleton* m_pSkeleton;
 
     PoseBufferPool(const Skeleton* pSkeleton) : m_pSkeleton(pSkeleton)

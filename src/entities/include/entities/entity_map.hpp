@@ -5,9 +5,10 @@
 #include "loading_context.hpp"
 #include "update_context.hpp"
 
+#include <common/containers/vector.hpp>
+
 #include <mutex>
 #include <unordered_map>
-#include <vector>
 
 namespace aln
 {
@@ -25,15 +26,15 @@ class EntityMap
     };
 
     /// @todo: Entities live on the heap. Profile !
-    std::vector<Entity*> m_entities;
+    Vector<Entity*> m_entities;
     std::unordered_map<UUID, Entity*> m_entityLookupMap;
 
-    std::vector<Entity*> m_entitiesToAdd;
-    std::vector<Entity*> m_entitiesToRemove;
-    std::vector<Entity*> m_loadingEntities;
-    std::vector<Entity*> m_editedEntities;
-    std::vector<Entity*> m_entitiesToActivate;
-    std::vector<Entity*> m_entitiesToDeactivate;
+    Vector<Entity*> m_entitiesToAdd;
+    Vector<Entity*> m_entitiesToRemove;
+    Vector<Entity*> m_loadingEntities;
+    Vector<Entity*> m_editedEntities;
+    Vector<Entity*> m_entitiesToActivate;
+    Vector<Entity*> m_entitiesToDeactivate;
 
     UUID m_entityUpdateEventListenerID;
 

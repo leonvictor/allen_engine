@@ -33,7 +33,7 @@ SwapchainSupportDetails Device::GetSwapchainSupport(const vk::SurfaceKHR& surfac
     return SwapchainSupportDetails(m_physical, surface);
 }
 
-bool Device::CheckDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice, std::vector<const char*> requiredExtensions)
+bool Device::CheckDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice, Vector<const char*> requiredExtensions)
 {
     // Populate available extensions list
     auto availableExtensions = physicalDevice.enumerateDeviceExtensionProperties();
@@ -73,7 +73,7 @@ vk::Format Device::FindDepthFormat()
         vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
 
-vk::Format Device::FindSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
+vk::Format Device::FindSupportedFormat(const Vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
 {
     for (vk::Format format : candidates)
     {
@@ -116,7 +116,7 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 {
     auto queueFamilyIndices = Queue::FamilyIndices(m_physical, surface);
 
-    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+    Vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {
         queueFamilyIndices.graphicsFamily.value(),
         queueFamilyIndices.presentFamily.value(),
@@ -149,7 +149,7 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 
     deviceCreateInfo.pEnabledFeatures = &features;
 
-    std::vector<const char*> validationLayers;
+    Vector<const char*> validationLayers;
     if (m_pInstance->ValidationLayersEnabled())
     {
         validationLayers = m_pInstance->GetValidationLayers();
@@ -225,7 +225,7 @@ vk::SampleCountFlagBits Device::GetMaxUsableSampleCount()
 }
 
 /// @brief Check if a device is suitable for the specified surface and requested extensions.
-bool Device::IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, std::vector<const char*> requiredExtensions)
+bool Device::IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions)
 {
     auto familyIndices = Queue::FamilyIndices(device, surface);
     bool extensionsSupported = CheckDeviceExtensionsSupport(device, requiredExtensions);

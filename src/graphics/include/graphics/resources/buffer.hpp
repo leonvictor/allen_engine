@@ -20,14 +20,14 @@ class Buffer : public Allocation
     Buffer(Device* device, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data = nullptr);
 
     template <typename T>
-    Buffer(Device* device, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const std::vector<T>& data)
+    Buffer(Device* device, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const Vector<T>& data)
     {
         vk::DeviceSize size = sizeof(T) * data.size();
         Initialize(device, size, usage, memProperties, data.data());
     }
 
     /// @brief Copy the content of this buffer to an image.
-    void CopyTo(vk::CommandBuffer& cb, vk::Image& image, std::vector<vk::BufferImageCopy> bufferCopyRegions) const;
+    void CopyTo(vk::CommandBuffer& cb, vk::Image& image, Vector<vk::BufferImageCopy> bufferCopyRegions) const;
     void CopyTo(vk::CommandBuffer& cb, vk::Image& image, const uint32_t width, const uint32_t height) const;
     void CopyTo(vk::CommandBuffer& cb, vkg::resources::Image& image) const;
     void CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSize& size) const;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vector>
 
 #include "../pose.hpp"
 #include "../skeleton.hpp"
 #include "task_system.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/transform.hpp>
 
 namespace aln
@@ -21,9 +21,9 @@ enum class BranchState : uint8_t
 /// @brief Holds all events sampled during a frame
 struct SampledEventsBuffer
 {
-    using Iterator = std::vector<SampledEvent>::iterator;
+    using Iterator = Vector<SampledEvent>::iterator;
     
-    std::vector<SampledEvent> m_events;
+    Vector<SampledEvent> m_events;
 
     SampledEvent& EmplaceStateEvent(NodeIndex sourceNodeIdx, const StringID& eventID)
     {
@@ -32,7 +32,7 @@ struct SampledEventsBuffer
 
     void Clear() {        m_events.clear();}
     bool Empty() const { return m_events.empty(); }
-    const std::vector<SampledEvent>& GetSampledEvents() const { return m_events; }
+    const Vector<SampledEvent>& GetSampledEvents() const { return m_events; }
 
     Iterator begin() { return m_events.begin(); }
     Iterator end() { return m_events.end(); }
@@ -82,7 +82,7 @@ class GraphContext
   private:
 #ifndef NDEBUG
     RootMotionActionRecorder m_rootMotionActionRecorder; // Allows nodes to record root motion ops
-    std::vector<NodeIndex> m_activeNodes;
+    Vector<NodeIndex> m_activeNodes;
 #endif
 
   public:
@@ -133,7 +133,7 @@ class GraphContext
         assert(nodeIdx != InvalidIndex);
         m_activeNodes.emplace_back(nodeIdx);
     }
-    inline const std::vector<NodeIndex>& GetActiveNodes() const { return m_activeNodes; }
+    inline const Vector<NodeIndex>& GetActiveNodes() const { return m_activeNodes; }
     inline RootMotionActionRecorder* GetRootMotionActionRecorder() { return &m_rootMotionActionRecorder; }
 #endif
 

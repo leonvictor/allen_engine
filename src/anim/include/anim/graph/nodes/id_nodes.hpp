@@ -21,7 +21,7 @@ class IDComparisonRuntimeNode : public BoolValueNode
         NodeIndex m_inputValueNodeIdx = InvalidIndex;
         StringID m_compareToID = StringID::InvalidID;
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<IDComparisonRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_inputValueNodeIdx, pNode->m_pInputValueNode);

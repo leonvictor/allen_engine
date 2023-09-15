@@ -20,12 +20,12 @@ class Skeleton : public IAsset
 
   private:
     // TODO: Use StringID
-    std::vector<std::string> m_boneNames;
-    std::vector<BoneIndex> m_parentBoneIndices;
+    Vector<std::string> m_boneNames;
+    Vector<BoneIndex> m_parentBoneIndices;
 
     /// @brief Default poses (bind for the rendering skeleton, reference for the anim one)
-    std::vector<Transform> m_localReferencePose;
-    std::vector<Transform> m_globalReferencePose;
+    Vector<Transform> m_localReferencePose;
+    Vector<Transform> m_globalReferencePose;
 
   public:
     inline size_t GetBonesCount() const { return m_boneNames.size(); }
@@ -33,9 +33,9 @@ class Skeleton : public IAsset
     inline BoneIndex GetParentBoneIndex(BoneIndex boneIndex) const { return m_parentBoneIndices[boneIndex]; }
 
     /// @brief Get the bone transforms in local (bone) space
-    inline const std::vector<Transform>& GetLocalReferencePose() const { return m_localReferencePose; }
+    inline const Vector<Transform>& GetLocalReferencePose() const { return m_localReferencePose; }
 
     /// @brief Get the bone transforms in global (character) space
-    inline const std::vector<Transform>& GetGlobalReferencePose() const { return m_globalReferencePose; }
+    inline const Vector<Transform>& GetGlobalReferencePose() const { return m_globalReferencePose; }
 };
 } // namespace aln

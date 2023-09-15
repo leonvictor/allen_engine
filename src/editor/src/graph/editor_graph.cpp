@@ -192,7 +192,7 @@ const EditorGraphNode* EditorGraph::GetNodeLinkedToOutputPin(const UUID& outputP
     return nullptr;
 }
 
-void EditorGraph::FindAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const
+void EditorGraph::FindAllNodesOfType(Vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const
 {
     for (const auto& [id, pNode] : m_nodeLookupMap)
     {
@@ -269,7 +269,7 @@ void EditorGraph::RemoveGraphNode(const UUID& nodeID)
         { return link.m_pInputNode == pNode || link.m_pOutputNode == pNode; });
 
     // Actually remove the node from the graph
-    std::erase(m_graphNodes, pNode);
+    m_graphNodes.erase_first_unsorted(pNode);
 
     pNode->Shutdown();
     aln::Delete(pNode);

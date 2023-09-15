@@ -4,10 +4,10 @@
 
 #include <common/services/service.hpp>
 #include <common/string_id.hpp>
+#include <common/containers/vector.hpp>
 
 #include <map>
 #include <string>
-#include <vector>
 
 namespace aln
 {
@@ -17,7 +17,7 @@ class TypeRegistryService : public IService
     friend class reflect::TypeInfo;
 
     std::map<StringID, const reflect::TypeInfo*> m_typeInfos;
-    std::map<std::string, std::vector<const reflect::TypeInfo*>> m_scopes;
+    std::map<std::string, Vector<const reflect::TypeInfo*>> m_scopes;
 
   public:
     /// @brief Update internal maps with types registered in the current DLL.
@@ -41,7 +41,7 @@ class TypeRegistryService : public IService
         return it->second;
     }
 
-    const std::vector<const reflect::TypeInfo*>& GetTypesInScope(const char* scopeName) const
+    const Vector<const reflect::TypeInfo*>& GetTypesInScope(const char* scopeName) const
     {
         auto it = m_scopes.find(scopeName);
         assert(it != m_scopes.end());

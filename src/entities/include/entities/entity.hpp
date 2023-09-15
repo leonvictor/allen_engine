@@ -4,17 +4,17 @@
 #include "loading_context.hpp"
 #include "update_context.hpp"
 
-#include <assert.h>
-#include <set>
-#include <stdexcept>
-#include <string>
-#include <vector>
-
+#include <common/containers/vector.hpp>
 #include <common/event.hpp>
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
 
 #include <Tracy.hpp>
+
+#include <assert.h>
+#include <set>
+#include <stdexcept>
+#include <string>
 
 namespace aln
 {
@@ -62,21 +62,21 @@ class Entity
     std::string m_name;
     Status m_status = Status::Unloaded;
 
-    std::vector<IComponent*> m_components;
-    std::vector<IEntitySystem*> m_systems;
+    Vector<IComponent*> m_components;
+    Vector<IEntitySystem*> m_systems;
 
     // TODO: Replace by dedicated struct
-    std::array<std::vector<IEntitySystem*>, UpdateStage::NumStages> m_systemUpdateLists;
+    std::array<Vector<IEntitySystem*>, UpdateStage::NumStages> m_systemUpdateLists;
 
     // Spatial attributes
     SpatialComponent* m_pRootSpatialComponent = nullptr;
     Entity* m_pParentSpatialEntity = nullptr; // A spatial entity may request to be attached to another spatial entity
-    std::vector<Entity*> m_attachedEntities;  // Children spatial entities
+    Vector<Entity*> m_attachedEntities;       // Children spatial entities
     aln::UUID m_parentAttachmentSocketID;     // TODO: ?
     bool m_isAttachedToParent = false;
 
     static Event<Entity*> EntityStateUpdatedEvent;
-    std::vector<EntityInternalStateAction> m_deferredActions;
+    Vector<EntityInternalStateAction> m_deferredActions;
 
     SpatialComponent* GetSpatialComponent(const UUID& spatialComponentID);
 
@@ -123,7 +123,7 @@ class Entity
     bool IsSpatialEntity() const { return m_pRootSpatialComponent != nullptr; }
     bool HasParentEntity() const { return m_pParentSpatialEntity != nullptr; }
     bool HasChildrenEntities() const { return !m_attachedEntities.empty(); }
-    const std::vector<Entity*> GetChildren() const { return m_attachedEntities; }
+    const Vector<Entity*> GetChildren() const { return m_attachedEntities; }
 
     /// @todo Consider implications of this being public ?
     SpatialComponent* GetRootSpatialComponent() { return m_pRootSpatialComponent; }
@@ -179,7 +179,7 @@ class Entity
     /// @brief Update all systems attached to this entity.
     void UpdateSystems(const UpdateContext& context) const;
 
-    const std::vector<IEntitySystem*>& GetSystems() { return m_systems; }
+    const Vector<IEntitySystem*>& GetSystems() { return m_systems; }
 
     // -------------------------------------------------
     // Components
@@ -194,7 +194,7 @@ class Entity
     /// @param parentSpatialComponentID: Only when adding a spatial component. UUID of the spatial component to attach to.
     void AddComponent(IComponent* pComponent, const UUID& parentSpatialComponentID = UUID::InvalidID);
 
-    const std::vector<IComponent*>& GetComponents() { return m_components; }
+    const Vector<IComponent*>& GetComponents() { return m_components; }
 
     SpatialComponent* FindSocketAttachmentComponent(SpatialComponent* pComponentToSearch, const UUID& socketID) const;
 

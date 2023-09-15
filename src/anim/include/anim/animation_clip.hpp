@@ -10,8 +10,7 @@
 #include <common/types.hpp>
 #include <common/drawing_context.hpp>
 #include <common/maths/maths.hpp>
-
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -40,9 +39,9 @@ class AnimationClip : public IAsset
 
   private:
     // Track components are in local bone space
-    std::vector<Track> m_tracks;
-    std::vector<Transform> m_rootMotionTrack;
-    std::vector<AnimationEvent*> m_events;
+    Vector<Track> m_tracks;
+    Vector<Transform> m_rootMotionTrack;
+    Vector<AnimationEvent*> m_events;
     SyncTrack m_syncTrack;
 
     float m_framesPerSecond = 0.0f;

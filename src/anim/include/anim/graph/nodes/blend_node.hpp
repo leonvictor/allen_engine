@@ -6,8 +6,7 @@
 #include "../value_node.hpp"
 
 #include <common/maths/maths.hpp>
-
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -34,7 +33,7 @@ class BlendNode : public PoseRuntimeNode
 
   private:
     ValueNode* m_pBlendWeightValueNode = nullptr;
-    std::vector<PoseRuntimeNode*> m_sourceNodes;
+    Vector<PoseRuntimeNode*> m_sourceNodes;
 
     float m_blendWeight = 0.0;
     SyncTrack m_blendedSyncTrack;
@@ -61,11 +60,11 @@ class BlendNode : public PoseRuntimeNode
 
       private:
         NodeIndex m_blendWeightValueNodeIdx = InvalidIndex;
-        std::vector<NodeIndex> m_sourcePoseNodeIndices;
-        std::vector<BlendRange> m_blendRanges;
+        Vector<NodeIndex> m_sourcePoseNodeIndices;
+        Vector<BlendRange> m_blendRanges;
 
       public:
-        void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, const AnimationGraphDataset* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, const AnimationGraphDataset* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<BlendNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_blendWeightValueNodeIdx, pNode->m_pBlendWeightValueNode);
@@ -78,7 +77,7 @@ class BlendNode : public PoseRuntimeNode
             }
         }
     
-        const std::vector<BlendRange>& GetBlendRanges() const { return m_blendRanges; }
+        const Vector<BlendRange>& GetBlendRanges() const { return m_blendRanges; }
     };
 
     PoseNodeResult Update(GraphContext& context) override

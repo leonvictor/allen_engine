@@ -1,12 +1,13 @@
 #pragma once
 
+#include "../memory.hpp"
+#include "../containers/vector.hpp"
+
 #include <assert.h>
 #include <concepts>
 #include <filesystem>
 #include <fstream>
-#include <vector>
 
-#include "../memory.hpp"
 
 namespace aln
 {
@@ -285,12 +286,13 @@ class BinaryFileArchive : public IBinaryArchive
 class BinaryMemoryArchive : public IBinaryArchive
 {
   private:
-    std::vector<std::byte>& m_memory;
-    std::vector<std::byte>::iterator m_pReader;
+    Vector<std::byte>& m_memory;
+    Vector<std::byte>::iterator m_pReader;
 
   public:
     BinaryMemoryArchive(BinaryMemoryArchive&) = delete;
-    BinaryMemoryArchive(std::vector<std::byte>& memory, IOMode mode) : IBinaryArchive(mode), m_memory(memory)
+    // TODO: Use span instead
+    BinaryMemoryArchive(Vector<std::byte>& memory, IOMode mode) : IBinaryArchive(mode), m_memory(memory)
     {
         if (IsReading())
         {

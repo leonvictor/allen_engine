@@ -18,9 +18,9 @@ class StaticMeshComponent : public MeshComponent
   public:
     inline const StaticMesh* GetMesh() const { return m_pMesh.get(); }
 
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
+    static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+        Vector<vk::DescriptorSetLayoutBinding> bindings{
             {
                 // We need to access the ubo in the fragment shader aswell now (because it contains light direction)
                 // TODO: There is probably a cleaner way (a descriptor for all light sources for example ?)

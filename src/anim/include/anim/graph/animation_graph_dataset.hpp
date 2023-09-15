@@ -22,9 +22,9 @@ class AnimationGraphDataset : public IAsset
 
   public:
     // TODO: Allow derivation
-    std::vector<AnimationGraphDataset*> m_derivations;
+    Vector<AnimationGraphDataset*> m_derivations;
 
-    std::vector<AssetHandle<AnimationClip>> m_animationClips;
+    Vector<AssetHandle<AnimationClip>> m_animationClips;
 
     // TODO
     /// Map node to actual resource

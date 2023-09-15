@@ -1,16 +1,14 @@
 #pragma once
 
-#include <assets/asset.hpp>
-#include <assets/handle.hpp>
-
-#include <common/serialization/binary_archive.hpp>
-#include <reflection/type_descriptor.hpp>
-#include <reflection/type_info.hpp>
-
 #include "animation_graph_dataset.hpp"
 #include "runtime_graph_node.hpp"
 
-#include <vector>
+#include <assets/asset.hpp>
+#include <assets/handle.hpp>
+#include <common/containers/vector.hpp>
+#include <common/serialization/binary_archive.hpp>
+#include <reflection/type_descriptor.hpp>
+#include <reflection/type_info.hpp>
 
 namespace aln
 {
@@ -29,13 +27,13 @@ class AnimationGraphDefinition : public IAsset
     friend class RuntimeAnimationGraphInstance;
 
   private:
-    std::vector<RuntimeGraphNode::Settings*> m_nodeSettings;
-    std::vector<NodeIndex> m_nodeIndices;
-    std::vector<StringID> m_controlParameterNames;
+    Vector<RuntimeGraphNode::Settings*> m_nodeSettings;
+    Vector<NodeIndex> m_nodeIndices;
+    Vector<StringID> m_controlParameterNames;
     NodeIndex m_rootNodeIndex = InvalidIndex;
 
     // Memory info used to instanciate the runtime node array(s)
-    std::vector<uint32_t> m_nodeOffsets;
+    Vector<uint32_t> m_nodeOffsets;
     size_t m_requiredMemorySize;
     size_t m_requiredMemoryAlignement;
 
@@ -47,7 +45,7 @@ class AnimationGraphDefinition : public IAsset
     AnimationGraphDefinition(AnimationGraphDefinition&&) = delete;
     AnimationGraphDefinition& operator=(const AnimationGraphDefinition&) = delete;
     AnimationGraphDefinition& operator=(AnimationGraphDefinition&&) = delete;
-        
+
     size_t GetNumNodes() const { return m_nodeSettings.size(); }
 
     template <typename Archive>
@@ -61,7 +59,7 @@ class AnimationGraphDefinition : public IAsset
         archive << m_requiredMemoryAlignement;
     }
 
-    template<typename Archive>
+    template <typename Archive>
     void Deserialize(Archive& archive)
     {
         archive >> m_nodeIndices;

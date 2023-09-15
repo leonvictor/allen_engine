@@ -17,9 +17,9 @@ LightUniform Light::GetUniform()
     return u;
 }
 
-std::vector<vk::DescriptorSetLayoutBinding> Light::GetDescriptorSetLayoutBindings()
+Vector<vk::DescriptorSetLayoutBinding> Light::GetDescriptorSetLayoutBindings()
 {
-    std::vector<vk::DescriptorSetLayoutBinding> bindings{
+    Vector<vk::DescriptorSetLayoutBinding> bindings{
         vk::DescriptorSetLayoutBinding{
             .binding = 0,
             .descriptorType = vk::DescriptorType::eStorageBuffer,

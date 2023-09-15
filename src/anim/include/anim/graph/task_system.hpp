@@ -5,7 +5,7 @@
 #include "pose_buffer_pool.hpp"
 #include "task.hpp"
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -15,7 +15,7 @@ class TaskSystem
   private:
     PoseBufferPool m_poseBufferPool;
 
-    std::vector<Task*> m_registeredTasks;
+    Vector<Task*> m_registeredTasks;
     TaskContext m_taskContext;
 
   public:

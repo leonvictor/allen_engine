@@ -64,7 +64,7 @@ class GLFWApplication
 
         // TODO: Use span
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount); // GLFW function that return the extensions it needs
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+        Vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
         m_instance.Initialize(extensions);
 

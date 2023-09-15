@@ -110,10 +110,10 @@ class Pipeline
     Device* m_pDevice;
     vk::UniquePipelineLayout m_layout;
     vk::GraphicsPipelineCreateInfo m_pipelineCreateInfo;
-    std::vector<shaders::ShaderInfo> m_shaderStages;
-    std::vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
-    std::vector<vk::DynamicState> m_dynamicStates;
-    std::vector<vk::PushConstantRange> m_pushConstants;
+    Vector<shaders::ShaderInfo> m_shaderStages;
+    Vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
+    Vector<vk::DynamicState> m_dynamicStates;
+    Vector<vk::PushConstantRange> m_pushConstants;
 
     // Pipeline Input Assembly State
     vk::PrimitiveTopology m_primitiveTopology;
@@ -123,7 +123,7 @@ class Pipeline
 
     // Vertex description
     vk::VertexInputBindingDescription m_vertexBindingDescription;
-    std::vector<vk::VertexInputAttributeDescription> m_vertextAttributeDescriptions;
+    Vector<vk::VertexInputAttributeDescription> m_vertextAttributeDescriptions;
 
     State m_status = State::Uninitialized;
 

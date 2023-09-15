@@ -70,7 +70,7 @@ class AssimpMaterialReader
         AssetArchiveHeader header(id.GetAssetTypeID()); // TODO: Use Material::GetStaticAssetType
         header.AddDependency(material.m_albedoMapID);
 
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         auto dataStream = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
 
         material.Serialize(dataStream);

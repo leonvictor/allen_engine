@@ -69,9 +69,9 @@ void RawSkeleton::SortBones()
 
     auto boneCount = GetBonesCount();
 
-    std::vector<size_t> sortedToOriginal;
+    Vector<size_t> sortedToOriginal;
     sortedToOriginal.reserve(boneCount);
-    std::vector<size_t> originalToSorted;
+    Vector<size_t> originalToSorted;
     originalToSorted.resize(boneCount);
 
     // Initialize with root nodes
@@ -167,7 +167,7 @@ const RawSkeleton* AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& 
 
         // Save the skeleton
         // TODO: Check against existing skeletons
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         auto dataStream = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
 
         pSkeleton->Serialize(dataStream);
@@ -260,7 +260,7 @@ void AssimpSkeletonReader::ReadSkeleton(const AssimpSceneContext& sceneContext, 
     assert(pSkeletalMesh != nullptr && pSkeletalMesh->HasBones());
 
     auto numBones = pSkeletalMesh->mNumBones;
-    std::vector<std::string> parentBoneNames;
+    Vector<std::string> parentBoneNames;
 
     parentBoneNames.reserve(numBones);
     pOutSkeleton->m_boneNames.reserve(numBones);

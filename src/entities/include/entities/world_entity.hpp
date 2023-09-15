@@ -95,7 +95,7 @@ class WorldEntity
         return static_cast<T*>(iter->second.get());
     }
 
-    const std::vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
+    const Vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
 
     // -------- Editing
     // TODO: Disable in prod

@@ -6,11 +6,12 @@
 
 #pragma once
 
+#include <common/containers/vector.hpp>
+
 #include <vulkan/vulkan.hpp>
 
 #include <array>
 #include <unordered_map>
-#include <vector>
 
 namespace aln::vkg
 {
@@ -20,7 +21,7 @@ class DescriptorAllocator
   public:
     struct PoolSizes
     {
-        std::vector<std::pair<vk::DescriptorType, float>> sizes =
+        Vector<std::pair<vk::DescriptorType, float>> sizes =
             {
                 {vk::DescriptorType::eSampler, 0.5f},
                 {vk::DescriptorType::eCombinedImageSampler, 4.f},
@@ -51,9 +52,9 @@ class DescriptorAllocator
     vk::UniqueDescriptorPool* m_currentPool = nullptr;
 
     /// Used pools for cleanup.
-    std::vector<vk::UniqueDescriptorPool> m_usedPools;
+    Vector<vk::UniqueDescriptorPool> m_usedPools;
     /// Free pools available to reuse.
-    std::vector<vk::UniqueDescriptorPool> m_freePools;
+    Vector<vk::UniqueDescriptorPool> m_freePools;
 
     /// @brief: Grab a free pool if one is available, otherwise create a new one and return it.
     vk::UniqueDescriptorPool GrabPool();

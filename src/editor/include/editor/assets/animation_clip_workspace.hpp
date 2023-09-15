@@ -4,9 +4,7 @@
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <anim/animation_clip.hpp>
-
-#include <map>
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -21,14 +19,14 @@ class AnimationEventEditor
 struct EventTrack
 {
     std::string m_name;
-    std::vector<AnimationEventEditor*> m_events;
+    Vector<AnimationEventEditor*> m_events;
 };
 
 class AnimationClipWorkspace : public IAssetWorkspace
 {
   private:
     AssetHandle<AnimationClip> m_pAnimationClip;
-    std::vector<EventTrack*> m_eventTracks;
+    Vector<EventTrack*> m_eventTracks;
     EventTrack* m_pSyncTrack = nullptr;
 
     std::filesystem::path m_compiledAnimationClipPath;
@@ -51,11 +49,11 @@ class AnimationClipWorkspace : public IAssetWorkspace
 
     AnimationClip* Compile();
 
-    virtual void SaveState(nlohmann::json& json) const override
+    virtual void SaveState(JSON& json) const override
     {
         // TODO
     }
-    virtual void LoadState(nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override
+    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override
     {
         // TODO
     }

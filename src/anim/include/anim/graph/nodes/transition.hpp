@@ -33,7 +33,7 @@ class TransitionRuntimeNode : public PoseRuntimeNode
         float m_transitionDuration = 0.0f; // How long a blend between two states will take (in seconds)
 
       public:
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<TransitionRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_endStateNodeIdx, pNode->m_pEndNode);

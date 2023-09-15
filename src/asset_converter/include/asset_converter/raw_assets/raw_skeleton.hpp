@@ -1,16 +1,16 @@
 #pragma once
 
-#include <assimp/scene.h>
+#include "raw_asset.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/serialization/binary_archive.hpp>
 #include <common/transform.hpp>
 #include <common/types.hpp>
 
+#include <assimp/scene.h>
+
 #include <assert.h>
 #include <string>
-#include <vector>
-
-#include "raw_asset.hpp"
 
 namespace aln::assets::converter
 {
@@ -33,11 +33,11 @@ class RawSkeleton : public IRawAsset
     Transform m_rootNodeGlobalTransform;
 
     // Runtime data
-    std::vector<std::string> m_boneNames;
-    std::vector<uint32_t> m_parentBoneIndices;
+    Vector<std::string> m_boneNames;
+    Vector<uint32_t> m_parentBoneIndices;
 
-    std::vector<Transform> m_localReferencePose;
-    std::vector<Transform> m_globalReferencePose;
+    Vector<Transform> m_localReferencePose;
+    Vector<Transform> m_globalReferencePose;
 
   public:
     size_t GetBonesCount() const { return m_boneNames.size(); }

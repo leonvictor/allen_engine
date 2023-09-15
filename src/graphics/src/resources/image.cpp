@@ -479,10 +479,10 @@ vk::DescriptorSet& Image::GetDescriptorSet()
     return m_vkDescriptorSet.get();
 }
 
-std::vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
+Vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
 {
     // Is it possible do get a descriptor for a non-sampled image ?
-    std::vector<vk::DescriptorSetLayoutBinding> bindings{
+    Vector<vk::DescriptorSetLayoutBinding> bindings{
         {0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
     };
 
@@ -551,7 +551,7 @@ Image Image::CubemapFromDirectory(Device* pDevice, std::string path)
     stagingBuffer.Copy(pixels, static_cast<size_t>(faceSize));
     stagingBuffer.Unmap();
 
-    std::vector<vk::BufferImageCopy> bufferCopyRegions;
+    Vector<vk::BufferImageCopy> bufferCopyRegions;
 
     vk::BufferImageCopy bufferImageCopy;
     bufferImageCopy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;

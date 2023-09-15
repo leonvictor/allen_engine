@@ -46,6 +46,6 @@ class Light : public SpatialComponent
     LightUniform GetUniform();
 
     /// @brief Returns the vulkan bindings representing a light.
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
+    static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
 };
 } // namespace aln

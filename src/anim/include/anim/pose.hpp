@@ -4,7 +4,7 @@
 
 #include <common/transform.hpp>
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -36,8 +36,8 @@ class Pose
 
   private:
     const Skeleton* m_pSkeleton = nullptr;
-    std::vector<Transform> m_localTransforms;  // Parent-space transforms
-    std::vector<Transform> m_globalTransforms; // Character-space transforms
+    Vector<Transform> m_localTransforms;  // Parent-space transforms
+    Vector<Transform> m_globalTransforms; // Character-space transforms
     State m_state = State::Unset;
 
   public:
@@ -65,7 +65,7 @@ class Pose
     // Global Transform Cache
     inline bool HasGlobalTransforms() const { return !m_globalTransforms.empty(); }
     inline void ClearGlobalTransforms() { m_globalTransforms.clear(); }
-    inline const std::vector<Transform>& GetGlobalTransforms() const { return m_globalTransforms; }
+    inline const Vector<Transform>& GetGlobalTransforms() const { return m_globalTransforms; }
     void CalculateGlobalTransforms();
     Transform GetGlobalTransform(BoneIndex boneIdx) const;
 

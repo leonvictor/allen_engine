@@ -3,13 +3,11 @@
 #include "../skeletal_mesh.hpp"
 #include "mesh_component.hpp"
 
-#include <anim/animation_clip.hpp>
 #include <anim/skeleton.hpp>
 #include <common/drawing_context.hpp>
 #include <common/transform.hpp>
 #include <entities/spatial_component.hpp>
 #include <common/maths/matrix4x4.hpp>
-#include <common/maths/vec3.hpp>
 
 namespace aln
 {
@@ -26,11 +24,11 @@ class SkeletalMeshComponent : public MeshComponent
     AssetHandle<Skeleton> m_pSkeleton; // Animation Skeleton
 
     // Rendering bone transforms in global character space
-    std::vector<Transform> m_boneTransforms;
-    std::vector<Matrix4x4> m_skinningTransforms;
+    Vector<Transform> m_boneTransforms;
+    Vector<Matrix4x4> m_skinningTransforms;
 
     // Bone mapping between animation and render skeletons
-    std::vector<BoneIndex> m_animToRenderBonesMap;
+    Vector<BoneIndex> m_animToRenderBonesMap;
 
     // Editor toggles
     /// @todo : Disable in release / move out to anoter class

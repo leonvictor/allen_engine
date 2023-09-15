@@ -1,8 +1,9 @@
 #pragma once
 
+#include <common/containers/vector.hpp>
+
 #include <type_traits>
 #include <unordered_map>
-#include <vector>
 
 namespace aln
 {
@@ -13,14 +14,14 @@ namespace aln
 template <typename ValueType, typename Hash = std::hash<ValueType>>
 class HashVector
 {
-    using Iterator = std::vector<ValueType>::iterator;
-    using ConstIterator = std::vector<ValueType>::const_iterator;
+    using Iterator = Vector<ValueType>::iterator;
+    using ConstIterator = Vector<ValueType>::const_iterator;
     using KeyType = std::invoke_result_t<Hash, ValueType>;
-    using SizeType = std::vector<ValueType>::size_type;
+    using SizeType = Vector<ValueType>::size_type;
 
   private:
     Hash hasher;
-    std::vector<ValueType> m_vector;
+    Vector<ValueType> m_vector;
     std::unordered_map<KeyType, SizeType> m_lookupMap;
 
   public:

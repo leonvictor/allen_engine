@@ -1,7 +1,8 @@
 #pragma once
 
+#include <common/containers/vector.hpp>
+
 #include <lz4.h>
-#include <vector>
 
 /// --------------------------
 /// Compression
@@ -13,12 +14,12 @@ namespace aln::Compression
 {
 /// @brief Compress the archive
 /// @return The original size of the uncompressed archive
-static uint32_t Compress(std::vector<std::byte>& data)
+static uint32_t Compress(Vector<std::byte>& data)
 {
     auto uncompressedSize = static_cast<int>(data.size());
     auto maxCompressedSize = LZ4_compressBound(uncompressedSize);
 
-    auto buffer = std::vector<std::byte>(maxCompressedSize);
+    auto buffer = Vector<std::byte>(maxCompressedSize);
 
     auto compressedSize = LZ4_compress_default(
         reinterpret_cast<const char*>(data.data()),
@@ -32,9 +33,9 @@ static uint32_t Compress(std::vector<std::byte>& data)
     return uncompressedSize;
 }
 
-static void Decompress(std::vector<std::byte>& data, uint32_t originalSize)
+static void Decompress(Vector<std::byte>& data, uint32_t originalSize)
 {
-    auto buffer = std::vector<std::byte>(originalSize);
+    auto buffer = Vector<std::byte>(originalSize);
 
     LZ4_decompress_safe(
         reinterpret_cast<const char*>(data.data()),

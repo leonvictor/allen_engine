@@ -37,8 +37,8 @@ class AssetService : public IService
     std::map<AssetID, AssetRecord> m_assetCache;
 
     std::recursive_mutex m_mutex;
-    std::vector<AssetRequest> m_pendingRequests;
-    std::vector<AssetRequest> m_activeRequests;
+    Vector<AssetRequest> m_pendingRequests;
+    Vector<AssetRequest> m_activeRequests;
 
     TaskService* m_pTaskService = nullptr;
     TaskSet m_loadingTask;

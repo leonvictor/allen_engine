@@ -13,7 +13,7 @@ class BlendEditorNode : public EditorAnimationGraphNode
     ALN_REGISTER_TYPE()
 
   private:
-    std::vector<float> m_blendParameterValues;
+    Vector<float> m_blendParameterValues;
 
   protected:
     virtual void LoadState(const nlohmann::json& json, const TypeRegistryService* pTypeRegistryService) override {

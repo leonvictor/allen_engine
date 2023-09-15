@@ -3,7 +3,7 @@
 #include "vulkan/vulkan.hpp"
 #include <common/vertex.hpp>
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln::vkg
 {
@@ -12,7 +12,7 @@ template <typename T>
 struct VertexDescriptor
 {
     static vk::VertexInputBindingDescription GetBindingDescription() {}
-    static std::vector<vk::VertexInputAttributeDescription> GetAttributeDescription() {}
+    static Vector<vk::VertexInputAttributeDescription> GetAttributeDescription() {}
 };
 
 // TODO: Maybe specialize the template on Mesh type rather than Vertex type
@@ -28,9 +28,9 @@ struct VertexDescriptor<aln::Vertex>
         return bindingDescription;
     }
 
-    static std::vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
+    static Vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
     {
-        std::vector<vk::VertexInputAttributeDescription> attributeDescription(4);
+        Vector<vk::VertexInputAttributeDescription> attributeDescription(4);
 
         attributeDescription[0].binding = 0;
         attributeDescription[0].location = 0;
@@ -68,9 +68,9 @@ struct VertexDescriptor<SkinnedVertex>
         return bindingDescription;
     }
 
-    static std::vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
+    static Vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
     {
-        std::vector<vk::VertexInputAttributeDescription> attributeDescription =
+        Vector<vk::VertexInputAttributeDescription> attributeDescription =
             {
                 {0, 0, vk::Format::eR32G32B32Sfloat, offsetof(SkinnedVertex, pos)},
                 {1, 0, vk::Format::eR32G32B32Sfloat, offsetof(SkinnedVertex, color)},
@@ -96,9 +96,9 @@ struct VertexDescriptor<DebugVertex>
         return bindingDescription;
     }
 
-    static std::vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
+    static Vector<vk::VertexInputAttributeDescription> GetAttributeDescription()
     {
-        std::vector<vk::VertexInputAttributeDescription> attributeDescription =
+        Vector<vk::VertexInputAttributeDescription> attributeDescription =
             {
                 {0, 0, vk::Format::eR32G32B32Sfloat, offsetof(DebugVertex, pos)},
                 {1, 0, vk::Format::eR32G32B32Sfloat, offsetof(DebugVertex, color)},

@@ -17,7 +17,7 @@ class EditorAnimationStateMachine : public EditorGraph
     friend class GraphView;
 
   private:
-    std::vector<Conduit*> m_conduits;
+    Vector<Conduit*> m_conduits;
 
     // TODO:
     // Entry State Overrides
@@ -40,7 +40,7 @@ class EditorAnimationStateMachine : public EditorGraph
     }
 
   public:
-    const std::vector<Conduit*>& GetConduits() const { return m_conduits; }
+    const Vector<Conduit*>& GetConduits() const { return m_conduits; }
 
     virtual void RemoveGraphNode(const UUID& nodeID) override
     {
@@ -84,7 +84,7 @@ class EditorAnimationStateMachine : public EditorGraph
         EditorGraph::Clear();
     }
 
-    virtual void FindAllNodesOfType(std::vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const override
+    virtual void FindAllNodesOfType(Vector<const EditorGraphNode*>& outResult, const StringID& typeID, NodeSearchScope searchScope) const override
     {
         if (searchScope == NodeSearchScope::Recursive)
         {

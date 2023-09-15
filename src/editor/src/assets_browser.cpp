@@ -7,7 +7,7 @@ namespace aln
 {
 
 // TODO: This should be infered automatically from registered asset types
-const std::vector<std::string> AssetsBrowser::AssetExtensionsFilter = {".anim", ".skel", ".mesh", ".smsh", ".text", ".agdf", ".agds"};
+const Vector<std::string> AssetsBrowser::AssetExtensionsFilter = {".anim", ".skel", ".mesh", ".smsh", ".text", ".agdf", ".agds"};
 
 void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entry& directoryEntry)
 {

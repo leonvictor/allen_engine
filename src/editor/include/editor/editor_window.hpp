@@ -31,8 +31,8 @@ class EditorWindowContext
     // TODO: should be const
     AssetService* m_pAssetService = nullptr;
 
-    std::vector<AssetID> m_requestedAssetWindowsCreations;
-    std::vector<AssetID> m_requestedAssetWindowsDeletions;
+    Vector<AssetID> m_requestedAssetWindowsCreations;
+    Vector<AssetID> m_requestedAssetWindowsDeletions;
 };
 
 /// @brief Interface for all editor windows

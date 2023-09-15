@@ -14,7 +14,7 @@ class FloatControlParameterNode : public FloatValueNode
     {
         ALN_REGISTER_TYPE();
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<FloatControlParameterNode>(nodePtrs, options);
         }
@@ -41,7 +41,7 @@ class BoolControlParameterNode : public BoolValueNode
     {
         ALN_REGISTER_TYPE();
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<BoolControlParameterNode>(nodePtrs, options);
         }
@@ -68,7 +68,7 @@ class IDControlParameterNode : public IDValueNode
     {
         ALN_REGISTER_TYPE();
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<IDControlParameterNode>(nodePtrs, options);
         }

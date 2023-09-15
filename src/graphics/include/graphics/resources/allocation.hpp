@@ -90,7 +90,7 @@ class Allocation
     }
 
     template <typename T>
-    inline void Copy(const std::vector<T>& data, vk::DeviceSize offset = 0) const
+    inline void Copy(const Vector<T>& data, vk::DeviceSize offset = 0) const
     {
         Copy(data.data(), sizeof(T) * data.size(), offset);
     }

@@ -19,7 +19,7 @@ class EventConditionRuntimeNode : public BoolValueNode
       private:
         StringID m_eventID = StringID::InvalidID;
 
-        void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const  override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const  override
         {
             CreateNode<EventConditionRuntimeNode>(nodePtrs, options);
         };

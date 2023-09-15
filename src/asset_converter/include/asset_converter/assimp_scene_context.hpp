@@ -30,7 +30,7 @@ class AssimpSceneContext
     Transform m_inverseSceneTransform = Transform::Identity;
 
     mutable std::map<std::string, RawSkeleton> m_skeletons;
-    std::vector<AssetID> m_materials;
+    Vector<AssetID> m_materials;
 
     std::filesystem::path m_sourceFilePath;
     std::filesystem::path m_outputDirectoryPath;

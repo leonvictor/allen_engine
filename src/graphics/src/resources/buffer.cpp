@@ -15,9 +15,9 @@ Buffer::Buffer(Device* pDevice, const vk::DeviceSize& size, const vk::BufferUsag
     Initialize(pDevice, size, usage, memProperties, data);
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, std::vector<vk::BufferImageCopy> bufferCopyRegions) const
+void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, Vector<vk::BufferImageCopy> bufferCopyRegions) const
 {
-    cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
+    cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions.size(), bufferCopyRegions.data());
 }
 
 void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::resources::Image& image) const

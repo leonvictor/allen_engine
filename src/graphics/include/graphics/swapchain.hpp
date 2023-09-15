@@ -2,6 +2,9 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <common/containers/vector.hpp>
+
+#include <functional>
 
 namespace aln
 {
@@ -55,7 +58,7 @@ class Swapchain
     uint32_t m_activeImageIndex;
     bool m_resizeRequired = false;
 
-    std::vector<std::function<void(uint32_t, uint32_t)>> m_resizeCallbacks;
+    Vector<std::function<void(uint32_t, uint32_t)>> m_resizeCallbacks;
 
     void CreateInternal();
 
@@ -66,8 +69,8 @@ class Swapchain
 
     vk::Extent2D ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
 
-    vk::SurfaceFormatKHR ChooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats, const vk::Format& desiredFormat = vk::Format::eB8G8R8A8Srgb);
+    vk::SurfaceFormatKHR ChooseSurfaceFormat(const Vector<vk::SurfaceFormatKHR>& availableFormats, const vk::Format& desiredFormat = vk::Format::eB8G8R8A8Srgb);
 
-    vk::PresentModeKHR ChoosePresentMode(const std::vector<vk::PresentModeKHR>& availableModes);
+    vk::PresentModeKHR ChoosePresentMode(const Vector<vk::PresentModeKHR>& availableModes);
 };
 } // namespace aln::vkg

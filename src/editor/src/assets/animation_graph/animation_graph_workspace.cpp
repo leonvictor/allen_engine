@@ -48,7 +48,7 @@ void AnimationGraphWorkspace::Compile()
 
         // TODO: Where does runtime asset serialization+saving occur ?
         // Serialize graph definition
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
 
         reflect::TypeCollectionDescriptor typeCollectionDesc;
@@ -80,7 +80,7 @@ void AnimationGraphWorkspace::Compile()
     if (m_rootGraph.CompileDataset(context, m_graphDataset))
     {
         // Serialize graph dataset
-        std::vector<std::byte> data;
+        Vector<std::byte> data;
         auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Write);
         m_graphDataset.Serialize(dataArchive);
 

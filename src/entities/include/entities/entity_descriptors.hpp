@@ -1,11 +1,11 @@
 #pragma once
 
-#include <common/types.hpp>
+#include <common/containers/vector.hpp>
 #include <common/string_id.hpp>
+#include <common/types.hpp>
 #include <reflection/type_descriptor.hpp>
 
 #include <string>
-#include <vector>
 
 namespace aln
 {
@@ -70,9 +70,9 @@ class EntityDescriptor
     // TODO: Unique identifier, but UUID is not garanteed to stay the same between executions.
     // Use name ? As a StringID maybe ?
     std::string m_name;
-    std::vector<ComponentDescriptor> m_componentDescriptors;
-    std::vector<SystemDescriptor> m_systemDescriptors;
-    std::vector<SpatialComponentsRelationship> m_spatialComponentsRelationships;
+    Vector<ComponentDescriptor> m_componentDescriptors;
+    Vector<SystemDescriptor> m_systemDescriptors;
+    Vector<SpatialComponentsRelationship> m_spatialComponentsRelationships;
 
   public:
     EntityDescriptor() = default;
@@ -115,8 +115,8 @@ class EntityMapDescriptor
     static uint32_t GetEntityIndex(const EntityMap& entityMap, const Entity* pEntity);
 
   private:
-    std::vector<EntityDescriptor> m_entityDescriptors;
-    std::vector<SpatialEntitiesRelationship> m_spatialEntitiesRelationships;
+    Vector<EntityDescriptor> m_entityDescriptors;
+    Vector<SpatialEntitiesRelationship> m_spatialEntitiesRelationships;
 
   public:
     EntityMapDescriptor() = default;

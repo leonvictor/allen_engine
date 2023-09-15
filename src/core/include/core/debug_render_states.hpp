@@ -4,8 +4,7 @@
 #include <graphics/rendering/renderer.hpp>
 #include <graphics/resources/buffer.hpp>
 #include <common/maths/matrix4x4.hpp>
-
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -91,9 +90,9 @@ class LinesRenderState
         m_viewProjectionUBO = vkg::resources::Buffer();
     }
 
-    static std::vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
+    static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+        Vector<vk::DescriptorSetLayoutBinding> bindings{
             {
                 .binding = 0,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,

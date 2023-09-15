@@ -1,9 +1,9 @@
 #pragma once
 
 #include "uuid.hpp"
+#include "common/containers/vector.hpp"
 
 #include <functional>
-#include <vector>
 
 namespace aln
 {
@@ -22,7 +22,7 @@ class Event
     };
 
   private:
-    std::vector<Listener> m_listeners;
+    Vector<Listener> m_listeners;
 
   public:
     ~Event()

@@ -137,7 +137,7 @@ void RenderPass::CreateInternal(uint32_t width, uint32_t height)
     m_height = height;
 
     // Aggregate subpasses descriptions
-    std::vector<vk::SubpassDescription> vkSubpasses;
+    Vector<vk::SubpassDescription> vkSubpasses;
     for (auto& s : m_subpasses)
     {
         vkSubpasses.push_back(s.GetDescription());

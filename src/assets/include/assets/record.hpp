@@ -4,7 +4,7 @@
 #include "asset_id.hpp"
 #include "status.hpp"
 
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -20,7 +20,7 @@ class AssetRecord
     AssetID m_assetID;
     IAsset* m_pAsset = nullptr;
 
-    std::vector<AssetID> m_dependencies;
+    Vector<AssetID> m_dependencies;
 
     // Runtime state
     AssetStatus m_status = AssetStatus::Unloaded;
@@ -69,7 +69,7 @@ class AssetRecord
     // Dependencies
     // ------------------------------
     bool HasDependencies() const { return !m_dependencies.empty(); }
-    const std::vector<AssetID>& GetDependencies() const { return m_dependencies; }
+    const Vector<AssetID>& GetDependencies() const { return m_dependencies; }
     /// @todo: Remove when dependencies are correctly loaded from asset metadata
     void AddDependency(const AssetID& assetID) { m_dependencies.push_back(assetID); }
 

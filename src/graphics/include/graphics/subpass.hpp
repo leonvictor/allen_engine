@@ -1,4 +1,7 @@
 #pragma once
+
+#include <common/containers/vector.hpp>
+
 #include <vulkan/vulkan.hpp>
 
 namespace aln::vkg
@@ -11,9 +14,9 @@ class Subpass
     // The only way to construct a subpass is through a renderpass AddSubpass method.
     Subpass() {}
 
-    std::vector<vk::AttachmentReference> m_colorAttachments;
-    std::vector<vk::AttachmentReference> m_depthAttachments;
-    std::vector<vk::AttachmentReference> m_resolveAttachments;
+    Vector<vk::AttachmentReference> m_colorAttachments;
+    Vector<vk::AttachmentReference> m_depthAttachments;
+    Vector<vk::AttachmentReference> m_resolveAttachments;
 
     vk::PipelineBindPoint m_bindPoint = vk::PipelineBindPoint::eGraphics;
 

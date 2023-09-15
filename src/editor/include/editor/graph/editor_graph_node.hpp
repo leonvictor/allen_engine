@@ -25,8 +25,8 @@ class EditorGraphNode : public reflect::IReflected
 
   private:
     UUID m_id = UUID::Generate();
-    std::vector<Pin> m_inputPins;
-    std::vector<Pin> m_outputPins;
+    Vector<Pin> m_inputPins;
+    Vector<Pin> m_outputPins;
 
     EditorGraph* m_pOwningGraph = nullptr; // The graph this node is in
     EditorGraph* m_pChildGraph = nullptr;
@@ -265,8 +265,8 @@ class EditorGraphNode : public reflect::IReflected
     void SetChildGraph(EditorGraph* pChildGraph);
 
     // ---- Graph handling
-    const std::vector<Pin>& GetInputPins() const { return m_inputPins; }
-    const std::vector<Pin>& GetOutputPins() const { return m_outputPins; }
+    const Vector<Pin>& GetInputPins() const { return m_inputPins; }
+    const Vector<Pin>& GetOutputPins() const { return m_outputPins; }
     uint32_t GetInputPinsCount() const { return m_inputPins.size(); }
     uint32_t GetOutputPinsCount() const { return m_outputPins.size(); }
 

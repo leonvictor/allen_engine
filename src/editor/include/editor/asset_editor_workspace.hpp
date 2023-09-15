@@ -50,7 +50,7 @@ class AssetEditorWindowsFactories
 {
     friend class Editor;
 
-    std::vector<IAssetWorkspacesFactory*> m_factories;
+    Vector<IAssetWorkspacesFactory*> m_factories;
 
     template <typename AssetType, typename FactoryType>
     void RegisterFactory(std::string_view name)

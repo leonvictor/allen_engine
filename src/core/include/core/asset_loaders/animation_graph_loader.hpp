@@ -5,9 +5,7 @@
 #include <anim/graph/animation_graph_dataset.hpp>
 #include <anim/graph/graph_definition.hpp>
 #include <reflection/services/type_registry_service.hpp>
-
-#include <memory>
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -87,7 +85,7 @@ class AnimationGraphDatasetLoader : public IAssetLoader
         return true;
     }
 
-    void InstallDependencies(AssetRecord* pAssetRecord, const std::vector<IAssetHandle>& dependencies) override
+    void InstallDependencies(AssetRecord* pAssetRecord, const Vector<IAssetHandle>& dependencies) override
     {
         auto pDataset = pAssetRecord->GetAsset<AnimationGraphDataset>();
 

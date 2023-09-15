@@ -1,9 +1,10 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
+#include <common/containers/vector.hpp>
 
 #include <vulkan/vulkan.hpp>
+
+#include <iostream>
 
 namespace aln::vkg
 {
@@ -17,7 +18,7 @@ class Instance
     vk::DispatchLoaderDynamic m_dispatchLoaderDynamic;
     vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> m_debugMessenger;
 
-    const std::vector<const char*> m_validationLayers = {
+    const Vector<const char*> m_validationLayers = {
         "VK_LAYER_KHRONOS_validation",
     };
 
@@ -28,18 +29,18 @@ class Instance
 #endif
 
     /// @brief Check if the instance supports the validation layers.
-    bool CheckValidationLayersSupport(const std::vector<const char*> validationLayers);
+    bool CheckValidationLayersSupport(const Vector<const char*> validationLayers);
 
     /// @brief Check if the instance supports all the requested extensions.
-    bool CheckExtensionSupport(std::vector<const char*> extensions);
+    bool CheckExtensionSupport(Vector<const char*> extensions);
 
   public:
     /// @brief Create the application wide instance. Should be called once at program startup.
-    void Initialize(std::vector<const char*>& requestedExtensions);
+    void Initialize(Vector<const char*>& requestedExtensions);
 
     /// @brief Get the wrapped vulkan instance.
     const vk::Instance& GetVkInstance() const { return m_vkInstance.get(); }
-    const std::vector<const char*>& GetValidationLayers() const { return m_validationLayers; }
+    const Vector<const char*>& GetValidationLayers() const { return m_validationLayers; }
     const vk::DispatchLoaderDynamic& GetDispatchLoaderDynamic() const { return m_dispatchLoaderDynamic; }
     bool ValidationLayersEnabled() const { return m_validationLayersEnabled; }
 };

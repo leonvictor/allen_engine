@@ -24,7 +24,7 @@ class FloatClampRuntimeNode : public FloatValueNode
         float m_min = 0.0f;
         float m_max = 0.0f;
 
-        virtual void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<FloatClampRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_inputValueNodeIdx, pNode->m_pInputValueNode);

@@ -1,4 +1,5 @@
 #include "instance.hpp"
+
 #include <iostream>
 
 namespace aln::vkg
@@ -20,7 +21,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     return VK_FALSE;
 }
 
-bool Instance::CheckValidationLayersSupport(const std::vector<const char*> validationLayers)
+bool Instance::CheckValidationLayersSupport(const Vector<const char*> validationLayers)
 {
     std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
 
@@ -44,7 +45,7 @@ bool Instance::CheckValidationLayersSupport(const std::vector<const char*> valid
     return true;
 }
 
-bool Instance::CheckExtensionSupport(std::vector<const char*> extensions)
+bool Instance::CheckExtensionSupport(Vector<const char*> extensions)
 {
     // Check if all extensions required by GLFW are available
     std::vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
@@ -68,7 +69,7 @@ bool Instance::CheckExtensionSupport(std::vector<const char*> extensions)
     return true;
 }
 
-void Instance::Initialize(std::vector<const char*>& requestedExtensions)
+void Instance::Initialize(Vector<const char*>& requestedExtensions)
 {
     if (!CheckExtensionSupport(requestedExtensions))
     {

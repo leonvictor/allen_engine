@@ -7,8 +7,7 @@
 #include "../value_node.hpp"
 
 #include <common/maths/maths.hpp>
-
-#include <vector>
+#include <common/containers/vector.hpp>
 
 namespace aln
 {
@@ -32,7 +31,7 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
         NodeIndex m_playInReverseValueNodeIdx = InvalidIndex;
 
       public:
-        void InstanciateNode(const std::vector<RuntimeGraphNode*>& nodePtrs, const AnimationGraphDataset* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, const AnimationGraphDataset* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<AnimationClipRuntimeNode>(nodePtrs, options);
             SetOptionalNodePtrFromIndex(nodePtrs, m_playInReverseValueNodeIdx, pNode->m_pPlayInReverseValueNode);

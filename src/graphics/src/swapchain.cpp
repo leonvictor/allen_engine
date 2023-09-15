@@ -54,7 +54,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
     CreateInternal();
 
     // Trigger callbacks
-    for (auto callback : m_resizeCallbacks)
+    for (auto& callback : m_resizeCallbacks)
     {
         callback(m_width, m_height);
     }
@@ -180,7 +180,7 @@ vk::Extent2D Swapchain::ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilit
     }
 }
 
-vk::SurfaceFormatKHR Swapchain::ChooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats, const vk::Format& desiredFormat)
+vk::SurfaceFormatKHR Swapchain::ChooseSurfaceFormat(const Vector<vk::SurfaceFormatKHR>& availableFormats, const vk::Format& desiredFormat)
 {
     // TODO: Refine selection (ex: support bliting to linear tiling format)
     for (const auto& format : availableFormats)
@@ -195,7 +195,7 @@ vk::SurfaceFormatKHR Swapchain::ChooseSurfaceFormat(const std::vector<vk::Surfac
     return availableFormats[0];
 }
 
-vk::PresentModeKHR Swapchain::ChoosePresentMode(const std::vector<vk::PresentModeKHR>& availableModes)
+vk::PresentModeKHR Swapchain::ChoosePresentMode(const Vector<vk::PresentModeKHR>& availableModes)
 {
     for (const auto& mode : availableModes)
     {

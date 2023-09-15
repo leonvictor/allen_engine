@@ -36,8 +36,8 @@ class SceneRenderer : public vkg::render::IRenderer
 
     struct RenderData
     {
-        std::vector<const SkeletalMeshComponent*>& m_skeletalMeshComponents;
-        std::vector<const StaticMeshComponent*>& m_staticMeshComponents;
+        Vector<const SkeletalMeshComponent*>& m_skeletalMeshComponents;
+        Vector<const StaticMeshComponent*>& m_staticMeshComponents;
         IDVector<Light*>& m_lights;
         SceneGPUData m_sceneData;
     };
@@ -137,7 +137,7 @@ class SceneRenderer : public vkg::render::IRenderer
     {
         vkg::render::IRenderer::CreateInternal(pDevice, width, height, colorImageFormat);
 
-        std::vector<vk::WriteDescriptorSet> writeDescriptorSets;
+        Vector<vk::WriteDescriptorSet> writeDescriptorSets;
 
         // ---- Per frame resources
         m_sceneDataBuffer = vkg::resources::Buffer(
@@ -378,7 +378,7 @@ class SceneRenderer : public vkg::render::IRenderer
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    void RenderStaticMeshes(const std::vector<const StaticMeshComponent*>& staticMeshComponents, vk::CommandBuffer& cb, uint32_t currentMeshIndex)
+    void RenderStaticMeshes(const Vector<const StaticMeshComponent*>& staticMeshComponents, vk::CommandBuffer& cb, uint32_t currentMeshIndex)
     {
         m_staticMeshesPipeline.Bind(cb);
 

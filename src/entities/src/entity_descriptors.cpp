@@ -1,9 +1,5 @@
 #include "entity_descriptors.hpp"
 
-#include <string>
-#include <vector>
-
-#include <common/string_id.hpp>
 #include <reflection/type_descriptor.hpp>
 
 #include "component.hpp"
