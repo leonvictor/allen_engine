@@ -26,7 +26,6 @@ I had planned to clean things up before making the repo public *but* I found mys
  - [fmt](https://github.com/fmtlib/fmt) (while waiting for `std::format`)
  - [glfw](https://github.com/glfw/glfw)
  - [glm](https://github.com/g-truc/glm)
- - [gsl](https://github.com/microsoft/GSL) (for `std::span`)
  - [imgui](https://github.com/ocornut/imgui)
  - [json](https://github.com/nlohmann/json)
  - [lz4](https://github.com/lz4/lz4)
