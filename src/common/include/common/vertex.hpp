@@ -4,7 +4,7 @@
 #include <common/maths/vec3.hpp>
 #include <common/maths/vec4.hpp>
 
-#include <array>
+#include <common/containers/array.hpp>
 
 namespace aln
 {
@@ -35,7 +35,7 @@ struct SkinnedVertex : public Vertex
     alignas(16) Vec2 texCoord;
     alignas(16) Vec3 normal;
     alignas(16) Vec4 weights;
-    alignas(16) std::array<uint32_t, 4> boneIndices;
+    alignas(16) Array<uint32_t, 4> boneIndices;
 };
 
 struct DebugVertex

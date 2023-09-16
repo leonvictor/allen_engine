@@ -10,9 +10,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <array>
-#include <unordered_map>
-
 namespace aln::vkg
 {
 

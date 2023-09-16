@@ -5,9 +5,9 @@
 #include "../input_device.hpp"
 
 #include <common/maths/vec2.hpp>
+#include <common/containers/array.hpp>
 
-#include <array>
-#include <unordered_map>
+#include <map>
 
 namespace aln
 {
@@ -43,7 +43,7 @@ class Mouse : IInputDevice
     Vec2 m_scrollDelta = {0, 0};
 
     /// Mouse buttons
-    std::array<ButtonControl, 8> m_buttons;
+    Array<ButtonControl, 8> m_buttons;
 
     /// Mouse scroll
     /// @todo Rename to scroll (or m_buttons to m_buttonControls but match them)

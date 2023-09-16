@@ -4,9 +4,9 @@
 #include "controls/button_control.hpp"
 #include "input_device.hpp"
 
-#include <array>
+#include <common/containers/array.hpp>
+
 #include <map>
-#include <unordered_map>
 
 namespace aln
 {
@@ -148,7 +148,7 @@ class Keyboard : public IInputDevice
     static const std::unordered_map<uint16_t, Key> GlfwKeyMap;
 
     /// Map of keyboard keys controls.
-    std::array<ButtonControl, 131> m_keys;
+    Array<ButtonControl, 131> m_keys;
     std::multimap<int, ControlStateChangedEvent> m_statesChanged;
 
     /// @brief Return a list of state changed events that occured since the last call to this function.

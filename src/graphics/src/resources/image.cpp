@@ -2,6 +2,7 @@
 #include "resources/allocation.hpp"
 #include "resources/buffer.hpp"
 
+#include <common/containers/array.hpp>
 #include <config/path.h>
 
 #include <fstream>
@@ -521,7 +522,7 @@ Image Image::CubemapFromDirectory(Device* pDevice, std::string path)
 {
     // TODO: Quick and dirty way of storing faces names for now
     // Generate optimized file ?
-    std::array<std::string, 6> faces = {
+    Array<std::string, 6> faces = {
         "Right",
         "Left",
         "Up",

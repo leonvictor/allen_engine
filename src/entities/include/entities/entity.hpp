@@ -5,6 +5,7 @@
 #include "update_context.hpp"
 
 #include <common/containers/vector.hpp>
+#include <common/containers/array.hpp>
 #include <common/event.hpp>
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
@@ -12,7 +13,6 @@
 #include <Tracy.hpp>
 
 #include <assert.h>
-#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -66,13 +66,13 @@ class Entity
     Vector<IEntitySystem*> m_systems;
 
     // TODO: Replace by dedicated struct
-    std::array<Vector<IEntitySystem*>, UpdateStage::NumStages> m_systemUpdateLists;
+    Array<Vector<IEntitySystem*>, (eastl_size_t) UpdateStage::NumStages> m_systemUpdateLists;
 
     // Spatial attributes
     SpatialComponent* m_pRootSpatialComponent = nullptr;
     Entity* m_pParentSpatialEntity = nullptr; // A spatial entity may request to be attached to another spatial entity
     Vector<Entity*> m_attachedEntities;       // Children spatial entities
-    aln::UUID m_parentAttachmentSocketID;     // TODO: ?
+    UUID m_parentAttachmentSocketID;     // TODO: ?
     bool m_isAttachedToParent = false;
 
     static Event<Entity*> EntityStateUpdatedEvent;
@@ -112,7 +112,7 @@ class Entity
     Entity(){};
     ~Entity();
 
-    const UUID GetID() const { return m_ID; };
+    const UUID& GetID() const { return m_ID; };
     std::string& GetName() { return m_name; }
 
     /// @brief Whether this entity is loaded (some components might still be loading in case of dynamic add)

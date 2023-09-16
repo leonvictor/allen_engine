@@ -50,7 +50,7 @@ class Gamepad : public IInputDevice
     AxisControl m_rightTrigger;
     AxisControl m_leftTrigger;
 
-    std::array<ButtonControl, 15> m_buttons;
+    Array<ButtonControl, 15> m_buttons;
     
     
     void SetRightStickState(const Vec2& value) { 

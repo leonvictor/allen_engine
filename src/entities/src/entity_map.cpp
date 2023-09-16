@@ -4,11 +4,11 @@
 #include "loading_context.hpp"
 #include "update_context.hpp"
 
+#include <common/containers/array.hpp>
 #include <common/threading/task_service.hpp>
 #include <reflection/type_info.hpp>
 
 #include <algorithm>
-#include <array>
 #include <execution>
 #include <functional>
 #include <mutex>

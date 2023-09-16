@@ -13,8 +13,8 @@ RenderPass::RenderPass(Device* pDevice, int width, int height)
 
     // Default clear values.
     // TODO: Make it possible to customize clear values
-    m_clearValues[0].color = vk::ClearColorValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
-    m_clearValues[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
+    m_clearValues[0].color.setFloat32({0.0f, 0.0f, 0.0f, 1.0f});
+    m_clearValues[1].depthStencil = vk::ClearDepthStencilValue{.depth = 1.0f, .stencil = 0};
 }
 
 void RenderPass::Create()
@@ -96,12 +96,12 @@ void RenderPass::Begin(RenderPass::Context& ctx)
 {
     assert(IsInitialized());
 
-    m_clearValues[0] = vk::ClearColorValue{std::array<float, 4>{
+    m_clearValues[0].color.setFloat32({
         ctx.backgroundColor.m_red / 255.0f,
         ctx.backgroundColor.m_green / 255.0f,
         ctx.backgroundColor.m_blue / 255.0f,
         1.0f,
-    }};
+    });
 
     vk::RenderPassBeginInfo renderPassInfo{
         .renderPass = m_vkRenderPass.get(),

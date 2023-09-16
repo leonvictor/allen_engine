@@ -169,7 +169,7 @@ class Engine
 
         // Object model: Update systems at various points in the frame.
         // TODO: Handle sync points here ?
-        for (uint8_t stage = UpdateStage::FrameStart; stage != UpdateStage::NumStages; stage++)
+        for (uint8_t stage = (uint8_t) UpdateStage::FrameStart; stage != (uint8_t) UpdateStage::NumStages; stage++)
         {
             m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
             m_worldEntity.Update(m_updateContext);

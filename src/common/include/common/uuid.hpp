@@ -1,12 +1,13 @@
 #pragma once
 
+#include "containers/span.hpp"
+
 #include <aln_common_export.h>
 
 #include <stduuids.h>
 
 #include <assert.h>
 #include <iostream>
-#include <span>
 
 namespace aln
 {
@@ -20,8 +21,7 @@ class ALN_COMMON_EXPORT UUID
   public:
     /// @brief Default construct an invalid id
     UUID() { assert(!IsValid()); }
-    UUID(std::array<uint8_t, 16> data) : m_ID(data) {}
-    UUID(std::span<uint8_t, 16> data) : m_ID(data) {}
+    UUID(const Span<uint8_t, 16>& data) : m_ID(data.begin(), data.end()) {}
     UUID(const std::string& str) : m_ID(uuids::uuid::from_string(str).value()) {}
     
     static UUID Generate()

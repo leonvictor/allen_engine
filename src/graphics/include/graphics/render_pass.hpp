@@ -4,6 +4,7 @@
 #include "subpass.hpp"
 
 #include <common/colors.hpp>
+#include <common/containers/array.hpp>
 
 #include <vulkan/vulkan.hpp>
 
@@ -66,7 +67,7 @@ class RenderPass
 
   private:
     Device* m_pDevice;
-    std::array<vk::ClearValue, 2> m_clearValues;
+    Array<vk::ClearValue, 2> m_clearValues;
 
     State m_status = State::Uninitialized;
 

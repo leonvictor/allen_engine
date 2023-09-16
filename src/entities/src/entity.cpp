@@ -1,12 +1,14 @@
 #include "entity.hpp"
 
 #include "entity_system.hpp"
-
 #include "component.hpp"
 #include "spatial_component.hpp"
 
-#include <future>
 #include <reflection/services/type_registry_service.hpp>
+
+#include <EASTL/sort.h>
+
+#include <future>
 
 namespace aln
 {
@@ -246,7 +248,7 @@ void Entity::GenerateSystemUpdateList()
             return A > B;
         };
 
-        std::sort(m_systemUpdateLists[i].begin(), m_systemUpdateLists[i].end(), comparator);
+        eastl::quick_sort(m_systemUpdateLists[i].begin(), m_systemUpdateLists[i].end(), comparator);
     }
 }
 

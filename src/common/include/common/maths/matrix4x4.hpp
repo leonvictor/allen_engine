@@ -1,11 +1,12 @@
 #pragma once
 
+#include "../containers/array.hpp"
+
 #include <aln_common_export.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 
-#include <array>
 
 namespace aln
 {
@@ -16,7 +17,7 @@ class ALN_COMMON_EXPORT Matrix4x4
     friend class Vec3;
     friend class Quaternion;
 
-    using ColumnType = std::array<float, 4>;
+    using ColumnType = Array<float, 4>;
 
   private:
     Matrix4x4(const glm::mat4x4& matrix)
@@ -35,7 +36,7 @@ class ALN_COMMON_EXPORT Matrix4x4
     }
 
   public:
-    std::array<ColumnType, 4> columns;
+    Array<ColumnType, 4> columns;
 
     Matrix4x4() = default;
 
