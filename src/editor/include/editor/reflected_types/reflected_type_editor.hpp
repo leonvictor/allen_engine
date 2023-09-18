@@ -4,8 +4,7 @@
 
 #include <common/event.hpp>
 #include <reflection/reflected_type.hpp>
-
-#include <unordered_map>
+#include <common/containers/hash_map.hpp>
 
 namespace aln
 {
@@ -32,7 +31,7 @@ class ReflectedTypeEditor
     Event<const TypeEditedEventDetails&> m_typeEditionStartedEvent;
     Event<const TypeEditedEventDetails&> m_typeEditionCompletedEvent;
 
-    static std::unordered_map<StringID, IPrimitiveTypeEditor*> PrimitiveTypeEditors;
+    static HashMap<StringID, IPrimitiveTypeEditor*> PrimitiveTypeEditors;
 
     static IPrimitiveTypeEditor* GetOrCreatePrimitiveTypeEditor(const StringID& typeID);
 

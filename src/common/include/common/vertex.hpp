@@ -45,20 +45,3 @@ struct DebugVertex
 };
 
 } // namespace aln
-
-namespace std
-{
-template <>
-struct hash<aln::Vertex>
-{
-    size_t operator()(aln::Vertex const& vertex) const
-    {
-        return (
-                   (hash<aln::Vec3>()(vertex.pos) ^
-                       (hash<aln::Vec3>()(vertex.color) << 1)) >>
-                   1) ^
-               (hash<aln::Vec2>()(vertex.texCoord) << 1) ^
-               (hash<aln::Vec3>()(vertex.normal));
-    }
-};
-} // namespace std

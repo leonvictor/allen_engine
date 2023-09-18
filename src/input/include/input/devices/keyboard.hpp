@@ -5,6 +5,7 @@
 #include "input_device.hpp"
 
 #include <common/containers/array.hpp>
+#include <common/containers/hash_map.hpp>
 
 #include <map>
 
@@ -145,7 +146,7 @@ class Keyboard : public IInputDevice
     };
 
   private:
-    static const std::unordered_map<uint16_t, Key> GlfwKeyMap;
+    static const HashMap<uint16_t, Key> GlfwKeyMap;
 
     /// Map of keyboard keys controls.
     Array<ButtonControl, 131> m_keys;

@@ -1,14 +1,14 @@
 #pragma once
 
+#include <common/containers/hash_map.hpp>
+#include <common/containers/vector.hpp>
 #include <common/memory.hpp>
 #include <common/serialization/binary_archive.hpp>
 #include <common/string_id.hpp>
-#include <common/containers/vector.hpp>
 
 #include <assert.h>
 #include <concepts>
 #include <functional>
-#include <map>
 #include <string>
 
 namespace aln
@@ -45,7 +45,7 @@ static std::string PrettifyName(const char* originalName)
     {
         if (std::isupper(prettyName[i]))
         {
-            // Skip "ID" 
+            // Skip "ID"
             if (!(prettyName[i] == 'D' && prettyName[i - 1] == 'I'))
             {
                 prettyName.insert(i++, " ");
@@ -139,8 +139,8 @@ class TypeInfo
 
   protected:
     // Registry
-    inline static std::map<StringID, const TypeInfo*> LookUpMap;
-    inline static std::map<std::string, Vector<const TypeInfo*>> Scopes;
+    inline static HashMap<StringID, const TypeInfo*> LookUpMap;
+    inline static HashMap<std::string, Vector<const TypeInfo*>, std::hash<std::string>> Scopes;
 
     /// @brief Register a type to the dll-local maps. Polled from each dlls during module initialization
     static void RegisterTypeInfo(const TypeInfo* pTypeInfo, const std::string& scopeName = "")
@@ -177,7 +177,8 @@ class TypeInfo
     virtual bool IsPrimitive() const { return false; }
 
     /// @brief Whether this type is equal to or derived from the specified base type
-    bool IsDerivedFrom(const StringID& baseTypeID) const {
+    bool IsDerivedFrom(const StringID& baseTypeID) const
+    {
         assert(baseTypeID.IsValid());
         if (m_typeID == baseTypeID)
         {
@@ -345,7 +346,7 @@ class PrimitiveTypeInfo : public TypeInfo
                 auto typeName = std::string(#primitiveType) + "<" + typeid(T).name() + ">";                                                      \
                 typeInfo.m_typeID = StringID(typeName.c_str());                                                                                  \
                 typeInfo.m_name = typeName;                                                                                                      \
-                typeInfo.m_prettyName = PrettifyName(typeName.c_str());                                                                                  \
+                typeInfo.m_prettyName = PrettifyName(typeName.c_str());                                                                          \
                 typeInfo.m_alignment = alignof(primitiveType<T>);                                                                                \
                 typeInfo.m_size = sizeof(primitiveType<T>);                                                                                      \
                 typeInfo.m_createType = []() { return aln::New<primitiveType<T>>(); };                                                           \
@@ -364,9 +365,9 @@ class PrimitiveTypeInfo : public TypeInfo
 // Register primitives
 // TODO: Move aln-specific type out
 #include <common/colors.hpp>
-#include <common/transform.hpp>
-#include <common/string_id.hpp>
 #include <common/maths/vec3.hpp>
+#include <common/string_id.hpp>
+#include <common/transform.hpp>
 
 namespace aln
 {

@@ -1,8 +1,11 @@
 #pragma once
 
 #include "asset_type_id.hpp"
+
 #include <common/serialization/hash.hpp>
 #include <reflection/type_info.hpp>
+
+#include <EASTL/functional.h>
 
 namespace aln
 {
@@ -62,3 +65,12 @@ class AssetID
 ALN_REGISTER_PRIMITIVE(AssetID);
 
 } // namespace aln
+
+namespace eastl
+{
+template <>
+struct hash<aln::AssetID>
+{
+    size_t operator()(const aln::AssetID& id) const { return (uint32_t) id; }
+};
+} // namespace eastl

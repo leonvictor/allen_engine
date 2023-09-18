@@ -1,9 +1,9 @@
 #pragma once
 
 #include <common/containers/vector.hpp>
+#include <common/containers/hash_map.hpp>
 
 #include <type_traits>
-#include <unordered_map>
 
 namespace aln
 {
@@ -22,7 +22,7 @@ class HashVector
   private:
     Hash hasher;
     Vector<ValueType> m_vector;
-    std::unordered_map<KeyType, SizeType> m_lookupMap;
+    HashMap<KeyType, SizeType> m_lookupMap;
 
   public:
     size_t Size() const { return m_vector.size(); }

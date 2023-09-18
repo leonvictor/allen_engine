@@ -3,6 +3,7 @@
 #include <aln_common_export.h>
 
 #include "serialization/hash.hpp"
+#include "containers/hash_map.hpp"
 
 namespace aln
 {
@@ -32,11 +33,11 @@ static_assert(std::is_trivial_v<StringID>);
 
 } // namespace aln
 
-namespace std
+namespace eastl
 {
 template <>
 struct hash<aln::StringID>
 {
     size_t operator()(const aln::StringID& id) const { return id.GetHash(); }
 };
-} // namespace std
+} // namespace eastl

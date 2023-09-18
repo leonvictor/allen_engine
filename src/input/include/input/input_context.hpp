@@ -3,7 +3,8 @@
 #include "control_state_event.hpp"
 #include "input_action.hpp"
 
-#include <functional>
+#include <common/containers/hash_map.hpp>
+
 #include <map>
 
 namespace aln
@@ -18,7 +19,7 @@ class InputContext
 {
   private:
     /// Map of actions <ControlID, Action>
-    std::map<int, InputAction> m_actions;
+    HashMap<int, InputAction> m_actions;
     bool m_enabled = false;
 
   public:

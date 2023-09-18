@@ -6,9 +6,9 @@
 #include "update_context.hpp"
 
 #include <common/containers/vector.hpp>
+#include <common/containers/hash_map.hpp>
 
 #include <mutex>
-#include <unordered_map>
 
 namespace aln
 {
@@ -27,7 +27,7 @@ class EntityMap
 
     /// @todo: Entities live on the heap. Profile !
     Vector<Entity*> m_entities;
-    std::unordered_map<UUID, Entity*> m_entityLookupMap;
+    HashMap<UUID, Entity*> m_entityLookupMap;
 
     Vector<Entity*> m_entitiesToAdd;
     Vector<Entity*> m_entitiesToRemove;

@@ -9,7 +9,7 @@
 
 namespace aln
 {
-std::unordered_map<StringID, IPrimitiveTypeEditor*> ReflectedTypeEditor::PrimitiveTypeEditors;
+HashMap<StringID, IPrimitiveTypeEditor*> ReflectedTypeEditor::PrimitiveTypeEditors;
 
 IPrimitiveTypeEditor* ReflectedTypeEditor::GetOrCreatePrimitiveTypeEditor(const StringID& typeID)
 {

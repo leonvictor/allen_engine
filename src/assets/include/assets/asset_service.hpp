@@ -1,20 +1,18 @@
 #pragma once
 
-#include <algorithm>
-#include <concepts>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <typeindex>
-#include <typeinfo>
 
-#include <common/threading/task_service.hpp>
+
 
 #include "asset.hpp"
 #include "handle.hpp"
 #include "loader.hpp"
 #include "record.hpp"
 #include "request.hpp"
+
+#include <common/threading/task_service.hpp>
+#include <common/containers/hash_map.hpp>
+
+#include <mutex>
 
 namespace aln
 {
@@ -33,8 +31,8 @@ class AssetService : public IService
     friend struct AssetRequest;
 
   private:
-    std::map<AssetTypeID, std::unique_ptr<IAssetLoader>> m_loaders;
-    std::map<AssetID, AssetRecord> m_assetCache;
+    HashMap<AssetTypeID, std::unique_ptr<IAssetLoader>> m_loaders;
+    HashMap<AssetID, AssetRecord> m_assetCache;
 
     std::recursive_mutex m_mutex;
     Vector<AssetRequest> m_pendingRequests;

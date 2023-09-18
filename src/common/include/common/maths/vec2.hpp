@@ -80,12 +80,3 @@ inline Vec2 operator/(float t, const Vec2& a)
 };
 
 } // namespace aln
-
-namespace std
-{
-template <>
-struct hash<aln::Vec2>
-{
-    size_t operator()(const aln::Vec2& vec) const { return hash<glm::vec2>()(glm::vec2(vec.x, vec.y)); }
-};
-} // namespace std

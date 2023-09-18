@@ -2,11 +2,10 @@
 
 #include "../type_info.hpp"
 
+#include <common/containers/hash_map.hpp>
+#include <common/containers/vector.hpp>
 #include <common/services/service.hpp>
 #include <common/string_id.hpp>
-#include <common/containers/vector.hpp>
-
-#include <map>
 #include <string>
 
 namespace aln
@@ -16,8 +15,8 @@ class TypeRegistryService : public IService
 {
     friend class reflect::TypeInfo;
 
-    std::map<StringID, const reflect::TypeInfo*> m_typeInfos;
-    std::map<std::string, Vector<const reflect::TypeInfo*>> m_scopes;
+    HashMap<StringID, const reflect::TypeInfo*> m_typeInfos;
+    HashMap<std::string, Vector<const reflect::TypeInfo*>, std::hash<std::string>> m_scopes;
 
   public:
     /// @brief Update internal maps with types registered in the current DLL.
@@ -48,7 +47,7 @@ class TypeRegistryService : public IService
         return it->second;
     }
 
-    const std::map<StringID, const reflect::TypeInfo*>& GetAllRegisteredTypes() const
+    const HashMap<StringID, const reflect::TypeInfo*>& GetAllRegisteredTypes() const
     {
         return m_typeInfos;
     }

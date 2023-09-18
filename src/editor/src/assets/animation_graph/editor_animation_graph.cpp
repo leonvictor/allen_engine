@@ -7,6 +7,7 @@
 
 #include <anim/graph/graph_definition.hpp>
 #include <assets/asset_archive_header.hpp>
+#include <common/containers/hash_map.hpp>
 #include <common/serialization/binary_archive.hpp>
 
 namespace aln
@@ -31,7 +32,7 @@ bool EditorAnimationGraph::CompileControlParameters(AnimationGraphCompilationCon
             context.LogError("An error occured while compiling one of the graph's parameter nodes.", pParameterNode);
             return false;
         }
-        
+
         graphDefinition.m_controlParameterNames.push_back(pParameterNode->GetName());
     }
     return true;
@@ -43,7 +44,6 @@ NodeIndex EditorAnimationGraph::CompileDefinition(AnimationGraphCompilationConte
     context.SetCurrentGraph(this);
 
     // ---- Compile graph definition
-    
 
     auto outputNodes = GetAllNodesOfType<PoseEditorNode>(NodeSearchScope::Local);
     // TODO: Identify the graph by a user-readable name
@@ -72,7 +72,7 @@ bool EditorAnimationGraph::CompileDataset(AnimationGraphCompilationContext& cont
 {
     const auto animationClipNodes = GetAllNodesOfType<AnimationClipEditorNode>(NodeSearchScope::Recursive);
 
-    std::map<UUID, const AnimationClipEditorNode*> animationClipNodeLookupMap;
+    HashMap<UUID, const AnimationClipEditorNode*> animationClipNodeLookupMap;
     for (const auto pNode : animationClipNodes)
     {
         animationClipNodeLookupMap[pNode->GetID()] = pNode;

@@ -8,7 +8,7 @@ namespace aln
 {
 
 // 1:1 Map from glfw mouse button input codes to ours
-const std::unordered_map<uint8_t, Mouse::Button> Mouse::GlfwButtonMap = {
+const HashMap<uint8_t, Mouse::Button> Mouse::GlfwButtonMap = {
     {GLFW_MOUSE_BUTTON_LEFT, Mouse::Button::Left},
     {GLFW_MOUSE_BUTTON_RIGHT, Mouse::Button::Right},
     {GLFW_MOUSE_BUTTON_MIDDLE, Mouse::Button::Middle},

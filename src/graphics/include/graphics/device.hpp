@@ -5,12 +5,13 @@
 #include "instance.hpp"
 #include "queue.hpp"
 
+#include <common/containers/hash_map.hpp>
+
 #include <assert.h>
 #include <optional>
 #include <set>
 #include <typeindex>
 #include <typeinfo>
-#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
 namespace aln::vkg
@@ -25,7 +26,7 @@ struct SwapchainSupportDetails
     SwapchainSupportDetails(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface)
     {
         capabilities = device.getSurfaceCapabilitiesKHR(surface);
-        
+
         uint32_t formatsCount;
         device.getSurfaceFormatsKHR(surface, &formatsCount, nullptr);
         formats.resize(formatsCount);
@@ -57,7 +58,7 @@ class Device
 
     vk::SampleCountFlagBits m_msaaSamples = vk::SampleCountFlagBits::e1;
 
-    std::unordered_map<std::type_index, vk::UniqueDescriptorSetLayout> m_descriptorSetLayoutsCache;
+    HashMap<std::type_index, vk::UniqueDescriptorSetLayout, std::hash<std::type_index>> m_descriptorSetLayoutsCache;
     DescriptorAllocator m_descriptorAllocator;
 
     struct

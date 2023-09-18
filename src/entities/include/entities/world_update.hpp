@@ -1,16 +1,16 @@
 #pragma once
 
 #include <common/update_stages.hpp>
+#include <common/containers/hash_map.hpp>
 
 #include <assert.h>
-#include <unordered_map>
 
 namespace aln
 {
 /// @brief Represents the stages during which a system should be updated, as well as the system's priority in each stage.
 struct UpdatePriorities
 {
-    std::unordered_map<UpdateStage, uint8_t> m_updatePriorityMap;
+    HashMap<UpdateStage, uint8_t> m_updatePriorityMap;
 
     /// @brief Whether the provided stage is enabled.
     bool IsUpdateStageEnabled(const UpdateStage& stage) const

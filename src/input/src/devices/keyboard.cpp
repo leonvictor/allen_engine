@@ -11,7 +11,7 @@ namespace aln
 {
 
 // 1:1 Map from glfw key codes to ours
-const std::unordered_map<uint16_t, Keyboard::Key> Keyboard::GlfwKeyMap = {
+const HashMap<uint16_t, Keyboard::Key> Keyboard::GlfwKeyMap = {
     {GLFW_KEY_UNKNOWN, Key::Unknown},
     {GLFW_KEY_SPACE, Key::Space},
     {GLFW_KEY_APOSTROPHE, Key::Apostrophe}, /* ' */

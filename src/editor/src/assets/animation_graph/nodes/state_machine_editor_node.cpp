@@ -28,8 +28,8 @@ NodeIndex StateMachineEditorNode::Compile(AnimationGraphCompilationContext& cont
     {
         auto pStateMachine = static_cast<EditorAnimationStateMachine*>(GetChildGraph());
 
-        std::unordered_map<UUID, NodeIndex> stateIDToCompiledNodeIndexMapping; // Indices of the state node in the compiled node array
-        std::unordered_map<UUID, uint32_t> stateIDToStateSettingsIndexMapping; // Indices of the state's settings in the state machine's state settings array
+        HashMap<UUID, NodeIndex> stateIDToCompiledNodeIndexMapping; // Indices of the state node in the compiled node array
+        HashMap<UUID, uint32_t> stateIDToStateSettingsIndexMapping; // Indices of the state's settings in the state machine's state settings array
 
         // Compile states
         auto stateNodes = pStateMachine->GetAllNodesOfType<StateEditorNode>();

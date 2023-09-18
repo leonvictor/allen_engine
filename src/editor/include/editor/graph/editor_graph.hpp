@@ -3,15 +3,13 @@
 #include "asset_editor_workspace.hpp"
 #include "graph/link.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/hash_vector.hpp>
 #include <reflection/reflected_type.hpp>
 #include <reflection/services/type_registry_service.hpp>
-#include <common/containers/vector.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
-
-#include <map>
 
 namespace aln
 {
@@ -41,8 +39,8 @@ class EditorGraph : public reflect::IReflected
     Vector<EditorGraphNode*> m_graphNodes;
     IDVector<Link> m_links;
 
-    std::map<UUID, const EditorGraphNode*> m_nodeLookupMap;
-    std::map<UUID, const Pin*> m_pinLookupMap;
+    HashMap<UUID, const EditorGraphNode*> m_nodeLookupMap;
+    HashMap<UUID, const Pin*> m_pinLookupMap;
 
     // TODO: Dirty state might be shared behavior with other windows
     bool m_dirty = false;

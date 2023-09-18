@@ -71,12 +71,3 @@ class ALN_COMMON_EXPORT Vec4
     static const Vec4 Ones;
 };
 } // namespace aln
-
-namespace std
-{
-template <>
-struct hash<aln::Vec4>
-{
-    size_t operator()(const aln::Vec4& vec4) const { return hash<glm::vec4>()(glm::vec4(vec4.x, vec4.y, vec4.z, vec4.w)); }
-};
-} // namespace std

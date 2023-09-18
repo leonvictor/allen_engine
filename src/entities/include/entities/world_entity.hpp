@@ -3,13 +3,11 @@
 #include "entity_map.hpp"
 #include "world_system.hpp"
 
-#include <functional>
-#include <map>
-#include <typeindex>
-#include <typeinfo>
-
 #include <common/services/service_provider.hpp>
 #include <common/uuid.hpp>
+
+#include <typeindex>
+#include <typeinfo>
 
 namespace aln
 {
@@ -25,7 +23,7 @@ class WorldEntity
 
   private:
     EntityMap m_entityMap;
-    std::map<std::type_index, std::unique_ptr<IWorldSystem>> m_systems;
+    HashMap<std::type_index, IWorldSystem*, std::hash<std::type_index>> m_systems;
 
     TaskService* m_pTaskService = nullptr;
 
@@ -67,9 +65,10 @@ class WorldEntity
     void CreateSystem(Args... args)
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
-        std::unique_ptr<T> system = std::make_unique<T>(args...);
-        system->InitializeSystem();
-        m_systems.emplace(std::make_pair(std::type_index(typeid(T)), std::move(system)));
+        // TODO: Prevent creating multiple systems of the same type
+        auto pSystem = aln::New<T>(args...);
+        pSystem->InitializeSystem();
+        m_systems.emplace(std::type_index(typeid(T)), pSystem);
     }
 
     template <typename T>
@@ -80,19 +79,21 @@ class WorldEntity
         auto& iter = m_systems.find(std::type_index(typeid(T)));
         if (iter != m_systems.end())
         {
-            iter->second->ShutdownSystem();
+            auto pSystem = iter->second;
+            pSystem->ShutdownSystem();
+            aln::Delete(pSystem);
             m_systems.erase(iter->first);
         }
     }
 
-    template<typename T>
+    template <typename T>
     T* GetSystem()
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
-        
+
         auto iter = m_systems.find(std::type_index(typeid(T)));
         assert(iter != m_systems.end());
-        return static_cast<T*>(iter->second.get());
+        return static_cast<T*>(iter->second);
     }
 
     const Vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }

@@ -7,6 +7,7 @@
 
 #include <Tracy.hpp>
 #include <assert.h>
+
 #include <execution>
 #include <functional>
 
@@ -42,9 +43,10 @@ WorldEntity::~WorldEntity()
 
 void WorldEntity::Cleanup()
 {
-    for (auto& [id, system] : m_systems)
+    for (auto& [id, pSystem] : m_systems)
     {
-        system->Shutdown();
+        pSystem->Shutdown();
+        aln::Delete(pSystem);
     }
     m_systems.clear();
     m_entityMap.Clear(m_loadingContext);

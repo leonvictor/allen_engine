@@ -1,16 +1,18 @@
 #pragma once
 
-#include <map>
+#include "service.hpp"
+
+#include <common/containers/hash_map.hpp>
+
 #include <typeindex>
 
-#include "service.hpp"
 
 namespace aln
 {
 class ServiceProvider
 {
   private:
-    std::map<std::type_index, IService*> m_services;
+    HashMap<std::type_index, IService*, std::hash<std::type_index>> m_services;
 
   public:
     ServiceProvider() {}

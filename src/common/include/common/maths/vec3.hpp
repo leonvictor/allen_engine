@@ -84,12 +84,3 @@ class ALN_COMMON_EXPORT Vec3
     static const Vec3 WorldBackward;
 };
 } // namespace aln
-
-namespace std
-{
-template <>
-struct hash<aln::Vec3>
-{
-    size_t operator()(const aln::Vec3& vec3) const { return hash<glm::vec3>()(glm::vec3(vec3.x, vec3.y, vec3.z)); }
-};
-} // namespace std

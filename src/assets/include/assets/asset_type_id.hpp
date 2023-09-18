@@ -1,5 +1,7 @@
 #pragma once
 
+#include <EASTL/functional.h>
+
 #include <assert.h>
 #include <string>
 
@@ -52,3 +54,12 @@ class AssetTypeID
 // but I might be missing something
 static_assert(std::is_trivial<AssetTypeID>());
 } // namespace aln
+
+namespace eastl
+{
+template <>
+struct hash<aln::AssetTypeID>
+{
+    size_t operator()(const aln::AssetTypeID& id) const { return (uint32_t) id; }
+};
+} // namespace eastl

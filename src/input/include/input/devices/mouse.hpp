@@ -6,6 +6,7 @@
 
 #include <common/maths/vec2.hpp>
 #include <common/containers/array.hpp>
+#include <common/containers/hash_map.hpp>
 
 #include <map>
 
@@ -31,7 +32,7 @@ class Mouse : IInputDevice
     };
 
   private:
-    static const std::unordered_map<uint8_t, Button> GlfwButtonMap;
+    static const HashMap<uint8_t, Button> GlfwButtonMap;
 
     // Position in screen space.
     Vec2 m_position;

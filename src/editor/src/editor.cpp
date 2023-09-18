@@ -375,9 +375,11 @@ void Editor::RemoveAssetWindow(const AssetID& id)
 {
     assert(id.IsValid());
 
-    auto pWindow = m_assetWindows.extract(id).mapped();
-    pWindow->Shutdown();
-    aln::Delete(pWindow);
+    auto it = m_assetWindows.find(id);
+    assert(it != m_assetWindows.end());
+    it->second->Shutdown();
+    aln::Delete(it->second);
+    m_assetWindows.erase(it);
 }
 
 void Editor::ResolveAssetWindowRequests()

@@ -13,7 +13,7 @@ namespace aln
 {
 class ALN_COMMON_EXPORT UUID
 {
-    friend struct std::hash<UUID>;
+    friend struct eastl::hash<UUID>;
 
   private:
     uuids::uuid m_ID;
@@ -56,11 +56,11 @@ class ALN_COMMON_EXPORT UUID
 };
 } // namespace aln
 
-namespace std
+namespace eastl
 {
 template <>
 struct hash<aln::UUID>
 {
     size_t operator()(const aln::UUID& id) const { return std::hash<uuids::uuid>{}(id.m_ID); }
 };
-} // namespace std
+} // namespace eastl
