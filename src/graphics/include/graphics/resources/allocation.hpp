@@ -106,11 +106,13 @@ class Allocation
     ///
     void Flush(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
     {
-        vk::MappedMemoryRange mappedRange;
-        mappedRange.memory = m_memory.get();
-        mappedRange.offset = offset;
-        mappedRange.size = size;
-        return m_pDevice->GetVkDevice().flushMappedMemoryRanges(mappedRange);
+        vk::MappedMemoryRange mappedRange = {
+            .memory = m_memory.get(),
+            .offset = offset,
+            .size = size,
+        };
+
+        m_pDevice->GetVkDevice().flushMappedMemoryRanges(mappedRange);
     }
 
     /// @brief Invalidate a memory range of the buffer to make it visible to the host
@@ -124,11 +126,13 @@ class Allocation
     ///
     void Invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
     {
-        vk::MappedMemoryRange mappedRange;
-        mappedRange.memory = m_memory.get();
-        mappedRange.offset = offset;
-        mappedRange.size = size;
-        return m_pDevice->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
+        vk::MappedMemoryRange mappedRange = {
+            .memory = m_memory.get(),
+            .offset = offset,
+            .size = size,
+        };
+
+        m_pDevice->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
     }
 };
 } // namespace aln::vkg::resources

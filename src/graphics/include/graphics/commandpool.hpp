@@ -22,12 +22,14 @@ class CommandPool
     /// @brief Execute some commands in a single-use command buffer.
     inline void Execute(const std::function<void(vk::CommandBuffer cb)>& func)
     {
-        vk::CommandBufferAllocateInfo cbai;
-        cbai.commandPool = m_vkCommandPool.get();
-        cbai.level = vk::CommandBufferLevel::ePrimary;
-        cbai.commandBufferCount = 1;
+        vk::CommandBufferAllocateInfo cbai = {
+            .commandPool = m_vkCommandPool.get(),
+            .level = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1,
+        };
 
-        auto cbs = m_pVkDevice->allocateCommandBuffers(cbai);
+        auto result = m_pVkDevice->allocateCommandBuffers(cbai);
+        auto& cbs = result.value;
 
         cbs[0].begin(vk::CommandBufferBeginInfo{});
         func(cbs[0]);
@@ -41,7 +43,7 @@ class CommandPool
     std::vector<vk::CommandBuffer> BeginSingleTimeCommands();
     void EndSingleTimeCommands(std::vector<vk::CommandBuffer> commandBuffers);
 
-    std::vector<vk::CommandBuffer> AllocateCommandBuffers(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
-    std::vector<vk::UniqueCommandBuffer> AllocateCommandBuffersUnique(int count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
+    std::vector<vk::CommandBuffer> AllocateCommandBuffers(uint32_t count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
+    std::vector<vk::UniqueCommandBuffer> AllocateCommandBuffersUnique(uint32_t count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
 };
 } // namespace aln::vkg

@@ -137,10 +137,9 @@ target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 # Vulkan
 add_compile_definitions(
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-# TODO: Enable those
-#    VULKAN_HPP_NO_EXCEPTIONS
-#    VULKAN_HPP_NO_NODISCARD_WARNINGS
-#    VULKAN_HPP_NO_SETTERS # ?
+    VULKAN_HPP_NO_EXCEPTIONS
+    VULKAN_HPP_NO_NODISCARD_WARNINGS
+    VULKAN_HPP_NO_SETTERS
 )
 find_package(Vulkan REQUIRED)
 target_include_directories(main PUBLIC ${Vulkan_INCLUDE_DIRS})
@@ -300,5 +299,4 @@ target_compile_options(main PRIVATE
     /wd4505 # unreferenced function with internal linkage has been removed
     /wd4267 # 'return': narrowing conversion, possible loss of data
     /wd4100 # unreferenced formal parameter
-    /wd4834 # discarding return value of function with 'nodiscard' attribute TODO: Vulkan might have an option to disable the attribute themselves
 )

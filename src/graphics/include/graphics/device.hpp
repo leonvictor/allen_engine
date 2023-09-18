@@ -168,7 +168,8 @@ class Device
             info.bindingCount = static_cast<uint32_t>(bindings.size());
             info.pBindings = bindings.data();
 
-            auto layout = m_logical->createDescriptorSetLayoutUnique(info);
+            auto result = m_logical->createDescriptorSetLayoutUnique(info);
+            auto& layout = result.value;
             SetDebugUtilsObjectName(layout.get(), typeid(T).name());
 
             iter = m_descriptorSetLayoutsCache.emplace(type_index, std::move(layout)).first;

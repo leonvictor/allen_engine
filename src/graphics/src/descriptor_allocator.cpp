@@ -58,42 +58,36 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
     allocInfo.pSetLayouts = pLayout;
 
     bool needReallocate = false;
-
-    try
+    auto result = m_pDevice->allocateDescriptorSetsUnique(allocInfo);
+    if (result.result == vk::Result::eSuccess)
     {
-        auto sets = m_pDevice->allocateDescriptorSetsUnique(allocInfo);
-        return std::move(sets[0]);
+        return std::move(result.value[0]);
     }
-    catch (const vk::FragmentedPoolError& e)
+    else if (result.result == vk::Result::eErrorFragmentedPool || result.result == vk::Result::eErrorOutOfPoolMemory)
     {
         needReallocate = true;
     }
-    catch (const vk::OutOfPoolMemoryError& e)
+    else
     {
-        needReallocate = true;
-    }
-    catch (const std::exception& e)
-    {
-        //unrecoverable error
-        throw std::runtime_error("Unrecoverable error during descriptor set allocation.");
+        assert(false); // Unrecoverable error during descriptor set allocation
     }
 
     if (needReallocate)
     {
-        //allocate a new pool and retry
+        // Allocate a new pool and retry
         auto pool = GrabPool();
         m_usedPools.push_back(std::move(pool));
         m_currentPool = &m_usedPools.back();
 
-        try
+        result = m_pDevice->allocateDescriptorSetsUnique(allocInfo);
+        if (result.result == vk::Result::eSuccess)
         {
-            auto sets = m_pDevice->allocateDescriptorSetsUnique(allocInfo);
-            return std::move(sets[0]);
+            return std::move(result.value[0]);
         }
-        catch (std::exception const& e)
+        else
         {
-            //if it still fails then we have big issues
-            throw std::runtime_error("Unrecoverable error during descriptor set allocation.");
+            // if it still fails then we have big issues
+            assert(false); // Unrecoverable error during descriptor set allocation
         }
     }
 
@@ -108,7 +102,7 @@ void DescriptorAllocator::Init(vk::Device* newDevice)
 
 void DescriptorAllocator::Cleanup()
 {
-    //delete every pool held
+    // delete every pool held
     for (auto& p : m_freePools)
     {
         p.reset();

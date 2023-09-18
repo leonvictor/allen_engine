@@ -36,7 +36,7 @@ SwapchainSupportDetails Device::GetSwapchainSupport(const vk::SurfaceKHR& surfac
 bool Device::CheckDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice, Vector<const char*> requiredExtensions)
 {
     // Populate available extensions list
-    auto availableExtensions = physicalDevice.enumerateDeviceExtensionProperties();
+    auto availableExtensions = physicalDevice.enumerateDeviceExtensionProperties().value;
 
     // Compare against required ones
     std::set<std::string> requiredExtentionsSet(requiredExtensions.begin(), requiredExtensions.end());

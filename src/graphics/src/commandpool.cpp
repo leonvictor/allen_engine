@@ -27,8 +27,9 @@ std::vector<vk::CommandBuffer> CommandPool::BeginSingleTimeCommands()
     auto commandBuffers = AllocateCommandBuffers(1);
 
     // Immediately start recording
-    vk::CommandBufferBeginInfo beginInfo;
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    vk::CommandBufferBeginInfo beginInfo = {
+        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+    };
 
     for (vk::CommandBuffer cb : commandBuffers)
     {
@@ -54,23 +55,26 @@ void CommandPool::EndSingleTimeCommands(std::vector<vk::CommandBuffer> commandBu
     m_pVkDevice->freeCommandBuffers(m_vkCommandPool.get(), commandBuffers);
 }
 
-std::vector<vk::CommandBuffer> CommandPool::AllocateCommandBuffers(int count, vk::CommandBufferLevel level) const
+std::vector<vk::CommandBuffer> CommandPool::AllocateCommandBuffers(uint32_t count, vk::CommandBufferLevel level) const
 {
-    vk::CommandBufferAllocateInfo allocInfo;
-    allocInfo.commandPool = m_vkCommandPool.get();
-    allocInfo.commandBufferCount = count;
-    allocInfo.level = level; // Or secondary
+    vk::CommandBufferAllocateInfo allocInfo = {
+        .commandPool = m_vkCommandPool.get(),
+        .level = level,
+        .commandBufferCount = count,
+    };
 
     return m_pVkDevice->allocateCommandBuffers(allocInfo);
 }
 
-std::vector<vk::UniqueCommandBuffer> CommandPool::AllocateCommandBuffersUnique(int count, vk::CommandBufferLevel level) const
+std::vector<vk::UniqueCommandBuffer> CommandPool::AllocateCommandBuffersUnique(uint32_t count, vk::CommandBufferLevel level) const
 {
-    vk::CommandBufferAllocateInfo allocInfo;
-    allocInfo.commandPool = m_vkCommandPool.get();
-    allocInfo.commandBufferCount = count;
-    allocInfo.level = level; // Or secondary
+    vk::CommandBufferAllocateInfo allocInfo = {
+        .commandPool = m_vkCommandPool.get(),
+        .level = level, // Or secondary
+        .commandBufferCount = count,
+    };
 
-    return m_pVkDevice->allocateCommandBuffersUnique(allocInfo);
+    auto result = m_pVkDevice->allocateCommandBuffersUnique(allocInfo);
+    return std::move(result.value);
 }
 }; // namespace aln::vkg

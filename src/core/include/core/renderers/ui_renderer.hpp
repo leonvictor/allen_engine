@@ -18,7 +18,8 @@ class UIRenderer : public vkg::render::IRenderer
     {
         m_targetImages.clear();
         // Create the swapchain images
-        auto images = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_pSwapchain->GetVkSwapchain());
+        auto result = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_pSwapchain->GetVkSwapchain());
+        auto& images = result.value;
 
         for (size_t i = 0; i < images.size(); i++)
         {

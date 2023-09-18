@@ -65,27 +65,18 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 void Swapchain::Present(vk::Semaphore& waitSemaphore)
 {
     // TODO: Pull out
-    vk::PresentInfoKHR presentInfo;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &waitSemaphore;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &m_vkSwapchain.get();
-    presentInfo.pImageIndices = &m_activeImageIndex;
-    presentInfo.pResults = nullptr; // For checking every individual swap chain results. We only have one so we don't need it
+    vk::PresentInfoKHR presentInfo = {
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &waitSemaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &m_vkSwapchain.get(),
+        .pImageIndices = &m_activeImageIndex,
+        .pResults = nullptr, // For checking every individual swap chain results. We only have one so we don't need i,
+    };
 
     // TODO: Register swapchain renderers,
     // and add a callback to resize them
-    // TODO: Rework cuz it's ugly (see https://github.com/liblava/liblava/blob/3bce924a014529a9d18cec9a406d3eab6850e159/liblava/frame/renderer.cpp)
-    vk::Result result;
-    try
-    {
-        result = m_pDevice->GetGraphicsQueue().GetVkQueue().presentKHR(presentInfo);
-    }
-    catch (vk::OutOfDateKHRError const& e)
-    {
-        result = vk::Result::eErrorOutOfDateKHR;
-    }
-
+    auto result = m_pDevice->GetGraphicsQueue().GetVkQueue().presentKHR(presentInfo);
     // TODO: Shoud this happen in swapchain directly ?
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_resizeRequired)
     {
@@ -93,7 +84,7 @@ void Swapchain::Present(vk::Semaphore& waitSemaphore)
     }
     else if (result != vk::Result::eSuccess)
     {
-        throw std::runtime_error("Failed to present swap chain image.");
+        assert(false); // Failed to present swap chain image.
     }
 }
 
@@ -123,7 +114,7 @@ vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain
         imageCount = swapchainSupport.capabilities.maxImageCount;
     }
 
-    vk::SwapchainCreateInfoKHR createInfo{
+    vk::SwapchainCreateInfoKHR createInfo = {
         .surface = *m_pSurface,
         .minImageCount = imageCount,
         .imageFormat = m_surfaceFormat.format,
