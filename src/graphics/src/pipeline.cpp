@@ -3,8 +3,6 @@
 #include <fstream>
 #include <iostream>
 
-using namespace aln::utils;
-
 namespace aln::vkg
 {
 

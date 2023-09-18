@@ -249,7 +249,6 @@ target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})
 # Include submodules
 add_subdirectory(src/common)
 add_subdirectory(src/reflection)
-add_subdirectory(src/utils)
 add_subdirectory(src/core)
 add_subdirectory(src/entities)
 add_subdirectory(src/graphics)
@@ -270,7 +269,6 @@ target_link_libraries(main PUBLIC
     reflection 
     glfw 
     imm32 
-    utils 
     input 
     graphics 
     entities 

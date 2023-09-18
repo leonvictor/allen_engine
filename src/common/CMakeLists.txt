@@ -34,7 +34,7 @@ target_include_directories(${LIB_NAME}
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC 
-    glm utils enkiTS lz4_static xxHash::xxhash
+    glm enkiTS lz4_static xxHash::xxhash
 )
 
 generate_export_header(${LIB_NAME}
