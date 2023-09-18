@@ -3,7 +3,7 @@ include(GenerateExportHeader)
 
 set(LIB_NAME common)
 
-add_library(${LIB_NAME} SHARED
+add_library(${LIB_NAME}
     src/transform.cpp
     src/colors.cpp
     src/serialization/binary_archive.cpp
@@ -42,10 +42,10 @@ generate_export_header(${LIB_NAME}
 )
 
 # ---- Dependencies
+set(BUILD_SHARED_LIBS_GLOBAL_VALUE ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)
 
 # eastl
-# Note : We use kind of a hack where we do not use the targets populated by FetchContent. This is due to a circular dependency between
-# eastl and the common lib. We use a custom eastl configuration in (external/EASTL/aln_eastl.cpp) which depends on memory.hpp
 FetchContent_Declare(
     eastl
     GIT_REPOSITORY https://github.com/electronicarts/EASTL
@@ -55,26 +55,16 @@ FetchContent_Declare(
     GIT_PROGRESS on
 )
 FetchContent_MakeAvailable(eastl)
-get_target_property(eastl_SOURCE_DIR EASTL SOURCE_DIR)
 
-# To fix that we just manually add eastl sources to common
-target_sources(${LIB_NAME} PRIVATE
-    external/EASTL/aln_eastl.cpp
-    ${eastl_SOURCE_DIR}
-)
-
-target_include_directories(${LIB_NAME} PUBLIC
-    external
-    ${eastl_SOURCE_DIR}/include
-    ${eastl_SOURCE_DIR}/test/packages/EABase/include/Common
-    ${eastl_SOURCE_DIR}/test/packages/EAAssert/include # TODO: Configure so that eastl uses our own asserts
-)
-
-target_compile_definitions(${LIB_NAME} PUBLIC 
- #   EASTL_USER_CONFIG_HEADER="EASTL/aln_eastl.hpp"
+target_compile_definitions(EASTL PUBLIC 
     EASTL_USER_DEFINED_ALLOCATOR
     EASTL_ASSERT_ENABLED=0
 )
+
+target_sources(${LIB_NAME} PRIVATE external/EASTL/aln_eastl.cpp) # Custom allocator
+target_link_libraries(${LIB_NAME} PUBLIC EASTL)
+
+set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_GLOBAL_VALUE})
 
 # ---- Tests
 
