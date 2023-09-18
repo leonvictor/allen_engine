@@ -43,6 +43,8 @@ class ALN_COMMON_EXPORT Quaternion
     inline bool IsNearEqual(const Quaternion& other, float eps = Maths::Epsilon) const { return glm::all(glm::epsilonEqual(AsGLM(), other.AsGLM(), eps)); }
 
     Quaternion operator*(const Quaternion& other) const { return Quaternion(AsGLM() * other.AsGLM()); }
+    bool operator==(const Quaternion& other) const { return w == other.w && x == other.x && y == other.y && z == other.z; }
+    bool operator!=(const Quaternion& other) const { return (*this == other); }
 
     static const Quaternion Identity;
 };
