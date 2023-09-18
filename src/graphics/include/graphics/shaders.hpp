@@ -1,12 +1,16 @@
 #pragma once
 
-#include "device.hpp"
+#include <filesystem>
 
-#include <shaderc/shaderc.hpp>
-#include <utils/files.hpp>
+#include <vulkan/vulkan.hpp>
 
-namespace aln::vkg::shaders
+namespace aln::vkg
 {
+class Device;
+
+namespace shaders
+{
+
 struct ShaderInfo
 {
     std::string entryPoint;
@@ -15,17 +19,16 @@ struct ShaderInfo
 
     vk::PipelineShaderStageCreateInfo GetCreateInfo()
     {
-        vk::PipelineShaderStageCreateInfo createInfo;
-        createInfo.stage = stage;
-        createInfo.module = module;
-        createInfo.pName = entryPoint.c_str();
+        vk::PipelineShaderStageCreateInfo createInfo = {
+            .stage = stage,
+            .module = module,
+            .pName = entryPoint.c_str(),
+        };
         return createInfo;
     }
 };
 
-vk::ShaderModule CreateShaderModule(Device* device, const std::string& filename);
-ShaderInfo LoadShader(Device* device, const std::string& filename, const vk::ShaderStageFlagBits stage, std::string entryPoint);
-Vector<uint32_t> CompileGlslToSpvBinary(const std::string& source_name,
-    shaderc_shader_kind kind,
-    bool optimize = false);
-} // namespace aln::vkg::shaders
+ShaderInfo LoadShader(Device* device, const std::filesystem::path& shaderFilePath, const vk::ShaderStageFlagBits stage, std::string entryPoint);
+
+} // namespace shaders
+} // namespace aln::vkg
