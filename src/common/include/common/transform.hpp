@@ -43,7 +43,7 @@ class ALN_COMMON_EXPORT Transform
     inline const Vec3& GetTranslation() const { return m_translation; }
     inline const Quaternion& GetRotation() const { return m_rotation; }
     inline const Vec3& GetScale() const { return m_scale; }
-    inline const Vec3& GetRotationEuler() const { return m_rotation.AsEulerAngles().ToDegrees(); }
+    inline const Vec3 GetRotationEuler() const { return m_rotation.AsEulerAngles().ToDegrees(); }
 
     inline void SetTranslation(const Vec3& translation) { m_translation = translation; }
     inline void AddTranslation(const Vec3& translation) { m_translation = translation + m_translation; }

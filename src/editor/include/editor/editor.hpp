@@ -113,7 +113,7 @@ class Editor
     void Shutdown();
     void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);
 
-    const Vec2& GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
+    const Vec2 GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
 
     void CreateAssetWindow(const AssetID& id, bool readAssetFile);
     void RemoveAssetWindow(const AssetID& id);

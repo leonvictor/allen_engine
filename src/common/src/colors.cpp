@@ -45,6 +45,8 @@ RGBColor HSVColor::ToRGB() const
     case 5:
         return RGBColor::FromUnitRGB({m_value, p, q});
     }
+    assert(false);
+    return RGBColor::Black;
 }
 
 HSVColor RGBColor::ToHSV() const

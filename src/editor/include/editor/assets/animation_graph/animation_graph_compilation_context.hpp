@@ -22,7 +22,7 @@ class AnimationGraphCompilationContext
     };
 
   private:
-    const EditorAnimationGraph const* m_pRootGraph = nullptr;
+    const EditorAnimationGraph* const m_pRootGraph = nullptr;
     const EditorAnimationGraph* m_pCurrentAnimationGraph = nullptr; // The (potentially child-) graph currently compiling
 
     Vector<const EditorAnimationGraphNode*> m_compiledNodes;

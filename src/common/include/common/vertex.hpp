@@ -9,6 +9,8 @@
 namespace aln
 {
 
+#pragma warning(disable : 4324)
+
 struct Vertex
 {
   public:
@@ -43,5 +45,7 @@ struct DebugVertex
     alignas(16) Vec3 pos;
     alignas(16) Vec3 color;
 };
+
+#pragma warning(default : 4324)
 
 } // namespace aln

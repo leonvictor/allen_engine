@@ -1,14 +1,15 @@
 #include "components/animation_player_component.hpp"
 
-ALN_REGISTER_IMPL_BEGIN(COMPONENTS, aln::AnimationPlayerComponent)
-ALN_REFLECT_MEMBER(m_animTime, Animation Time)
-ALN_REFLECT_MEMBER(m_pause, Pause)
-ALN_REFLECT_MEMBER(m_pAnimationClip, Clip)
-ALN_REFLECT_MEMBER(m_pSkeleton, Skeleton)
-ALN_REGISTER_IMPL_END()
-
 namespace aln
 {
+
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, AnimationPlayerComponent)
+ALN_REFLECT_MEMBER(m_animTime)
+ALN_REFLECT_MEMBER(m_pause)
+ALN_REFLECT_MEMBER(m_pAnimationClip)
+ALN_REFLECT_MEMBER(m_pSkeleton)
+ALN_REGISTER_IMPL_END()
+
 void AnimationPlayerComponent::Update(Seconds deltaTime)
 {
     if (!m_pause)

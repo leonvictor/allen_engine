@@ -234,5 +234,7 @@ IPrimitiveTypeEditor* IPrimitiveTypeEditor::CreateEditor(const StringID& typeID)
     {
         return aln::New<StringEditor>();
     }
+    assert(false);
+    return nullptr;
 }
 } // namespace aln

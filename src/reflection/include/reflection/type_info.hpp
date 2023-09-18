@@ -299,7 +299,7 @@ class PrimitiveTypeInfo : public TypeInfo
 #define ALN_REFLECT_BASE(baseClass) \
     pTypeInfo->m_pBaseTypeInfo = baseClass::GetStaticTypeInfo();
 
-#define ALN_REFLECT_MEMBER(name, displayName) \
+#define ALN_REFLECT_MEMBER(name) \
     pTypeInfo->m_members.emplace_back(aln::reflect::TypeInfoResolver<decltype(T::name)>::Get()->m_typeID, #name, offsetof(T, name), sizeof(decltype(T::name)));
 
 #define ALN_REGISTER_IMPL_END() \

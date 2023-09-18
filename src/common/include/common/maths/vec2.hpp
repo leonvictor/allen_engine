@@ -38,7 +38,7 @@ class ALN_COMMON_EXPORT Vec2
     inline Vec2 ToRadians() const { return Vec2(glm::radians(AsGLM())); }
 
     inline bool IsNearEqual(const Vec2& other, float eps = Maths::Epsilon) const { return glm::all(glm::epsilonEqual(AsGLM(), other.AsGLM(), eps)); }
-    inline bool IsNearZero(float eps = Maths::Epsilon) const { return IsNearEqual(Vec2::Zeroes); }
+    inline bool IsNearZero(float eps = Maths::Epsilon) const { return IsNearEqual(Vec2::Zeroes, eps); }
 
     Vec2 operator+(const Vec2& other) const { return Vec2(x + other.x, y + other.y); }
     Vec2 operator+(float value) const { return Vec2(x + value, y + value); }
@@ -63,6 +63,8 @@ class ALN_COMMON_EXPORT Vec2
         case 1:
             return y;
         }
+        assert(false);
+        return x;
     }
 
     /// @brief Linear interpolation between a and b by a t factor

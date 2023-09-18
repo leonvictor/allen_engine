@@ -49,7 +49,8 @@ class ALN_COMMON_EXPORT Vec4
     Vec4 operator/(float value) const { return Vec4(x / value, y / value, z / value, w / value); }
     bool operator==(const Vec4& other) const { return x == other.x && y == other.y && z == other.z && w == other.w; }
 
-    float& operator[](uint8_t idx) {
+    float& operator[](uint8_t idx)
+    {
         assert(idx < 4);
         switch (idx)
         {
@@ -62,6 +63,8 @@ class ALN_COMMON_EXPORT Vec4
         case 3:
             return w;
         }
+        assert(false);
+        return x;
     }
 
     /// @brief Linear interpolation between a and b by a t factor

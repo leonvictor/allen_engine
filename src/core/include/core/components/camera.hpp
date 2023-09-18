@@ -1,10 +1,10 @@
 #pragma once
 
-#include <reflection/type_info.hpp>
 #include <common/colors.hpp>
-#include <entities/spatial_component.hpp>
 #include <common/maths/matrix4x4.hpp>
 #include <common/maths/vec3.hpp>
+#include <entities/spatial_component.hpp>
+#include <reflection/type_info.hpp>
 
 namespace aln
 {
@@ -32,9 +32,9 @@ class CameraComponent : public SpatialComponent
     Vec3 world_up = Vec3(0.0f, 1.0f, 0.0f);
 
     // TODO
-    float fov = 45.0f;
-    float nearPlane = 0.1f;
-    float farPlane = 300.f;
+    float m_fieldOfView = 45.0f;
+    float m_nearPlane = 0.1f;
+    float m_farPlane = 300.f;
 
     // TODO: Optionnaly render the skybox as background
     RGBAColor m_backgroundColor = {0, 0, 0, 255};

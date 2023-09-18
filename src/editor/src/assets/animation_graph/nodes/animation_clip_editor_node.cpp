@@ -5,7 +5,7 @@ namespace aln
 {
 
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, AnimationClipEditorNode)
-ALN_REFLECT_MEMBER(m_animationClipID, Clip)
+ALN_REFLECT_MEMBER(m_animationClipID)
 ALN_REGISTER_IMPL_END()
 
 void AnimationClipEditorNode::Initialize()

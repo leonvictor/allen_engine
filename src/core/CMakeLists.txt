@@ -1,6 +1,6 @@
 set(LIB_NAME core)
 
-add_library(${LIB_NAME} SHARED
+add_library(${LIB_NAME}
     src/world_systems/render_system.cpp
 
     src/services/time_service.cpp

@@ -49,6 +49,8 @@ class BlendNode : public PoseRuntimeNode
             }
         }
         assert(false);
+        static const BlendRange tmp;
+        return tmp;
     }
 
   public:

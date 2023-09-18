@@ -30,13 +30,13 @@ class Light : public SpatialComponent
         Point
     };
 
-    Type type;
+    Type m_type;
 
-    Vec3 direction;
-    RGBColor m_color = RGBColor(1.0f, 1.0f, 1.0f);
+    Vec3 m_direction;
+    RGBColor m_color = RGBColor::White;
 
-    float intensity = 1.0f;
-    float range = 1.0f;
+    float m_intensity = 1.0f;
+    float m_range = 1.0f;
 
     void Initialize() override {}
     void Shutdown() override {}

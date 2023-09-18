@@ -2,10 +2,10 @@
 
 namespace aln
 {
-ALN_REGISTER_IMPL_BEGIN(SYSTEMS, aln::ScriptSystem)
-ALN_REFLECT_MEMBER(m_rotationSpeedX, Rotation Speed X)
-ALN_REFLECT_MEMBER(m_rotationSpeedY, Rotation Speed Y)
-ALN_REFLECT_MEMBER(m_rotationSpeedZ, Rotation Speed Z)
+ALN_REGISTER_IMPL_BEGIN(SYSTEMS, ScriptSystem)
+ALN_REFLECT_MEMBER(m_rotationSpeedX)
+ALN_REFLECT_MEMBER(m_rotationSpeedY)
+ALN_REFLECT_MEMBER(m_rotationSpeedZ)
 ALN_REGISTER_IMPL_END()
 
 void ScriptSystem::Update(const UpdateContext& ctx)

@@ -6,7 +6,7 @@ namespace aln
 {
 
 ALN_REGISTER_IMPL_BEGIN(SYSTEMS, PlayerControllerSystem)
-ALN_REFLECT_MEMBER(m_blendWeight, Blend Weight)
+ALN_REFLECT_MEMBER(m_blendWeight)
 ALN_REGISTER_IMPL_END()
 
 void PlayerControllerSystem::Update(const UpdateContext& ctx)

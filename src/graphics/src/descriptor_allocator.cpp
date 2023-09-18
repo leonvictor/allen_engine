@@ -96,6 +96,9 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
             throw std::runtime_error("Unrecoverable error during descriptor set allocation.");
         }
     }
+
+    assert(false);
+    return vk::UniqueDescriptorSet();
 }
 
 void DescriptorAllocator::Init(vk::Device* newDevice)

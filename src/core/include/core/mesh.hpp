@@ -1,9 +1,8 @@
 #pragma once
 
-
-#include <common/containers/vector.hpp>
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
+#include <common/containers/vector.hpp>
 #include <common/vertex.hpp>
 #include <graphics/resources/buffer.hpp>
 
@@ -47,7 +46,7 @@ class Mesh : public IAsset
     const AssetHandle<Material>& GetMaterial() const { return m_pMaterial; }
     const vkg::resources::Buffer& GetVertexBuffer() const { return m_vertexBuffer; }
     const vkg::resources::Buffer& GetIndexBuffer() const { return m_indexBuffer; }
-    size_t GetIndicesCount() const { return m_indices.size(); }
+    uint32_t GetIndicesCount() const { return m_indices.size(); }
     const vk::DescriptorSet& GetDescriptorSet() const { return m_descriptorSet.get(); }
 
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()

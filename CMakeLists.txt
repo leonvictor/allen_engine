@@ -30,9 +30,10 @@ mark_as_advanced(
 # set the MSVC runtime libary to dynamic
 # should work but doesn't for some reason
 # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /MDd")
-set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} " /MD")
-set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASEWITHTRACING} " /MD")
+# TODO: I commented this out because it added a semicolon to the option list that we do not want
+# set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /MDd")
+# set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} " /MD")
+# set(CMAKE_CXX_FLAGS_RELEASEWITHTRACING ${CMAKE_CXX_FLAGS_RELEASEWITHTRACING} " /MD")
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(ALLEN_EDITOR "Build the editor" ON)
@@ -69,7 +70,7 @@ set(SOURCE
     ${CMAKE_SOURCE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
 )
 
-set(SOURCE ${SOURCE} "external/imgui_plugins/ImGuizmo.cpp")
+# set(SOURCE ${SOURCE} "external/imgui_plugins/ImGuizmo.cpp")
 
 set(IMGUI_INCLUDE_DIRS 
     ${CMAKE_SOURCE_DIR}/external/imgui/backends
@@ -134,7 +135,13 @@ set_target_properties(TracyClient
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
-add_compile_definitions(VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+add_compile_definitions(
+    VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+# TODO: Enable those
+#    VULKAN_HPP_NO_EXCEPTIONS
+#    VULKAN_HPP_NO_NODISCARD_WARNINGS
+#    VULKAN_HPP_NO_SETTERS # ?
+)
 find_package(Vulkan REQUIRED)
 target_include_directories(main PUBLIC ${Vulkan_INCLUDE_DIRS})
 
@@ -163,13 +170,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glfw)
 
 # GLM
-target_compile_definitions(main PUBLIC
-    GLM_FORCE_RADIANS
-    GLM_ENABLE_EXPERIMENTAL
-    GLM_FORCE_DEPTH_ZERO_TO_ONE
-    GLM_GTX_hash
-    )
-
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm
@@ -177,6 +177,15 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(glm)
+
+target_compile_definitions(glm INTERFACE
+    GLM_FORCE_RADIANS
+    GLM_ENABLE_EXPERIMENTAL
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    GLM_GTX_hash
+)
+
+target_compile_options(glm INTERFACE /wd26495)
 
 # stb
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
@@ -233,6 +242,11 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(lz4)
 
+target_compile_options(lz4_static PRIVATE 
+    /wd5045
+    /wd4820
+)
+
 # xxhash
 FetchContent_Declare(
     xxhash
@@ -242,6 +256,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(xxhash)
 
+target_compile_options(xxhash PRIVATE 
+    /wd4820
+)
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})
@@ -258,8 +275,6 @@ add_subdirectory(src/asset_converter)
 add_subdirectory(src/editor)
 add_subdirectory(src/anim)
 
-# target_compile_features(main PUBLIC cxx_std_20)
-
 # target_include_directories(main PUBLIC TracyClient)
 target_link_libraries(main PUBLIC 
     # $<$<CONFIG:ReleaseWithTracing>:TracyClient>
@@ -268,7 +283,6 @@ target_link_libraries(main PUBLIC
     common 
     reflection 
     glfw 
-    imm32 
     input 
     graphics 
     entities 
@@ -278,7 +292,13 @@ target_link_libraries(main PUBLIC
     assimp::assimp
     Vulkan::Vulkan
     Vulkan::shaderc
-    )
+)
 
-set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} " /Zi /EHsc /W4 /D_DEBUG /MDd")
-message(CMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG})
+# note: Those are MSVC-only flags
+target_compile_options(main PRIVATE 
+    /wd4244 # 'argument': narrowing conversion, possible loss of data
+    /wd4505 # unreferenced function with internal linkage has been removed
+    /wd4267 # 'return': narrowing conversion, possible loss of data
+    /wd4100 # unreferenced formal parameter
+    /wd4834 # discarding return value of function with 'nodiscard' attribute TODO: Vulkan might have an option to disable the attribute themselves
+)

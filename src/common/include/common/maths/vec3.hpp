@@ -63,6 +63,8 @@ class ALN_COMMON_EXPORT Vec3
         case 2:
             return z;
         }
+        assert(false);
+        return x;
     }
 
     Vec3 Cross(const Vec3& other) const { return glm::cross(AsGLM(), other.AsGLM()); }

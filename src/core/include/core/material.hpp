@@ -31,12 +31,15 @@ class Material : public IAsset
     inline const vkg::resources::Buffer& GetBuffer() const { return m_buffer; }
 };
 
+#pragma warning(disable:4324)
 // TODO: This is never used. Refactor the material system
 struct MaterialBufferObject
 {
     alignas(16) Vec3 ambient = Vec3(1.0f, 0.5f, 0.31f);
-    alignas(16) Vec3 diffuse = Vec3(1.0f, 0.5f, 0.31);
-    alignas(16) Vec3 specular = Vec3(0.5f, 0.5f, 0.5);
+    alignas(16) Vec3 diffuse = Vec3(1.0f, 0.5f, 0.31f);
+    alignas(16) Vec3 specular = Vec3(0.5f, 0.5f, 0.5f);
     alignas(4) float shininess = 8.0f;
 };
+#pragma warning(default: 4324)
+
 } // namespace aln
