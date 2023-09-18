@@ -5,8 +5,6 @@
 #include "assets/asset_id.hpp"
 #include "assets/asset.hpp"
 
-#include <map>
-
 namespace aln
 {
 /// @brief Abstract base class for all editor windows related to an asset type

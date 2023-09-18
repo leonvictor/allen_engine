@@ -4,8 +4,6 @@
 #include "input_action.hpp"
 #include "interactions.hpp"
 
-#include <map>
-
 namespace aln
 {
 

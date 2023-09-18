@@ -10,8 +10,6 @@
 
 #include <anim/skeleton.hpp>
 
-#include <map>
-
 namespace aln
 {
 
