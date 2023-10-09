@@ -5,8 +5,6 @@
 
 #include <common/containers/hash_map.hpp>
 
-#include <map>
-
 namespace aln
 {
 
@@ -19,19 +17,19 @@ class InputContext
 {
   private:
     /// Map of actions <ControlID, Action>
-    HashMap<int, InputAction> m_actions;
+    HashMap<UUID, InputAction> m_actions;
     bool m_enabled = false;
 
   public:
     /// @brief Map input to the registered actions in this context. Successfully mapped input are consumed and removed from the list.
     /// @todo: Shouldn't be accessible
-    std::multimap<int, ControlStateChangedEvent> Map(std::multimap<int, ControlStateChangedEvent> inputMap);
+    void Map(HashMap<UUID, ControlStateChangedEvent>& inputMap);
 
     /// @brief Create a default InputAction with this callback and register it in this context.
-    void RegisterCallback(int keyCode, std::function<void(CallbackContext)> callback);
+    void RegisterCallback(const UUID& controlID, std::function<void(CallbackContext)> callback);
 
     /// @brief Create a new InputAction for this keyCode and return it.
-    InputAction& AddAction(int keyCode);
+    InputAction& AddAction(const UUID& controlID);
 
     /// @brief Enable all actions in this context.
     void Enable();

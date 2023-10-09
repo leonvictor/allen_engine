@@ -19,6 +19,7 @@ class InputContext;
 class InputService : public IService
 {
     friend class GLFWApplication;
+    friend class GLFWInputMapper;
     friend class Engine;
 
   private:
@@ -34,9 +35,9 @@ class InputService : public IService
     Gamepad m_gamepad;
 
     // TODO: Merge in a single function and handle device internally
-    void UpdateKeyboardControlState(int code, int action)
+    void UpdateKeyboardControlState(const Keyboard::Key& key, ButtonState& buttonState)
     {
-        m_keyboard.UpdateControlState(code, action);
+        m_keyboard.UpdateControlState(key, buttonState);
     }
 
     void UpdateMouseControlState(int code, int action)

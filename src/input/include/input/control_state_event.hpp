@@ -9,10 +9,7 @@ class IInputControl;
 /// To be consumed/dispatched  by the input system
 struct ControlStateChangedEvent
 {
-    // Should control be copied ? We don't want to access the wrong value later on
-    // Value should be accessed from control directly to avoid having to template this
-    const IInputControl* pControl = nullptr;
-
+    const IInputControl* m_pControl = nullptr;
     // TODO: Time emitted
 };
 } // namespace aln

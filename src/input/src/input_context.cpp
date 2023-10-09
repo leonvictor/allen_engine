@@ -7,39 +7,37 @@
 namespace aln
 {
 
-std::multimap<int, ControlStateChangedEvent> InputContext::Map(std::multimap<int, ControlStateChangedEvent> inputMap)
+void InputContext::Map(HashMap<UUID, ControlStateChangedEvent>& inputMap)
 {
-    for (auto& pair : m_actions)
+    for (auto& [controlID, action] : m_actions)
     {
         // TODO: How do we handle multiple control actuations in the same frame ?
         // Maybe pack them together and let the action decide for itself ?
 
-        auto node = inputMap.extract(pair.first);
-        while (!node.empty())
+        auto it = inputMap.find(controlID);
+        if (it != inputMap.end())
         {
-            InputAction::Context actionContext = {
-                .pControl = node.mapped().pControl,
+            auto pControl = it->second.m_pControl;
+
+            action.Trigger({
+                .pControl = pControl,
                 // TODO: Populate the context with more info.
-            };
+            });
 
-            pair.second.Trigger(actionContext);
-
-            // Extract the next event launched by the associated control
-            node = inputMap.extract(pair.first);
+            inputMap.erase(it);
         }
     }
-    return inputMap;
 }
 
-void InputContext::RegisterCallback(int keyCode, std::function<void(CallbackContext)> callback)
+void InputContext::RegisterCallback(const UUID& controlID, std::function<void(CallbackContext)> callback)
 {
-    auto action = m_actions.try_emplace(keyCode);
+    auto action = m_actions.try_emplace(controlID);
     action.first->second.SetCallback(callback);
 }
 
-InputAction& InputContext::AddAction(int keyCode)
+InputAction& InputContext::AddAction(const UUID& controlID)
 {
-    return m_actions.try_emplace(keyCode).first->second;
+    return m_actions.try_emplace(controlID).first->second;
 }
 
 void InputContext::Enable()

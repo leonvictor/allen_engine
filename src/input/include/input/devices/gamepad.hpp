@@ -1,8 +1,7 @@
 #pragma once
 
-#include "input_device.hpp"
-
-#include "controls/2d_axis_control.hpp"
+#include "../input_device.hpp"
+#include "../controls/2d_axis_control.hpp"
 
 #include <common/maths/maths.hpp>
 
@@ -95,12 +94,6 @@ class Gamepad : public IInputDevice
         }
     }
 
-    std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() override
-    {
-        // TODO: Rework input callbacks. Maybe even get rid of them ? Or make sure callback do not happen anytime
-        return std::multimap<int, ControlStateChangedEvent>();
-    }
-    
     inline void SetRightStickDeadzone(const AnalogStickDeadzone& deadzone) { m_rightStickDeadzone = deadzone; }
     inline void SetLeftStickDeadzone(const AnalogStickDeadzone& deadzone) { m_leftStickDeadzone = deadzone; }
     

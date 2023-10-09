@@ -57,11 +57,6 @@ class Mouse : IInputDevice
         m_position = position;
     }
 
-    /// @brief Return a list of state changed events that occured since the last call to this function.
-    /// TODO: Share this behavior with Keyboard (and other devices)
-    /// This probably means moving m_buttons/m_keys to a common m_control
-    std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() override;
-
     void Update()
     {
         for (auto& button : m_buttons)

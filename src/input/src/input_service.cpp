@@ -1,8 +1,11 @@
 #include "input_service.hpp"
 #include "input_context.hpp"
 
+#include <GLFW/glfw3.h>
+
 namespace aln
 {
+
 void InputService::RegisterContext(InputContext* pContext)
 {
     /// todo: prevent duplicates
@@ -19,9 +22,10 @@ void InputService::UnregisterContext(InputContext* pContext)
 void InputService::Dispatch()
 {
     // 1. Poll triggered controls from the devices
-    auto events = m_keyboard.PollControlChangedEvents();
-    events.merge(m_mouse.PollControlChangedEvents());
-    // controls.merge(Gamepad.PollControlChangedEvents());
+    HashMap<UUID, ControlStateChangedEvent> events;
+    m_keyboard.PollControlChangedEvents(events);
+    m_mouse.PollControlChangedEvents(events);
+    m_gamepad.PollControlChangedEvents(events);
 
     // Exit right away if no control change events were raised
     if (events.empty())
@@ -37,7 +41,7 @@ void InputService::Dispatch()
 
         if (pContext->IsEnabled())
         {
-            events = pContext->Map(events);
+            pContext->Map(events);
         }
     }
 }

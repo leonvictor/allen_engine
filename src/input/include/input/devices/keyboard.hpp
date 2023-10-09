@@ -1,13 +1,11 @@
 #pragma once
 
-#include "control_state_event.hpp"
-#include "controls/button_control.hpp"
-#include "input_device.hpp"
+#include "../control_state_event.hpp"
+#include "../controls/button_control.hpp"
+#include "../input_device.hpp"
 
 #include <common/containers/array.hpp>
 #include <common/containers/hash_map.hpp>
-
-#include <map>
 
 namespace aln
 {
@@ -146,18 +144,11 @@ class Keyboard : public IInputDevice
     };
 
   private:
-    static const HashMap<uint16_t, Key> GlfwKeyMap;
-
-    /// Map of keyboard keys controls.
     Array<ButtonControl, 131> m_keys;
-    std::multimap<int, ControlStateChangedEvent> m_statesChanged;
-
-    /// @brief Return a list of state changed events that occured since the last call to this function.
-    std::multimap<int, ControlStateChangedEvent> PollControlChangedEvents() override;
 
     /// @brief Translate a GLFW Event to ButtonControl
     /// @todo Move to virtual fn in InputDevice (possibly InputControl even ?)
-    void UpdateControlState(int glfwCode, int action);
+    void UpdateControlState(const Keyboard::Key& key, ButtonState& buttonState);
 
     void Update() override
     {
