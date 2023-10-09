@@ -34,7 +34,7 @@ class RenderPass
     // Possible feature: Put back a callback logic if and when we make the creation process modular
     // (i.e. renderpass watches the target swapchain and automatically updates when it changes.)
     // This was working ok until we merged the creation process in the constructor, making passing "this" a problem.
-    RenderPass(Device* pDevice, int width, int height);
+    RenderPass(Device* pDevice, uint32_t width, uint32_t height);
 
     /// @brief A renderpass is considered initialized as long as it's underlying vulkan renderpass is created.
     bool IsInitialized() const { return m_status == State::Initialized; }
@@ -63,7 +63,7 @@ class RenderPass
     inline vk::RenderPass& GetVkRenderPass() { return m_vkRenderPass.get(); }
 
     // TODO: This is a lazy solution
-    void Resize(int width, int height);
+    void Resize(uint32_t width, uint32_t height);
 
   private:
     Device* m_pDevice;

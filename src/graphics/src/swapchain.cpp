@@ -20,7 +20,7 @@ void Swapchain::Initialize(Device* pDevice, vk::SurfaceKHR* pSurface, uint32_t w
     CreateInternal();
 }
 
-void Swapchain::TargetWindowResizedCallback(int width, int height)
+void Swapchain::TargetWindowResizedCallback(uint32_t width, uint32_t height)
 {
     m_resizeRequired = true;
 }
@@ -95,7 +95,7 @@ void Swapchain::CreateInternal()
     vk::UniqueSwapchainKHR oldSwapchain = std::move(m_vkSwapchain);
 
     auto createInfo = CreateInfo(&oldSwapchain.get());
-    m_vkSwapchain = m_pDevice->GetVkDevice().createSwapchainKHRUnique(createInfo);
+    m_vkSwapchain = m_pDevice->GetVkDevice().createSwapchainKHRUnique(createInfo).value;
 }
 
 vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain)
@@ -125,7 +125,7 @@ vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain
         .preTransform = swapchainSupport.capabilities.currentTransform,
         .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
         .presentMode = presentMode,
-        .clipped = VK_TRUE, // We don't care about the color of obscured pixels (ex: if another window is on top)
+        .clipped = vk::True, // We don't care about the color of obscured pixels (ex: if another window is on top)
         .oldSwapchain = *pOldSwapchain,
     };
 
@@ -161,12 +161,10 @@ vk::Extent2D Swapchain::ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilit
         // Some window managers do not specify the resolution (indicated by special max value)
         // In this case, use the resolution that best matches the window within the ImageExtent bounds
         vk::Extent2D extent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height),
+            .width = Maths::Clamp(static_cast<uint32_t>(width), capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+            .height = Maths::Clamp(static_cast<uint32_t>(height), capabilities.minImageExtent.height, capabilities.maxImageExtent.height),
         };
 
-        extent.width = Maths::Clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        extent.height = Maths::Clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
         return extent;
     }
 }

@@ -18,12 +18,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     {
         std::cerr << "Error: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
     }
-    return VK_FALSE;
+    return vk::False;
 }
 
 bool Instance::CheckValidationLayersSupport(const Vector<const char*> validationLayers)
 {
-    std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
+    auto availableLayers = vk::enumerateInstanceLayerProperties().value;
 
     for (const char* layerName : validationLayers)
     {
@@ -48,7 +48,7 @@ bool Instance::CheckValidationLayersSupport(const Vector<const char*> validation
 bool Instance::CheckExtensionSupport(Vector<const char*> extensions)
 {
     // Check if all extensions required by GLFW are available
-    std::vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
+    auto availableExtensions = vk::enumerateInstanceExtensionProperties().value;
     for (uint32_t i = 0; i < extensions.size(); ++i)
     {
         bool extensionFound = false;
@@ -117,14 +117,14 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
         instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
     }
 
-    m_vkInstance = vk::createInstanceUnique(instanceCreateInfo);
+    m_vkInstance = vk::createInstanceUnique(instanceCreateInfo).value;
 
     if (m_validationLayersEnabled)
     {
         m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{m_vkInstance.get(), vkGetInstanceProcAddr};
         m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(
             debugUtilsMessengerCreateInfo,
-            nullptr, m_dispatchLoaderDynamic);
+            nullptr, m_dispatchLoaderDynamic).value;
     }
 }
 }; // namespace aln::vkg

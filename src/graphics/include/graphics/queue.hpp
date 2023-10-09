@@ -62,7 +62,7 @@ class Queue
             // Assign index to queue families that could be found
             auto queueFamilies = physicalDevice.getQueueFamilyProperties();
 
-            int i = 0;
+            uint32_t i = 0;
             for (const auto& queueFamily : queueFamilies)
             {
                 if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
@@ -74,7 +74,7 @@ class Queue
                     transferFamily = i;
                 }
 
-                if (physicalDevice.getSurfaceSupportKHR(i, surface))
+                if (physicalDevice.getSurfaceSupportKHR(i, surface).value)
                 {
                     presentFamily = i;
                 }

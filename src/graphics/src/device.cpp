@@ -136,16 +136,18 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    vk::DeviceCreateInfo deviceCreateInfo;
-    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_extensions.size());
-    deviceCreateInfo.ppEnabledExtensionNames = m_extensions.data();
+    vk::DeviceCreateInfo deviceCreateInfo = {
+        .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+        .pQueueCreateInfos = queueCreateInfos.data(),
+        .enabledExtensionCount = static_cast<uint32_t>(m_extensions.size()),
+        .ppEnabledExtensionNames = m_extensions.data(),
+    };
 
-    vk::PhysicalDeviceFeatures features;
-    features.sampleRateShading = VK_TRUE;
-    features.samplerAnisotropy = VK_TRUE;
-    features.fragmentStoresAndAtomics = VK_TRUE;
+    vk::PhysicalDeviceFeatures features = {
+        .sampleRateShading = vk::True,
+        .samplerAnisotropy = vk::True,
+        .fragmentStoresAndAtomics = vk::True,
+    };
 
     deviceCreateInfo.pEnabledFeatures = &features;
 
@@ -162,7 +164,7 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
     }
 
     // Create the device
-    m_logical = m_physical.createDeviceUnique(deviceCreateInfo);
+    m_logical = m_physical.createDeviceUnique(deviceCreateInfo).value;
 
     // Create queues
     m_queues.graphics = Queue(m_logical.get(), queueFamilyIndices.graphicsFamily.value());
@@ -174,7 +176,7 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
 {
     // TODO: core::Instance could wrap this call and keep a list of devices cached... but it's not necessary right now
-    std::vector<vk::PhysicalDevice> devices = m_pInstance->GetVkInstance().enumeratePhysicalDevices();
+    auto devices = m_pInstance->GetVkInstance().enumeratePhysicalDevices().value;
 
     if (devices.empty())
     {

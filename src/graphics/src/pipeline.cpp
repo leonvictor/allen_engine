@@ -29,7 +29,7 @@ void Pipeline::Create(std::string cachePath)
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {
         .topology = m_primitiveTopology,
-        .primitiveRestartEnable = VK_FALSE,
+        .primitiveRestartEnable = vk::False,
     };
 
     // TODO: Handle multiple viewports/scissors
@@ -46,7 +46,7 @@ void Pipeline::Create(std::string cachePath)
     // finalColor.rgb = newAlpha * newColor + (1 - newAlpha) * oldColor
     // finalColor.a = newAlpha.a
     vk::PipelineColorBlendAttachmentState colorBlendAttachment = {
-        .blendEnable = VK_FALSE, // Disabled for now,
+        .blendEnable = vk::False, // Disabled for now,
         .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
         .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
         .colorBlendOp = vk::BlendOp::eAdd,
@@ -58,7 +58,7 @@ void Pipeline::Create(std::string cachePath)
 
     // Configuration for global color blending settings.
     vk::PipelineColorBlendStateCreateInfo colorBlendInfo = {
-        .logicOpEnable = VK_FALSE,
+        .logicOpEnable = vk::False,
         .attachmentCount = 1,
         .pAttachments = &colorBlendAttachment,
         // We can also define custom blend constants in colorBlendInfo.blendConstants[0, 1, 2, 3]
@@ -71,7 +71,7 @@ void Pipeline::Create(std::string cachePath)
         .pPushConstantRanges = m_pushConstants.data(),
     };
 
-    m_layout = m_pDevice->GetVkDevice().createPipelineLayoutUnique(layoutInfo);
+    m_layout = m_pDevice->GetVkDevice().createPipelineLayoutUnique(layoutInfo).value;
 
     // Shader stages
     Vector<vk::PipelineShaderStageCreateInfo> stages;
@@ -106,14 +106,14 @@ void Pipeline::Create(std::string cachePath)
 
     // TODO: Generate different pipeline cache path depending on the options
     vk::UniquePipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                           // TODO
-    m_vkPipeline = m_pDevice->GetVkDevice().createGraphicsPipelineUnique(pipelineCache.get(), m_pipelineCreateInfo); // TODO
+    m_vkPipeline = m_pDevice->GetVkDevice().createGraphicsPipelineUnique(pipelineCache.get(), m_pipelineCreateInfo).value; // TODO
 
     // Store away the cache that we've populated.  This could conceivably happen
     // earlier, depends on when the pipeline cache stops being populated
     // internally.
     if (!pipelineCache)
     {
-        std::vector<uint8_t> endCacheData = m_pDevice->GetVkDevice().getPipelineCacheData(pipelineCache.get());
+        auto endCacheData = m_pDevice->GetVkDevice().getPipelineCacheData(pipelineCache.get()).value;
 
         // Write the file to disk, overwriting whatever was there
         std::ofstream writeCacheStream(cachePath, std::ios_base::out | std::ios_base::binary);
@@ -181,8 +181,8 @@ void Pipeline::AddDynamicState(vk::DynamicState state)
 void Pipeline::SetDepthTestWriteEnable(bool testEnable, bool writeEnable, vk::CompareOp compareOp)
 {
     assert(!IsInitialized());
-    m_depthStencil.depthTestEnable = testEnable ? VK_TRUE : VK_FALSE;
-    m_depthStencil.depthWriteEnable = writeEnable ? VK_TRUE : VK_FALSE;
+    m_depthStencil.depthTestEnable = testEnable ? vk::True: vk::False;
+    m_depthStencil.depthWriteEnable = writeEnable ? vk::True: vk::False;
     m_depthStencil.depthCompareOp = compareOp;
 }
 
@@ -229,36 +229,36 @@ void Pipeline::InitializeInternal()
 
     m_multisample = {
         .rasterizationSamples = m_pDevice->GetMSAASamples(),
-        .sampleShadingEnable = VK_TRUE,
-        .minSampleShading = .2f,
+        .sampleShadingEnable = vk::True,
+        .minSampleShading = 0.2f,
     };
 
-    m_scissor.offset = vk::Offset2D{0, 0};
-    m_scissor.extent = vk::Extent2D{0, 0};
+    m_scissor.offset = {0, 0};
+    m_scissor.extent = {0, 0};
 
     // Initialize some parts with default values. We can modify them before calling create()
     // in order to specify some options.
     // TODO: Move that out. Default values belong in a constructor ?
     // Dynamic state: some of the states can be modified without recreating a pipeline, but will require arguments to be provided at draw time.
     m_depthStencil = {
-        .depthTestEnable = VK_TRUE,
-        .depthWriteEnable = VK_TRUE,
+        .depthTestEnable = vk::True,
+        .depthWriteEnable = vk::True,
         .depthCompareOp = vk::CompareOp::eLess, // Lower depth = closer
-        .depthBoundsTestEnable = VK_FALSE,
-        .stencilTestEnable = VK_FALSE, // Not used
+        .depthBoundsTestEnable = vk::False,
+        .stencilTestEnable = vk::False, // Not used
         .minDepthBounds = 0.0f,
         .maxDepthBounds = 1.0f,
     };
 
     // Rasterizer turns the geometry shaped by the vertices into fragments to be colored by the fragment shader.
     m_rasterizer = {
-        .depthClampEnable = VK_FALSE,        // Whether to clamp rather than discard vertices that are beyond the near and far planes.
-        .rasterizerDiscardEnable = VK_FALSE, // Disable any output to the framebuffer
+        .depthClampEnable = vk::False,        // Whether to clamp rather than discard vertices that are beyond the near and far planes.
+        .rasterizerDiscardEnable = vk::False, // Disable any output to the framebuffer
         .polygonMode = vk::PolygonMode::eFill,
         .cullMode = vk::CullModeFlagBits::eBack, // Type of face culling
         .frontFace = vk::FrontFace::eCounterClockwise,
         // The rasterizer can alter depth values.
-        .depthBiasEnable = VK_FALSE,
+        .depthBiasEnable = vk::False,
         .lineWidth = 1.0f,
     };
 
@@ -308,13 +308,13 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
         uint32_t cacheHeaderVersion = 0;
         uint32_t vendorID = 0;
         uint32_t deviceID = 0;
-        uint8_t pipelineCacheUUID[VK_UUID_SIZE] = {};
+        uint8_t pipelineCacheUUID[vk::UuidSize] = {};
 
-        memcpy(&headerLength, (uint8_t*) startCacheData + 0, 4);
+        memcpy(&headerLength, (uint8_t*) startCacheData, 4);
         memcpy(&cacheHeaderVersion, (uint8_t*) startCacheData + 4, 4);
         memcpy(&vendorID, (uint8_t*) startCacheData + 8, 4);
         memcpy(&deviceID, (uint8_t*) startCacheData + 12, 4);
-        memcpy(pipelineCacheUUID, (uint8_t*) startCacheData + 16, VK_UUID_SIZE);
+        memcpy(pipelineCacheUUID, (uint8_t*) startCacheData + 16, vk::UuidSize);
 
         // Check each field and report bad values before freeing existing cache
         bool badCache = false;
@@ -324,7 +324,7 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
             std::cout << "  Bad header length in " << path << ".\n";
             std::cout << "    Cache contains: " << std::hex << std::setw(8) << headerLength << "\n";
         }
-        if (cacheHeaderVersion != VK_PIPELINE_CACHE_HEADER_VERSION_ONE)
+        if (cacheHeaderVersion != (uint32_t) vk::PipelineCacheHeaderVersion::eOne)
         {
             badCache = true;
             std::cout << "  Unsupported cache header version in " << path << ".\n";
@@ -372,7 +372,9 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
         .initialDataSize = startCacheSize,
         .pInitialData = startCacheData,
     };
-    vk::UniquePipelineCache pipelineCache = m_pDevice->GetVkDevice().createPipelineCacheUnique(cacheCreateInfo);
+    
+    auto pipelineCache = m_pDevice->GetVkDevice().createPipelineCacheUnique(cacheCreateInfo).value;
+    
     // Free our initialData now that pipeline cache has been created
     free(startCacheData);
     startCacheData = NULL;

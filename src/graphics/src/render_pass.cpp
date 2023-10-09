@@ -3,18 +3,19 @@
 namespace aln::vkg
 {
 
-RenderPass::RenderPass(Device* pDevice, int width, int height)
+RenderPass::RenderPass(Device* pDevice, uint32_t width, uint32_t height)
+    : m_pDevice(pDevice),
+      m_width(width),
+      m_height(height)
 {
     assert(pDevice);
 
-    m_pDevice = pDevice;
-    m_width = width;
-    m_height = height;
-
     // Default clear values.
     // TODO: Make it possible to customize clear values
-    m_clearValues[0].color.setFloat32({0.0f, 0.0f, 0.0f, 1.0f});
-    m_clearValues[1].depthStencil = vk::ClearDepthStencilValue{.depth = 1.0f, .stencil = 0};
+    m_clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    m_clearValues[1].depthStencil = {
+        .depth = 1.0f,
+        .stencil = 0};
 }
 
 void RenderPass::Create()
@@ -26,7 +27,7 @@ void RenderPass::Create()
 /// @brief Add a color attachment to this render pass, and return its index.
 int RenderPass::AddColorAttachment(vk::Format format)
 {
-    vk::AttachmentDescription colorAttachment{
+    vk::AttachmentDescription colorAttachment = {
         .format = format,
         .samples = m_pDevice->GetMSAASamples(),
         // Color and depth data
@@ -46,7 +47,7 @@ int RenderPass::AddColorAttachment(vk::Format format)
 
 int RenderPass::AddColorResolveAttachment(vk::Format format, vk::ImageLayout initialLayout, vk::ImageLayout finalLayout)
 {
-    vk::AttachmentDescription colorAttachmentResolve{
+    vk::AttachmentDescription colorAttachmentResolve = {
         .format = format,
         .samples = vk::SampleCountFlagBits::e1,
         .loadOp = vk::AttachmentLoadOp::eDontCare,
@@ -63,7 +64,7 @@ int RenderPass::AddColorResolveAttachment(vk::Format format, vk::ImageLayout ini
 
 int RenderPass::AddDepthAttachment()
 {
-    vk::AttachmentDescription depthAttachment{
+    vk::AttachmentDescription depthAttachment = {
         .format = m_pDevice->FindDepthFormat(),
         .samples = m_pDevice->GetMSAASamples(),
         .loadOp = vk::AttachmentLoadOp::eClear,
@@ -96,14 +97,14 @@ void RenderPass::Begin(RenderPass::Context& ctx)
 {
     assert(IsInitialized());
 
-    m_clearValues[0].color.setFloat32({
+    m_clearValues[0].color = {
         ctx.backgroundColor.m_red / 255.0f,
         ctx.backgroundColor.m_green / 255.0f,
         ctx.backgroundColor.m_blue / 255.0f,
         1.0f,
-    });
+    };
 
-    vk::RenderPassBeginInfo renderPassInfo{
+    vk::RenderPassBeginInfo renderPassInfo = {
         .renderPass = m_vkRenderPass.get(),
         .framebuffer = ctx.framebuffer,
         .renderArea = {
@@ -123,7 +124,7 @@ void RenderPass::End(vk::CommandBuffer& cb)
 }
 
 // TODO: This is a lazy solution
-void RenderPass::Resize(int width, int height)
+void RenderPass::Resize(uint32_t width, uint32_t height)
 {
     CreateInternal(width, height);
 }
@@ -133,6 +134,7 @@ void RenderPass::Resize(int width, int height)
 void RenderPass::CreateInternal(uint32_t width, uint32_t height)
 {
     assert(m_pDevice);
+
     m_width = width;
     m_height = height;
 
@@ -143,7 +145,7 @@ void RenderPass::CreateInternal(uint32_t width, uint32_t height)
         vkSubpasses.push_back(s.GetDescription());
     }
 
-    vk::RenderPassCreateInfo renderPassInfo{
+    vk::RenderPassCreateInfo renderPassInfo = {
         .attachmentCount = static_cast<uint32_t>(m_attachmentDescriptions.size()),
         .pAttachments = m_attachmentDescriptions.data(),
         .subpassCount = static_cast<uint32_t>(vkSubpasses.size()),
@@ -152,7 +154,7 @@ void RenderPass::CreateInternal(uint32_t width, uint32_t height)
         .pDependencies = m_subpassDependencies.data(),
     };
 
-    m_vkRenderPass = m_pDevice->GetVkDevice().createRenderPassUnique(renderPassInfo);
+    m_vkRenderPass = m_pDevice->GetVkDevice().createRenderPassUnique(renderPassInfo).value;
     m_status = State::Initialized;
 }
 } // namespace aln::vkg

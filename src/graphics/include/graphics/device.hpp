@@ -25,7 +25,7 @@ struct SwapchainSupportDetails
 
     SwapchainSupportDetails(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface)
     {
-        capabilities = device.getSurfaceCapabilitiesKHR(surface);
+        capabilities = device.getSurfaceCapabilitiesKHR(surface).value;
 
         uint32_t formatsCount;
         device.getSurfaceFormatsKHR(surface, &formatsCount, nullptr);
@@ -54,7 +54,9 @@ class Device
     vk::PhysicalDeviceMemoryProperties m_memoryProperties;
     vk::PhysicalDeviceProperties m_gpuProperties;
 
-    Vector<const char*> m_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    Vector<const char*> m_extensions{
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
 
     vk::SampleCountFlagBits m_msaaSamples = vk::SampleCountFlagBits::e1;
 
@@ -168,8 +170,7 @@ class Device
             info.bindingCount = static_cast<uint32_t>(bindings.size());
             info.pBindings = bindings.data();
 
-            auto result = m_logical->createDescriptorSetLayoutUnique(info);
-            auto& layout = result.value;
+            auto [result, layout] = m_logical->createDescriptorSetLayoutUnique(info);
             SetDebugUtilsObjectName(layout.get(), typeid(T).name());
 
             iter = m_descriptorSetLayoutsCache.emplace(type_index, std::move(layout)).first;

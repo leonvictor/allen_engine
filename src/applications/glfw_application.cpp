@@ -324,7 +324,7 @@ class GLFWApplication
     static void WindowResizeCallback(GLFWwindow* pGlfwWindow, int width, int height)
     {
         auto pApp = reinterpret_cast<GLFWApplication*>(glfwGetWindowUserPointer(pGlfwWindow));
-        pApp->m_swapchain.TargetWindowResizedCallback(width, height);
+        pApp->m_swapchain.TargetWindowResizedCallback(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     }
 
     void PollGamepadInput()

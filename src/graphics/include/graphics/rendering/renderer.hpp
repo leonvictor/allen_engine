@@ -10,8 +10,8 @@
 #include "render_target.hpp"
 
 #include <common/colors.hpp>
-#include <common/hash_vector.hpp>
 #include <common/containers/vector.hpp>
+#include <common/hash_vector.hpp>
 
 #include <config/path.h>
 #include <vulkan/vulkan.hpp>
@@ -156,7 +156,7 @@ class IRenderer
             RenderTarget rt =
                 {
                     .index = i,
-                    .framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo),
+                    .framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo).value,
                     .commandBuffer = std::move(commandBuffers[i]),
                     .fence = vk::Fence(),
                 };
@@ -171,9 +171,9 @@ class IRenderer
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
             m_frames.push_back({
-                .imageAvailable = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr),
-                .renderFinished = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr),
-                .inFlight = m_pDevice->GetVkDevice().createFenceUnique(fenceInfo, nullptr),
+                .imageAvailable = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr).value,
+                .renderFinished = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr).value,
+                .inFlight = m_pDevice->GetVkDevice().createFenceUnique(fenceInfo, nullptr).value,
             });
         }
     }
@@ -194,13 +194,14 @@ class IRenderer
 
         // Add a subpass dependency to ensure the render pass will wait for the right stage
         // We need to wait for the image to be acquired before transitionning to it
-        vk::SubpassDependency dep;
-        dep.srcSubpass = VK_SUBPASS_EXTERNAL;                                 // The implicit subpass before or after the render pass
-        dep.dstSubpass = 0;                                                   // Target subpass index (we have only one)
-        dep.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Stage to wait on
-        dep.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-        dep.srcAccessMask = vk::AccessFlagBits(0);
-        dep.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+        vk::SubpassDependency dep = {
+            .srcSubpass = vk::SubpassExternal,                                 // The implicit subpass before or after the render pass
+            .dstSubpass = 0,                                                   // Target subpass index (we have only one)
+            .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput, // Stage to wait on
+            .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlagBits::eNone,
+            .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+        };
 
         m_renderpass.AddSubpassDependency(dep);
         m_renderpass.Create();
@@ -210,7 +211,7 @@ class IRenderer
     virtual void BeginFrame(const RenderContext& ctx)
     {
         // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
-        m_pDevice->GetVkDevice().waitForFences(m_frames[m_currentFrameIndex].inFlight.get(), VK_TRUE, UINT64_MAX);
+        m_pDevice->GetVkDevice().waitForFences(m_frames[m_currentFrameIndex].inFlight.get(), vk::True, UINT64_MAX);
 
         // Acquire an image from the swap chain
         auto& image = GetNextTarget();
@@ -218,7 +219,7 @@ class IRenderer
         // Check if a previous frame is using the image
         if (image.fence)
         {
-            m_pDevice->GetVkDevice().waitForFences(image.fence, VK_TRUE, UINT64_MAX);
+            m_pDevice->GetVkDevice().waitForFences(image.fence, vk::True, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
@@ -281,10 +282,13 @@ class IRenderer
     }
 
     vk::Extent2D GetExtent() const { return {m_width, m_height}; }
+    uint32_t GetFramesInFlightCount() const { return m_targetImages.size(); }
+    uint32_t GetActiveFrameIndex() const { return m_activeImageIndex; }
 
-    uint32_t GetNumberOfImages()
+    const Image* GetFrameImage(uint32_t imageIdx) const
     {
-        return m_targetImages.size();
+        assert(imageIdx < m_targetImages.size());
+        return m_targetImages[imageIdx].get();
     }
 
     // TODO Combine Image in RenderTarget

@@ -29,7 +29,7 @@ class Allocation
                 .memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
             };
 
-        m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr);
+        m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr).value;
     }
 
   public:
@@ -66,9 +66,9 @@ class Allocation
     vk::DeviceSize GetSize() const { return m_size; }
 
     template <typename T = void>
-    inline T* Map(size_t offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE)
+    inline T* Map(size_t offset = 0, vk::DeviceSize size = vk::WholeSize)
     {
-        m_mapped = m_pDevice->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags());
+        m_mapped = m_pDevice->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags()).value;
         return (T*) m_mapped;
     }
 
@@ -104,7 +104,7 @@ class Allocation
     ///
     /// @return VkResult of the flush call
     ///
-    void Flush(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
+    void Flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0)
     {
         vk::MappedMemoryRange mappedRange = {
             .memory = m_memory.get(),
@@ -124,7 +124,7 @@ class Allocation
     ///
     /// @return VkResult of the invalidate call
     ///
-    void Invalidate(vk::DeviceSize size = VK_WHOLE_SIZE, vk::DeviceSize offset = 0)
+    void Invalidate(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0)
     {
         vk::MappedMemoryRange mappedRange = {
             .memory = m_memory.get(),

@@ -29,25 +29,26 @@ Image::Image(Device* pDevice, vk::Image& image, vk::Format format)
 }
 
 void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-    vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
+    vk::ImageUsageFlags usage, uint32_t arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
     // Enforce vk specs
     assert(layout == vk::ImageLayout::eUndefined || layout == vk::ImageLayout::ePreinitialized);
 
-    vk::ImageCreateInfo imageInfo;
-    imageInfo.flags = flags;
-    imageInfo.imageType = vk::ImageType::e2D;
-    imageInfo.extent = vk::Extent3D(width, height, 1);
-    imageInfo.mipLevels = mipLevels;
-    imageInfo.arrayLayers = arrayLayers;
-    imageInfo.format = format;
-    imageInfo.tiling = tiling;
-    imageInfo.initialLayout = layout; // The very first iteration will discard the texel;
-    imageInfo.usage = usage;
-    imageInfo.sharingMode = vk::SharingMode::eExclusive;
-    imageInfo.samples = numSamples;
+    vk::ImageCreateInfo imageInfo = {
+        .flags = flags,
+        .imageType = vk::ImageType::e2D,
+        .format = format,
+        .extent = {width, height, 1},
+        .mipLevels = mipLevels,
+        .arrayLayers = arrayLayers,
+        .samples = numSamples,
+        .tiling = tiling,
+        .usage = usage,
+        .sharingMode = vk::SharingMode::eExclusive,
+        .initialLayout = layout,
+    };
 
-    m_vkImage = m_pDevice->GetVkDevice().createImageUnique(imageInfo);
+    m_vkImage = m_pDevice->GetVkDevice().createImageUnique(imageInfo).value;
 
 #ifndef NDEBUG
     m_pDevice->SetDebugUtilsObjectName(m_vkImage.get(), m_debugName + " Image");
@@ -65,17 +66,20 @@ void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
     assert(!m_vkView && "Image view is already initialized.");
 
-    vk::ImageViewCreateInfo createInfo;
-    createInfo.format = m_format;
-    createInfo.image = m_vkImage.get();
-    createInfo.viewType = viewtype;
-    createInfo.subresourceRange.aspectMask = aspectMask;
-    createInfo.subresourceRange.layerCount = m_arrayLayers;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.levelCount = m_mipLevels;
-    createInfo.subresourceRange.baseMipLevel = 0;
+    vk::ImageViewCreateInfo createInfo = {
+        .image = m_vkImage.get(),
+        .viewType = viewtype,
+        .format = m_format,
+        .subresourceRange = {
+            .aspectMask = aspectMask,
+            .baseMipLevel = 0,
+            .levelCount = m_mipLevels,
+            .baseArrayLayer = 0,
+            .layerCount = m_arrayLayers,
+        },
+    };
 
-    m_vkView = m_pDevice->GetVkDevice().createImageViewUnique(createInfo);
+    m_vkView = m_pDevice->GetVkDevice().createImageViewUnique(createInfo).value;
 
 #ifndef NDEBUG
     m_pDevice->SetDebugUtilsObjectName(m_vkView.get(), m_debugName + " Image View");
@@ -91,25 +95,25 @@ void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
 
 void Image::AddSampler(vk::SamplerAddressMode adressMode)
 {
-    vk::SamplerCreateInfo samplerInfo;
-    samplerInfo.magFilter = vk::Filter::eLinear; // How to interpolate texels that are magnified...
-    samplerInfo.minFilter = vk::Filter::eLinear; // or minified
-    // Addressing mode per axis
-    samplerInfo.addressModeU = adressMode; // x
-    samplerInfo.addressModeV = adressMode; // y
-    samplerInfo.addressModeW = adressMode; // z
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = 16;
-    samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = vk::CompareOp::eAlways;
-    samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-    samplerInfo.mipLodBias = 0;
-    samplerInfo.maxLod = static_cast<uint32_t>(m_mipLevels);
-    samplerInfo.minLod = 0;
+    vk::SamplerCreateInfo samplerInfo = {
+        .magFilter = vk::Filter::eLinear,
+        .minFilter = vk::Filter::eLinear,
+        .mipmapMode = vk::SamplerMipmapMode::eLinear,
+        .addressModeU = adressMode,
+        .addressModeV = adressMode,
+        .addressModeW = adressMode,
+        .mipLodBias = 0,
+        .anisotropyEnable = vk::True,
+        .maxAnisotropy = 16,
+        .compareEnable = vk::False,
+        .compareOp = vk::CompareOp::eAlways,
+        .minLod = 0.0f,
+        .maxLod = (float) m_mipLevels,
+        .borderColor = vk::BorderColor::eIntOpaqueBlack,
+        .unnormalizedCoordinates = vk::False,
+    };
 
-    m_vkSampler = m_pDevice->GetVkDevice().createSamplerUnique(samplerInfo);
+    m_vkSampler = m_pDevice->GetVkDevice().createSamplerUnique(samplerInfo).value;
 
 #ifndef NDEBUG
     m_pDevice->SetDebugUtilsObjectName(m_vkSampler.get(), m_debugName + " Sampler");
@@ -119,21 +123,27 @@ void Image::AddSampler(vk::SamplerAddressMode adressMode)
 void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 {
     if (m_layout == newLayout)
+    {
         return;
+    }
 
-    vk::ImageMemoryBarrier memoryBarrier;
-    memoryBarrier.oldLayout = m_layout;
-    memoryBarrier.newLayout = newLayout;
-    memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    memoryBarrier.image = m_vkImage.get();
-    memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    memoryBarrier.subresourceRange.layerCount = m_arrayLayers;
-    memoryBarrier.subresourceRange.baseArrayLayer = 0;
-    memoryBarrier.subresourceRange.levelCount = m_mipLevels;
-    memoryBarrier.subresourceRange.baseMipLevel = 0;
-    memoryBarrier.srcAccessMask = vk::AccessFlags(); // Which operations must happen before the barrier
-    memoryBarrier.dstAccessMask = vk::AccessFlags(); // ... and after
+    vk::ImageMemoryBarrier memoryBarrier =
+        {
+            .srcAccessMask = {},
+            .dstAccessMask = {},
+            .oldLayout = m_layout,
+            .newLayout = newLayout,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .image = m_vkImage.get(),
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = m_mipLevels,
+                .baseArrayLayer = 0,
+                .layerCount = m_arrayLayers,
+            },
+        };
 
     vk::PipelineStageFlagBits srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
     vk::PipelineStageFlagBits dstStage = vk::PipelineStageFlagBits::eTopOfPipe;
@@ -231,17 +241,23 @@ void Image::Blit(vk::CommandBuffer cb, Image& dstImage)
     Blit(cb, dstImage, m_width, m_height);
 }
 
-void Image::Blit(vk::CommandBuffer cb, Image& dstImage, int width, int height)
+void Image::Blit(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t height)
 {
     vk::Offset3D blitSize = {width, height, 1};
-
-    vk::ImageBlit imageBlitRegion;
-    imageBlitRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-    imageBlitRegion.srcSubresource.layerCount = 1;
-    imageBlitRegion.srcOffsets[1] = blitSize;
-    imageBlitRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-    imageBlitRegion.dstSubresource.layerCount = 1;
-    imageBlitRegion.dstOffsets[1] = blitSize;
+    vk::Offset3D defaultOffset = {0, 0, 0};
+    vk::ImageBlit imageBlitRegion =
+        {
+            .srcSubresource = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .layerCount = 1,
+            },
+            .srcOffsets = {{defaultOffset, blitSize}},
+            .dstSubresource = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .layerCount = 1,
+            },
+            .dstOffsets = {{defaultOffset, blitSize}},
+        };
 
     cb.blitImage(
         m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
@@ -255,16 +271,24 @@ void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage)
     CopyTo(cb, dstImage, m_width, m_height);
 }
 
-void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage, int width, int height)
+void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t height)
 {
-    vk::ImageCopy imageCopyRegion;
-    imageCopyRegion.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-    imageCopyRegion.srcSubresource.layerCount = 1;
-    imageCopyRegion.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-    imageCopyRegion.dstSubresource.layerCount = 1;
-    imageCopyRegion.extent.width = width;
-    imageCopyRegion.extent.height = height;
-    imageCopyRegion.extent.depth = 1;
+    vk::ImageCopy imageCopyRegion = {
+        .srcSubresource = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .layerCount = 1,
+        },
+        .dstSubresource = {
+
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .layerCount = 1,
+        },
+        .extent = {
+            .width = width,
+            .height = height,
+            .depth = 1,
+        },
+    };
 
     cb.copyImage(
         m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
@@ -321,7 +345,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 // Retreive the pixel value at index
 // FIXME: This won't work if the image is in GPU-specific format
 // FIXME: This only works in 8-bits per channel formats
-Vec3 Image::PixelAt(int x, int y, bool colorSwizzle)
+Vec3 Image::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
     auto subResourceLayout = m_pDevice->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
@@ -372,14 +396,17 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 {
     auto formatProperties = m_pDevice->GetFormatProperties(m_format);
 
-    vk::ImageMemoryBarrier barrier;
-    barrier.image = m_vkImage.get();
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.levelCount = 1;
+    vk::ImageMemoryBarrier barrier = {
+        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .image = m_vkImage.get(),
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    };
 
     int32_t mipWidth = m_width;
     int32_t mipHeight = m_height;
@@ -400,19 +427,22 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
             barrier);
 
         // TODO: Expand blit method to accept more parameters and use it here
-        vk::ImageBlit blit;
-        blit.srcOffsets[0] = vk::Offset3D{0, 0, 0};
-        blit.srcOffsets[1] = vk::Offset3D{mipWidth, mipHeight, 1}; // Where is the data that we will blit from ?
-        blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        blit.srcSubresource.mipLevel = i - 1;
-        blit.srcSubresource.layerCount = 1;
-        blit.srcSubresource.baseArrayLayer = 0;
-        blit.dstOffsets[0] = vk::Offset3D{0, 0, 0};
-        blit.dstOffsets[1] = vk::Offset3D{mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
-        blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        blit.dstSubresource.mipLevel = i;
-        blit.dstSubresource.layerCount = 1;
-        blit.dstSubresource.baseArrayLayer = 0;
+        vk::ImageBlit blit = {
+            .srcSubresource = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .mipLevel = i - 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .srcOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{mipWidth, mipHeight, 1}}},
+            .dstSubresource = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .mipLevel = i,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .dstOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1}}},
+        };
 
         cb.blitImage(
             m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
@@ -433,9 +463,14 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 
         // Handle cases where the image is not square
         if (mipWidth > 1)
+        {
             mipWidth /= 2;
+        }
+
         if (mipHeight > 1)
+        {
             mipHeight /= 2;
+        }
     }
 
     barrier.subresourceRange.baseMipLevel = mipLevels - 1;
@@ -554,17 +589,21 @@ Image Image::CubemapFromDirectory(Device* pDevice, std::string path)
 
     Vector<vk::BufferImageCopy> bufferCopyRegions;
 
-    vk::BufferImageCopy bufferImageCopy;
-    bufferImageCopy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-    bufferImageCopy.imageSubresource.layerCount = 1;
+    vk::BufferImageCopy bufferImageCopy = {
+        .bufferOffset = 0,
+        .imageSubresource = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .mipLevel = 0,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+        .imageExtent = {
+            .width = static_cast<uint32_t>(width),
+            .height = static_cast<uint32_t>(height),
+            .depth = 1,
+        },
+    };
 
-    bufferImageCopy.imageExtent.depth = 1;
-    bufferImageCopy.imageExtent.width = width;
-    bufferImageCopy.imageExtent.height = height;
-
-    bufferImageCopy.bufferOffset = 0;
-    bufferImageCopy.imageSubresource.mipLevel = 0;
-    bufferImageCopy.imageSubresource.baseArrayLayer = 0;
     bufferCopyRegions.push_back(bufferImageCopy);
 
     for (uint32_t i = 1; i < faces.size(); i++)

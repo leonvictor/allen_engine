@@ -35,7 +35,7 @@ class Image : public Allocation
 
     // Inner creation routines
     void InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
-        vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
+        vk::ImageUsageFlags usage, uint32_t arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
 
     void InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
 
@@ -153,12 +153,12 @@ class Image : public Allocation
     void TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout);
 
     void Blit(vk::CommandBuffer cb, Image& dstImage);
-    void Blit(vk::CommandBuffer cb, Image& dstImage, int width, int height);
+    void Blit(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t height);
 
     // TODO: Would copyFrom methods be better ?
     // It's cool to keep data ownership
     void CopyTo(vk::CommandBuffer cb, Image& dstImage);
-    void CopyTo(vk::CommandBuffer cb, Image& dstImage, int width, int height);
+    void CopyTo(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t height);
 
     /// @brief Generate mipmaps and transfer the last level to shader_readonly layout.
     void GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels);
@@ -170,7 +170,7 @@ class Image : public Allocation
     /// @brief Retrieve the pixel value at index
     /// FIXME: This won't work if the image is in GPU-specific format
     /// FIXME: This only works in 8-bits per channel formats
-    Vec3 PixelAt(int x, int y, bool colorSwizzle = false);
+    Vec3 PixelAt(uint32_t x, uint32_t y, bool colorSwizzle = false);
 
     // Accessors
     // TODO: Put const back when we've move to copyFrom functions

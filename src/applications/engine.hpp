@@ -37,8 +37,8 @@ class Engine
 {
   private:
     // Rendering
-    aln::UIRenderer m_uiRenderer;
-    aln::SceneRenderer m_sceneRenderer;
+    UIRenderer m_uiRenderer;
+    SceneRenderer m_sceneRenderer;
 
     // Services
     ServiceProvider m_serviceProvider;
@@ -71,17 +71,16 @@ class Engine
         // Initialize the render engine
         m_uiRenderer.Create(&swapchain);
 
-        m_sceneRenderer.Create(
+        m_sceneRenderer.Initialize(
             &device,
             windowSize.x, windowSize.y,
             2,
             swapchain.GetImageFormat());
 
-        m_imgui.Initialize(pGLFWWindow, &device, m_uiRenderer.GetRenderPass(), m_uiRenderer.GetNumberOfImages());
+        m_imgui.Initialize(pGLFWWindow, &device, m_uiRenderer.GetRenderPass(), m_uiRenderer.GetFramesInFlightCount());
 
         // TODO: Get rid of all the references to m_device
         // They should not be part of this class
-
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
         m_serviceProvider.RegisterService(&m_timeService);
@@ -123,6 +122,8 @@ class Engine
     {
         // TODO
         m_editor.Shutdown();
+
+        m_sceneRenderer.Shutdown();
     }
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.

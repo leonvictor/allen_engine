@@ -62,7 +62,7 @@ class Swapchain
 
     void CreateInternal();
 
-    void TargetWindowResizedCallback(int width, int height);
+    void TargetWindowResizedCallback(uint32_t width, uint32_t height);
 
     /// @brief Generate the vulkan CreateInfo struct for a swapchain object.
     vk::SwapchainCreateInfoKHR CreateInfo(vk::SwapchainKHR* pOldSwapchain = nullptr);

@@ -73,7 +73,7 @@ static vk::ShaderModule CreateShaderModule(Device* device, const std::filesystem
         shaderModuleCreateInfo.codeSize = shaderData.size() * sizeof(char);
         shaderModuleCreateInfo.pCode = reinterpret_cast<uint32_t*>(shaderData.data());
 
-        return device->GetVkDevice().createShaderModule(shaderModuleCreateInfo);
+        return device->GetVkDevice().createShaderModule(shaderModuleCreateInfo).value;
     }
     else if (ext == ".vert" || ext == ".frag")
     {
@@ -84,7 +84,7 @@ static vk::ShaderModule CreateShaderModule(Device* device, const std::filesystem
         shaderModuleCreateInfo.codeSize = compiledShaderSource.size() * sizeof(uint32_t);
         shaderModuleCreateInfo.pCode =  compiledShaderSource.data();
 
-        return device->GetVkDevice().createShaderModule(shaderModuleCreateInfo);
+        return device->GetVkDevice().createShaderModule(shaderModuleCreateInfo).value;
     }
     else
     {

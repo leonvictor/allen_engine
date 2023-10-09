@@ -48,7 +48,7 @@ class LinesRenderState
             {
                 .buffer = m_viewProjectionUBO.GetVkBuffer(),
                 .offset = 0,
-                .range = VK_WHOLE_SIZE,
+                .range = vk::WholeSize,
             };
 
         vk::WriteDescriptorSet writeDescriptorSet =

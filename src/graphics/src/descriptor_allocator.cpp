@@ -7,7 +7,7 @@ namespace aln::vkg
 {
 
 /// @brief Create a pool
-vk::UniqueDescriptorPool CreatePool(vk::Device* pDevice, const DescriptorAllocator::PoolSizes& poolSizes, int count, vk::DescriptorPoolCreateFlags flags)
+vk::UniqueDescriptorPool CreatePool(vk::Device* pDevice, const DescriptorAllocator::PoolSizes& poolSizes, uint32_t count, vk::DescriptorPoolCreateFlags flags)
 {
     Vector<vk::DescriptorPoolSize> sizes;
     sizes.reserve(poolSizes.sizes.size());
@@ -16,15 +16,16 @@ vk::UniqueDescriptorPool CreatePool(vk::Device* pDevice, const DescriptorAllocat
         sizes.push_back({sz.first, uint32_t(sz.second * count)});
     }
 
-    vk::DescriptorPoolCreateInfo pool_info;
-    pool_info.flags = flags;
-    pool_info.maxSets = count;
-    pool_info.poolSizeCount = (uint32_t) sizes.size();
-    pool_info.pPoolSizes = sizes.data();
+    vk::DescriptorPoolCreateInfo poolInfo = {
+        .flags = flags,
+        .maxSets = count,
+        .poolSizeCount = (uint32_t) sizes.size(),
+        .pPoolSizes = sizes.data(),
+    };
 
-    vk::UniqueDescriptorPool descriptorPool = pDevice->createDescriptorPoolUnique(pool_info);
+    auto [result, pDescriptorPool] = pDevice->createDescriptorPoolUnique(poolInfo);
 
-    return std::move(descriptorPool);
+    return std::move(pDescriptorPool);
 }
 
 void DescriptorAllocator::ResetPools()
@@ -52,10 +53,11 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
         m_currentPool = &m_usedPools.back();
     }
 
-    vk::DescriptorSetAllocateInfo allocInfo;
-    allocInfo.descriptorPool = m_currentPool->get();
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = pLayout;
+    vk::DescriptorSetAllocateInfo allocInfo = {
+        .descriptorPool = m_currentPool->get(),
+        .descriptorSetCount = 1,
+        .pSetLayouts = pLayout,
+    };
 
     bool needReallocate = false;
     auto result = m_pDevice->allocateDescriptorSetsUnique(allocInfo);

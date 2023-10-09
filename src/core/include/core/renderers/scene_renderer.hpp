@@ -10,7 +10,7 @@
 #include <graphics/resources/image.hpp>
 #include <graphics/swapchain.hpp>
 
-#include <Tracy.hpp>
+#include <tracy/Tracy.hpp>
 #include <vulkan/vulkan.hpp>
 
 #include <functional>
@@ -84,10 +84,9 @@ class SceneRenderer : public vkg::render::IRenderer
             target->Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
             target->AddView(vk::ImageAspectFlagBits::eColor);
             target->AddSampler();
-            target->SetDebugName("Offline Renderer Target");
-
             target->TransitionLayout(cbs[0], vk::ImageLayout::eGeneral);
-            m_pDevice->SetDebugUtilsObjectName(target->GetVkImage(), "Offline Render Target Image (" + std::to_string(i) + ")");
+
+            target->SetDebugName("Scene Renderer Target (" + std::to_string(i) + ")");
 
             m_targetImages.push_back(target);
         }
@@ -120,13 +119,14 @@ class SceneRenderer : public vkg::render::IRenderer
 
         // Add a subpass dependency to ensure the render pass will wait for the right stage
         // We need to wait for the image to be acquired before transitionning to it
-        vk::SubpassDependency dep;
-        dep.srcSubpass = VK_SUBPASS_EXTERNAL;                                 // The implicit subpass before or after the render pass
-        dep.dstSubpass = 0;                                                   // Target subpass index (we have only one)
-        dep.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput; // Stage to wait on
-        dep.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-        dep.srcAccessMask = vk::AccessFlagBits(0);
-        dep.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+        vk::SubpassDependency dep = {
+            .srcSubpass = vk::SubpassExternal,
+            .dstSubpass = 0,
+            .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+            .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlagBits::eNone,
+            .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+        };
 
         m_renderpass.AddSubpassDependency(dep);
         m_renderpass.Create();
@@ -146,29 +146,29 @@ class SceneRenderer : public vkg::render::IRenderer
             vk::BufferUsageFlagBits::eUniformBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-        vk::DescriptorSetLayoutBinding sceneDataBinding =
-            {
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-            };
+        vk::DescriptorSetLayoutBinding sceneDataBinding = {
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+        };
 
-        vk::DescriptorSetLayoutCreateInfo sceneDataDescriptorSetLayoutCreateInfo =
-            {
-                .bindingCount = 1,
-                .pBindings = &sceneDataBinding,
-            };
+        vk::DescriptorSetLayoutCreateInfo sceneDataDescriptorSetLayoutCreateInfo = {
+            .bindingCount = 1,
+            .pBindings = &sceneDataBinding,
+        };
 
-        m_pSceneDataDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(sceneDataDescriptorSetLayoutCreateInfo);
+        m_pSceneDataDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(sceneDataDescriptorSetLayoutCreateInfo).value;
+        m_pDevice->SetDebugUtilsObjectName(m_pSceneDataDescriptorSetLayout.get(), "Scene Data Descriptor Set Layout");
+
         m_pSceneDataDescriptorSet = pDevice->AllocateDescriptorSet(&m_pSceneDataDescriptorSetLayout.get());
+        m_pDevice->SetDebugUtilsObjectName(m_pSceneDataDescriptorSet.get(), "Scene Data Descriptor Set");
 
-        vk::DescriptorBufferInfo sceneDataBufferInfo =
-            {
-                .buffer = m_sceneDataBuffer.GetVkBuffer(),
-                .offset = 0,
-                .range = pDevice->PadUniformBufferSize(sizeof(SceneGPUData)),
-            };
+        vk::DescriptorBufferInfo sceneDataBufferInfo = {
+            .buffer = m_sceneDataBuffer.GetVkBuffer(),
+            .offset = 0,
+            .range = pDevice->PadUniformBufferSize(sizeof(SceneGPUData)),
+        };
 
         writeDescriptorSets.push_back(
             {
@@ -187,18 +187,21 @@ class SceneRenderer : public vkg::render::IRenderer
         m_lightsDescriptorSet = pDevice->AllocateDescriptorSet<Light>();
         pDevice->SetDebugUtilsObjectName(m_lightsDescriptorSet.get(), "Lights Descriptor Set");
 
-        vk::DescriptorBufferInfo lightsBufferInfo;
-        lightsBufferInfo.buffer = m_lightsBuffer.GetVkBuffer(); // TODO: How do we update the lights array ?
-        lightsBufferInfo.offset = 0;
-        lightsBufferInfo.range = VK_WHOLE_SIZE;
+        // TODO: How do we update the lights array ?
+        vk::DescriptorBufferInfo lightsBufferInfo = {
+            .buffer = m_lightsBuffer.GetVkBuffer(),
+            .offset = 0,
+            .range = vk::WholeSize,
+        };
 
-        vk::WriteDescriptorSet writeDescriptor;
-        writeDescriptor.dstSet = m_lightsDescriptorSet.get();
-        writeDescriptor.dstBinding = 0;
-        writeDescriptor.dstArrayElement = 0;
-        writeDescriptor.descriptorType = vk::DescriptorType::eStorageBuffer;
-        writeDescriptor.descriptorCount = 1;
-        writeDescriptor.pBufferInfo = &lightsBufferInfo;
+        vk::WriteDescriptorSet writeDescriptor = {
+            .dstSet = m_lightsDescriptorSet.get(),
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = vk::DescriptorType::eStorageBuffer,
+            .pBufferInfo = &lightsBufferInfo,
+        };
 
         writeDescriptorSets.push_back(writeDescriptor);
 
@@ -210,29 +213,29 @@ class SceneRenderer : public vkg::render::IRenderer
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-        vk::DescriptorSetLayoutBinding binding =
-            {
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eStorageBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex,
-            };
+        vk::DescriptorSetLayoutBinding binding = {
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eStorageBuffer,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex,
+        };
 
-        vk::DescriptorSetLayoutCreateInfo info =
-            {
-                .bindingCount = 1,
-                .pBindings = &binding,
-            };
+        vk::DescriptorSetLayoutCreateInfo info = {
+            .bindingCount = 1,
+            .pBindings = &binding,
+        };
 
-        m_pModelTransformsDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(info);
+        m_pModelTransformsDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(info).value;
+        m_pDevice->SetDebugUtilsObjectName(m_pModelTransformsDescriptorSetLayout.get(), "Model Transforms Descriptor Set Layout");
+
         m_pModelTransformsDescriptorSet = pDevice->AllocateDescriptorSet(&m_pModelTransformsDescriptorSetLayout.get());
+        m_pDevice->SetDebugUtilsObjectName(m_pModelTransformsDescriptorSet.get(), "Model Transforms Descriptor Set");
 
-        vk::DescriptorBufferInfo transformsBufferInfo =
-            {
-                .buffer = m_modelTransformsBuffer.GetVkBuffer(),
-                .offset = 0,
-                .range = sizeof(Matrix4x4) * MAX_MODELS,
-            };
+        vk::DescriptorBufferInfo transformsBufferInfo = {
+            .buffer = m_modelTransformsBuffer.GetVkBuffer(),
+            .offset = 0,
+            .range = sizeof(Matrix4x4) * MAX_MODELS,
+        };
 
         writeDescriptorSets.push_back(
             {
@@ -252,29 +255,29 @@ class SceneRenderer : public vkg::render::IRenderer
             vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-        vk::DescriptorBufferInfo skinningBufferInfo =
-            {
-                .buffer = m_skinningBuffer.GetVkBuffer(),
-                .offset = 0,
-                .range = VK_WHOLE_SIZE,
-            };
+        vk::DescriptorBufferInfo skinningBufferInfo = {
+            .buffer = m_skinningBuffer.GetVkBuffer(),
+            .offset = 0,
+            .range = vk::WholeSize,
+        };
 
-        vk::DescriptorSetLayoutBinding skinningBufferBinding =
-            {
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eStorageBuffer,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eVertex,
-            };
+        vk::DescriptorSetLayoutBinding skinningBufferBinding = {
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eStorageBuffer,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex,
+        };
 
-        vk::DescriptorSetLayoutCreateInfo skinningDescriptorSetLayoutCreateInfo =
-            {
-                .bindingCount = 1,
-                .pBindings = &skinningBufferBinding,
-            };
+        vk::DescriptorSetLayoutCreateInfo skinningDescriptorSetLayoutCreateInfo = {
+            .bindingCount = 1,
+            .pBindings = &skinningBufferBinding,
+        };
 
-        m_pSkinningBufferDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(skinningDescriptorSetLayoutCreateInfo);
+        m_pSkinningBufferDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(skinningDescriptorSetLayoutCreateInfo).value;
+        m_pDevice->SetDebugUtilsObjectName(m_pSkinningBufferDescriptorSetLayout.get(), "Skinning Buffer Descriptor Set Layout");
+
         m_pSkinningBufferDescriptorSet = pDevice->AllocateDescriptorSet(&m_pSkinningBufferDescriptorSetLayout.get());
+        m_pDevice->SetDebugUtilsObjectName(m_pSkinningBufferDescriptorSetLayout.get(), "Skinning Buffer Descriptor Set");
 
         writeDescriptorSets.push_back(
             {
@@ -311,6 +314,7 @@ class SceneRenderer : public vkg::render::IRenderer
 
         m_staticMeshesPipeline.Create("static_meshes_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Static Meshes Pipeline");
+        m_pDevice->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetLayout(), "Static Meshes Pipeline Layout");
 
         // ---------------
         // Skeletal Meshes Pipeline
@@ -330,6 +334,7 @@ class SceneRenderer : public vkg::render::IRenderer
 
         m_skeletalMeshesPipeline.Create("skeletal_meshes_pipeline_cache_data.bin");
         m_pDevice->SetDebugUtilsObjectName(m_skeletalMeshesPipeline.GetVkPipeline(), "Skeletal Meshes Pipeline");
+        m_pDevice->SetDebugUtilsObjectName(m_skeletalMeshesPipeline.GetLayout(), "Skeletal Meshes Pipeline Layout");
 
         // ---------------
         // Skybox Pipeline
@@ -348,11 +353,15 @@ class SceneRenderer : public vkg::render::IRenderer
     }
 
   public:
-    void Create(vkg::Device* pDevice, int width, int height, int nTargetImages, vk::Format colorImageFormat)
+    void Initialize(vkg::Device* pDevice, uint32_t width, uint32_t height, int nTargetImages, vk::Format colorImageFormat)
     {
         m_nTargetImages = nTargetImages;
         CreateInternal(pDevice, width, height, colorImageFormat);
         CreatePipelines();
+    }
+
+    void Shutdown()
+    {
     }
 
     // TODO: De-duplicate
@@ -362,11 +371,10 @@ class SceneRenderer : public vkg::render::IRenderer
         cb.endRenderPass();
         cb.end();
 
-        vk::SubmitInfo submitInfo =
-            {
-                .commandBufferCount = 1,
-                .pCommandBuffers = &cb,
-            };
+        vk::SubmitInfo submitInfo = {
+            .commandBufferCount = 1,
+            .pCommandBuffers = &cb,
+        };
 
         m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
         // TODO: It would be better to pass the semaphores and cbs directly to the queue class

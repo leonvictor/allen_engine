@@ -78,7 +78,7 @@ void Buffer::CreateBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags
     bufferInfo.queueFamilyIndexCount = 2;
     bufferInfo.pQueueFamilyIndices = queues;
 
-    m_vkBuffer = m_pDevice->GetVkDevice().createBufferUnique(bufferInfo);
+    m_vkBuffer = m_pDevice->GetVkDevice().createBufferUnique(bufferInfo).value;
 }
 
 void Buffer::Allocate(const vk::MemoryPropertyFlags& memProperties)

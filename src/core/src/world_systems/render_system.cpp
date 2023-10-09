@@ -10,7 +10,7 @@
 #include <entities/world_system.hpp>
 #include <common/maths/matrix4x4.hpp>
 
-#include <Tracy.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace aln
 {

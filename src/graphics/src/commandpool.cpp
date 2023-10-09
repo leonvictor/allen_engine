@@ -17,7 +17,7 @@ CommandPool::CommandPool(vk::Device* device, Queue* queue, vk::CommandPoolCreate
         .queueFamilyIndex = m_pQueue->GetFamilyIndex(),
     };
 
-    m_vkCommandPool = m_pVkDevice->createCommandPoolUnique(createInfo);
+    m_vkCommandPool = m_pVkDevice->createCommandPoolUnique(createInfo).value;
 }
 
 std::vector<vk::CommandBuffer> CommandPool::BeginSingleTimeCommands()
@@ -63,7 +63,7 @@ std::vector<vk::CommandBuffer> CommandPool::AllocateCommandBuffers(uint32_t coun
         .commandBufferCount = count,
     };
 
-    return m_pVkDevice->allocateCommandBuffers(allocInfo);
+    return m_pVkDevice->allocateCommandBuffers(allocInfo).value;
 }
 
 std::vector<vk::UniqueCommandBuffer> CommandPool::AllocateCommandBuffersUnique(uint32_t count, vk::CommandBufferLevel level) const
