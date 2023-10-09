@@ -113,6 +113,7 @@ class ImGUI
         init_info.CheckVkResultFn = nullptr;
         init_info.MSAASamples = (VkSampleCountFlagBits) pDevice->GetMSAASamples();
         init_info.Subpass = 0;
+        init_info.UseDynamicRendering = false;
 
         ImGui_ImplVulkan_Init(&init_info, renderPass.GetVkRenderPass());
 

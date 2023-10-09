@@ -39,17 +39,20 @@ static bool SliderTimeline(ImGuiID id, float* pCurrentTime, const float animDura
         {contentRegionMin.x + timelineWidth, contentRegionMin.y + timelineHeight}};
 
     ImGui::ItemSize(timelineBB);
-    if (!ImGui::ItemAdd(timelineBB, id, &timelineBB, ImGuiItemAddFlags_None))
+    if (!ImGui::ItemAdd(timelineBB, id, &timelineBB))
     {
         return false;
     }
 
-    const bool hovered = ImGui::ItemHoverable(timelineBB, id);
-
+    const bool hovered = ImGui::ItemHoverable(timelineBB, id, ImGuiItemFlags_None);
     // TODO: Not focusable ?
-    const bool focusRequested = (pWindow->DC.LastItemStatusFlags & ImGuiItemStatusFlags_Focused) != 0;
+    // TMP: Temporary fix for newer ImGui version. It wasnt functionnal in the first place !
+    //const bool focusRequested = (pWindow->DC.LastItemStatusFlags & ImGuiItemStatusFlags_Focused) != 0;
+    const bool focusRequested = false;
     const bool clicked = (hovered && pContext->IO.MouseClicked[0]);
-    if (focusRequested || clicked || pContext->NavActivateId == id || pContext->NavInputId == id)
+    //if (focusRequested || clicked || pContext->NavActivateId == id || pContext->NavInputId == id)
+     if (focusRequested || clicked || pContext->NavActivateId == id)
+
     {
         ImGui::SetActiveID(id, pWindow);
         ImGui::SetFocusID(id, pWindow);
@@ -113,7 +116,7 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
 
     if (ImGui::Begin("Animation Clip", &m_isOpen))
     {
-        float contentWidth = ImGui::GetContentRegionAvailWidth();
+        float contentWidth = ImGui::GetContentRegionAvail().x; // TODO: or y ?
         ImGuiWidgets::Splitter(false, 2, &previewHeight, &trackHeight, 8, 8, contentWidth);
         // TODO: Allow re-docking subwindows but only inside the "main" one
         if (ImGui::BeginChild("Animation Preview", ImVec2{contentWidth, previewHeight}, true))

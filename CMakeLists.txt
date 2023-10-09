@@ -79,7 +79,14 @@ set(IMGUI_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/external/imgui_plugins
 )
 
-add_compile_definitions(IMNODES_USER_CONFIG)
+set(IMGUI_COMPILE_DEFINITIONS
+    IMNODES_USER_CONFIG
+    IMGUI_DEFINE_MATH_OPERATORS
+)
+
+# TODO: Use target-based version
+add_compile_definitions(${IMGUI_COMPILE_DEFINITIONS})
+
 add_executable(main ${SOURCE})
 
 # fmt
