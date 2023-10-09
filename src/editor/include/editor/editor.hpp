@@ -5,6 +5,7 @@
 #include "assets_browser.hpp"
 #include "editor_window.hpp"
 #include "entity_inspector.hpp"
+#include "properties_window.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <common/containers/hash_map.hpp>
@@ -76,6 +77,7 @@ class Editor
     // TODO: Handle widget lifetime. For now they're always here !
     AssetsBrowser m_assetsBrowser;
     EntityInspector m_entityInspector;
+    PropertiesWindow m_propertiesInspector;
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;

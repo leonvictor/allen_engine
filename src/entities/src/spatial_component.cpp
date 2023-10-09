@@ -65,7 +65,7 @@ void SpatialComponent::AttachTo(SpatialComponent* pParentComponent, const UUID& 
     auto parentTransform = pParentComponent->GetWorldTransform();
     m_localTransform.SetScale(m_localTransform.GetScale() / parentTransform.GetScale());
     m_localTransform.SetTranslation((parentTransform.GetRotation().GetConjugate().RotateVector(m_localTransform.GetTranslation())) - parentTransform.GetTranslation());
-    m_localTransform.SetRotation(parentTransform.GetRotation().GetConjugate() * m_localTransform.GetRotation()); // TODO: is that the correct order ?
+    m_localTransform.SetRotation(parentTransform.GetRotation().GetConjugate() * m_localTransform.GetRotation());
 
     CalculateWorldTransform();
 
@@ -112,6 +112,13 @@ void SpatialComponent::SetLocalTransformPosition(const Vec3& pos)
 void SpatialComponent::SetLocalTransformScale(const Vec3& scale)
 {
     m_localTransform.SetScale(scale);
+    CalculateWorldTransform(true);
+}
+
+void SpatialComponent::SetLocalTransformPositionAndRotation(const Vec3& pos, const Quaternion& rotation)
+{
+    m_localTransform.SetRotation(rotation);
+    m_localTransform.SetTranslation(pos);
     CalculateWorldTransform(true);
 }
 

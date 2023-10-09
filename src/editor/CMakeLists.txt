@@ -7,6 +7,7 @@ add_library(${LIB_NAME}
     src/editor.cpp
     src/assets_browser.cpp
     src/entity_inspector.cpp
+    src/properties_window.cpp
     src/editor_window.cpp
  
     src/assets/animation_clip_workspace.cpp

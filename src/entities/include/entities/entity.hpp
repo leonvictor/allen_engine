@@ -10,7 +10,7 @@
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
 
-#include <Tracy.hpp>
+#include <tracy/Tracy.hpp>
 
 #include <assert.h>
 #include <stdexcept>

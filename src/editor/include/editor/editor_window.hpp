@@ -2,6 +2,7 @@
 
 #include <assets/asset_id.hpp>
 #include <common/serialization/json.hpp>
+#include <reflection/reflected_type.hpp>
 
 namespace aln
 {
@@ -25,6 +26,7 @@ class EditorWindowContext
     // TODO: Specific to entities-related windows ?
     WorldEntity* m_pWorldEntity = nullptr;
     Entity* m_pSelectedEntity = nullptr;
+    reflect::IReflected* m_pInspectedObject = nullptr;
 
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
     // TODO: should be const
@@ -55,6 +57,10 @@ class IEditorWindow
     void SetSelectedEntity(Entity* pEntity) { m_pEditorWindowContext->m_pSelectedEntity = pEntity; }
     Entity* GetSelectedEntity() const { return m_pEditorWindowContext->m_pSelectedEntity; }
     WorldEntity* GetWorldEntity() const { return m_pEditorWindowContext->m_pWorldEntity; }
+
+    // Reflected type properties
+    void SetInspectedObject(reflect::IReflected* pObjectToInspect) { m_pEditorWindowContext->m_pInspectedObject = pObjectToInspect; }
+    reflect::IReflected* GetInspectedObject() { return m_pEditorWindowContext->m_pInspectedObject; }
 
   public:
     virtual void Update(const UpdateContext& context) = 0; // TODO: name ?

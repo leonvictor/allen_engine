@@ -1,24 +1,23 @@
 #include "editor.hpp"
 
-#include "assets/animation_graph/animation_graph_workspace.hpp"
 #include "assets/animation_clip_workspace.hpp"
+#include "assets/animation_graph/animation_graph_workspace.hpp"
 
-#include <config/path.h>
-#include <assets/handle.hpp>
 #include <assets/asset_service.hpp>
-#include <reflection/services/type_registry_service.hpp>
+#include <common/memory.hpp>
+#include <config/path.h>
 #include <core/components/camera.hpp>
 #include <core/entity_systems/camera_controller.hpp>
-#include <common/memory.hpp>
-#include <entities/world_entity.hpp>
+#include <core/renderers/scene_renderer.hpp>
 #include <core/world_systems/render_system.hpp>
+#include <entities/world_entity.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
-#include <vulkan/vulkan.hpp>
+#include <IconsFontAwesome6.h>
+#include <fmt/core.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imnodes.h>
-#include <IconsFontAwesome6.h>
-#include <fmt/core.h>
 
 namespace aln
 {
@@ -121,7 +120,7 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
             ImGui::EndMenuBar();
         }
     }
-    ImGui::End(); 
+    ImGui::End();
 
     if (ImGui::Begin(ICON_FA_GLOBE " Scene", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar))
     {
@@ -151,6 +150,7 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
         m_scenePreviewHeight = dim.y;
         ImGui::Image((ImTextureID) renderedSceneImageDescriptorSet, {m_scenePreviewWidth, m_scenePreviewHeight});
     }
+
     ImGui::End();
 
     if (ImGui::Begin("LogsViewport", nullptr, ImGuiWindowFlags_NoTitleBar))
@@ -202,6 +202,7 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
     // Windows
     m_assetsBrowser.Update(context);
     m_entityInspector.Update(context);
+    m_propertiesInspector.Update(context);
 
     for (auto& [id, pWindow] : m_assetWindows)
     {
@@ -413,6 +414,7 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
 
     m_assetsBrowser.Initialize(&m_editorWindowContext);
     m_entityInspector.Initialize(&m_editorWindowContext);
+    m_propertiesInspector.Initialize(&m_editorWindowContext);
 
     m_scenePath = scenePath;
 
@@ -442,6 +444,7 @@ void Editor::Shutdown()
 
     m_assetsBrowser.Shutdown();
     m_entityInspector.Shutdown();
+    m_propertiesInspector.Shutdown();
 
     ReflectedTypeEditor::Shutdown();
 }

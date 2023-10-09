@@ -2,6 +2,7 @@
 
 #include "component.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/transform.hpp>
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
@@ -18,6 +19,7 @@ class SpatialComponent : public IComponent
   private:
     friend class Entity;
     friend class EntityDescriptor;
+    friend class EntityInspector;
 
     /// @brief List of attached children components.
     Vector<SpatialComponent*> m_spatialChildren;
@@ -42,6 +44,8 @@ class SpatialComponent : public IComponent
     virtual ~SpatialComponent() {}
 
     bool HasSocket(const UUID& socketID);
+
+    inline bool HasChildren() const { return m_spatialChildren.empty(); }
 
     /// @brief Attach this component to another one.
     /// @param pParentComponent: The component to attach to.
@@ -73,10 +77,13 @@ class SpatialComponent : public IComponent
     void SetLocalTransformRotationEuler(const Vec3& euler);
 
     /// @brief Set this spatial component's position
+    /// @todo Rename to "translation" to match transforms
     void SetLocalTransformPosition(const Vec3& pos);
 
     /// @brief Set this spatial component's scale
     void SetLocalTransformScale(const Vec3& scale);
+
+    void SetLocalTransformPositionAndRotation(const Vec3& pos, const Quaternion& rotation);
 
     /// @brief Offset this spatial component's position by a delta
     void OffsetLocalTransformPosition(const Vec3& offset);

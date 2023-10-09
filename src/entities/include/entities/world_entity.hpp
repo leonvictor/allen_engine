@@ -106,5 +106,7 @@ class WorldEntity
         assert(pComponent != nullptr);
         m_entityMap.StartComponentEditing(m_loadingContext, pComponent);
     }
+
+    void EndComponentEditing(IComponent* pComponent) {}
 };
 } // namespace aln
