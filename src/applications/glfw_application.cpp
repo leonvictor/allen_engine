@@ -305,7 +305,6 @@ class GLFWApplication
     /// TODO: override glfw and poll events directly from the os
     static void KeyCallback(GLFWwindow* pGlfwWindow, int key, int scancode, int action, int mods)
     {
-        // TODO: Handle glfw mappings here rather than in the keyboard class
         auto pApp = reinterpret_cast<GLFWApplication*>(glfwGetWindowUserPointer(pGlfwWindow));
         pApp->m_glfwInputMapper.MapKeyBoardInput(key, action);
     }
@@ -377,9 +376,6 @@ class GLFWApplication
 
 int main()
 {
-#ifdef ALN_DEBUG
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
     aln::GLFWApplication* pApp = aln::New<aln::GLFWApplication>();
 
     pApp->Initialize();

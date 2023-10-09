@@ -6,8 +6,6 @@
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
 
-#include <common/containers/vector.hpp>
-
 namespace aln
 {
 

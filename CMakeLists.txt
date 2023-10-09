@@ -89,6 +89,10 @@ add_compile_definitions(${IMGUI_COMPILE_DEFINITIONS})
 
 add_executable(main ${SOURCE})
 
+add_compile_definitions(
+        $<$<CONFIG:Debug>:ALN_DEBUG>
+)
+
 # fmt
 FetchContent_Declare(
     fmt
@@ -114,18 +118,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(enkiTS)
 
 # Tracy
-target_compile_definitions(main PRIVATE
-    $<$<CONFIG:ReleaseWithTracing>:
-        TRACY_ENABLE
-        TRACY_ON_DEMAND
-        TRACY_CALLSTACK
-        ALN_ENABLE_TRACING>
-)
-
+option(TRACY_ENABLE "" true)
+option(TRACY_CALLSTACK "" true)
 FetchContent_Declare(
     TracyClient
     GIT_REPOSITORY https://github.com/wolfpld/tracy
-    GIT_TAG a8511d357650282c6915f7aa9775e9c4945e42b5 # v0.8.2
+    GIT_TAG 897aec5b062664d2485f4f9a213715d2e527e0ca # v0.9.1
 )
 
 FetchContent_MakeAvailable(TracyClient)

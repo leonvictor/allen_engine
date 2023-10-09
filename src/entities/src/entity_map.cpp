@@ -8,16 +8,11 @@
 #include <common/threading/task_service.hpp>
 #include <reflection/type_info.hpp>
 
+#include <tracy/Tracy.hpp>
+
 #include <algorithm>
 #include <execution>
 #include <functional>
-#include <mutex>
-#include <semaphore>
-#include <stdexcept>
-#include <thread>
-
-#include <Tracy.hpp>
-#include <common/TracySystem.hpp>
 
 namespace aln
 {

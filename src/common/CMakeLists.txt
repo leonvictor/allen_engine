@@ -7,7 +7,6 @@ add_library(${LIB_NAME}
     src/transform.cpp
     src/colors.cpp
     src/serialization/binary_archive.cpp
-    src/memory.cpp
     src/uuid.cpp
     src/string_id.cpp
     src/maths/vec2.cpp
@@ -34,7 +33,7 @@ target_include_directories(${LIB_NAME}
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC 
-    glm enkiTS lz4_static xxHash::xxhash
+    glm enkiTS lz4_static xxHash::xxhash TracyClient
 )
 
 generate_export_header(${LIB_NAME}

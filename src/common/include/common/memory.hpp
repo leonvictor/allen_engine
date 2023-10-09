@@ -5,31 +5,48 @@
 #include <malloc.h>
 #include <memory>
 
+#ifdef ALN_DEBUG
+#include <tracy/Tracy.hpp>
+#endif
+
 namespace aln
 {
 
-void* Allocate(size_t size, size_t alignment = 8);
-void Free(void* ptr);
+inline void* Allocate(size_t size, size_t alignment = 8)
+{
+    auto ptr = _aligned_malloc(size, alignment);
+#ifdef ALN_DEBUG
+    TracyAllocS(ptr, size, 15);
+#endif
+    return ptr;
+}
+
+inline void Free(void* ptr)
+{
+#ifdef ALN_DEBUG
+    TracyFreeS(ptr, 15);
+#endif
+    _aligned_free(ptr);
+}
 
 template <typename T, typename... ConstructorParameters>
-T* New(ConstructorParameters&&... params)
+inline T* New(ConstructorParameters&&... params)
 {
     void* ptr = Allocate(sizeof(T), alignof(T));
     return std::construct_at<T>((T*) ptr, std::forward<ConstructorParameters>(params)...);
 }
 
 template <typename T, typename... ConstructorParameters>
-T* PlacementNew(void* ptr, ConstructorParameters&&... params)
+inline T* PlacementNew(void* ptr, ConstructorParameters&&... params)
 {
     return std::construct_at<T>((T*) ptr, std::forward<ConstructorParameters>(params)...);
 }
 
 template <typename T>
-void Delete(T*& ptr) noexcept
+inline void Delete(T*& ptr) noexcept
 {
     assert(ptr != nullptr);
     ptr->~T();
     Free(ptr);
 }
-
 } // namespace aln
