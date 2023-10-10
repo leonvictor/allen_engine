@@ -410,5 +410,13 @@ int main()
 
     aln::Delete(pApp); // Test deletion
 
+#ifdef ALN_DEBUG
+    tracy::GetProfiler().RequestShutdown();
+    while (!tracy::GetProfiler().HasShutdownFinished())
+    {
+        continue;
+    }
+#endif
+
     return EXIT_SUCCESS;
 }

@@ -29,6 +29,19 @@ inline void Free(void* ptr)
     _aligned_free(ptr);
 }
 
+#ifdef ALN_DEBUG
+// Simple version with no marking to be used by external libraries
+inline void* AllocateUnmarked(size_t size, size_t alignment = 8)
+{
+    return _aligned_malloc(size, alignment);
+}
+
+inline void FreeUnmarked(void* ptr)
+{
+    _aligned_free(ptr);
+}
+#endif
+
 template <typename T, typename... ConstructorParameters>
 inline T* New(ConstructorParameters&&... params)
 {

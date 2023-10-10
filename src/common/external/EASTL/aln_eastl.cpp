@@ -20,9 +20,15 @@ allocator::allocator(const allocator&, const char* EASTL_NAME(pName)) {}
 allocator& allocator::operator=(const allocator& EASTL_NAME(alloc)) { return *this; }
 const char* allocator::get_name() const { return EASTL_ALLOCATOR_DEFAULT_NAME; }
 void allocator::set_name(const char* EASTL_NAME(pName)) {}
+#ifdef ALN_DEBUG
+void* allocator::allocate(size_t n, int flags){ return aln::AllocateUnmarked(n, EASTL_ALLOCATOR_MIN_ALIGNMENT); }
+void* allocator::allocate(size_t n, size_t alignment, size_t offset, int flags) { return aln::AllocateUnmarked(n, alignment); }
+void allocator::deallocate(void* p, size_t) { aln::FreeUnmarked(p); }
+#else
 void* allocator::allocate(size_t n, int flags) { return aln::Allocate(n, EASTL_ALLOCATOR_MIN_ALIGNMENT); }
 void* allocator::allocate(size_t n, size_t alignment, size_t offset, int flags) { return aln::Allocate(n, alignment); }
 void allocator::deallocate(void* p, size_t) { aln::Free(p); }
+#endif
 bool operator==(const allocator&, const allocator&) { return true; }
 bool operator!=(const allocator&, const allocator&) { return false; }
 
