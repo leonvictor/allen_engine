@@ -81,6 +81,8 @@ class Engine
 
         // TODO: Get rid of all the references to m_device
         // They should not be part of this class
+
+        // Initialize services
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
         m_serviceProvider.RegisterService(&m_timeService);
@@ -90,8 +92,9 @@ class Engine
         m_updateContext.m_pServiceProvider = &m_serviceProvider;
 
         // Initialize modules
-        EngineModuleContext moduleContext;
-        moduleContext.m_pTypeRegistryService = &m_typeRegistryService;
+        EngineModuleContext moduleContext = {
+            .m_pTypeRegistryService = &m_typeRegistryService,
+        };
 
         m_coreModule.Initialize(moduleContext);
         m_assetsModule.Initialize(moduleContext);
@@ -120,18 +123,31 @@ class Engine
 
     void Shutdown()
     {
-        // TODO
         m_editor.Shutdown();
 
+        // TODO: Destroy world entity
+
+        EngineModuleContext moduleContext = {
+            .m_pTypeRegistryService = &m_typeRegistryService,
+        };
+
+        m_coreModule.Shutdown(moduleContext);
+        m_assetsModule.Shutdown(moduleContext);
+        m_animModule.Shutdown(moduleContext);
+        m_toolingModule.Shutdown(moduleContext);
+        m_entitiesModule.Shutdown(moduleContext);
+
+        m_serviceProvider.UnregisterAllServices();
         m_sceneRenderer.Shutdown();
     }
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
     void ShareImGuiContext()
     {
-        EditorImGuiContext context;
-        context.m_pImGuiContext = ImGui::GetCurrentContext();
-        context.m_pImNodesContext = ImNodes::GetCurrentContext();
+        EditorImGuiContext context = {
+            .m_pImGuiContext = ImGui::GetCurrentContext(),
+            .m_pImNodesContext = ImNodes::GetCurrentContext(),
+        };
 
         ImGui::GetAllocatorFunctions(&context.m_pAllocFunc, &context.m_pFreeFunc, &context.m_pUserData);
 
@@ -140,7 +156,6 @@ class Engine
 
     void CreateWorld()
     {
-
     }
 
     void Update()

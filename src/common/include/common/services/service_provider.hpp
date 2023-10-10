@@ -6,7 +6,6 @@
 
 #include <typeindex>
 
-
 namespace aln
 {
 class ServiceProvider
@@ -15,8 +14,6 @@ class ServiceProvider
     HashMap<std::type_index, IService*, std::hash<std::type_index>> m_services;
 
   public:
-    ServiceProvider() {}
-
     template <typename T>
     void RegisterService(T* pService)
     {
@@ -32,6 +29,11 @@ class ServiceProvider
     {
         auto typeID = std::type_index(typeid(T));
         return (T*) m_services[typeID];
+    }
+
+    void UnregisterAllServices()
+    {
+        m_services.clear();
     }
 };
 } // namespace aln

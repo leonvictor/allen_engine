@@ -11,5 +11,6 @@ class Module : public IEngineModule
 {
   public:
     void Initialize(EngineModuleContext& context) override;
+    void Shutdown(EngineModuleContext& context) override;
 };
 } // namespace aln::Core

@@ -12,5 +12,6 @@ struct EngineModuleContext
 class IEngineModule
 {
     virtual void Initialize(EngineModuleContext& context) = 0;
+    virtual void Shutdown(EngineModuleContext& context) = 0;
 };
 } // namespace aln

@@ -20,15 +20,6 @@ namespace aln::vkg
 class ImGUI
 {
   public:
-    ~ImGUI()
-    {
-        // Cleanup ImGui
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-        ImNodes::DestroyContext();
-    }
-
     void Initialize(GLFWwindow* pGlfwWindow, Device* pDevice, RenderPass& renderPass, int nSwapchainImages)
     {
         // Initialize Imgui context
@@ -135,6 +126,15 @@ class ImGUI
             { ImGui_ImplVulkan_CreateFontsTexture(cb); });
 
         ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+
+    void Shutdown()
+    {
+        // Cleanup ImGui
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        ImNodes::DestroyContext();
     }
 
     void NewFrame()
