@@ -6,25 +6,22 @@
 #include <editor/module/module.hpp>
 #include <entities/module/module.hpp>
 
-#include <core/renderers/scene_renderer.hpp>
-#include <core/renderers/ui_renderer.hpp>
-#include <core/world_systems/render_system.hpp>
-
 #include <assets/asset_service.hpp>
-#include <core/services/time_service.hpp>
-#include <input/input_service.hpp>
-#include <reflection/services/type_registry_service.hpp>
 #include <common/services/service_provider.hpp>
-
-#include <entities/world_entity.hpp>
-#include <entities/world_update.hpp>
-
 #include <core/asset_loaders/animation_graph_loader.hpp>
 #include <core/asset_loaders/animation_loader.hpp>
 #include <core/asset_loaders/material_loader.hpp>
 #include <core/asset_loaders/mesh_loader.hpp>
 #include <core/asset_loaders/skeleton_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
+#include <core/renderers/scene_renderer.hpp>
+#include <core/renderers/ui_renderer.hpp>
+#include <core/services/time_service.hpp>
+#include <core/world_systems/render_system.hpp>
+#include <entities/world_entity.hpp>
+#include <entities/world_update.hpp>
+#include <input/input_service.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
 #include <editor/editor.hpp>
 
@@ -115,9 +112,9 @@ class Engine
 
         m_worldEntity.Initialize(m_serviceProvider);
         m_worldEntity.CreateSystem<GraphicsSystem>(&m_sceneRenderer);
-        
+
         m_editor.Initialize(m_serviceProvider, "scene.aln");
-        
+
         ShareImGuiContext();
     }
 
@@ -138,7 +135,12 @@ class Engine
         m_entitiesModule.Shutdown(moduleContext);
 
         m_serviceProvider.UnregisterAllServices();
+
+        m_imgui.Shutdown();
+
         m_sceneRenderer.Shutdown();
+        
+        // TODO: ui renderer
     }
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.

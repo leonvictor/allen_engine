@@ -15,8 +15,9 @@ class TypeRegistryService : public IService
 {
     friend class reflect::TypeInfo;
 
-    HashMap<StringID, const reflect::TypeInfo*> m_typeInfos;
-    HashMap<std::string, Vector<const reflect::TypeInfo*>, std::hash<std::string>> m_scopes;
+  private:
+    HashMap<StringID, reflect::TypeInfo*> m_typeInfos;
+    HashMap<std::string, Vector<reflect::TypeInfo*>, std::hash<std::string>> m_scopes;
 
   public:
     /// @brief Update internal maps with types registered in the current DLL.
@@ -40,14 +41,14 @@ class TypeRegistryService : public IService
         return it->second;
     }
 
-    const Vector<const reflect::TypeInfo*>& GetTypesInScope(const char* scopeName) const
+    const Vector<reflect::TypeInfo*>& GetTypesInScope(const char* scopeName) const
     {
         auto it = m_scopes.find(scopeName);
         assert(it != m_scopes.end());
         return it->second;
     }
 
-    const HashMap<StringID, const reflect::TypeInfo*>& GetAllRegisteredTypes() const
+    const HashMap<StringID, reflect::TypeInfo*>& GetAllRegisteredTypes() const
     {
         return m_typeInfos;
     }

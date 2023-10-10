@@ -11,6 +11,8 @@ namespace aln
 {
 HashMap<StringID, IPrimitiveTypeEditor*> ReflectedTypeEditor::PrimitiveTypeEditors;
 
+ReflectedTypeEditor::~ReflectedTypeEditor() { assert(PrimitiveTypeEditors.empty()); }
+
 IPrimitiveTypeEditor* ReflectedTypeEditor::GetOrCreatePrimitiveTypeEditor(const StringID& typeID)
 {
     auto [it, emplaced] = PrimitiveTypeEditors.try_emplace(typeID);

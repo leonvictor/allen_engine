@@ -81,7 +81,11 @@ class EntityMap
 
   public:
     EntityMap(bool isTransient = false);
+    
     ~EntityMap();
+    EntityMap(EntityMap& other) = delete;
+    EntityMap(EntityMap&& other) = delete;
+    void operator=(EntityMap& other) = delete;
 
     /// @brief Create an entity. The entity will be added to the world during the next loading phase.
     Entity* CreateEntity(std::string name = "");

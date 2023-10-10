@@ -385,7 +385,7 @@ class GLFWApplication
                                 {
                                     gamepad.SetButtonReleased((Gamepad::Button) buttonIdx);
                                 }
-                            } 
+                            }
                         }
 
                         gamepad.SetLeftStickState({state.axes[GLFW_GAMEPAD_AXIS_LEFT_X], state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]});

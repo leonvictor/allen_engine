@@ -2,14 +2,17 @@
 
 #include "primitive_type_editors.hpp"
 
+#include <common/containers/hash_map.hpp>
 #include <common/event.hpp>
 #include <reflection/reflected_type.hpp>
-#include <common/containers/hash_map.hpp>
 
 namespace aln
 {
 
-namespace reflect { class ClassMemberInfo; }
+namespace reflect
+{
+class ClassMemberInfo;
+}
 
 struct TypeEditedEventDetails
 {
@@ -36,6 +39,8 @@ class ReflectedTypeEditor
     static IPrimitiveTypeEditor* GetOrCreatePrimitiveTypeEditor(const StringID& typeID);
 
   public:
+    ~ReflectedTypeEditor();
+
     static void Initialize() {}
     static void Shutdown();
 

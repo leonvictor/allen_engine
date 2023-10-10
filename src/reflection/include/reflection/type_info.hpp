@@ -139,11 +139,11 @@ class TypeInfo
 
   protected:
     // Registry
-    inline static HashMap<StringID, const TypeInfo*> LookUpMap;
-    inline static HashMap<std::string, Vector<const TypeInfo*>, std::hash<std::string>> Scopes;
+    inline static HashMap<StringID, TypeInfo*> LookUpMap;
+    inline static HashMap<std::string, Vector<TypeInfo*>, std::hash<std::string>> Scopes;
 
     /// @brief Register a type to the dll-local maps. Polled from each dlls during module initialization
-    static void RegisterTypeInfo(const TypeInfo* pTypeInfo, const std::string& scopeName = "")
+    static void RegisterTypeInfo(TypeInfo* pTypeInfo, const std::string& scopeName = "")
     {
         assert(pTypeInfo != nullptr);
         TypeInfo::LookUpMap.emplace(pTypeInfo->m_typeID, pTypeInfo);
