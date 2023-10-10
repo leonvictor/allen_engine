@@ -1,9 +1,10 @@
 #pragma once
 
 #include "../mesh.hpp"
+#include "../skeletal_mesh.hpp"
+#include "../static_mesh.hpp"
 
 #include <assets/loader.hpp>
-
 
 namespace aln
 {
@@ -105,10 +106,9 @@ class MeshLoader : public IAssetLoader
         };
 
         m_pDevice->GetVkDevice().updateDescriptorSets(writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
-        
+
         pMesh->m_descriptorSet = std::move(descriptorSet);
         m_pDevice->SetDebugUtilsObjectName(pMesh->m_descriptorSet.get(), "Mesh Descriptor Set");
-
     }
 };
 } // namespace aln

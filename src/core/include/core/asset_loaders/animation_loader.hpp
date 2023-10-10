@@ -1,7 +1,8 @@
 #pragma once
 
-#include <assets/loader.hpp>
 #include <anim/animation_clip.hpp>
+#include <assets/loader.hpp>
+#include <graphics/device.hpp>
 
 namespace aln
 {
@@ -25,7 +26,7 @@ class AnimationLoader : public IAssetLoader
 
         archive >> pAnim->m_duration;
         archive >> pAnim->m_framesPerSecond;
-        
+
         size_t trackCount;
         archive >> trackCount;
 
