@@ -4,9 +4,9 @@
 #include "../controls/button_control.hpp"
 #include "../input_device.hpp"
 
-#include <common/maths/vec2.hpp>
 #include <common/containers/array.hpp>
 #include <common/containers/hash_map.hpp>
+#include <common/maths/vec2.hpp>
 
 #include <map>
 
@@ -32,16 +32,14 @@ class Mouse : IInputDevice
     };
 
   private:
-    static const HashMap<uint8_t, Button> GlfwButtonMap;
-
     // Position in screen space.
     Vec2 m_position;
 
     // Difference in cursor position since last frame.
-    Vec2 m_delta = {0, 0};
+    Vec2 m_delta = Vec2::Zeroes;
 
     // Difference in position of the scroller since last frame.
-    Vec2 m_scrollDelta = {0, 0};
+    Vec2 m_scrollDelta = Vec2::Zeroes;
 
     /// Mouse buttons
     Array<ButtonControl, 8> m_buttons;
@@ -50,8 +48,9 @@ class Mouse : IInputDevice
     /// @todo Rename to scroll (or m_buttons to m_buttonControls but match them)
     AxisControl m_scrollControl;
 
+  private:
     /// @brief Update position and delta according to the new provided position.
-    void SetCursorPosition(Vec2 position)
+    void SetCursorPosition(const Vec2& position)
     {
         m_delta = position - m_position;
         m_position = position;
@@ -72,8 +71,7 @@ class Mouse : IInputDevice
         m_delta = {0.0f, 0.0f};
     }
 
-    /// @brief Translate a GLFW Event to KeyControl
-    void UpdateControlState(int code, int action);
+    void UpdateControlState(const Button& button, const ButtonState& buttonState);
 
     void UpdateScrollControlState(float xdelta, float ydelta);
 

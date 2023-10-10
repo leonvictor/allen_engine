@@ -35,14 +35,14 @@ class InputService : public IService
     Gamepad m_gamepad;
 
     // TODO: Merge in a single function and handle device internally
-    void UpdateKeyboardControlState(const Keyboard::Key& key, ButtonState& buttonState)
+    void UpdateKeyboardControlState(const Keyboard::Key& key, const ButtonState& buttonState)
     {
         m_keyboard.UpdateControlState(key, buttonState);
     }
 
-    void UpdateMouseControlState(int code, int action)
+    void UpdateMouseControlState(const Mouse::Button& button, const ButtonState& buttonState)
     {
-        m_mouse.UpdateControlState(code, action);
+        m_mouse.UpdateControlState(button, buttonState);
     }
 
     void UpdateScrollControlState(float xoffset, float yoffset)

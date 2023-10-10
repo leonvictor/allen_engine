@@ -147,8 +147,7 @@ class Keyboard : public IInputDevice
     Array<ButtonControl, 131> m_keys;
 
     /// @brief Translate a GLFW Event to ButtonControl
-    /// @todo Move to virtual fn in InputDevice (possibly InputControl even ?)
-    void UpdateControlState(const Keyboard::Key& key, ButtonState& buttonState);
+    void UpdateControlState(const Keyboard::Key& key, const ButtonState& buttonState);
 
     void Update() override
     {

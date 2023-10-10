@@ -7,45 +7,14 @@
 namespace aln
 {
 
-// 1:1 Map from glfw mouse button input codes to ours
-const HashMap<uint8_t, Mouse::Button> Mouse::GlfwButtonMap = {
-    {GLFW_MOUSE_BUTTON_LEFT, Mouse::Button::Left},
-    {GLFW_MOUSE_BUTTON_RIGHT, Mouse::Button::Right},
-    {GLFW_MOUSE_BUTTON_MIDDLE, Mouse::Button::Middle},
-    {GLFW_MOUSE_BUTTON_4, Mouse::Button::Button4},
-    {GLFW_MOUSE_BUTTON_5, Mouse::Button::Button5},
-    {GLFW_MOUSE_BUTTON_6, Mouse::Button::Button6},
-    {GLFW_MOUSE_BUTTON_7, Mouse::Button::Button7},
-    {GLFW_MOUSE_BUTTON_8, Mouse::Button::Button8},
-};
-
-void Mouse::UpdateControlState(int code, int action)
+void Mouse::UpdateControlState(const Button& button, const ButtonState& buttonState)
 {
-    // TODO: Move mapping to glfw mapping wrapper
-    // Ignore GLFW key repeat events as they are unreliable. Eventually we should gather the events directly from the hardware.
-    if (action == GLFW_REPEAT)
-    {
-        return;
-    }
-
-    // Find the control if it has already been added to the device, create it otherwise
-    auto iter = GlfwButtonMap.find(code);
-    assert(iter != GlfwButtonMap.end());
-
-    // Update the control value
-    if (action == GLFW_PRESS)
-    {
-        m_buttons[(uint8_t) iter->second].SetValue(ButtonState::Pressed);
-    }
-
-    else if (action == GLFW_RELEASE)
-    {
-        m_buttons[(uint8_t) iter->second].SetValue(ButtonState::Released);
-    }
+    auto& buttonControl = m_buttons[(uint8_t) button];
+    buttonControl.SetValue(buttonState);
 
     // Create and populate a control state changed event
     auto& event = m_statesChanged.emplace_back();
-    event.m_pControl = &m_buttons[(uint8_t) iter->second];
+    event.m_pControl = &buttonControl;
 }
 
 void Mouse::UpdateScrollControlState(float xdelta, float ydelta)

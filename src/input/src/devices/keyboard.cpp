@@ -6,7 +6,7 @@
 namespace aln
 {
 
-void Keyboard::UpdateControlState(const Keyboard::Key& keyCode, ButtonState& buttonState)
+void Keyboard::UpdateControlState(const Keyboard::Key& keyCode, const ButtonState& buttonState)
 {
     auto& keyControl = m_keys[(uint16_t) keyCode];
     keyControl.SetValue(buttonState);
