@@ -356,46 +356,48 @@ class GLFWApplication
     void PollGamepadInput()
     {
         constexpr uint8_t MAX_JOYSTICKS = 16;
-        for (auto joystickIdx = 0; joystickIdx < MAX_JOYSTICKS; ++joystickIdx)
+        //  TMP: Only use 1 joystick
+        // for (auto joystickIdx = 0; joystickIdx < MAX_JOYSTICKS; ++joystickIdx)
+        //{
+        auto joystickIdx = 0;
+        if (glfwJoystickPresent(joystickIdx))
         {
-            if (glfwJoystickPresent(joystickIdx))
+            if (glfwJoystickIsGamepad(joystickIdx))
             {
-                if (glfwJoystickIsGamepad(joystickIdx))
-                {
-                    // TODO: Handle multiple controllers
-                    auto& gamepad = m_engine.GetInputService().m_gamepad;
-                    GLFWgamepadstate state;
+                // TODO: Handle multiple controllers
+                auto& gamepad = m_engine.GetInputService().m_gamepad;
 
-                    if (glfwGetGamepadState(joystickIdx, &state))
+                GLFWgamepadstate state;
+                if (glfwGetGamepadState(joystickIdx, &state))
+                {
+                    for (auto buttonIdx = 0; buttonIdx < GLFW_GAMEPAD_BUTTON_LAST; ++buttonIdx)
                     {
-                        for (auto buttonIdx = 0; buttonIdx < GLFW_GAMEPAD_BUTTON_LAST; ++buttonIdx)
+                        // Only trigger events if the state changed
+                        if (state.buttons[buttonIdx] == GLFW_PRESS)
                         {
-                            // Only trigger events if the state changed
-                            if (state.buttons[buttonIdx] == GLFW_PRESS)
+                            if (!gamepad.m_buttons[buttonIdx].IsHeld())
                             {
-                                if (!gamepad.m_buttons[buttonIdx].IsHeld())
-                                {
-                                    // TODO: Map from GLFW button to our actual values
-                                    gamepad.SetButtonPressed((Gamepad::Button) buttonIdx);
-                                }
-                            }
-                            else
-                            {
-                                if (gamepad.m_buttons[buttonIdx].IsHeld())
-                                {
-                                    gamepad.SetButtonReleased((Gamepad::Button) buttonIdx);
-                                }
+                                // TODO: Map from GLFW button to our actual values
+                                gamepad.SetButtonPressed((Gamepad::Button) buttonIdx);
                             }
                         }
-
-                        gamepad.SetLeftStickState({state.axes[GLFW_GAMEPAD_AXIS_LEFT_X], state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]});
-                        gamepad.SetRightStickState({state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X], state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]});
-                        gamepad.SetLeftTriggerState(state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER]);
-                        gamepad.SetRightTriggerState(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]);
+                        else
+                        {
+                            if (gamepad.m_buttons[buttonIdx].IsHeld())
+                            {
+                                gamepad.SetButtonReleased((Gamepad::Button) buttonIdx);
+                            }
+                        }
                     }
+
+                    gamepad.SetLeftStickState({state.axes[GLFW_GAMEPAD_AXIS_LEFT_X], state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]});
+                    gamepad.SetRightStickState({state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X], state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]});
+                    gamepad.SetLeftTriggerState(state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER]);
+                    gamepad.SetRightTriggerState(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]);
                 }
             }
         }
+        //}
     }
 };
 } // namespace aln

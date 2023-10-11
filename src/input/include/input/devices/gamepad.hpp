@@ -76,8 +76,8 @@ class Gamepad : public IInputDevice
         if (magnitude > deadzone.m_innerRange)
         {
             float const remainingRange = (1.0f - deadzone.m_innerRange - deadzone.m_outerRange);
-            float remaingMagnitude = Maths::Min(1.0f, (magnitude - deadzone.m_innerRange) / remainingRange);
-            return direction * remaingMagnitude;
+            float remainingMagnitude = Maths::Min(1.0f, (magnitude - deadzone.m_innerRange) / remainingRange);
+            return direction * remainingMagnitude;
         }
         else
         {

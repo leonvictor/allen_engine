@@ -2,5 +2,5 @@
 
 namespace aln::Maths
 {
-static constexpr float Epsilon = 0.0000001;
+static constexpr float Epsilon = 0.000001;
 }
