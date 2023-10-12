@@ -1,18 +1,25 @@
 #include "maths/quaternion.hpp"
 
+#include "maths/angles.hpp"
 #include "maths/matrix4x4.hpp"
 #include "maths/vec3.hpp"
 
 namespace aln
 {
-Quaternion Quaternion ::FromEulerAngles(const Vec3& eulerAnglesInRadians) { return Quaternion(glm::quat(eulerAnglesInRadians.AsGLM())); }
-
-Vec3 Quaternion::AsEulerAngles() const
+// note: glm uses x = pitch, y = yaw, r = roll
+Quaternion Quaternion::FromEulerAngles(const EulerAnglesRadians& eulerAngles)
 {
-    return Vec3(glm::eulerAngles(AsGLM()));
+    auto vec = glm::vec3((float) eulerAngles.pitch, (float) eulerAngles.yaw, (float) eulerAngles.roll);
+    return Quaternion(glm::quat(vec)).Normalized();
 }
 
-Matrix4x4 Quaternion::AsMatrix() const { return Matrix4x4(glm::toMat4(AsGLM())); }
+EulerAnglesRadians Quaternion::ToEulerAngles() const
+{
+    auto vec = glm::eulerAngles(AsGLM());
+    return EulerAnglesRadians((Radians) vec.y, (Radians) vec.x, (Radians) vec.z);
+}
+
+Matrix4x4 Quaternion::ToMatrix() const { return Matrix4x4(glm::toMat4(AsGLM())); }
 
 Vec3 Quaternion::RotateVector(const Vec3& vector) const { return glm::rotate(AsGLM(), vector.AsGLM()); }
 

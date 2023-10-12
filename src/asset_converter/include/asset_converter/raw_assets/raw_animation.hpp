@@ -144,7 +144,7 @@ struct AssimpAnimationReader
             // Ideally we would let the user control the import process from the editor and pick whether to adjust or not
             auto rootMotionTransform = rootBoneTransform;
             rootMotionTransform.SetTranslation(rootMotionTransform.GetTranslation() * Vec3(1.0f, 0.0f, 1.0f));
-            rootMotionTransform.SetRotation(Quaternion(1.0f, 0.0f, 0.0f, 0.0f));
+            rootMotionTransform.SetRotation(Quaternion::Identity);
             animation.m_rootMotionTrack.push_back(rootMotionTransform);
 
             rootBoneTransform.SetTranslation(rootBoneTransform.GetTranslation() * Vec3::Y);

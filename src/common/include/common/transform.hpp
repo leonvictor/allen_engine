@@ -3,6 +3,7 @@
 #include "maths/maths.hpp"
 #include "maths/quaternion.hpp"
 #include "maths/vec3.hpp"
+#include "maths/angles.hpp"
 
 #include <aln_common_export.h>
 
@@ -43,7 +44,7 @@ class ALN_COMMON_EXPORT Transform
     inline const Vec3& GetTranslation() const { return m_translation; }
     inline const Quaternion& GetRotation() const { return m_rotation; }
     inline const Vec3& GetScale() const { return m_scale; }
-    inline const Vec3 GetRotationEuler() const { return m_rotation.AsEulerAngles().ToDegrees(); }
+    inline const EulerAnglesDegrees GetRotationEuler() const { return m_rotation.ToEulerAngles().ToDegrees(); }
 
     inline void SetTranslation(const Vec3& translation) { m_translation = translation; }
     inline void AddTranslation(const Vec3& translation) { m_translation = translation + m_translation; }
@@ -57,12 +58,11 @@ class ALN_COMMON_EXPORT Transform
     inline void AddRotation(const Quaternion& rotation) { m_rotation = rotation * m_rotation; }
 
     /// @brief Set the transform's rotation from euler angles given in degrees. Rotation order is XYZ.
-    inline void SetRotationEuler(const Vec3& eulerAnglesInDegrees) { m_rotation = Quaternion::FromEulerAngles(eulerAnglesInDegrees.ToRadians()).Normalized(); }
+    inline void SetRotationEuler(const EulerAnglesDegrees& eulerAngles) { m_rotation = Quaternion::FromEulerAngles(eulerAngles.ToRadians()).Normalized(); }
 
     inline void SetScale(const Vec3& scale) { m_scale = scale; }
 
     Matrix4x4 ToMatrix() const;
-
     Transform GetInverse() const;
 
     bool operator==(const Transform& b) const;
@@ -80,7 +80,7 @@ class ALN_COMMON_EXPORT Transform
     /// @brief Get the delta between two transforms. Scale is ignored !
     static Transform Delta(const Transform& from, const Transform& to)
     {
-        const auto& inverseFromRotation = from.m_rotation.GetInverse();
+        const auto& inverseFromRotation = from.m_rotation.Inversed();
 
         Transform delta;
         delta.m_rotation = to.m_rotation * inverseFromRotation;
@@ -91,18 +91,18 @@ class ALN_COMMON_EXPORT Transform
 
     Vec3 TranslateVector(const Vec3& vector) const { return m_translation + vector; }
     Vec3 RotateVector(const Vec3& vector) const { return m_rotation.RotateVector(vector); }
-    Vec3 ScaleVector(const Vec3& vector) const { return m_scale * vector; }
+    Vec3 ScaleVector(const Vec3& vector) const { return m_scale.Scale(vector); }
 
     Vec3 TransformPoint(const Vec3& point) const
     {
-        Vec3 out = m_rotation.RotateVector(m_scale * point);
+        Vec3 out = m_rotation.RotateVector(m_scale.Scale(point));
         out = out + m_translation;
         return out;
     }
 
     Vec3 TransformVector(const Vec3& vector) const
     {
-        auto out = m_scale * vector;
+        auto out = m_scale.Scale(vector);
         out = m_rotation.RotateVector(out);
         out = m_translation + out;
         return out;
@@ -112,8 +112,8 @@ class ALN_COMMON_EXPORT Transform
     Vec3 GetAxisY() const { return m_rotation.RotateVector(Vec3::Y); }
     Vec3 GetAxisZ() const { return m_rotation.RotateVector(Vec3::Z); }
 
-    Vec3 GetUpVector()const  { return m_rotation.RotateVector(Vec3::WorldUp); }
-    Vec3 GetForwardVector()const  { return m_rotation.RotateVector(Vec3::WorldForward); }
+    Vec3 GetUpVector() const  { return m_rotation.RotateVector(Vec3::WorldUp); }
+    Vec3 GetForwardVector() const  { return m_rotation.RotateVector(Vec3::WorldForward); }
     Vec3 GetRightVector() const { return m_rotation.RotateVector(Vec3::WorldRight); }
 
     /// @brief Transform composition (right-to-left)

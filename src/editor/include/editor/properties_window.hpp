@@ -3,6 +3,7 @@
 #include "editor_window.hpp"
 
 #include <reflection/reflected_type.hpp>
+#include <common/maths/angles.hpp>
 
 #include "reflected_types/reflected_type_editor.hpp"
 
@@ -17,7 +18,7 @@ class PropertiesWindow : public IEditorWindow
     UUID m_propertyEditingCompletedEventID;
 
     // TODO: Move to the quaternion widget directly
-    Vec3 m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
+    EulerAnglesDegrees m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
     bool m_uniformScale = true;
     
     ReflectedTypeEditor m_reflectedTypeEditor;

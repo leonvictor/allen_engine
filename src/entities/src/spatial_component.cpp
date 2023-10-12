@@ -1,5 +1,7 @@
 #include "spatial_component.hpp"
 
+#include <common/maths/angles.hpp>
+
 #include <algorithm>
 #include <stdexcept>
 
@@ -23,7 +25,7 @@ void SpatialComponent::CalculateWorldTransform(bool callback)
         Transform parent = m_pSpatialParent->GetWorldTransform();
         m_worldTransform.SetTranslation(parent.GetTranslation() + (parent.GetRotation().RotateVector(m_localTransform.GetTranslation())));
         m_worldTransform.SetRotation(parent.GetRotation() * m_localTransform.GetRotation());
-        m_worldTransform.SetScale(m_localTransform.GetScale() * parent.GetScale());
+        m_worldTransform.SetScale(m_localTransform.GetScale().Scale(parent.GetScale()));
     }
     if (callback)
     {
@@ -63,9 +65,9 @@ void SpatialComponent::AttachTo(SpatialComponent* pParentComponent, const UUID& 
 
     // Offset the current local transform so that the world transform stay identical when parent is changed
     auto parentTransform = pParentComponent->GetWorldTransform();
-    m_localTransform.SetScale(m_localTransform.GetScale() / parentTransform.GetScale());
-    m_localTransform.SetTranslation((parentTransform.GetRotation().GetConjugate().RotateVector(m_localTransform.GetTranslation())) - parentTransform.GetTranslation());
-    m_localTransform.SetRotation(parentTransform.GetRotation().GetConjugate() * m_localTransform.GetRotation());
+    m_localTransform.SetScale(m_localTransform.GetScale().Scale(1.0f / parentTransform.GetScale()));
+    m_localTransform.SetTranslation((parentTransform.GetRotation().Conjugated().RotateVector(m_localTransform.GetTranslation())) - parentTransform.GetTranslation());
+    m_localTransform.SetRotation(parentTransform.GetRotation().Conjugated() * m_localTransform.GetRotation());
 
     CalculateWorldTransform();
 
@@ -97,7 +99,7 @@ void SpatialComponent::SetLocalTransformRotation(const Quaternion& quat)
     CalculateWorldTransform(true);
 }
 
-void SpatialComponent::SetLocalTransformRotationEuler(const Vec3& euler)
+void SpatialComponent::SetLocalTransformRotationEuler(const EulerAnglesDegrees& euler)
 {
     m_localTransform.SetRotationEuler(euler);
     CalculateWorldTransform(true);
@@ -130,7 +132,8 @@ void SpatialComponent::OffsetLocalTransformPosition(const Vec3& offset)
 
 void SpatialComponent::OffsetLocalTransformRotation(const Quaternion& quatOffset)
 {
-    m_localTransform.SetRotation((m_localTransform.GetRotation() * quatOffset).Normalized());
+    auto rot = (m_localTransform.GetRotation() * quatOffset).Normalized();
+    m_localTransform.SetRotation(rot);
     CalculateWorldTransform(true);
 }
 } // namespace aln

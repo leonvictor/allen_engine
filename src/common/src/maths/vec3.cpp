@@ -7,8 +7,8 @@
 namespace aln
 {
 
-Matrix4x4 Vec3::AsTranslationMatrix() const { return Matrix4x4(glm::translate(AsGLM())); }
-Matrix4x4 Vec3::AsScalingMatrix() const { return Matrix4x4(glm::scale(AsGLM())); }
+Matrix4x4 Vec3::ToTranslationMatrix() const { return Matrix4x4(glm::translate(AsGLM())); }
+Matrix4x4 Vec3::ToScalingMatrix() const { return Matrix4x4(glm::scale(AsGLM())); }
 
 const Vec3 Vec3::Zeroes = Vec3(0.0f, 0.0f, 0.f);
 const Vec3 Vec3::Ones = Vec3(1.0f, 1.0f, 1.0f);

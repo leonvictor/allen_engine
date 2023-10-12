@@ -84,11 +84,11 @@ void PropertiesWindow::Update(const UpdateContext& context)
             // Rotation
             changed = false;
             ImGui::Text("Rotation");
-            changed |= ImGui::DragFloat("x##Rotation", &m_currentEulerRotation.x, 1.0f);
+            changed |= ImGui::DragFloat("x##Rotation", &m_currentEulerRotation.pitch.m_value, 1.0f);
             ImGui::SameLine();
-            changed |= ImGui::DragFloat("y##Rotation", &m_currentEulerRotation.y, 1.0f);
+            changed |= ImGui::DragFloat("y##Rotation", &m_currentEulerRotation.yaw.m_value, 1.0f);
             ImGui::SameLine();
-            changed |= ImGui::DragFloat("z##Rotation", &m_currentEulerRotation.z, 1.0f);
+            changed |= ImGui::DragFloat("z##Rotation", &m_currentEulerRotation.roll.m_value, 1.0f);
 
             if (changed)
             {

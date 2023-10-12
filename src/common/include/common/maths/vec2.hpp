@@ -29,29 +29,81 @@ class ALN_COMMON_EXPORT Vec2
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2(float x, float y) : x(x), y(y) {}
 
-    inline Vec2 Normalized() const { return Vec2(glm::normalize(AsGLM())); }
-    inline float Magnitude() const { return glm::length(AsGLM()); }
-    inline float SquaredMagnitude() const { return glm::length2(AsGLM()); }
-    inline Vec2 GetSign() const { return glm::sign(AsGLM()); }
+    Vec2 operator-() const { return Vec2(-x, -y); }
 
-    inline Vec2 ToDegrees() const { return Vec2(glm::degrees(AsGLM())); }
-    inline Vec2 ToRadians() const { return Vec2(glm::radians(AsGLM())); }
+    Vec2 operator+(const Vec2& other) const { return Vec2(x + other.x, y + other.y); }
+    Vec2 operator-(const Vec2& other) const { return Vec2(x - other.x, y - other.y); }
+    /// @brief Component-wise product
+    Vec2 operator*(const Vec2& other) const { return Vec2(x * other.x, y * other.y); }
+    /// @brief Component-wise division
+    Vec2 operator/(const Vec2& other) const { return Vec2(x / other.x, y / other.y); }
+
+    Vec2 operator+(float value) const { return Vec2(x + value, y + value); }
+    Vec2 operator-(float value) const { return Vec2(x - value, y - value); }
+    Vec2 operator*(float value) const { return Vec2(x * value, y * value); }
+    Vec2 operator/(float value) const { return Vec2(x / value, y / value); }
+
+    friend Vec2 operator+(float value, const Vec2& vec) { return vec + value; }
+    friend Vec2 operator-(float value, const Vec2& vec) { return Vec2(value - vec.x, value - vec.y); }
+    friend Vec2 operator*(float value, const Vec2& vec) { return vec * value; };
+    friend Vec2 operator/(float value, const Vec2& vec) { return Vec2(value / vec.x, value / vec.y); }
+
+    Vec2& operator+=(const Vec2& other)
+    {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
+    Vec2& operator-=(const Vec2& other)
+    {
+        x -= other.x;
+        y -= other.y;
+        return *this;
+    }
+    /// @brief Component-wise product
+    Vec2& operator*=(const Vec2& other)
+    {
+        x *= other.x;
+        y *= other.y;
+        return *this;
+    }
+    /// @brief Component-wise division
+    Vec2& operator/=(const Vec2& other)
+    {
+        x /= other.x;
+        y /= other.y;
+        return *this;
+    }
+
+    Vec2& operator+=(float value)
+    {
+        x += value;
+        y += value;
+        return *this;
+    }
+    Vec2& operator-=(float value)
+    {
+        x -= value;
+        y -= value;
+        return *this;
+    }
+    Vec2& operator*=(float value)
+    {
+        x *= value;
+        y *= value;
+        return *this;
+    }
+    Vec2& operator/=(float value)
+    {
+        x /= value;
+        y /= value;
+        return *this;
+    }
 
     inline bool IsNearEqual(const Vec2& other, float eps = Maths::Epsilon) const { return glm::all(glm::epsilonEqual(AsGLM(), other.AsGLM(), eps)); }
     inline bool IsNearZero(float eps = Maths::Epsilon) const { return IsNearEqual(Vec2::Zeroes, eps); }
-
-    Vec2 operator+(const Vec2& other) const { return Vec2(x + other.x, y + other.y); }
-    Vec2 operator+(float value) const { return Vec2(x + value, y + value); }
-    Vec2 operator-(const Vec2& other) const { return Vec2(x - other.x, y - other.y); }
-    Vec2 operator-(float value) const { return Vec2(x - value, y - value); }
-    Vec2 operator-() const { return Vec2(-x, -y); }
-    Vec2 operator*(const Vec2& other) const { return Vec2(x * other.x, y * other.y); }
-    Vec2 operator*(float value) const { return Vec2(x * value, y * value); }
-    friend Vec2 operator*(float t, const Vec2& a);
-    Vec2 operator/(const Vec2& other) const { return Vec2(x / other.x, y / other.y); }
-    Vec2 operator/(float value) const { return Vec2(x / value, y / value); }
-    friend Vec2 operator/(float t, const Vec2& a);
-    bool operator==(const Vec2& other) const { return x == other.x && y == other.y; }
+    bool operator==(const Vec2& other) const { return IsNearEqual(other); }
+    bool operator!=(const Vec2& other) const { return !IsNearEqual(other); }
 
     float& operator[](uint8_t idx)
     {
@@ -67,18 +119,19 @@ class ALN_COMMON_EXPORT Vec2
         return x;
     }
 
+    inline float Magnitude() const { return glm::length(AsGLM()); }
+    inline float SquaredMagnitude() const { return glm::length2(AsGLM()); }
+    inline Vec2 Sign() const { return glm::sign(AsGLM()); }
+
+    inline Vec2 Normalized() const { return Vec2(glm::normalize(AsGLM())); }
+
+    Vec2 Scale(const Vec2& other) const { return *this * other; }
+    Vec2 Translate(const Vec2& other) const { return *this + other; }
+
     /// @brief Linear interpolation between a and b by a t factor
     inline static Vec2 Lerp(const Vec2& a, const Vec2& b, float t) { return glm::mix(a.AsGLM(), b.AsGLM(), t); }
 
     static const Vec2 Zeroes;
     static const Vec2 Ones;
 };
-
-inline Vec2 operator*(float t, const Vec2& a) { return a * t; }
-inline Vec2 operator/(float t, const Vec2& a)
-{
-    assert(t != 0.0f);
-    return Vec2(t / a.x, t / a.y);
-};
-
 } // namespace aln

@@ -31,23 +31,97 @@ class ALN_COMMON_EXPORT Vec4
     Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
     Vec4(const Vec3& xyz, float w);
 
-    inline Vec4 Normalized() const { return Vec4(glm::normalize(AsGLM())); }
-    inline float Magnitude() const { return glm::length(AsGLM()); }
-    inline float SquaredMagnitude() const { return glm::length2(AsGLM()); }
+    Vec4 operator-() const { return Vec4(-x, -y, -z, -w); }
+    
+    Vec4 operator+(const Vec4& other) const { return Vec4(x + other.x, y + other.y, z + other.z, w + other.w); }
+    Vec4 operator-(const Vec4& other) const { return Vec4(x - other.x, y - other.y, z - other.z, w - other.w); }
+    /// @brief Component-wise product
+    Vec4 operator*(const Vec4& other) const { return Vec4(x * other.x, y * other.y, z * other.z, w * other.w); }
+    /// @brief Component-wise division
+    Vec4 operator/(const Vec4& other) const { return Vec4(x / other.x, y / other.y, z / other.z, w * other.w); }
 
+    Vec4 operator+(float value) const { return Vec4(x + value, y + value, z + value, w + value); }
+    Vec4 operator-(float value) const { return Vec4(x - value, y - value, z - value, w - value); }
+    Vec4 operator*(float value) const { return Vec4(x * value, y * value, z * value, w * value); }
+    Vec4 operator/(float value) const { return Vec4(x / value, y / value, z / value, w / value); }
+
+    friend Vec4 operator+(float value, const Vec4& vec) { return vec + value; }
+    friend Vec4 operator-(float value, const Vec4& vec) { return Vec4(value - vec.x, value - vec.y, value - vec.z, value - vec.w); }
+    friend Vec4 operator*(float value, const Vec4& vec) { return vec * value; }
+    friend Vec4 operator/(float value, const Vec4& vec) { return Vec4(value / vec.x, value / vec.y, value / vec.z, value / vec.w); }
+
+    Vec4& operator+=(const Vec4& other)
+    {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        w += other.w;
+        return *this;
+    }
+    Vec4& operator-=(const Vec4& other)
+    {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        w -= other.w;
+        return *this;
+    }
+    /// @brief Component-wise product
+    Vec4& operator*=(const Vec4& other)
+    {
+        x *= other.x;
+        y *= other.y;
+        z *= other.z;
+        w *= other.w;
+        return *this;
+    }
+    /// @brief Component-wise division
+    Vec4& operator/=(const Vec4& other)
+    {
+        x /= other.x;
+        y /= other.y;
+        z /= other.z;
+        w /= other.w;
+        return *this;
+    }
+    
+    Vec4& operator+=(float value)
+    {
+        x += value;
+        y += value;
+        z += value;
+        w += value;
+        return *this;
+    }
+    Vec4& operator-=(float value)
+    {
+        x -= value;
+        y -= value;
+        z -= value;
+        w -= value;
+        return *this;
+    }
+    Vec4& operator*=(float value)
+    {
+        x *= value;
+        y *= value;
+        z *= value;
+        w *= value;
+        return *this;
+    }
+    Vec4& operator/=(float value)
+    {
+        x /= value;
+        y /= value;
+        z /= value;
+        w /= value;
+        return *this;
+    }
+   
     inline bool IsNearEqual(const Vec4& other, float eps = Maths::Epsilon) const { return glm::all(glm::epsilonEqual(AsGLM(), other.AsGLM(), eps)); }
     inline bool IsNearZero(float eps = Maths::Epsilon) const { return IsNearEqual(Vec4::Zeroes); }
-
-    Vec4 operator+(const Vec4& other) const { return Vec4(x + other.x, y + other.y, z + other.z, w + other.w); }
-    Vec4 operator+(float value) const { return Vec4(x + value, y + value, z + value, w + value); }
-    Vec4 operator-(const Vec4& other) const { return Vec4(x - other.x, y - other.y, z - other.z, w - other.w); }
-    Vec4 operator-(float value) const { return Vec4(x - value, y - value, z - value, w - value); }
-    Vec4 operator-() const { return Vec4(-x, -y, -z, -w); }
-    Vec4 operator*(const Vec4& other) const { return Vec4(x * other.x, y * other.y, z * other.z, w * other.w); }
-    Vec4 operator*(float value) const { return Vec4(x * value, y * value, z * value, w * value); }
-    Vec4 operator/(const Vec4& other) const { return Vec4(x / other.x, y / other.y, z / other.z, w / other.w); }
-    Vec4 operator/(float value) const { return Vec4(x / value, y / value, z / value, w / value); }
-    bool operator==(const Vec4& other) const { return x == other.x && y == other.y && z == other.z && w == other.w; }
+    bool operator==(const Vec4& other) const { return IsNearEqual(other); }
+    bool operator!=(const Vec4& other) const { return !IsNearEqual(other); }
 
     float& operator[](uint8_t idx)
     {
@@ -66,6 +140,12 @@ class ALN_COMMON_EXPORT Vec4
         assert(false);
         return x;
     }
+
+    inline float Magnitude() const { return glm::length(AsGLM()); }
+    inline float SquaredMagnitude() const { return glm::length2(AsGLM()); }
+    inline Vec4 Sign() const { return glm::sign(AsGLM()); }
+
+    inline Vec4 Normalized() const { return Vec4(glm::normalize(AsGLM())); }
 
     /// @brief Linear interpolation between a and b by a t factor
     inline static Vec4 Lerp(const Vec4& a, const Vec4& b, float t) { return glm::mix(a.AsGLM(), b.AsGLM(), t); }

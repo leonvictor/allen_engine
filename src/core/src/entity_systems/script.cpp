@@ -11,9 +11,9 @@ ALN_REGISTER_IMPL_END()
 void ScriptSystem::Update(const UpdateContext& ctx)
 {
     auto rot = m_pRootComponent->GetLocalTransform().GetRotationEuler();
-    rot.x += m_rotationSpeedX * ctx.GetDeltaTime();
-    rot.y += m_rotationSpeedY * ctx.GetDeltaTime();
-    rot.z += m_rotationSpeedZ * ctx.GetDeltaTime();
+    rot.yaw += m_rotationSpeedX * ctx.GetDeltaTime();
+    rot.pitch += m_rotationSpeedY * ctx.GetDeltaTime();
+    rot.roll += m_rotationSpeedZ * ctx.GetDeltaTime();
     m_pRootComponent->SetLocalTransformRotationEuler(rot);
 }
 

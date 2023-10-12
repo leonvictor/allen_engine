@@ -48,9 +48,9 @@ TEST_CASE("Transforms multiplication", "[transform]")
 
     SECTION("Parent * Child")
     {
-        Transform parent = Transform(Vec3(1.0f, 1.0f, 1.0f), Quaternion::FromEulerAngles(Vec3(90.0f, 0.0f, 0.0f).ToRadians()).Normalized(), Vec3(1.0f, 1.0f, 1.0f));
-        Transform child = Transform(Vec3(0.0f, 5.0f, 0.0f), Quaternion::FromEulerAngles(Vec3(0.0f, 35.0f, 0.0f).ToRadians()).Normalized(), Vec3(1.0f, 1.0f, 1.0f));
-        Transform expectedChildGlobal = Transform(Vec3(1.0f, 1.0f, 6.0f), Quaternion::FromEulerAngles(Vec3(90.0f, 35.0f, 0.0f).ToRadians()).Normalized(), Vec3(1.0f, 1.0f, 1.0f));
+        Transform parent = Transform(Vec3(1.0f, 1.0f, 1.0f), Quaternion::FromEulerAngles(EulerAnglesDegrees(90.0f, 0.0f, 0.0f).ToRadians()).Normalized(), Vec3(1.0f, 1.0f, 1.0f));
+        Transform child = Transform(Vec3(0.0f, 5.0f, 0.0f), Quaternion::FromEulerAngles(EulerAnglesDegrees(0.0f, 35.0f, 0.0f).ToRadians()).Normalized(), Vec3(1.0f, 1.0f, 1.0f));
+        Transform expectedChildGlobal = Transform(Vec3(1.0f, 1.0f, 6.0f), Quaternion::FromEulerAngles(EulerAnglesDegrees(90.0f, 35.0f, 0.0f).ToRadians()).Normalized(), Vec3(1.0f, 1.0f, 1.0f));
 
         auto childGlobal = parent * child;
         REQUIRE(childGlobal == expectedChildGlobal);

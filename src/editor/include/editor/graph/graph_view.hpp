@@ -498,9 +498,9 @@ class GraphView
 
         const auto delta = end - start;
         const auto scale = 1.0f / delta;
-        const auto sign = scale.GetSign();
-        const auto nearTimes = (nodeCenter - sign * nodeHalf - start) * scale;
-        const auto farTimes = (nodeCenter + sign * nodeHalf - start) * scale;
+        const auto sign = scale.Sign();
+        const auto nearTimes = scale.Scale((nodeCenter - sign.Scale(nodeHalf) - start));
+        const auto farTimes = scale.Scale((nodeCenter + sign.Scale(nodeHalf) - start));
 
         assert(!(nearTimes.x > farTimes.y || nearTimes.y > farTimes.x)); // No collision
 

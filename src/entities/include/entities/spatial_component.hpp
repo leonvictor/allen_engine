@@ -3,6 +3,7 @@
 #include "component.hpp"
 
 #include <common/containers/vector.hpp>
+#include <common/maths/angles.hpp>
 #include <common/transform.hpp>
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
@@ -74,7 +75,7 @@ class SpatialComponent : public IComponent
 
     /// @brief Set this transform's rotation in euler angles
     /// @param euler: desired angles in degrees
-    void SetLocalTransformRotationEuler(const Vec3& euler);
+    void SetLocalTransformRotationEuler(const EulerAnglesDegrees& euler);
 
     /// @brief Set this spatial component's position
     /// @todo Rename to "translation" to match transforms
