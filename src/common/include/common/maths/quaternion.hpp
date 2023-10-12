@@ -35,9 +35,9 @@ class ALN_COMMON_EXPORT Quaternion
     Matrix4x4 ToMatrix() const;
 
     inline bool IsNearEqual(const Quaternion& other, float eps = Maths::Epsilon) const { return glm::all(glm::epsilonEqual(AsGLM(), other.AsGLM(), eps)); }
-    bool operator==(const Quaternion& other) const { return w == other.w && x == other.x && y == other.y && z == other.z; }
-    bool operator!=(const Quaternion& other) const { return (*this == other); }
-    
+    bool operator==(const Quaternion& other) const { return IsNearEqual(other); }
+    bool operator!=(const Quaternion& other) const { return !IsNearEqual(other); }
+
     Quaternion operator*(const Quaternion& other) const { return Quaternion(AsGLM() * other.AsGLM()); }
 
     inline Quaternion Inversed() const { return Quaternion(glm::inverse(AsGLM())); };

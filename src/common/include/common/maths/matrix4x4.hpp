@@ -7,7 +7,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 
-
 namespace aln
 {
 class Transform;
@@ -20,6 +19,8 @@ class ALN_COMMON_EXPORT Matrix4x4
     using ColumnType = Array<float, 4>;
 
   private:
+    Array<ColumnType, 4> columns;
+
     Matrix4x4(const glm::mat4x4& matrix)
         : columns{{{matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3]},
               {matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3]},
@@ -36,17 +37,15 @@ class ALN_COMMON_EXPORT Matrix4x4
     }
 
   public:
-    Array<ColumnType, 4> columns;
-
     Matrix4x4() = default;
+
+    Transform ToTransform() const;
 
     ColumnType& operator[](uint8_t idx)
     {
         assert(idx < 4);
         return columns[idx];
     }
-
-    Transform AsTransform() const;
 
     Matrix4x4 operator*(const Matrix4x4& other) { return Matrix4x4(AsGLM() * other.AsGLM()); }
 

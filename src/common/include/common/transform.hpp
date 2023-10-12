@@ -31,9 +31,9 @@ class ALN_COMMON_EXPORT Transform
     };
 
   public:
-    Transform() : m_translation(Vec3::Zeroes),
-                  m_rotation(Quaternion::Identity),
-                  m_scale(Vec3::Ones){};
+    Transform() : m_translation(0.0f, 0.0f, 0.0f),
+                  m_rotation(1.0f, 0.0f, 0.0f, 0.0f),
+                  m_scale(1.0f, 1.0f, 1.0f){};
     Transform(const Matrix4x4& matrix);
     Transform(const Vec3& translation, const Quaternion& rotation, const Vec3& scale)
         : m_translation(translation), m_rotation(rotation), m_scale(scale)

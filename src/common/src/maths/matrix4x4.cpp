@@ -13,7 +13,7 @@
 namespace aln
 {
 
-Transform Matrix4x4::AsTransform() const
+Transform Matrix4x4::ToTransform() const
 {
     glm::vec3 skew;
     glm::vec4 perspective;
