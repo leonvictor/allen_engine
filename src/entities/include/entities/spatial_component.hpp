@@ -41,12 +41,37 @@ class SpatialComponent : public IComponent
     /// @param callback: whether to trigger the callback to calculate the component's children's world transform.
     void CalculateWorldTransform(bool callback = true);
 
+  protected:
+    void SetWorldTransform(const Transform& transform)
+    {
+        m_worldTransform = transform;
+
+        // Update local transform unless we are the root
+        if (HasParent())
+        {
+            const auto& parentTransform = m_pSpatialParent->GetWorldTransform();
+            m_localTransform = parentTransform.GetInverse() * m_worldTransform;
+        }
+        else
+        {
+            m_localTransform = transform;
+        }
+
+        // Update children's world transforms
+        for (auto pChild : m_spatialChildren)
+        {
+            pChild->CalculateWorldTransform();
+        }
+    }
+
   public:
     virtual ~SpatialComponent() {}
 
     bool HasSocket(const UUID& socketID);
 
     inline bool HasChildren() const { return m_spatialChildren.empty(); }
+    inline bool HasParent() const { return m_pSpatialParent != nullptr; }
+    const SpatialComponent* GetSpatialParent() const { return m_pSpatialParent; }
 
     /// @brief Attach this component to another one.
     /// @param pParentComponent: The component to attach to.

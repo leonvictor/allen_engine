@@ -16,7 +16,7 @@ ALN_REGISTER_IMPL_END()
 Matrix4x4 CameraComponent::GetViewMatrix() const
 {
     Transform t = GetWorldTransform();
-    return Matrix4x4::LookAt(t.GetTranslation(), t.GetTranslation() + forward, up);
+    return Matrix4x4::LookAt(t.GetTranslation(), t.GetTranslation() + GetCameraForwardVector(), GetCameraUpVector());
 }
 
 Matrix4x4 CameraComponent::GetProjectionMatrix(float aspectRatio) const
@@ -30,4 +30,12 @@ Matrix4x4 CameraComponent::GetViewProjectionMatrix(float aspectRatio) const
 {
     return GetProjectionMatrix(aspectRatio) * GetViewMatrix();
 }
+
+// ---- Orbit CameraComponent
+
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, OrbitCameraComponent)
+ALN_REFLECT_BASE(CameraComponent)
+ALN_REFLECT_MEMBER(m_orbitDistance)
+ALN_REGISTER_IMPL_END()
+
 } // namespace aln

@@ -2,6 +2,8 @@
 
 #include <input/devices/mouse.hpp>
 #include <input/input_service.hpp>
+#include <common/maths/quaternion.hpp>
+#include <common/maths/angles.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -24,27 +26,25 @@ void EditorCameraController::Update(const UpdateContext& context)
     auto scrollDelta = pMouse->GetScrollDelta();
     if (scrollDelta.y != 0.0f)
     {
-        m_pCameraInstance->OffsetLocalTransformPosition(m_pCameraInstance->forward * scrollDelta.y);
+        m_pCameraInstance->OffsetLocalTransformPosition(m_pCameraInstance->GetCameraForwardVector() * scrollDelta.y);
     }
 
     // Translate
     if (pMouse->IsHeld(Mouse::Button::Middle))
     {
         auto delta = pMouse->GetDelta() * m_translationSensitivity;
-        m_pCameraInstance->OffsetLocalTransformPosition((m_pCameraInstance->up * delta.y) - (m_pCameraInstance->right * delta.x));
+        m_pCameraInstance->OffsetLocalTransformPosition((m_pCameraInstance->GetCameraUpVector() * delta.y) - (m_pCameraInstance->GetCameraRightVector() * delta.x));
     }
 
     // Rotate
     if (pMouse->IsHeld(Mouse::Button::Right))
     {
         auto delta = pMouse->GetDelta() * m_rotationSensitivity;
-        m_pCameraInstance->OffsetLocalTransformRotation(Quaternion::FromEulerAngles(Vec3(-delta.y, delta.x, 0.0f).ToRadians()));
+        auto degrees = EulerAnglesDegrees(delta.x, -delta.y, 0.0f);
+        auto radians = degrees.ToRadians();
+        auto quat = Quaternion::FromEulerAngles(radians);
+        m_pCameraInstance->OffsetLocalTransformRotation(quat);
     }
-
-    m_pCameraInstance->forward = m_pCameraInstance->GetWorldTransform().GetForwardVector();
-    // TODO: Use GetRightVector and GetUpVector ?
-    m_pCameraInstance->right = m_pCameraInstance->forward.Cross(m_pCameraInstance->world_up).Normalized();
-    m_pCameraInstance->up = m_pCameraInstance->right.Cross(m_pCameraInstance->forward).Normalized();
 }
 
 void EditorCameraController::RegisterComponent(IComponent* pComponent)

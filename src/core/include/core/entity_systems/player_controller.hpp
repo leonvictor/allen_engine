@@ -21,7 +21,12 @@ class PlayerControllerSystem : public ScriptSystem
     float m_blendWeight = 0.0f;
     NodeIndex m_blendWeightParameterIndex = InvalidIndex;
 
-  public:
+    // Camera parameters
+    float m_autoAlignDelay = 5.0f; // How long before the camera auto-aligns (seconds)
+    float m_lastCameraInputTime = 0.0f;
+    Vec3 m_cameraRelativeForwardDirection2D = Vec3::WorldForward;
+
+public:
     PlayerControllerSystem()
     {
         m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::PostPhysics, 1);

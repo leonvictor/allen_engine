@@ -3,7 +3,6 @@
 #include "../components/camera.hpp"
 
 #include <entities/entity_system.hpp>
-
 #include <input/callback_context.hpp>
 #include <input/input_context.hpp>
 #include <reflection/type_info.hpp>
