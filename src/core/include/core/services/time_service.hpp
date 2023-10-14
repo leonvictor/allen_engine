@@ -1,8 +1,8 @@
 #pragma once
 
-#include <chrono>
-
 #include <common/services/service.hpp>
+
+#include <chrono>
 
 namespace aln
 {
@@ -15,8 +15,8 @@ class TimeService : public IService
 
   private:
     using Clock = std::chrono::steady_clock;
-    using TimePoint = std::chrono::time_point<Clock>;
     using Duration = std::chrono::duration<double>;
+    using TimePoint = std::chrono::time_point<Clock, Duration>;
 
     TimePoint m_startTime;
     TimePoint m_frameTime;
@@ -29,7 +29,7 @@ class TimeService : public IService
     /// @brief Notify the time system that we changed frames. Get the current time and update internal fields accordingly.
     void Update();
 
-    TimeService() : m_startTime(Clock::now()), m_frameTime(m_startTime), m_frameCount(0) {};
+    TimeService() : m_startTime(std::chrono::time_point_cast<Duration>(Clock::now())), m_frameTime(m_startTime), m_frameCount(0) {}
 
   public:
     /// @brief Interval since last frame (in seconds).
@@ -42,6 +42,6 @@ class TimeService : public IService
     uint64_t GetFrameCount() const;
 
     /// @brief Real time since the start of the application (in seconds).
-    float GetTimeSinceStartup() const;
+    float GetTimeSinceAppStart() const;
 };
 } // namespace aln

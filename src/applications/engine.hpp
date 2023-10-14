@@ -173,6 +173,8 @@ class Engine
 
         // Populate update context
         m_updateContext.m_deltaTime = m_timeService.GetDeltaTime();
+        m_updateContext.m_currentTime = m_timeService.GetTime();
+        m_updateContext.m_timeSinceAppStart = m_timeService.GetTimeSinceAppStart();
 
         auto& dim = m_editor.GetScenePreviewSize();
         m_updateContext.m_displayWidth = dim.x;
