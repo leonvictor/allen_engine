@@ -2,6 +2,7 @@
 
 #include "angles.hpp"
 #include "constants.hpp"
+#include "vec3.hpp"
 
 #include <aln_common_export.h>
 
@@ -30,6 +31,9 @@ class ALN_COMMON_EXPORT Quaternion
 
     /// @brief Construct a quaternion from euler angles (in radians)
     static Quaternion FromEulerAngles(const EulerAnglesRadians& eulerAngles);
+    static Quaternion FromAxisAngle(const Vec3& axis, const Radians& angle);
+    static Quaternion FromRotationBetweenVectors(const Vec3& from, const Vec3& to);
+    static Quaternion LookAt(const Vec3& forward, const Vec3& up = Vec3::WorldUp);
 
     EulerAnglesRadians ToEulerAngles() const;
     Matrix4x4 ToMatrix() const;

@@ -49,24 +49,5 @@ inline T Modf(const T& a, T& integralPart) { return glm::modf(a, integralPart); 
 template <typename T>
 inline T Log2(const T& a) { return glm::log2(a); }
 
-inline float Cos(float a) { return glm::cos(a); }
-inline float Sin(float a) { return glm::sin(a); }
-inline float Tan(float a) { return glm::tan(a); }
-inline float Acos(float a)
-{
-    assert(a >= -1.0f && a <= 1.0f);
-    return glm::acos(a);
-}
-inline float Asin(float a)
-{
-    assert(a >= -1.0f && a <= 1.0f);
-    return glm::asin(a);
-}
-inline float Atan(float a)
-{
-    assert(a >= -1.0f && a <= 1.0f);
-    return glm::atan(a);
-}
-
 inline float SafeDivide(float a, float b, float eps = Maths::Epsilon) { return Abs(b) < eps ? 0.0f : a / b; }
 } // namespace aln::Maths

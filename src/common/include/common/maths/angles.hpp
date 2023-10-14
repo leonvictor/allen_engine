@@ -4,7 +4,6 @@
 
 #include <aln_common_export.h>
 
-
 namespace aln
 {
 struct Radians;
@@ -35,15 +34,47 @@ struct ALN_COMMON_EXPORT Degrees
     Degrees operator*(float value) const { return Degrees(m_value * value); }
     Degrees operator/(float value) const { return Degrees(m_value / value); }
 
-    Degrees& operator+=(const Degrees& other) { m_value += other.m_value; return *this; }
-    Degrees& operator-=(const Degrees& other) { m_value -= other.m_value; return *this; }
-    Degrees& operator*=(const Degrees& other) { m_value *= other.m_value; return *this; }
-    Degrees& operator/=(const Degrees& other) { m_value /= other.m_value; return *this; }
+    Degrees& operator+=(const Degrees& other)
+    {
+        m_value += other.m_value;
+        return *this;
+    }
+    Degrees& operator-=(const Degrees& other)
+    {
+        m_value -= other.m_value;
+        return *this;
+    }
+    Degrees& operator*=(const Degrees& other)
+    {
+        m_value *= other.m_value;
+        return *this;
+    }
+    Degrees& operator/=(const Degrees& other)
+    {
+        m_value /= other.m_value;
+        return *this;
+    }
 
-    Degrees& operator+=(float value) { m_value += value; return *this; }
-    Degrees& operator-=(float value) { m_value -= value; return *this; }
-    Degrees& operator*=(float value) { m_value *= value; return *this; }
-    Degrees& operator/=(float value) { m_value /= value; return *this; }
+    Degrees& operator+=(float value)
+    {
+        m_value += value;
+        return *this;
+    }
+    Degrees& operator-=(float value)
+    {
+        m_value -= value;
+        return *this;
+    }
+    Degrees& operator*=(float value)
+    {
+        m_value *= value;
+        return *this;
+    }
+    Degrees& operator/=(float value)
+    {
+        m_value /= value;
+        return *this;
+    }
 
     bool operator<(const Degrees& other) const { return m_value < other.m_value; }
     bool operator<=(const Degrees& other) const { return m_value <= other.m_value; }
@@ -51,17 +82,17 @@ struct ALN_COMMON_EXPORT Degrees
     bool operator>=(const Degrees& other) const { return m_value >= other.m_value; }
 
     bool operator<(float value) const { return m_value < value; }
-    friend bool operator<(float value, const Degrees& degrees) { return value < degrees.m_value; } 
+    friend bool operator<(float value, const Degrees& degrees) { return value < degrees.m_value; }
     bool operator<=(float value) const { return m_value <= value; }
-    friend bool operator<=(float value, const Degrees& degrees) { return value <= degrees.m_value; } 
+    friend bool operator<=(float value, const Degrees& degrees) { return value <= degrees.m_value; }
     bool operator>(float value) const { return m_value > value; }
-    friend bool operator>(float value, const Degrees& degrees) { return value > degrees.m_value; } 
+    friend bool operator>(float value, const Degrees& degrees) { return value > degrees.m_value; }
     bool operator>=(float value) const { return m_value >= value; }
-    friend bool operator>=(float value, const Degrees& degrees) { return value >= degrees.m_value; } 
+    friend bool operator>=(float value, const Degrees& degrees) { return value >= degrees.m_value; }
 
     bool operator==(const Degrees& other) const { return Maths::IsNearEqual(m_value, other.m_value); }
     bool operator!=(const Degrees& other) const { return !Maths::IsNearEqual(m_value, other.m_value); }
-    
+
     bool operator==(float value) const { return Maths::IsNearEqual(m_value, value); }
     bool operator!=(float value) const { return !Maths::IsNearEqual(m_value, value); }
 
@@ -77,6 +108,24 @@ struct ALN_COMMON_EXPORT Degrees
     {
         auto delta = Degrees::Wrap360(b - a);
         return delta > 180.0f ? delta - 360.0f : delta;
+    }
+
+    /// @brief Increase up towards to by a maximum of maxDelta and safely wrap around 360
+    static Degrees StepTowards(const Degrees& from, const Degrees& to, const Degrees& maxDelta)
+    {
+        auto deltaAngle = Degrees::DeltaAngle(from, to);
+        if (-maxDelta < deltaAngle && deltaAngle < maxDelta)
+        {
+            return to;
+        }
+
+        auto target = from + deltaAngle;
+        auto difference = target - from;
+        if (Maths::Abs((float) difference) <= maxDelta)
+        {
+            return target;
+        }
+        return from + maxDelta * Maths::Sign((float) difference);
     }
 };
 
@@ -106,15 +155,47 @@ struct ALN_COMMON_EXPORT Radians
     Radians operator*(float value) const { return Radians(m_value * value); }
     Radians operator/(float value) const { return Radians(m_value / value); }
 
-    Radians& operator+=(const Radians& other) { m_value += other.m_value; return *this; }
-    Radians& operator-=(const Radians& other) { m_value -= other.m_value; return *this; }
-    Radians& operator*=(const Radians& other) { m_value *= other.m_value; return *this; }
-    Radians& operator/=(const Radians& other) { m_value /= other.m_value; return *this; }
+    Radians& operator+=(const Radians& other)
+    {
+        m_value += other.m_value;
+        return *this;
+    }
+    Radians& operator-=(const Radians& other)
+    {
+        m_value -= other.m_value;
+        return *this;
+    }
+    Radians& operator*=(const Radians& other)
+    {
+        m_value *= other.m_value;
+        return *this;
+    }
+    Radians& operator/=(const Radians& other)
+    {
+        m_value /= other.m_value;
+        return *this;
+    }
 
-    Radians& operator+=(float value) { m_value += value; return *this; }
-    Radians& operator-=(float value) { m_value -= value; return *this; }
-    Radians& operator*=(float value) { m_value *= value; return *this; }
-    Radians& operator/=(float value) { m_value /= value; return *this; }
+    Radians& operator+=(float value)
+    {
+        m_value += value;
+        return *this;
+    }
+    Radians& operator-=(float value)
+    {
+        m_value -= value;
+        return *this;
+    }
+    Radians& operator*=(float value)
+    {
+        m_value *= value;
+        return *this;
+    }
+    Radians& operator/=(float value)
+    {
+        m_value /= value;
+        return *this;
+    }
 
     bool operator<(const Radians& other) const { return m_value < other.m_value; }
     bool operator<=(const Radians& other) const { return m_value <= other.m_value; }
@@ -122,17 +203,17 @@ struct ALN_COMMON_EXPORT Radians
     bool operator>=(const Radians& other) const { return m_value >= other.m_value; }
 
     bool operator<(float value) const { return m_value < value; }
-    friend bool operator<(float value, const Radians& Radians) { return value < Radians.m_value; } 
+    friend bool operator<(float value, const Radians& Radians) { return value < Radians.m_value; }
     bool operator<=(float value) const { return m_value <= value; }
-    friend bool operator<=(float value, const Radians& Radians) { return value <= Radians.m_value; } 
+    friend bool operator<=(float value, const Radians& Radians) { return value <= Radians.m_value; }
     bool operator>(float value) const { return m_value > value; }
-    friend bool operator>(float value, const Radians& Radians) { return value > Radians.m_value; } 
+    friend bool operator>(float value, const Radians& Radians) { return value > Radians.m_value; }
     bool operator>=(float value) const { return m_value >= value; }
-    friend bool operator>=(float value, const Radians& Radians) { return value >= Radians.m_value; } 
+    friend bool operator>=(float value, const Radians& Radians) { return value >= Radians.m_value; }
 
     bool operator==(const Radians& other) const { return Maths::IsNearEqual(m_value, other.m_value); }
     bool operator!=(const Radians& other) const { return !Maths::IsNearEqual(m_value, other.m_value); }
-    
+
     bool operator==(float value) const { return Maths::IsNearEqual(m_value, value); }
     bool operator!=(float value) const { return !Maths::IsNearEqual(m_value, value); }
 };

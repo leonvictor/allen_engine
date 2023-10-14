@@ -13,6 +13,39 @@ Quaternion Quaternion::FromEulerAngles(const EulerAnglesRadians& eulerAngles)
     return Quaternion(glm::quat(vec)).Normalized();
 }
 
+Quaternion Quaternion::FromAxisAngle(const Vec3& axis, const Radians& angle)
+{
+    assert(axis.IsNormalized());
+    return Quaternion(glm::angleAxis((float) angle, axis.AsGLM()));
+}
+
+Quaternion Quaternion::FromRotationBetweenVectors(const Vec3& from, const Vec3& to)
+{
+    assert(from.IsNormalized());
+    assert(to.IsNormalized());
+
+    auto rotationAxis = from.Cross(to).Normalized();
+    assert(rotationAxis.IsNearZero());
+
+    const auto dot = from.Dot(to);
+    if (dot >= (1.0f - Maths::Epsilon))
+    {
+        return Quaternion::Identity;
+    }
+    else
+    {
+        auto angle = Maths::Acos(dot);
+        return Quaternion::FromAxisAngle(rotationAxis, angle);
+    }
+}
+
+Quaternion Quaternion::LookAt(const Vec3& forward, const Vec3& up)
+{
+    assert(forward.IsNormalized());
+    assert(up.IsNormalized());
+    return Quaternion(glm::quatLookAt(forward.AsGLM(), up.AsGLM()));
+}
+
 EulerAnglesRadians Quaternion::ToEulerAngles() const
 {
     auto vec = glm::eulerAngles(AsGLM());
