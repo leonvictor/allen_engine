@@ -25,6 +25,8 @@
 
 #include <editor/editor.hpp>
 
+#include <tracy/Tracy.hpp>
+
 class GLFWwindow;
 
 namespace aln
@@ -65,6 +67,8 @@ class Engine
     // TODO: Get rid of the glfwWindow
     void Initialize(GLFWwindow* pGLFWWindow, vkg::Swapchain& swapchain, vkg::Device& device, const Vec2& windowSize)
     {
+        ZoneScoped;
+
         // Initialize the render engine
         m_uiRenderer.Create(&swapchain);
 
@@ -120,6 +124,8 @@ class Engine
 
     void Shutdown()
     {
+        ZoneScoped;
+
         m_editor.Shutdown();
 
         // TODO: Destroy world entity
@@ -162,6 +168,8 @@ class Engine
 
     void Update()
     {
+        ZoneScoped;
+
         // Update services
         m_inputService.Update();
         m_timeService.Update();
@@ -191,6 +199,8 @@ class Engine
         // TODO: Handle sync points here ?
         for (uint8_t stage = (uint8_t) UpdateStage::FrameStart; stage != (uint8_t) UpdateStage::NumStages; stage++)
         {
+            ZoneScoped;
+
             m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
             m_worldEntity.Update(m_updateContext);
         }

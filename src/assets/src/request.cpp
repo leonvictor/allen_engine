@@ -7,6 +7,8 @@ class AssetService;
 
 void AssetRequest::Load()
 {
+    ZoneScoped;
+
     // Load the resource
     if (!m_pLoader->LoadAsset(m_pAssetRecord))
     {
@@ -37,6 +39,8 @@ void AssetRequest::Load()
 
 void AssetRequest::WaitForDependencies()
 {
+    ZoneScoped;
+
     bool dependenciesLoaded = true;
     for (auto& dependencyHandle : m_dependencies)
     {
@@ -55,6 +59,8 @@ void AssetRequest::WaitForDependencies()
 
 void AssetRequest::Install()
 {
+    ZoneScoped;
+
     assert(m_status == State::Installing);
     assert(m_pLoader != nullptr);
 
@@ -67,6 +73,8 @@ void AssetRequest::Install()
 
 void AssetRequest::Unload()
 {
+    ZoneScoped;
+
     m_pLoader->UnloadAsset(m_pAssetRecord);
 
     for (auto& dependencyID : m_pAssetRecord->GetDependencies())

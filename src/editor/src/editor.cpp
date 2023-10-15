@@ -39,6 +39,8 @@ Editor::Editor(WorldEntity& worldEntity)
 
 void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context)
 {
+    ZoneScoped;
+
     // TODO: Save service on initialization
     const auto pTypeRegistryService = context.GetService<TypeRegistryService>();
 

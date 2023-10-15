@@ -210,6 +210,8 @@ class IRenderer
   public:
     virtual void BeginFrame(const RenderContext& ctx)
     {
+        ZoneScoped;
+
         // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
         m_pDevice->GetVkDevice().waitForFences(m_frames[m_currentFrameIndex].inFlight.get(), vk::True, UINT64_MAX);
 
@@ -242,6 +244,8 @@ class IRenderer
 
     virtual void EndFrame()
     {
+        ZoneScoped;
+
         auto& cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
         cb.endRenderPass();
         cb.end();

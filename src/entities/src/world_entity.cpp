@@ -98,6 +98,8 @@ void WorldEntity::Update(const UpdateContext& context)
 
 void WorldEntity::UpdateLoading()
 {
+    ZoneScoped;
+
     m_entityMap.UpdateEntitiesState(m_loadingContext);
 }
 

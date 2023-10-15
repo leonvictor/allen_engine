@@ -71,6 +71,8 @@ class AnimationGraphComponent : public IComponent
     /// @param deltaTime
     void Evaluate(float deltaTime, const Transform& characterWorldTransform)
     {
+        ZoneScoped;
+
         assert(m_graphContext.IsValid());
 
         // TODO
@@ -84,6 +86,7 @@ class AnimationGraphComponent : public IComponent
 
     void ExecuteTasks()
     {
+        ZoneScoped;
         m_pTaskSystem->ExecuteTasks(m_graphContext.m_deltaTime, m_graphContext.m_worldTransform, m_pPose);
     }
 

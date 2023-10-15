@@ -42,6 +42,8 @@ AssetRequest* AssetService::FindActiveRequest(const AssetID id)
 /// @brief Handle pending requests
 void AssetService::Update()
 {
+    ZoneScoped;
+
     if (m_isLoadingTaskRunning && !m_loadingTask.GetIsComplete())
     {
         return;
@@ -128,6 +130,8 @@ void AssetService::Update()
 
 void AssetService::HandleActiveRequests()
 {
+    ZoneScoped;
+
     int32_t requestCount = (int32_t) m_activeRequests.size() - 1;
     for (auto idx = requestCount; idx >= 0; idx--)
     {

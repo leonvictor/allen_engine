@@ -13,6 +13,8 @@
 #include "instance.hpp"
 #include "render_pass.hpp"
 
+#include <tracy/Tracy.hpp>
+
 namespace aln::vkg
 {
 
@@ -139,6 +141,8 @@ class ImGUI
 
     void NewFrame()
     {
+        ZoneScoped;
+
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -146,6 +150,8 @@ class ImGUI
 
     void Render(vk::CommandBuffer& cb)
     {
+        ZoneScoped;
+
         ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
         ImGui_ImplVulkan_RenderDrawData(draw_data, cb);
