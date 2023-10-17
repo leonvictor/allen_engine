@@ -245,8 +245,7 @@ void Image::Blit(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t
 {
     vk::Offset3D blitSize = {width, height, 1};
     vk::Offset3D defaultOffset = {0, 0, 0};
-    vk::ImageBlit imageBlitRegion =
-        {
+    vk::ImageBlit imageBlitRegion = {
             .srcSubresource = {
                 .aspectMask = vk::ImageAspectFlagBits::eColor,
                 .layerCount = 1,
@@ -455,8 +454,9 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 
         cb.pipelineBarrier(
-            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
-            vk::DependencyFlags(),
+            vk::PipelineStageFlagBits::eTransfer, 
+            vk::PipelineStageFlagBits::eFragmentShader,
+            {},
             nullptr,
             nullptr,
             barrier);
@@ -481,8 +481,9 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 
     // Transition the last mip level to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     cb.pipelineBarrier(
-        vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
-        vk::DependencyFlags(),
+        vk::PipelineStageFlagBits::eTransfer, 
+        vk::PipelineStageFlagBits::eFragmentShader,
+        {},
         nullptr,
         nullptr,
         barrier);

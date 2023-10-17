@@ -39,9 +39,16 @@ struct SwapchainSupportDetails
     };
 };
 
-/// @brief Wrapper around  a vulkan logical device.
+/// @brief Wrapper around a vulkan logical device.
 class Device
 {
+    // TODO: These probably should be per-frame + per-thread
+    struct ThreadData
+    {
+        CommandPool m_graphicsCommandPool;
+        CommandPool m_transferCommandPool;
+    };
+
   private:
     vkg::Instance* m_pInstance;
 
@@ -50,6 +57,8 @@ class Device
 
     // Wrapped logical vulkan device.
     vk::UniqueDevice m_logical;
+
+    Vector<ThreadData> m_threadData;
 
     vk::PhysicalDeviceMemoryProperties m_memoryProperties;
     vk::PhysicalDeviceProperties m_gpuProperties;
@@ -70,12 +79,10 @@ class Device
         Queue transfer;
     } m_queues;
 
-    // TODO: Multi threaded rendering would require different pools for each thread
-    struct
-    {
-        CommandPool graphics;
-        CommandPool transfer;
-    } m_commandpools;
+    // Queue m_graphicsQueue;
+    // Queue m_presentQueue;
+    // Queue m_transferQueue;
+
 
     void CreateLogicalDevice(const vk::SurfaceKHR& surface);
     vk::PhysicalDevice PickPhysicalDevice(const vk::SurfaceKHR& surface);
@@ -84,8 +91,11 @@ class Device
     static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions);
 
   public:
+    // TODO: Remove default ctr
     Device(){};
+    
     void Initialize(vkg::Instance* pInstance, const vk::SurfaceKHR& surface);
+    void Shutdown();
 
     SwapchainSupportDetails GetSwapchainSupport(const vk::SurfaceKHR& surface);
 
@@ -130,8 +140,8 @@ class Device
     inline Queue& GetTransferQueue() { return m_queues.transfer; }
 
     // Command Pool getters
-    inline CommandPool& GetTransferCommandPool() { return m_commandpools.transfer; };
-    inline CommandPool& GetGraphicsCommandPool() { return m_commandpools.graphics; };
+    inline CommandPool& GetTransferCommandPool(uint32_t threadIdx = 0) { return m_threadData[threadIdx].m_transferCommandPool; };
+    inline CommandPool& GetGraphicsCommandPool(uint32_t threadIdx = 0) { return m_threadData[threadIdx].m_graphicsCommandPool; };
 
     inline const vk::PhysicalDeviceProperties GetPhysicalDeviceProperties() const { return m_physical.getProperties(); }
     inline vk::DescriptorPool& GetDescriptorPool() { return m_descriptorAllocator.GetActivePool(); }

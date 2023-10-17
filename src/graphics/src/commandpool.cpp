@@ -7,10 +7,11 @@
 
 namespace aln::vkg
 {
-CommandPool::CommandPool(vk::Device* device, Queue* queue, vk::CommandPoolCreateFlagBits flags)
+
+void CommandPool::Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPoolCreateFlagBits flags)
 {
-    m_pVkDevice = device;
-    m_pQueue = queue;
+    m_pVkDevice = pDevice;
+    m_pQueue = pQueue;
 
     vk::CommandPoolCreateInfo createInfo{
         .flags = flags,
@@ -18,6 +19,11 @@ CommandPool::CommandPool(vk::Device* device, Queue* queue, vk::CommandPoolCreate
     };
 
     m_vkCommandPool = m_pVkDevice->createCommandPoolUnique(createInfo).value;
+}
+
+void CommandPool::Shutdown()
+{
+    m_vkCommandPool.reset();
 }
 
 std::vector<vk::CommandBuffer> CommandPool::BeginSingleTimeCommands()

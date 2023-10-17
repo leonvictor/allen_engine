@@ -20,6 +20,11 @@ void Swapchain::Initialize(Device* pDevice, vk::SurfaceKHR* pSurface, uint32_t w
     CreateInternal();
 }
 
+void Swapchain::Shutdown()
+{
+    m_vkSwapchain.reset();
+}
+
 void Swapchain::TargetWindowResizedCallback(uint32_t width, uint32_t height)
 {
     m_resizeRequired = true;

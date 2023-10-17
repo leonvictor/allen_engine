@@ -24,6 +24,7 @@ class Swapchain
 
   public:
     void Initialize(Device* pDevice, vk::SurfaceKHR* pSurface, uint32_t windowWidth, uint32_t windowHeight);
+    void Shutdown();
 
     uint32_t AcquireNextImage(vk::Semaphore& semaphore);
 

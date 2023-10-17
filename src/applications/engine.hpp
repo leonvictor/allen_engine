@@ -70,7 +70,7 @@ class Engine
         ZoneScoped;
 
         // Initialize the render engine
-        m_uiRenderer.Create(&swapchain);
+        m_uiRenderer.Initialize(&swapchain);
 
         m_sceneRenderer.Initialize(
             &device,
@@ -145,8 +145,7 @@ class Engine
         m_imgui.Shutdown();
 
         m_sceneRenderer.Shutdown();
-        
-        // TODO: ui renderer
+        m_uiRenderer.Shutdown();        
     }
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.

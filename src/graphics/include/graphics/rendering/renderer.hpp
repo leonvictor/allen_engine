@@ -136,15 +136,13 @@ class IRenderer
         m_renderTargets.clear();
         for (uint32_t i = 0; i < m_targetImages.size(); i++)
         {
-            Vector<vk::ImageView> attachments =
-                {
+            Vector<vk::ImageView> attachments = {
                     m_colorImage.GetVkView(),
                     m_depthImage.GetVkView(),
                     m_targetImages[i]->GetVkView(),
                 };
 
-            vk::FramebufferCreateInfo framebufferInfo =
-                {
+            vk::FramebufferCreateInfo framebufferInfo = {
                     .renderPass = m_renderpass.GetVkRenderPass(),
                     .attachmentCount = static_cast<uint32_t>(attachments.size()),
                     .pAttachments = attachments.data(),
@@ -153,8 +151,7 @@ class IRenderer
                     .layers = 1, // Nb of layers in image array.
                 };
 
-            RenderTarget rt =
-                {
+            RenderTarget rt = {
                     .index = i,
                     .framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo).value,
                     .commandBuffer = std::move(commandBuffers[i]),
@@ -228,7 +225,8 @@ class IRenderer
         image.fence = m_frames[m_currentFrameIndex].inFlight.get();
 
         // Start recording command on this image
-        image.commandBuffer->begin(vk::CommandBufferBeginInfo{});
+        vk::CommandBufferBeginInfo cbBeginInfo;
+        image.commandBuffer->begin(cbBeginInfo);
 
         // Start a render pass
         // TODO: Pass a RenderTarget
@@ -237,9 +235,8 @@ class IRenderer
             .framebuffer = image.framebuffer.get(),
             .backgroundColor = ctx.backgroundColor,
         };
-        m_renderpass.Begin(renderPassCtx);
 
-        // return m_activeImageIndex;
+        m_renderpass.Begin(renderPassCtx);
     }
 
     virtual void EndFrame()
@@ -252,21 +249,21 @@ class IRenderer
 
         vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
-        vk::SubmitInfo submitInfo;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get();
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &cb;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get();
+        vk::SubmitInfo submitInfo = {
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get(),
+            .pWaitDstStageMask = waitStages,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &cb,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get(),
+        };
 
         m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
         // TODO: It would be better to pass the semaphores and cbs directly to the queue class
         // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
         // vulkan arraywrappers ?
-        m_pDevice->GetGraphicsQueue()
-            .Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
+        m_pDevice->GetGraphicsQueue().Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
 
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }

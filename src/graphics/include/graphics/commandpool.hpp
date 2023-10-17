@@ -12,15 +12,14 @@ class CommandPool
 {
   public:
     vk::UniqueCommandPool m_vkCommandPool;
-    Queue* m_pQueue;
-    // TODO: Use the wrapper ? Not possible as commandpools are mostly used inside the device wrapper
-    vk::Device* m_pVkDevice;
+    Queue* m_pQueue = nullptr;
+    vk::Device* m_pVkDevice = nullptr;
 
-    CommandPool(){}; // TODO: We shouldn't need this
-    CommandPool(vk::Device* device, Queue* queue, vk::CommandPoolCreateFlagBits flags = vk::CommandPoolCreateFlagBits());
+    void Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPoolCreateFlagBits flags);
+    void Shutdown();
 
     /// @brief Execute some commands in a single-use command buffer.
-    inline void Execute(const std::function<void(vk::CommandBuffer cb)>& func)
+    inline void Execute(const std::function<void(vk::CommandBuffer& cb)>& func)
     {
         vk::CommandBufferAllocateInfo cbai = {
             .commandPool = m_vkCommandPool.get(),

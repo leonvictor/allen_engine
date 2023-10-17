@@ -59,20 +59,19 @@ void GraphicsSystem::Shutdown()
 
 void GraphicsSystem::Initialize()
 {
-    auto pDevice = m_pRenderer->GetDevice();
-
     // Debug resources
     m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
 }
 
 void GraphicsSystem::Update(const UpdateContext& context)
 {
-    ZoneScoped;
 
     if (context.GetUpdateStage() != UpdateStage::FrameEnd)
     {
         return;
     }
+
+    ZoneScoped;
 
     assert(m_pCameraComponent != nullptr);
     if (!m_pCameraComponent->IsInitialized())

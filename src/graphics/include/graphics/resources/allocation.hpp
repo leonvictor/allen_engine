@@ -23,11 +23,10 @@ class Allocation
 
     virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
     {
-        vk::MemoryAllocateInfo allocInfo =
-            {
-                .allocationSize = memRequirements.size,
-                .memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
-            };
+        vk::MemoryAllocateInfo allocInfo = {
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
+        };
 
         m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr).value;
     }
@@ -68,18 +67,21 @@ class Allocation
     template <typename T = void>
     inline T* Map(size_t offset = 0, vk::DeviceSize size = vk::WholeSize)
     {
+        assert(m_mapped == nullptr);
         m_mapped = m_pDevice->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags()).value;
         return (T*) m_mapped;
     }
 
     inline void Unmap()
     {
+        assert(m_mapped != nullptr);
         m_pDevice->GetVkDevice().unmapMemory(m_memory.get());
         m_mapped = nullptr;
     }
 
     inline void Copy(const void* data, size_t size, vk::DeviceSize offset = 0) const
     {
+        assert(m_mapped != nullptr);
         memcpy(static_cast<uint8_t*>(m_mapped) + offset, data, size);
     }
 

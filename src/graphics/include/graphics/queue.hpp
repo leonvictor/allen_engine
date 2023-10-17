@@ -21,18 +21,18 @@ class Queue
         m_familyIndex = family;
     }
 
-    void Submit(std::vector<vk::CommandBuffer> cbs)
+    void Submit(std::vector<vk::CommandBuffer>& cbs)
     {
-        vk::SubmitInfo submitInfo;
-        submitInfo.commandBufferCount = (uint32_t) cbs.size();
-        submitInfo.pCommandBuffers = cbs.data();
+        vk::SubmitInfo submitInfo = {
+            .commandBufferCount = (uint32_t) cbs.size(),
+            .pCommandBuffers = cbs.data(),
+        };
 
         // TODO: use fences
         m_vkQueue.submit(submitInfo, vk::Fence{});
     }
 
-    void
-    Submit(vk::SubmitInfo& submitInfo, vk::Fence& fence)
+    void Submit(vk::SubmitInfo& submitInfo, vk::Fence& fence)
     {
         m_vkQueue.submit(submitInfo, fence);
     }
@@ -79,10 +79,10 @@ class Queue
                     presentFamily = i;
                 }
 
-                //TODO : It's very likely that the queue family that has the "present" capability is the same as
-                // the one that has "graphics". In the tutorial they are treated as if they were separate for a uniform approach.
-                // We can add logic to explicitly prefer m_physical devices that support both drawing and presentation in the same queue
-                // for improved performance.
+                // TODO : It's very likely that the queue family that has the "present" capability is the same as
+                //  the one that has "graphics". In the tutorial they are treated as if they were separate for a uniform approach.
+                //  We can add logic to explicitly prefer m_physical devices that support both drawing and presentation in the same queue
+                //  for improved performance.
 
                 if (IsComplete())
                 {

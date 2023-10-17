@@ -380,8 +380,7 @@ class SceneRenderer : public vkg::render::IRenderer
         // TODO: It would be better to pass the semaphores and cbs directly to the queue class
         // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
         // vulkan arraywrappers ?
-        m_pDevice->GetGraphicsQueue()
-            .Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
+        m_pDevice->GetGraphicsQueue().Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
 
         m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }

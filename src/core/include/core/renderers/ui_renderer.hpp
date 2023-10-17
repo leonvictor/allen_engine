@@ -37,9 +37,7 @@ class UIRenderer : public vkg::render::IRenderer
     }
 
   public:
-    UIRenderer() {}
-
-    void Create(vkg::Swapchain* pSwapchain)
+    void Initialize(vkg::Swapchain* pSwapchain)
     {
         m_pSwapchain = pSwapchain;
 
@@ -50,6 +48,11 @@ class UIRenderer : public vkg::render::IRenderer
             pSwapchain->GetHeight(),
             pSwapchain->GetImageFormat());
         // CreatePipelines();
+    }
+
+    void Shutdown()
+    {
+
     }
 
     void Resize(uint32_t width, uint32_t height)
@@ -72,21 +75,21 @@ class UIRenderer : public vkg::render::IRenderer
 
         vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
-        vk::SubmitInfo submitInfo;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get();
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &cb;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get();
+        vk::SubmitInfo submitInfo = {
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get(),
+            .pWaitDstStageMask = waitStages,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &cb,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get(),
+        };
 
         m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
         // TODO: It would be better to pass the semaphores and cbs directly to the queue class
         // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
         // vulkan arraywrappers ?
-        m_pDevice->GetGraphicsQueue()
-            .Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
+        m_pDevice->GetGraphicsQueue().Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
 
         m_pSwapchain->Present(m_frames[m_currentFrameIndex].renderFinished.get());
 

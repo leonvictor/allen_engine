@@ -27,29 +27,33 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::resources::Image& image) const
 
 void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, const uint32_t width, const uint32_t height) const
 {
-    vk::BufferImageCopy copy;
-    copy.bufferOffset = 0;
-    copy.bufferRowLength = 0;
-    copy.bufferImageHeight = 0;
-    copy.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-    copy.imageSubresource.baseArrayLayer = 0;
-    copy.imageSubresource.layerCount = 1;
-    copy.imageSubresource.mipLevel = 0;
-    copy.imageOffset = vk::Offset3D{0, 0, 0};
-    copy.imageExtent = vk::Extent3D{
-        .width = width,
-        .height = height,
-        .depth = 1,
+    vk::BufferImageCopy copy = {
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .mipLevel = 0,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+        .imageOffset = {0, 0, 0},
+        .imageExtent = {
+            .width = width,
+            .height = height,
+            .depth = 1,
+        },
     };
     cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
 }
 
 void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSize& size) const
 {
-    vk::BufferCopy copyRegion;
-    copyRegion.srcOffset = 0;
-    copyRegion.dstOffset = 0;
-    copyRegion.size = size;
+    vk::BufferCopy copyRegion = {
+        .srcOffset = 0,
+        .dstOffset = 0,
+        .size = size,
+    };
 
     cb.copyBuffer(m_vkBuffer.get(), dstBuffer.m_vkBuffer.get(), copyRegion);
 }
@@ -68,15 +72,14 @@ void Buffer::CreateBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags
         m_pDevice->GetTransferQueue().GetFamilyIndex(),
     };
 
-    vk::BufferCreateInfo bufferInfo;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    // TODO: We might have to pull this out as well
-    bufferInfo.sharingMode = vk::SharingMode::eConcurrent; // Can buffers be shared between queues?
-    bufferInfo.flags = vk::BufferCreateFlags();            // Configure sparse buffer memory. Not used rn
-
-    bufferInfo.queueFamilyIndexCount = 2;
-    bufferInfo.pQueueFamilyIndices = queues;
+    vk::BufferCreateInfo bufferInfo = {
+        .flags = {},
+        .size = size,
+        .usage = usage,
+        .sharingMode = vk::SharingMode::eConcurrent, // Can buffers be shared between queues,
+        .queueFamilyIndexCount = 2,
+        .pQueueFamilyIndices = queues,
+    };
 
     m_vkBuffer = m_pDevice->GetVkDevice().createBufferUnique(bufferInfo).value;
 }
@@ -105,10 +108,11 @@ void Buffer::Initialize(Device* pDevice, const vk::DeviceSize& size, const vk::B
         // From samples
         if (!(memProperties & vk::MemoryPropertyFlagBits::eHostCoherent))
         {
-            vk::MappedMemoryRange mappedRange;
-            mappedRange.memory = *m_memory;
-            mappedRange.offset = 0;
-            mappedRange.size = size;
+            vk::MappedMemoryRange mappedRange = {
+                .memory = *m_memory,
+                .offset = 0,
+                .size = size,
+            };
 
             m_pDevice->GetVkDevice().flushMappedMemoryRanges(mappedRange);
         }

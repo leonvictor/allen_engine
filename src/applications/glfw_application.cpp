@@ -287,6 +287,9 @@ class GLFWApplication
         m_glfwInputMapper.Shutdown();
         m_engine.Shutdown();
 
+        m_swapchain.Shutdown();
+        m_device.Shutdown();
+
         glfwDestroyWindow(m_pGlfwWindow);
         glfwTerminate();
     }

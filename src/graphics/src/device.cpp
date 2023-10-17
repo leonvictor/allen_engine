@@ -18,13 +18,31 @@ void Device::Initialize(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
 
     CreateLogicalDevice(surface);
 
-    m_commandpools.graphics = CommandPool(&m_logical.get(), &m_queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-    SetDebugUtilsObjectName(m_commandpools.graphics.m_vkCommandPool.get(), "Graphics Command Pool");
-    m_commandpools.transfer = CommandPool(&m_logical.get(), &m_queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
-    SetDebugUtilsObjectName(m_commandpools.transfer.m_vkCommandPool.get(), "Transfer Command Pool");
+    auto threadCount = std::thread::hardware_concurrency();
+    for (auto threadIdx = 0; threadIdx <= threadCount; ++threadIdx)
+    {
+        auto& threadData = m_threadData.emplace_back();
+        threadData.m_graphicsCommandPool.Initialize(&m_logical.get(), &m_queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+        threadData.m_transferCommandPool.Initialize(&m_logical.get(), &m_queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
+
+        SetDebugUtilsObjectName(threadData.m_graphicsCommandPool.m_vkCommandPool.get(), "Graphics Command Pool (Thread " + threadIdx + ')');
+        SetDebugUtilsObjectName(threadData.m_transferCommandPool.m_vkCommandPool.get(), "Transfer Command Pool (Thread " + threadIdx + ')');
+    }
 
     m_msaaSamples = GetMaxUsableSampleCount();
     m_descriptorAllocator.Init(&m_logical.get());
+}
+
+void Device::Shutdown()
+{
+    // TODO: Explicitely destry vulkan resources once the API is better !
+    /* for (auto& threadData : m_threadData)
+     {
+         threadData.m_graphicsCommandPool.Shutdown();
+         threadData.m_transferCommandPool.Shutdown();
+     }
+
+     m_logical.reset();*/
 }
 
 SwapchainSupportDetails Device::GetSwapchainSupport(const vk::SurfaceKHR& surface)
@@ -127,7 +145,7 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 
     for (auto queueFamily : uniqueQueueFamilies)
     {
-        vk::DeviceQueueCreateInfo queueCreateInfo{
+        vk::DeviceQueueCreateInfo queueCreateInfo = {
             .queueFamilyIndex = queueFamily,
             .queueCount = 1,
             .pQueuePriorities = &queuePriority,
@@ -136,20 +154,30 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
+    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features> chain = {
+        {
+            // 1.0 features
+            .features = {
+                .sampleRateShading = vk::True,
+                .samplerAnisotropy = vk::True,
+                .fragmentStoresAndAtomics = vk::True,
+            },
+        },
+        // 1.1 features
+        {},
+        // 1.2 features
+        {
+            .timelineSemaphore = vk::True,
+        },
+    };
+
     vk::DeviceCreateInfo deviceCreateInfo = {
+        .pNext = &chain.get<vk::PhysicalDeviceFeatures2>(),
         .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
         .enabledExtensionCount = static_cast<uint32_t>(m_extensions.size()),
         .ppEnabledExtensionNames = m_extensions.data(),
     };
-
-    vk::PhysicalDeviceFeatures features = {
-        .sampleRateShading = vk::True,
-        .samplerAnisotropy = vk::True,
-        .fragmentStoresAndAtomics = vk::True,
-    };
-
-    deviceCreateInfo.pEnabledFeatures = &features;
 
     Vector<const char*> validationLayers;
     if (m_pInstance->ValidationLayersEnabled())
@@ -170,6 +198,17 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
     m_queues.graphics = Queue(m_logical.get(), queueFamilyIndices.graphicsFamily.value());
     m_queues.present = Queue(m_logical.get(), queueFamilyIndices.presentFamily.value());
     m_queues.transfer = Queue(m_logical.get(), queueFamilyIndices.transferFamily.value());
+
+    SetDebugUtilsObjectName(m_queues.transfer.GetVkQueue(), "Transfer Queue");
+    if (queueFamilyIndices.graphicsFamily == queueFamilyIndices.presentFamily)
+    {
+        SetDebugUtilsObjectName(m_queues.present.GetVkQueue(), "Graphics/Present Queue");
+    }
+    else
+    {
+        SetDebugUtilsObjectName(m_queues.present.GetVkQueue(), "Present Queue");
+        SetDebugUtilsObjectName(m_queues.graphics.GetVkQueue(), "Graphics Queue");
+    }
 }
 
 /// @brief Select a suitable GPU among the detected ones.
