@@ -38,36 +38,35 @@ class Mesh : public IAsset
     AssetHandle<Material> m_pMaterial;
 
     // Rendering resources
-    vkg::resources::Buffer m_vertexBuffer;
-    vkg::resources::Buffer m_indexBuffer;
+    resources::Buffer m_vertexBuffer;
+    resources::Buffer m_indexBuffer;
     vk::UniqueDescriptorSet m_descriptorSet;
 
   public:
     const AssetHandle<Material>& GetMaterial() const { return m_pMaterial; }
-    const vkg::resources::Buffer& GetVertexBuffer() const { return m_vertexBuffer; }
-    const vkg::resources::Buffer& GetIndexBuffer() const { return m_indexBuffer; }
+    const resources::Buffer& GetVertexBuffer() const { return m_vertexBuffer; }
+    const resources::Buffer& GetIndexBuffer() const { return m_indexBuffer; }
     uint32_t GetIndicesCount() const { return m_indices.size(); }
     const vk::DescriptorSet& GetDescriptorSet() const { return m_descriptorSet.get(); }
 
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
-        Vector<vk::DescriptorSetLayoutBinding> bindings =
+        Vector<vk::DescriptorSetLayoutBinding> bindings = {
             {
-                {
-                    // Sampler
-                    .binding = 0,
-                    .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                    .descriptorCount = 1,
-                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                },
-                {
-                    // Material
-                    .binding = 1,
-                    .descriptorType = vk::DescriptorType::eUniformBuffer,
-                    .descriptorCount = 1,
-                    .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                },
-            };
+                // Sampler
+                .binding = 0,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+            },
+            {
+                // Material
+                .binding = 1,
+                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+            },
+        };
 
         return bindings;
     }

@@ -3,7 +3,7 @@
 #include <common/maths/matrix4x4.hpp>
 #include <common/maths/vec3.hpp>
 
-namespace aln::vkg
+namespace aln
 {
 struct UniformBufferObject
 {

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace aln::vkg
+namespace aln
 {
 
 /// @brief Create a pool
@@ -32,7 +32,7 @@ void DescriptorAllocator::ResetPools()
 {
     for (auto& p : m_usedPools)
     {
-        m_pDevice->resetDescriptorPool(p.get());
+        m_pRenderEngine->resetDescriptorPool(p.get());
     }
 
     m_freePools = std::move(m_usedPools);
@@ -43,7 +43,7 @@ void DescriptorAllocator::ResetPools()
 
 vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLayout* pLayout)
 {
-    assert(m_pDevice != nullptr);
+    assert(m_pRenderEngine != nullptr);
 
     if (m_currentPool == nullptr)
     {
@@ -60,7 +60,7 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
     };
 
     bool needReallocate = false;
-    auto result = m_pDevice->allocateDescriptorSetsUnique(allocInfo);
+    auto result = m_pRenderEngine->allocateDescriptorSetsUnique(allocInfo);
     if (result.result == vk::Result::eSuccess)
     {
         return std::move(result.value[0]);
@@ -81,7 +81,7 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
         m_usedPools.push_back(std::move(pool));
         m_currentPool = &m_usedPools.back();
 
-        result = m_pDevice->allocateDescriptorSetsUnique(allocInfo);
+        result = m_pRenderEngine->allocateDescriptorSetsUnique(allocInfo);
         if (result.result == vk::Result::eSuccess)
         {
             return std::move(result.value[0]);
@@ -99,7 +99,7 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
 
 void DescriptorAllocator::Init(vk::Device* newDevice)
 {
-    m_pDevice = newDevice;
+    m_pRenderEngine = newDevice;
 }
 
 void DescriptorAllocator::Cleanup()
@@ -129,7 +129,7 @@ vk::UniqueDescriptorPool DescriptorAllocator::GrabPool()
     else
     {
         // Default: a new pool can hold 1000 descriptors. This is arbitrary.
-        return std::move(CreatePool(m_pDevice, descriptorSizes, 1000, vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet));
+        return std::move(CreatePool(m_pRenderEngine, descriptorSizes, 1000, vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet));
     }
 }
 
@@ -145,5 +145,4 @@ vk::DescriptorPool& DescriptorAllocator::GetActivePool()
 
     return m_currentPool->get();
 }
-
-} // namespace aln::vkg
+} // namespace aln

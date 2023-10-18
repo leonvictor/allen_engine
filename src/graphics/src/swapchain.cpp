@@ -1,18 +1,18 @@
 #include "swapchain.hpp"
 
-#include "device.hpp"
+#include "render_engine.hpp"
 #include "resources/image.hpp"
 
 #include <common/maths/maths.hpp>
 
 #include <functional>
 
-namespace aln::vkg
+namespace aln
 {
 
-void Swapchain::Initialize(Device* pDevice, vk::SurfaceKHR* pSurface, uint32_t windowWidth, uint32_t windowHeight)
+void Swapchain::Initialize(RenderEngine* pDevice, vk::SurfaceKHR* pSurface, uint32_t windowWidth, uint32_t windowHeight)
 {
-    m_pDevice = pDevice;
+    m_pRenderEngine = pDevice;
     m_width = windowWidth;
     m_height = windowHeight;
     m_pSurface = pSurface;
@@ -32,7 +32,7 @@ void Swapchain::TargetWindowResizedCallback(uint32_t width, uint32_t height)
 
 uint32_t Swapchain::AcquireNextImage(vk::Semaphore& semaphore)
 {
-    auto result = m_pDevice->GetVkDevice().acquireNextImageKHR(m_vkSwapchain.get(), UINT64_MAX, semaphore, nullptr, &m_activeImageIndex);
+    auto result = m_pRenderEngine->GetVkDevice().acquireNextImageKHR(m_vkSwapchain.get(), UINT64_MAX, semaphore, nullptr, &m_activeImageIndex);
     if (result == vk::Result::eErrorOutOfDateKHR)
     {
         Resize(m_width, m_height);
@@ -47,7 +47,7 @@ uint32_t Swapchain::AcquireNextImage(vk::Semaphore& semaphore)
 
 void Swapchain::Resize(uint32_t width, uint32_t height)
 {
-    m_pDevice->GetVkDevice().waitIdle();
+    m_pRenderEngine->GetVkDevice().waitIdle();
     if (width == 0 || height == 0)
     {
         throw std::runtime_error("Swapchain resize error");
@@ -81,7 +81,7 @@ void Swapchain::Present(vk::Semaphore& waitSemaphore)
 
     // TODO: Register swapchain renderers,
     // and add a callback to resize them
-    auto result = m_pDevice->GetGraphicsQueue().GetVkQueue().presentKHR(presentInfo);
+    auto result = m_pRenderEngine->GetGraphicsQueue().GetVkQueue().presentKHR(presentInfo);
     // TODO: Shoud this happen in swapchain directly ?
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_resizeRequired)
     {
@@ -100,17 +100,17 @@ void Swapchain::CreateInternal()
     vk::UniqueSwapchainKHR oldSwapchain = std::move(m_vkSwapchain);
 
     auto createInfo = CreateInfo(&oldSwapchain.get());
-    m_vkSwapchain = m_pDevice->GetVkDevice().createSwapchainKHRUnique(createInfo).value;
+    m_vkSwapchain = m_pRenderEngine->GetVkDevice().createSwapchainKHRUnique(createInfo).value;
 }
 
 vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain)
 {
-    auto swapchainSupport = m_pDevice->GetSwapchainSupport(*m_pSurface);
+    auto swapchainSupport = m_pRenderEngine->GetSwapchainSupport(*m_pSurface);
     auto presentMode = ChoosePresentMode(swapchainSupport.presentModes);
     m_surfaceFormat = ChooseSurfaceFormat(swapchainSupport.formats); // Defaults to B8G8R8A8Srgb
 
     // TODO: Reuse current extent if an old swapchain is provided
-    // TODO: width, height ? -> maybe grab from a vkg::window ?
+    // TODO: width, height ? -> maybe grab from a window ?
     m_extent = ChooseExtent(swapchainSupport.capabilities, m_width, m_height);
 
     uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
@@ -135,8 +135,8 @@ vk::SwapchainCreateInfoKHR Swapchain::CreateInfo(vk::SwapchainKHR* pOldSwapchain
     };
 
     uint32_t queueFamilyIndices[] = {
-        m_pDevice->GetGraphicsQueue().GetFamilyIndex(),
-        m_pDevice->GetPresentQueue().GetFamilyIndex(),
+        m_pRenderEngine->GetGraphicsQueue().GetFamilyIndex(),
+        m_pRenderEngine->GetPresentQueue().GetFamilyIndex(),
     };
 
     if (queueFamilyIndices[0] != queueFamilyIndices[1])
@@ -206,4 +206,4 @@ void Swapchain::AddResizeCallback(std::function<void(uint32_t, uint32_t)> callba
     m_resizeCallbacks.push_back(callback);
 }
 
-} // namespace aln::vkg
+} // namespace aln

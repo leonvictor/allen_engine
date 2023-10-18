@@ -10,7 +10,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg
+namespace aln
 {
 
 class DescriptorAllocator
@@ -42,7 +42,7 @@ class DescriptorAllocator
     vk::DescriptorPool& GetActivePool();
 
   private:
-    vk::Device* m_pDevice = nullptr;
+    vk::Device* m_pRenderEngine = nullptr;
     PoolSizes descriptorSizes;
 
     /// Pointer to the current active pool.
@@ -56,4 +56,4 @@ class DescriptorAllocator
     /// @brief: Grab a free pool if one is available, otherwise create a new one and return it.
     vk::UniqueDescriptorPool GrabPool();
 };
-} // namespace aln::vkg
+} // namespace aln

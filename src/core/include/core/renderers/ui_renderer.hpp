@@ -9,35 +9,35 @@
 namespace aln
 {
 
-class UIRenderer : public vkg::render::IRenderer
+class UIRenderer : public render::IRenderer
 {
   private:
-    vkg::Swapchain* m_pSwapchain;
+    Swapchain* m_pSwapchain;
 
     void CreateTargetImages() override
     {
         m_targetImages.clear();
         // Create the swapchain images
-        auto result = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_pSwapchain->GetVkSwapchain());
+        auto result = m_pRenderEngine->GetVkDevice().getSwapchainImagesKHR(m_pSwapchain->GetVkSwapchain());
         auto& images = result.value;
 
         for (size_t i = 0; i < images.size(); i++)
         {
-            auto target = std::make_shared<vkg::resources::Image>(m_pDevice, images[i], m_colorImageFormat);
+            auto target = std::make_shared<resources::Image>(m_pRenderEngine, images[i], m_colorImageFormat);
             target->AddView(vk::ImageAspectFlagBits::eColor);
             target->SetDebugName("Swapchain Target");
             m_targetImages.push_back(target);
         };
     }
 
-    vkg::render::RenderTarget& GetNextTarget() override
+    render::RenderTarget& GetNextTarget() override
     {
-        m_activeImageIndex = m_pSwapchain->AcquireNextImage(m_frames[m_currentFrameIndex].imageAvailable.get());
+        m_activeImageIndex = m_pSwapchain->AcquireNextImage(m_frameSync[m_pRenderEngine->GetCurrentFrameIdx()].imageAvailable.get());
         return m_renderTargets[m_activeImageIndex];
     }
 
   public:
-    void Initialize(vkg::Swapchain* pSwapchain)
+    void Initialize(Swapchain* pSwapchain)
     {
         m_pSwapchain = pSwapchain;
 
@@ -47,12 +47,18 @@ class UIRenderer : public vkg::render::IRenderer
             pSwapchain->GetWidth(),
             pSwapchain->GetHeight(),
             pSwapchain->GetImageFormat());
-        // CreatePipelines();
     }
 
     void Shutdown()
     {
+        for (auto& targetImage : m_targetImages)
+        {
+            targetImage->Shutdown();
+            targetImage.reset();
+        }
+        m_targetImages.clear();
 
+        IRenderer::Shutdown();
     }
 
     void Resize(uint32_t width, uint32_t height)
@@ -74,26 +80,25 @@ class UIRenderer : public vkg::render::IRenderer
         cb.end();
 
         vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+        const auto currentFrameIdx = m_pRenderEngine->GetCurrentFrameIdx();
 
         vk::SubmitInfo submitInfo = {
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get(),
+            .pWaitSemaphores = &m_frameSync[currentFrameIdx].imageAvailable.get(),
             .pWaitDstStageMask = waitStages,
             .commandBufferCount = 1,
             .pCommandBuffers = &cb,
             .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get(),
+            .pSignalSemaphores = &m_frameSync[currentFrameIdx].renderFinished.get(),
         };
 
-        m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
+        m_pRenderEngine->GetVkDevice().resetFences(m_frameSync[currentFrameIdx].inFlight.get());
         // TODO: It would be better to pass the semaphores and cbs directly to the queue class
         // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
         // vulkan arraywrappers ?
-        m_pDevice->GetGraphicsQueue().Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
+        m_pRenderEngine->GetGraphicsQueue().Submit(submitInfo, m_frameSync[currentFrameIdx].inFlight.get());
 
-        m_pSwapchain->Present(m_frames[m_currentFrameIndex].renderFinished.get());
-
-        m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_pSwapchain->Present(m_frameSync[currentFrameIdx].renderFinished.get());
     }
 };
 } // namespace aln

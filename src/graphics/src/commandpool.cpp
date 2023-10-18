@@ -1,14 +1,75 @@
-#include <functional>
-#include <memory>
-#include <vulkan/vulkan.hpp>
 
 #include "commandpool.hpp"
 #include "queue.hpp"
+#include "render_engine.hpp"
 
-namespace aln::vkg
+#include <vulkan/vulkan.hpp>
+
+#include <functional>
+
+namespace aln
 {
 
-void CommandPool::Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPoolCreateFlagBits flags)
+void CommandPool::Reset()
+{
+    m_freeCommandBufferIdx = 0;
+    m_pVkDevice->resetCommandPool(m_vkCommandPool.get());
+}
+
+vk::CommandBuffer* CommandPool::RequestCommandBuffer()
+{
+    assert(m_freeCommandBufferIdx < MAX_CACHED_COMMAND_BUFFERS);
+
+    if (m_freeCommandBufferIdx > m_allocatedCommandBuffers.size() - 1)
+    {
+        assert(false);
+        // TODO: Grow the cached buffer pool
+    }
+
+    auto pCB = &m_allocatedCommandBuffers[m_freeCommandBufferIdx];
+    m_freeCommandBufferIdx++;
+    return pCB;
+}
+
+void CommandPool::AllocateCommandBuffers(std::span<vk::CommandBuffer> commandBuffers)
+{
+    vk::CommandBufferAllocateInfo allocInfo = {
+        .commandPool = m_vkCommandPool.get(),
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = static_cast<uint32_t>(commandBuffers.size()),
+    };
+
+    m_pVkDevice->allocateCommandBuffers(&allocInfo, commandBuffers.data());
+}
+
+void CommandPool::AllocateCommandBuffers(vk::CommandBuffer* pOut)
+{
+    vk::CommandBufferAllocateInfo allocInfo = {
+        .commandPool = m_vkCommandPool.get(),
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1,
+    };
+
+    m_pVkDevice->allocateCommandBuffers(&allocInfo, pOut);
+}
+
+vk::UniqueCommandBuffer CommandPool::AllocateUniqueCommandBuffer()
+{
+    vk::CommandBufferAllocateInfo allocInfo = {
+        .commandPool = m_vkCommandPool.get(),
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1,
+    };
+
+    return std::move(m_pVkDevice->allocateCommandBuffersUnique(allocInfo).value[0]);
+}
+
+void CommandPool::FreeCommandBuffers(vk::CommandBuffer* pBuffer, uint32_t bufferCount)
+{
+    m_pVkDevice->freeCommandBuffers(m_vkCommandPool.get(), bufferCount, pBuffer);
+}
+
+void CommandPool::Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPoolCreateFlagBits flags, uint32_t cachedCommandBuffersCount)
 {
     m_pVkDevice = pDevice;
     m_pQueue = pQueue;
@@ -19,6 +80,12 @@ void CommandPool::Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPool
     };
 
     m_vkCommandPool = m_pVkDevice->createCommandPoolUnique(createInfo).value;
+
+    if (cachedCommandBuffersCount > 0)
+    {
+        m_allocatedCommandBuffers.resize(cachedCommandBuffersCount);
+        AllocateCommandBuffers(m_allocatedCommandBuffers);
+    }
 }
 
 void CommandPool::Shutdown()
@@ -76,11 +143,11 @@ std::vector<vk::UniqueCommandBuffer> CommandPool::AllocateCommandBuffersUnique(u
 {
     vk::CommandBufferAllocateInfo allocInfo = {
         .commandPool = m_vkCommandPool.get(),
-        .level = level, // Or secondary
+        .level = level,
         .commandBufferCount = count,
     };
 
     auto result = m_pVkDevice->allocateCommandBuffersUnique(allocInfo);
     return std::move(result.value);
 }
-}; // namespace aln::vkg
+}; // namespace aln

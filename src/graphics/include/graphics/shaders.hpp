@@ -4,9 +4,9 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg
+namespace aln
 {
-class Device;
+class RenderEngine;
 
 namespace shaders
 {
@@ -28,7 +28,7 @@ struct ShaderInfo
     }
 };
 
-ShaderInfo LoadShader(Device* device, const std::filesystem::path& shaderFilePath, const vk::ShaderStageFlagBits stage, std::string entryPoint);
+ShaderInfo LoadShader(RenderEngine* pRenderEngine, const std::filesystem::path& shaderFilePath, const vk::ShaderStageFlagBits stage, std::string entryPoint);
 
 } // namespace shaders
-} // namespace aln::vkg
+} // namespace aln

@@ -6,7 +6,7 @@ namespace aln
 {
 namespace vkg
 {
-class Device;
+class RenderEngine;
 struct UniformBufferObject;
 } // namespace vkg
 

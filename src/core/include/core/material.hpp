@@ -23,12 +23,12 @@ class Material : public IAsset
     // TODO: Other maps
     // TODO: Shaders...
 
-    vkg::resources::Buffer m_buffer;
+    resources::Buffer m_buffer;
     AssetHandle<Texture> m_albedoMap;
 
   public:
     inline const AssetHandle<Texture>& GetAlbedoMap() const { return m_albedoMap; }
-    inline const vkg::resources::Buffer& GetBuffer() const { return m_buffer; }
+    inline const resources::Buffer& GetBuffer() const { return m_buffer; }
 };
 
 #pragma warning(disable:4324)

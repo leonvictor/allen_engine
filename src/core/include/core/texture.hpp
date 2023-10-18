@@ -15,7 +15,7 @@ class Texture : public IAsset
     friend class MeshComponent;
 
   private:
-    vkg::resources::Image m_image;
+    resources::Image m_image;
 
   public:
     inline const vk::DescriptorImageInfo GetDescriptor() const { return m_image.GetDescriptor(); }

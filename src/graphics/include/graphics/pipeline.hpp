@@ -1,14 +1,16 @@
 #pragma once
 
-#include "device.hpp"
+#include "render_engine.hpp"
 #include "shaders.hpp"
 #include "vertex_descriptors.hpp"
 
 #include <common/uuid.hpp>
-#include <iomanip>
+
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg
+#include <iomanip>
+
+namespace aln
 {
 
 /// @brief Wrapper around a vulkan pipeline.
@@ -22,6 +24,35 @@ class Pipeline
         Bound,
     };
 
+  private:
+    RenderEngine* m_pRenderEngine;
+    vk::UniquePipelineLayout m_layout;
+    vk::GraphicsPipelineCreateInfo m_pipelineCreateInfo;
+    Vector<shaders::ShaderInfo> m_shaderStages;
+    Vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
+    Vector<vk::DynamicState> m_dynamicStates;
+    Vector<vk::PushConstantRange> m_pushConstants;
+
+    // Pipeline Input Assembly State
+    vk::PrimitiveTopology m_primitiveTopology;
+
+    vk::UniquePipeline m_vkPipeline;
+    vk::PipelineBindPoint m_bindPoint;
+
+    // Vertex description
+    vk::VertexInputBindingDescription m_vertexBindingDescription;
+    Vector<vk::VertexInputAttributeDescription> m_vertextAttributeDescriptions;
+
+    State m_status = State::Uninitialized;
+
+    /// @brief Initialize default values
+    void InitializeInternal();
+
+    /// @brief Try to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp
+    /// @todo:
+    /// - remove verbose output OR make it debug only
+    vk::UniquePipelineCache LoadCachedPipeline(std::string path);
+
   public:
     // TODO: Move that to private
     vk::PipelineDepthStencilStateCreateInfo m_depthStencil;
@@ -33,10 +64,16 @@ class Pipeline
 
     Pipeline() {}
 
-    explicit Pipeline(Device* pDevice)
+    explicit Pipeline(RenderEngine* pDevice)
     {
-        m_pDevice = pDevice;
+        m_pRenderEngine = pDevice;
         InitializeInternal();
+    }
+
+    void Shutdown()
+    {
+        m_vkPipeline.reset();
+        m_layout.reset();
     }
 
     /// @brief Copy the internal state of this pipeline. The other pipeline must not be initialized.
@@ -45,7 +82,7 @@ class Pipeline
     /// @brief Create a new pipeline copying the state of another one. The new pipeline will be unitialized.
     static Pipeline CopyFrom(const Pipeline& other)
     {
-        Pipeline newPipeline = Pipeline(other.m_pDevice);
+        Pipeline newPipeline = Pipeline(other.m_pRenderEngine);
         other.CopyTo(newPipeline);
         return newPipeline;
     }
@@ -105,34 +142,5 @@ class Pipeline
     inline bool IsInitialized() const { return m_status == State::Initialized; }
     inline const vk::Pipeline& GetVkPipeline() const { return m_vkPipeline.get(); }
     inline const vk::PipelineLayout& GetLayout() const { return m_layout.get(); }
-
-  private:
-    Device* m_pDevice;
-    vk::UniquePipelineLayout m_layout;
-    vk::GraphicsPipelineCreateInfo m_pipelineCreateInfo;
-    Vector<shaders::ShaderInfo> m_shaderStages;
-    Vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
-    Vector<vk::DynamicState> m_dynamicStates;
-    Vector<vk::PushConstantRange> m_pushConstants;
-
-    // Pipeline Input Assembly State
-    vk::PrimitiveTopology m_primitiveTopology;
-
-    vk::UniquePipeline m_vkPipeline;
-    vk::PipelineBindPoint m_bindPoint;
-
-    // Vertex description
-    vk::VertexInputBindingDescription m_vertexBindingDescription;
-    Vector<vk::VertexInputAttributeDescription> m_vertextAttributeDescriptions;
-
-    State m_status = State::Uninitialized;
-
-    /// @brief Initialize default values
-    void InitializeInternal();
-
-    /// @brief Try to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp
-    /// @todo:
-    /// - remove verbose output OR make it debug only
-    vk::UniquePipelineCache LoadCachedPipeline(std::string path);
 };
-} // namespace aln::vkg
+} // namespace aln

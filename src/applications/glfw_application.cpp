@@ -3,7 +3,7 @@
 #include "engine.hpp"
 
 #include <common/memory.hpp>
-#include <graphics/device.hpp>
+#include <graphics/render_engine.hpp>
 #include <graphics/instance.hpp>
 #include <graphics/swapchain.hpp>
 
@@ -208,10 +208,7 @@ class GLFWApplication
     GLFWwindow* m_pGlfwWindow = nullptr;
     GLFWInputMapper m_glfwInputMapper;
 
-    vkg::Instance m_instance; // Application-wide vulkan instance
     vk::UniqueSurfaceKHR m_pSurface;
-    vkg::Device m_device;
-    vkg::Swapchain m_swapchain;
 
     Engine m_engine;
 
@@ -247,48 +244,19 @@ class GLFWApplication
         glfwSetKeyCallback(m_pGlfwWindow, KeyCallback);
         glfwSetFramebufferSizeCallback(m_pGlfwWindow, WindowResizeCallback);
 
-        // --------- Create rendering resources
-        // --- Vulkan instance
-        uint32_t glfwExtensionCount;
-        const char** glfwExtensions;
-
-        // TODO: Use span
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount); // GLFW function that return the extensions it needs
-        Vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-        m_instance.Initialize(extensions);
-
-        // --- Vulkan surface
-        VkSurfaceKHR surface;
-        auto res = glfwCreateWindowSurface(m_instance.GetVkInstance(), m_pGlfwWindow, nullptr, &surface);
-        assert(res == VK_SUCCESS);
-
-        m_pSurface = vk::UniqueSurfaceKHR(surface, m_instance.GetVkInstance());
-
-        // --- Vulkan device
-        m_device.Initialize(&m_instance, m_pSurface.get());
-
-        // --- Vulkan swapchain
         int windowWidth, windowHeight;
         glfwGetFramebufferSize(m_pGlfwWindow, &windowWidth, &windowHeight);
 
-        m_swapchain.Initialize(&m_device, &m_pSurface.get(), windowWidth, windowHeight);
-
         // --------- Initialize engine
-        m_engine.Initialize(m_pGlfwWindow, m_swapchain, m_device, {(float) windowWidth, (float) windowHeight});
+        m_engine.Initialize(m_pGlfwWindow, {(float) windowWidth, (float) windowHeight});
 
         m_glfwInputMapper.Initialize(&m_engine.GetInputService());
     }
 
     void Shutdown()
     {
-        m_device.GetVkDevice().waitIdle();
-
         m_glfwInputMapper.Shutdown();
         m_engine.Shutdown();
-
-        m_swapchain.Shutdown();
-        m_device.Shutdown();
 
         glfwDestroyWindow(m_pGlfwWindow);
         glfwTerminate();
@@ -311,13 +279,12 @@ class GLFWApplication
             int width, height;
             glfwGetFramebufferSize(m_pGlfwWindow, &width, &height);
 
-            if (m_swapchain.RequiresResize())
+            if (m_engine.m_renderEngine.GetSwapchain().RequiresResize())
             {
-                m_swapchain.Resize(width, height);
+                m_engine.m_renderEngine.GetSwapchain().Resize(width, height);
             }
 
             bool windowMinimized = (width == 0 || height == 0);
-
             if (!windowMinimized)
             {
                 m_engine.Update();
@@ -353,7 +320,7 @@ class GLFWApplication
     static void WindowResizeCallback(GLFWwindow* pGlfwWindow, int width, int height)
     {
         auto pApp = reinterpret_cast<GLFWApplication*>(glfwGetWindowUserPointer(pGlfwWindow));
-        pApp->m_swapchain.TargetWindowResizedCallback(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        pApp->m_engine.m_renderEngine.GetSwapchain().TargetWindowResizedCallback(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     }
 
     void PollGamepadInput()

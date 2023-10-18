@@ -24,7 +24,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
 
     // TODO: Profile with a staging buffer
     // but vk buffer copy is not allowed inside a render pass
-    // vkg::resources::Buffer stagingBuffer(m_pRenderer->GetDevice(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertexBuffer);
+    // resources::Buffer stagingBuffer(m_pRenderer->GetDevice(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertexBuffer);
     // m_linesRenderState.m_stagingBuffer.Map();
     // m_linesRenderState.m_stagingBuffer.Copy(vertexBuffer);
     // m_linesRenderState.m_stagingBuffer.Unmap();
@@ -65,7 +65,6 @@ void GraphicsSystem::Initialize()
 
 void GraphicsSystem::Update(const UpdateContext& context)
 {
-
     if (context.GetUpdateStage() != UpdateStage::FrameEnd)
     {
         return;
@@ -82,8 +81,8 @@ void GraphicsSystem::Update(const UpdateContext& context)
     // Update viewport info
     m_aspectRatio = context.GetDisplayWidth() / context.GetDisplayHeight();
 
-    aln::vkg::render::RenderContext ctx = {.backgroundColor = m_pCameraComponent->m_backgroundColor};
-    m_pRenderer->BeginFrame(ctx);
+    aln::render::RenderContext ctx = {.backgroundColor = m_pCameraComponent->m_backgroundColor};
+    m_pRenderer->StartFrame(ctx);
 
     m_visibleStaticMeshComponents.clear();
     for (auto& meshInstance : m_staticMeshRenderInstances)

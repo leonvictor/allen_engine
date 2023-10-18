@@ -6,11 +6,11 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg::resources
+namespace aln::resources
 {
 Buffer::Buffer() {} // Empty ctor is required for now. Todo: Remove when we can
 
-Buffer::Buffer(Device* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
+Buffer::Buffer(RenderEngine* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
 {
     Initialize(pDevice, size, usage, memProperties, data);
 }
@@ -20,7 +20,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, Vector<vk::Buffer
     cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions.size(), bufferCopyRegions.data());
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, vkg::resources::Image& image) const
+void Buffer::CopyTo(vk::CommandBuffer& cb, resources::Image& image) const
 {
     CopyTo(cb, image.GetVkImage(), image.GetWidth(), image.GetHeight());
 }
@@ -68,8 +68,8 @@ void Buffer::CreateBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags
 {
     // TODO: Move queues out of this function
     uint32_t queues[] = {
-        m_pDevice->GetGraphicsQueue().GetFamilyIndex(),
-        m_pDevice->GetTransferQueue().GetFamilyIndex(),
+        m_pRenderEngine->GetGraphicsQueue().GetFamilyIndex(),
+        m_pRenderEngine->GetTransferQueue().GetFamilyIndex(),
     };
 
     vk::BufferCreateInfo bufferInfo = {
@@ -81,19 +81,19 @@ void Buffer::CreateBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags
         .pQueueFamilyIndices = queues,
     };
 
-    m_vkBuffer = m_pDevice->GetVkDevice().createBufferUnique(bufferInfo).value;
+    m_vkBuffer = m_pRenderEngine->GetVkDevice().createBufferUnique(bufferInfo).value;
 }
 
 void Buffer::Allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    auto memRequirements = m_pDevice->GetVkDevice().getBufferMemoryRequirements(m_vkBuffer.get());
+    auto memRequirements = m_pRenderEngine->GetVkDevice().getBufferMemoryRequirements(m_vkBuffer.get());
     Allocation::Allocate(memRequirements, memProperties);
-    m_pDevice->GetVkDevice().bindBufferMemory(m_vkBuffer.get(), m_memory.get(), 0);
+    m_pRenderEngine->GetVkDevice().bindBufferMemory(m_vkBuffer.get(), m_memory.get(), 0);
 }
 
-void Buffer::Initialize(Device* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
+void Buffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
 {
-    m_pDevice = pDevice;
+    m_pRenderEngine = pDevice;
     m_size = size;
 
     CreateBuffer(m_size, usage);
@@ -114,9 +114,9 @@ void Buffer::Initialize(Device* pDevice, const vk::DeviceSize& size, const vk::B
                 .size = size,
             };
 
-            m_pDevice->GetVkDevice().flushMappedMemoryRanges(mappedRange);
+            m_pRenderEngine->GetVkDevice().flushMappedMemoryRanges(mappedRange);
         }
         Unmap();
     }
 }
-}; // namespace aln::vkg::resources
+}; // namespace aln::resources

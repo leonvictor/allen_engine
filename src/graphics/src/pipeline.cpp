@@ -3,13 +3,13 @@
 #include <fstream>
 #include <iostream>
 
-namespace aln::vkg
+namespace aln
 {
 
 void Pipeline::CopyTo(Pipeline& other) const
 {
     assert(!other.IsInitialized());
-    other.m_pDevice = m_pDevice;
+    other.m_pRenderEngine = m_pRenderEngine;
     other.m_pipelineCreateInfo = m_pipelineCreateInfo;
     other.m_shaderStages = m_shaderStages;
     other.m_dynamicStates = m_dynamicStates;
@@ -71,7 +71,7 @@ void Pipeline::Create(std::string cachePath)
         .pPushConstantRanges = m_pushConstants.data(),
     };
 
-    m_layout = m_pDevice->GetVkDevice().createPipelineLayoutUnique(layoutInfo).value;
+    m_layout = m_pRenderEngine->GetVkDevice().createPipelineLayoutUnique(layoutInfo).value;
 
     // Shader stages
     Vector<vk::PipelineShaderStageCreateInfo> stages;
@@ -106,14 +106,14 @@ void Pipeline::Create(std::string cachePath)
 
     // TODO: Generate different pipeline cache path depending on the options
     vk::UniquePipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                           // TODO
-    m_vkPipeline = m_pDevice->GetVkDevice().createGraphicsPipelineUnique(pipelineCache.get(), m_pipelineCreateInfo).value; // TODO
+    m_vkPipeline = m_pRenderEngine->GetVkDevice().createGraphicsPipelineUnique(pipelineCache.get(), m_pipelineCreateInfo).value; // TODO
 
     // Store away the cache that we've populated.  This could conceivably happen
     // earlier, depends on when the pipeline cache stops being populated
     // internally.
     if (!pipelineCache)
     {
-        auto endCacheData = m_pDevice->GetVkDevice().getPipelineCacheData(pipelineCache.get()).value;
+        auto endCacheData = m_pRenderEngine->GetVkDevice().getPipelineCacheData(pipelineCache.get()).value;
 
         // Write the file to disk, overwriting whatever was there
         std::ofstream writeCacheStream(cachePath, std::ios_base::out | std::ios_base::binary);
@@ -152,7 +152,7 @@ void Pipeline::SetRenderPass(const vk::RenderPass& renderPass)
 
 void Pipeline::RegisterShader(const std::string& filename, vk::ShaderStageFlagBits stage, std::string entrypoint)
 {
-    auto shaderStage = vkg::shaders::LoadShader(m_pDevice, filename, stage, entrypoint);
+    auto shaderStage = shaders::LoadShader(m_pRenderEngine, filename, stage, entrypoint);
     m_shaderStages.push_back(shaderStage);
 }
 
@@ -161,7 +161,7 @@ void Pipeline::ClearShaders()
     // TODO: Let the Shaders auto-destroy when they go out of scope
     for (const auto& shader : m_shaderStages)
     {
-        m_pDevice->GetVkDevice().destroyShaderModule(shader.module);
+        m_pRenderEngine->GetVkDevice().destroyShaderModule(shader.module);
     }
     m_shaderStages.clear();
 }
@@ -228,7 +228,7 @@ void Pipeline::InitializeInternal()
     m_viewport.maxDepth = 1.0f;
 
     m_multisample = {
-        .rasterizationSamples = m_pDevice->GetMSAASamples(),
+        .rasterizationSamples = m_pRenderEngine->GetMSAASamples(),
         .sampleShadingEnable = vk::True,
         .minSampleShading = 0.2f,
     };
@@ -330,26 +330,26 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
             std::cout << "  Unsupported cache header version in " << path << ".\n";
             std::cout << "    Cache contains: " << std::hex << std::setw(8) << cacheHeaderVersion << "\n";
         }
-        if (vendorID != m_pDevice->GetPhysicalDeviceProperties().vendorID)
+        if (vendorID != m_pRenderEngine->GetPhysicalDeviceProperties().vendorID)
         {
             badCache = true;
             std::cout << "  Vender ID mismatch in " << path << ".\n";
             std::cout << "    Cache contains: " << std::hex << std::setw(8) << vendorID << "\n";
-            std::cout << "    Driver expects: " << std::hex << std::setw(8) << m_pDevice->GetPhysicalDeviceProperties().vendorID << "\n";
+            std::cout << "    Driver expects: " << std::hex << std::setw(8) << m_pRenderEngine->GetPhysicalDeviceProperties().vendorID << "\n";
         }
-        if (deviceID != m_pDevice->GetPhysicalDeviceProperties().deviceID)
+        if (deviceID != m_pRenderEngine->GetPhysicalDeviceProperties().deviceID)
         {
             badCache = true;
-            std::cout << "  Device ID mismatch in " << path << ".\n";
+            std::cout << "  RenderEngine ID mismatch in " << path << ".\n";
             std::cout << "    Cache contains: " << std::hex << std::setw(8) << deviceID << "\n";
-            std::cout << "    Driver expects: " << std::hex << std::setw(8) << m_pDevice->GetPhysicalDeviceProperties().deviceID << "\n";
+            std::cout << "    Driver expects: " << std::hex << std::setw(8) << m_pRenderEngine->GetPhysicalDeviceProperties().deviceID << "\n";
         }
-        if (memcmp(pipelineCacheUUID, m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID, sizeof(pipelineCacheUUID)) != 0)
+        if (memcmp(pipelineCacheUUID, m_pRenderEngine->GetPhysicalDeviceProperties().pipelineCacheUUID, sizeof(pipelineCacheUUID)) != 0)
         {
             badCache = true;
             std::cout << "  UUID mismatch in " << path << ".\n";
             std::cout << "    Cache contains: " << UUID(pipelineCacheUUID) << "\n";
-            auto expectedID = m_pDevice->GetPhysicalDeviceProperties().pipelineCacheUUID;
+            auto expectedID = m_pRenderEngine->GetPhysicalDeviceProperties().pipelineCacheUUID;
             std::cout << "    Driver expects: " << UUID({expectedID.begin(), expectedID.end()}) << "\n";
         }
         if (badCache)
@@ -373,7 +373,7 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
         .pInitialData = startCacheData,
     };
     
-    auto pipelineCache = m_pDevice->GetVkDevice().createPipelineCacheUnique(cacheCreateInfo).value;
+    auto pipelineCache = m_pRenderEngine->GetVkDevice().createPipelineCacheUnique(cacheCreateInfo).value;
     
     // Free our initialData now that pipeline cache has been created
     free(startCacheData);
@@ -381,4 +381,4 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
 
     return pipelineCache;
 }
-} // namespace aln::vkg
+} // namespace aln

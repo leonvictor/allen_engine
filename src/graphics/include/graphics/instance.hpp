@@ -6,12 +6,12 @@
 
 #include <iostream>
 
-namespace aln::vkg
+namespace aln
 {
 /// @brief Instance stores application-wide parameters and info, as well as the debugging utilities.
 class Instance
 {
-    friend class Device;
+    friend class RenderEngine;
 
   private:
     vk::UniqueInstance m_vkInstance; // Wrapped vulkan instance
@@ -37,6 +37,7 @@ class Instance
   public:
     /// @brief Create the application wide instance. Should be called once at program startup.
     void Initialize(Vector<const char*>& requestedExtensions);
+    void Shutdown();
 
     /// @brief Get the wrapped vulkan instance.
     const vk::Instance& GetVkInstance() const { return m_vkInstance.get(); }
@@ -44,4 +45,4 @@ class Instance
     const vk::DispatchLoaderDynamic& GetDispatchLoaderDynamic() const { return m_dispatchLoaderDynamic; }
     bool ValidationLayersEnabled() const { return m_validationLayersEnabled; }
 };
-} // namespace aln::vkg
+} // namespace aln

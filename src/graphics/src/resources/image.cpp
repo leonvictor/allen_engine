@@ -10,19 +10,19 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace aln::vkg::resources
+namespace aln::resources
 {
 
-Image::Image(Device* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+Image::Image(RenderEngine* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
     vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
-    m_pDevice = pDevice;
+    m_pRenderEngine = pDevice;
     InitImage(width, height, mipLevels, numSamples, format, tiling, usage, arrayLayers, flags, layout, type);
 }
 
-Image::Image(Device* pDevice, vk::Image& image, vk::Format format)
+Image::Image(RenderEngine* pDevice, vk::Image& image, vk::Format format)
 {
-    m_pDevice = pDevice;
+    m_pRenderEngine = pDevice;
     m_externallyOwnedImage = true;
     m_vkImage = vk::UniqueImage(image);
     m_format = format;
@@ -48,10 +48,10 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
         .initialLayout = layout,
     };
 
-    m_vkImage = m_pDevice->GetVkDevice().createImageUnique(imageInfo).value;
+    m_vkImage = m_pRenderEngine->GetVkDevice().createImageUnique(imageInfo).value;
 
 #ifndef NDEBUG
-    m_pDevice->SetDebugUtilsObjectName(m_vkImage.get(), m_debugName + " Image");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_vkImage.get(), m_debugName + " Image");
 #endif
 
     m_layout = layout;
@@ -79,18 +79,18 @@ void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
         },
     };
 
-    m_vkView = m_pDevice->GetVkDevice().createImageViewUnique(createInfo).value;
+    m_vkView = m_pRenderEngine->GetVkDevice().createImageViewUnique(createInfo).value;
 
 #ifndef NDEBUG
-    m_pDevice->SetDebugUtilsObjectName(m_vkView.get(), m_debugName + " Image View");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_vkView.get(), m_debugName + " Image View");
 #endif
 }
 
 void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    auto memRequirements = m_pDevice->GetVkDevice().getImageMemoryRequirements(m_vkImage.get());
+    auto memRequirements = m_pRenderEngine->GetVkDevice().getImageMemoryRequirements(m_vkImage.get());
     Allocation::Allocate(memRequirements, memProperties);
-    m_pDevice->GetVkDevice().bindImageMemory(m_vkImage.get(), m_memory.get(), 0);
+    m_pRenderEngine->GetVkDevice().bindImageMemory(m_vkImage.get(), m_memory.get(), 0);
 }
 
 void Image::AddSampler(vk::SamplerAddressMode adressMode)
@@ -113,10 +113,10 @@ void Image::AddSampler(vk::SamplerAddressMode adressMode)
         .unnormalizedCoordinates = vk::False,
     };
 
-    m_vkSampler = m_pDevice->GetVkDevice().createSamplerUnique(samplerInfo).value;
+    m_vkSampler = m_pRenderEngine->GetVkDevice().createSamplerUnique(samplerInfo).value;
 
 #ifndef NDEBUG
-    m_pDevice->SetDebugUtilsObjectName(m_vkSampler.get(), m_debugName + " Sampler");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_vkSampler.get(), m_debugName + " Sampler");
 #endif
 }
 
@@ -246,17 +246,17 @@ void Image::Blit(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t
     vk::Offset3D blitSize = {width, height, 1};
     vk::Offset3D defaultOffset = {0, 0, 0};
     vk::ImageBlit imageBlitRegion = {
-            .srcSubresource = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .layerCount = 1,
-            },
-            .srcOffsets = {{defaultOffset, blitSize}},
-            .dstSubresource = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .layerCount = 1,
-            },
-            .dstOffsets = {{defaultOffset, blitSize}},
-        };
+        .srcSubresource = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .layerCount = 1,
+        },
+        .srcOffsets = {{defaultOffset, blitSize}},
+        .dstSubresource = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .layerCount = 1,
+        },
+        .dstOffsets = {{defaultOffset, blitSize}},
+    };
 
     cb.blitImage(
         m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
@@ -301,7 +301,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 {
     // TODO: Swizzle or not based on format
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = m_pDevice->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
+    auto subResourceLayout = m_pRenderEngine->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
 
     if (m_mapped == nullptr)
     {
@@ -347,7 +347,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 Vec3 Image::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = m_pDevice->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
+    auto subResourceLayout = m_pRenderEngine->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
 
     if (m_mapped == nullptr)
     {
@@ -393,7 +393,7 @@ Vec3 Image::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
 
 void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 {
-    auto formatProperties = m_pDevice->GetFormatProperties(m_format);
+    auto formatProperties = m_pRenderEngine->GetFormatProperties(m_format);
 
     vk::ImageMemoryBarrier barrier = {
         .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
@@ -497,7 +497,7 @@ vk::DescriptorSet& Image::GetDescriptorSet()
     // Lazy allocation of the descriptor set
     if (!m_vkDescriptorSet)
     {
-        m_vkDescriptorSet = m_pDevice->AllocateDescriptorSet<Image>();
+        m_vkDescriptorSet = m_pRenderEngine->AllocateDescriptorSet<Image>();
 
         // Update the Descriptor Set:
         vk::WriteDescriptorSet writeDesc[1] = {};
@@ -507,10 +507,10 @@ vk::DescriptorSet& Image::GetDescriptorSet()
         auto desc = GetDescriptor();
         writeDesc[0].pImageInfo = &desc;
 
-        m_pDevice->GetVkDevice().updateDescriptorSets(1, writeDesc, 0, nullptr);
+        m_pRenderEngine->GetVkDevice().updateDescriptorSets(1, writeDesc, 0, nullptr);
 
 #ifndef NDEBUG
-        m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), m_debugName + " Descriptor Set");
+        m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), m_debugName + " Descriptor Set");
 #endif
     }
     return m_vkDescriptorSet.get();
@@ -526,7 +526,7 @@ Vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
     return bindings;
 }
 
-Image Image::FromBuffer(Device* pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
+Image Image::FromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
 {
     Image image = Image(pDevice, width, height, mipLevels,
         vk::SampleCountFlagBits::e1, format, vk::ImageTiling::eOptimal,
@@ -535,26 +535,22 @@ Image Image::FromBuffer(Device* pDevice, Buffer& buffer, uint32_t width, uint32_
 
     image.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    pDevice->GetGraphicsCommandPool()
-        .Execute([&](vk::CommandBuffer cb)
-            {
-                image.TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-                buffer.CopyTo(cb, image);
-                // Optionnaly generate mipmaps
-                if (mipLevels > 1)
-                {
-
-                    image.GenerateMipMaps(cb, mipLevels);
-                }
-                else
-                {
-                    image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
-                } });
+    image.TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+    buffer.CopyTo(cb, image);
+    // Optionnaly generate mipmaps
+    if (mipLevels > 1)
+    {
+        image.GenerateMipMaps(cb, mipLevels);
+    }
+    else
+    {
+        image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
+    }
 
     return std::move(image);
 }
 
-Image Image::CubemapFromDirectory(Device* pDevice, std::string path)
+Image Image::CubemapFromDirectory(RenderEngine* pDevice, std::string path)
 {
     // TODO: Quick and dirty way of storing faces names for now
     // Generate optimized file ?
@@ -645,4 +641,4 @@ Image Image::CubemapFromDirectory(Device* pDevice, std::string path)
             image.TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal); });
     return std::move(image);
 }
-} // namespace aln::vkg::resources
+} // namespace aln::resources

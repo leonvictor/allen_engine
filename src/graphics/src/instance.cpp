@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace aln::vkg
+namespace aln
 {
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -123,8 +123,17 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
     {
         m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{m_vkInstance.get(), vkGetInstanceProcAddr};
         m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(
-            debugUtilsMessengerCreateInfo,
-            nullptr, m_dispatchLoaderDynamic).value;
+                                           debugUtilsMessengerCreateInfo,
+                                           nullptr,
+                                           m_dispatchLoaderDynamic)
+                               .value;
     }
 }
-}; // namespace aln::vkg
+
+void Instance::Shutdown()
+{
+    m_debugMessenger.reset();
+    m_vkInstance.reset();
+}
+
+}; // namespace aln

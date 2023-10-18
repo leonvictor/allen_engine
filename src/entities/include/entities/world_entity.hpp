@@ -29,9 +29,6 @@ class WorldEntity
 
     LoadingContext m_loadingContext;
 
-    /// @brief Remove all entities and system from this world.
-    void Cleanup();
-
     /// @brief Register a component with all the world systems. Called when an entity is activated.
     void RegisterComponent(Entity* pEntity, IComponent* pComponent);
 
@@ -45,9 +42,8 @@ class WorldEntity
     void UnregisterEntityUpdate(Entity* pEntity);
 
   public:
-    ~WorldEntity();
-
     void Initialize(ServiceProvider& serviceProvider);
+    void Shutdown();
 
     /// @brief Update all entities' systems, then all world systems
     void Update(const UpdateContext& context);

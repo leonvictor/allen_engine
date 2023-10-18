@@ -7,7 +7,7 @@
 #include <memory>
 #include <stdexcept>
 
-namespace aln::vkg::resources
+namespace aln::resources
 {
 class Buffer;
 
@@ -40,22 +40,9 @@ class Image : public Allocation
     void InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
 
   public:
-    ~Image()
-    {
-        m_vkDescriptorSet.reset();
-        m_vkSampler.reset();
-        m_vkView.reset();
+    ~Image() { assert(!m_vkImage); }
 
-        if (m_externallyOwnedImage)
-        {
-            m_vkImage.release();
-        }
-        else
-        {
-            m_vkImage.reset();
-        }
-    }
-
+    // TODO: Rework creation API
     // No copy allowed
     Image(const Image&) = delete;
     Image& operator=(const Image&) = delete;
@@ -105,17 +92,35 @@ class Image : public Allocation
 
     /// @brief Create a new empty vulkan image.
     /// @todo Maybe move this to a Create() fn ?
-    Image(Device* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    Image(RenderEngine* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
         vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
 
     /// @brief Wrap an existing VkImage. The original image won't be automatically destroyed.
-    Image(Device* pDevice, vk::Image& image, vk::Format format);
+    Image(RenderEngine* pDevice, vk::Image& image, vk::Format format);
 
     /// @brief Create an image an upload the content of a buffer to it.
-    static Image FromBuffer(Device* pDevice, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
+    static Image FromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
 
     /// @brief Load a cubemap from a directory.
-    static Image CubemapFromDirectory(Device* pDevice, std::string path);
+    static Image CubemapFromDirectory(RenderEngine* pDevice, std::string path);
+
+    void Shutdown() override
+    {
+        m_vkDescriptorSet.reset();
+        m_vkSampler.reset();
+        m_vkView.reset();
+
+        if (m_externallyOwnedImage)
+        {
+            m_vkImage.release();
+        }
+        else
+        {
+            m_vkImage.reset();
+        }
+
+        Allocation::Shutdown();
+    }
 
     /// @brief Add a vulkan view to this image.
     void AddView(vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
@@ -131,19 +136,19 @@ class Image : public Allocation
         m_debugName = name;
         if (m_vkImage)
         {
-            m_pDevice->SetDebugUtilsObjectName(m_vkImage.get(), name + " Image");
+            m_pRenderEngine->SetDebugUtilsObjectName(m_vkImage.get(), name + " Image");
         }
         if (m_vkView)
         {
-            m_pDevice->SetDebugUtilsObjectName(m_vkView.get(), name + " Image View");
+            m_pRenderEngine->SetDebugUtilsObjectName(m_vkView.get(), name + " Image View");
         }
         if (m_vkSampler)
         {
-            m_pDevice->SetDebugUtilsObjectName(m_vkSampler.get(), name + " Sampler");
+            m_pRenderEngine->SetDebugUtilsObjectName(m_vkSampler.get(), name + " Sampler");
         }
         if (m_vkDescriptorSet)
         {
-            m_pDevice->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), name + " Descriptor Set");
+            m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), name + " Descriptor Set");
         }
 #endif
     }
@@ -194,4 +199,4 @@ class Image : public Allocation
 
     vk::DescriptorSet& GetDescriptorSet();
 };
-} // namespace aln::vkg::resources
+} // namespace aln::resources

@@ -10,10 +10,10 @@ namespace aln
 {
 class GLFWApplication;
 }
-namespace aln::vkg
+namespace aln
 {
 
-class Device;
+class RenderEngine;
 class Image;
 
 /// @brief Wrapper around a vulkan swapchain. Swapchain represent an array of images we render to and that are presented to the screen.
@@ -23,7 +23,7 @@ class Swapchain
     friend GLFWApplication;
 
   public:
-    void Initialize(Device* pDevice, vk::SurfaceKHR* pSurface, uint32_t windowWidth, uint32_t windowHeight);
+    void Initialize(RenderEngine* pDevice, vk::SurfaceKHR* pSurface, uint32_t windowWidth, uint32_t windowHeight);
     void Shutdown();
 
     uint32_t AcquireNextImage(vk::Semaphore& semaphore);
@@ -35,7 +35,7 @@ class Swapchain
     inline uint32_t GetWidth() const { return m_extent.width; }
     inline uint32_t GetHeight() const { return m_extent.height; }
     inline vk::Extent2D GetExtent() const { return m_extent; }
-    inline Device* GetDevice() const { return m_pDevice; }
+    inline RenderEngine* GetDevice() const { return m_pRenderEngine; }
 
     /// @brief Recreate the swapchain with the desired size. Will also trigger registered callbacks.
     void Resize(uint32_t width, uint32_t height);
@@ -54,7 +54,7 @@ class Swapchain
     vk::SurfaceFormatKHR m_surfaceFormat;
     vk::Extent2D m_extent;
 
-    Device* m_pDevice;
+    RenderEngine* m_pRenderEngine;
     uint32_t m_width, m_height;
     uint32_t m_activeImageIndex;
     bool m_resizeRequired = false;
@@ -74,4 +74,4 @@ class Swapchain
 
     vk::PresentModeKHR ChoosePresentMode(const Vector<vk::PresentModeKHR>& availableModes);
 };
-} // namespace aln::vkg
+} // namespace aln

@@ -9,20 +9,20 @@
 #include "imgui_impl_vulkan.h"
 #include "imnodes.h"
 
-#include "device.hpp"
+#include"render_engine.hpp"
 #include "instance.hpp"
 #include "render_pass.hpp"
 
 #include <tracy/Tracy.hpp>
 
-namespace aln::vkg
+namespace aln
 {
 
 /// @brief Handles RAII for ImGui.
 class ImGUI
 {
   public:
-    void Initialize(GLFWwindow* pGlfwWindow, Device* pDevice, RenderPass& renderPass, int nSwapchainImages)
+    void Initialize(GLFWwindow* pGlfwWindow, RenderEngine* pDevice, RenderPass& renderPass, int nSwapchainImages)
     {
         // Initialize Imgui context
         IMGUI_CHECKVERSION();
@@ -139,7 +139,7 @@ class ImGUI
         ImNodes::DestroyContext();
     }
 
-    void NewFrame()
+    void StartFrame()
     {
         ZoneScoped;
 
@@ -148,7 +148,7 @@ class ImGUI
         ImGui::NewFrame();
     }
 
-    void Render(vk::CommandBuffer& cb)
+    void EndFrame(vk::CommandBuffer& cb)
     {
         ZoneScoped;
 
@@ -157,4 +157,4 @@ class ImGUI
         ImGui_ImplVulkan_RenderDrawData(draw_data, cb);
     }
 };
-} // namespace aln::vkg
+} // namespace aln

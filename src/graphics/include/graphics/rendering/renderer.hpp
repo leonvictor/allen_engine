@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../device.hpp"
+#include "../render_engine.hpp"
 #include "../imgui.hpp"
 #include "../pipeline.hpp"
 #include "../render_pass.hpp"
@@ -27,10 +27,10 @@ class SkeletalMeshComponent;
 class Light;
 class Mesh;
 
-namespace vkg::render
+namespace render
 {
 
-using vkg::resources::Image;
+using resources::Image;
 
 struct FrameSync
 {
@@ -43,14 +43,6 @@ struct RenderContext
 {
     aln::RGBAColor backgroundColor = {0, 0, 0, 255};
 };
-
-/// TODO: Modify the API to allow offline rendering. The idea would be to render to a texture which we can display onto an imgui window.
-/// We need to be careful here, as it'd be good to keep the possibility to directly render to the swapchain images
-/// For when we'll create game builds for example.
-/// We also need to keep frame buffering in the process.
-///
-/// How would that look like ? Pull out swapchain, and provide the image to render to as arguments ?
-/// Or various subclasses with similar APIs (OfflineRenderer, SwapchainRenderer) ? Maybe GameRender, EditorRenderer ?
 
 /// @brief Renderer instance used to draw the scenes and the UI.
 class IRenderer
@@ -67,21 +59,19 @@ class IRenderer
     virtual RenderTarget& GetNextTarget() = 0;
 
   protected:
-    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
     static constexpr uint32_t MAX_MODELS = 1000;
     static constexpr uint32_t MAX_SKINNING_TRANSFORMS = 255 * 50;
 
     State m_state = State::Uninitialized;
 
-    Device* m_pDevice;
+    RenderEngine* m_pRenderEngine;
 
-    uint32_t m_currentFrameIndex = 0; // Frame index
     uint32_t m_activeImageIndex = 0;  // Active image index
 
     vk::Format m_colorImageFormat;
 
     // Sync objects
-    Vector<FrameSync> m_frames;
+    Vector<FrameSync> m_frameSync;
 
     // Target images
     Vector<std::shared_ptr<Image>> m_targetImages;
@@ -93,20 +83,20 @@ class IRenderer
     RenderPass m_renderpass;
     uint32_t m_width, m_height;
 
-    virtual void CreateInternal(Device* pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
+    virtual void CreateInternal(RenderEngine* pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat)
     {
-        m_pDevice = pDevice;
+        m_pRenderEngine = pDevice;
         m_width = width;
         m_height = height;
         m_colorImageFormat = colorImageFormat;
 
         // Create color attachment resources for multisampling
         m_colorImage = Image(
-            m_pDevice,
+            m_pRenderEngine,
             width,
             height,
             1,
-            m_pDevice->GetMSAASamples(),
+            m_pRenderEngine->GetMSAASamples(),
             m_colorImageFormat,
             vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
@@ -116,12 +106,12 @@ class IRenderer
 
         // Create depth attachment ressources
         m_depthImage = Image(
-            m_pDevice,
+            m_pRenderEngine,
             width,
             height,
             1,
-            m_pDevice->GetMSAASamples(),
-            m_pDevice->FindDepthFormat(),
+            m_pRenderEngine->GetMSAASamples(),
+            m_pRenderEngine->FindDepthFormat(),
             vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
         m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
@@ -131,32 +121,32 @@ class IRenderer
 
         // Create the render targets
         CreateTargetImages();
-        auto commandBuffers = m_pDevice->GetGraphicsCommandPool().AllocateCommandBuffersUnique(m_targetImages.size());
+        auto commandBuffers = m_pRenderEngine->GetGraphicsCommandPool().AllocateCommandBuffersUnique(m_targetImages.size());
 
         m_renderTargets.clear();
         for (uint32_t i = 0; i < m_targetImages.size(); i++)
         {
             Vector<vk::ImageView> attachments = {
-                    m_colorImage.GetVkView(),
-                    m_depthImage.GetVkView(),
-                    m_targetImages[i]->GetVkView(),
-                };
+                m_colorImage.GetVkView(),
+                m_depthImage.GetVkView(),
+                m_targetImages[i]->GetVkView(),
+            };
 
             vk::FramebufferCreateInfo framebufferInfo = {
-                    .renderPass = m_renderpass.GetVkRenderPass(),
-                    .attachmentCount = static_cast<uint32_t>(attachments.size()),
-                    .pAttachments = attachments.data(),
-                    .width = width,
-                    .height = height,
-                    .layers = 1, // Nb of layers in image array.
-                };
+                .renderPass = m_renderpass.GetVkRenderPass(),
+                .attachmentCount = static_cast<uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .width = width,
+                .height = height,
+                .layers = 1, // Nb of layers in image array.
+            };
 
             RenderTarget rt = {
-                    .index = i,
-                    .framebuffer = m_pDevice->GetVkDevice().createFramebufferUnique(framebufferInfo).value,
-                    .commandBuffer = std::move(commandBuffers[i]),
-                    .fence = vk::Fence(),
-                };
+                .index = i,
+                .framebuffer = m_pRenderEngine->GetVkDevice().createFramebufferUnique(framebufferInfo).value,
+                .commandBuffer = std::move(commandBuffers[i]),
+                .fence = vk::Fence(),
+            };
 
             m_renderTargets.push_back(std::move(rt));
         }
@@ -165,12 +155,12 @@ class IRenderer
         // Create fences in the signaled state
         vk::FenceCreateInfo fenceInfo = {.flags = vk::FenceCreateFlagBits::eSignaled};
 
-        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        for (int i = 0; i < m_pRenderEngine->GetFrameQueueSize(); i++)
         {
-            m_frames.push_back({
-                .imageAvailable = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr).value,
-                .renderFinished = m_pDevice->GetVkDevice().createSemaphoreUnique({}, nullptr).value,
-                .inFlight = m_pDevice->GetVkDevice().createFenceUnique(fenceInfo, nullptr).value,
+            m_frameSync.push_back({
+                .imageAvailable = m_pRenderEngine->GetVkDevice().createSemaphoreUnique({}, nullptr).value,
+                .renderFinished = m_pRenderEngine->GetVkDevice().createSemaphoreUnique({}, nullptr).value,
+                .inFlight = m_pRenderEngine->GetVkDevice().createFenceUnique(fenceInfo, nullptr).value,
             });
         }
     }
@@ -179,7 +169,7 @@ class IRenderer
     virtual void CreateRenderpass()
     {
         // This is the default render pass
-        m_renderpass = RenderPass(m_pDevice, m_width, m_height);
+        m_renderpass = RenderPass(m_pRenderEngine, m_width, m_height);
         m_renderpass.AddColorAttachment(m_colorImageFormat);
         m_renderpass.AddDepthAttachment();
         m_renderpass.AddColorResolveAttachment(m_colorImageFormat);
@@ -204,13 +194,34 @@ class IRenderer
         m_renderpass.Create();
     }
 
+    virtual void Shutdown()
+    {
+        for (auto& frameSync : m_frameSync)
+        {
+            frameSync.inFlight.reset();
+            frameSync.renderFinished.reset();
+            frameSync.imageAvailable.reset();
+        }
+
+        for (auto& renderTarget : m_renderTargets)
+        {
+            renderTarget.framebuffer.reset();
+            renderTarget.commandBuffer.reset();
+        }
+
+        m_renderpass.Shutdown();
+        m_depthImage.Shutdown();
+        m_colorImage.Shutdown();
+    }
+
   public:
-    virtual void BeginFrame(const RenderContext& ctx)
+    virtual void StartFrame(const RenderContext& ctx)
     {
         ZoneScoped;
 
+        const auto currentFrameIdx = m_pRenderEngine->GetCurrentFrameIdx();
         // TODO: Handle VK_TIMEOUT and VK_OUT_OF_DATE_KHR
-        m_pDevice->GetVkDevice().waitForFences(m_frames[m_currentFrameIndex].inFlight.get(), vk::True, UINT64_MAX);
+        m_pRenderEngine->GetVkDevice().waitForFences(m_frameSync[currentFrameIdx].inFlight.get(), vk::True, UINT64_MAX);
 
         // Acquire an image from the swap chain
         auto& image = GetNextTarget();
@@ -218,11 +229,11 @@ class IRenderer
         // Check if a previous frame is using the image
         if (image.fence)
         {
-            m_pDevice->GetVkDevice().waitForFences(image.fence, vk::True, UINT64_MAX);
+            m_pRenderEngine->GetVkDevice().waitForFences(image.fence, vk::True, UINT64_MAX);
         }
 
         // Mark the image as now being in use by this frame
-        image.fence = m_frames[m_currentFrameIndex].inFlight.get();
+        image.fence = m_frameSync[currentFrameIdx].inFlight.get();
 
         // Start recording command on this image
         vk::CommandBufferBeginInfo cbBeginInfo;
@@ -249,30 +260,27 @@ class IRenderer
 
         vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
+        const auto currentFrameIdx = m_pRenderEngine->GetCurrentFrameIdx();
+
         vk::SubmitInfo submitInfo = {
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get(),
+            .pWaitSemaphores = &m_frameSync[currentFrameIdx].imageAvailable.get(),
             .pWaitDstStageMask = waitStages,
             .commandBufferCount = 1,
             .pCommandBuffers = &cb,
             .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get(),
+            .pSignalSemaphores = &m_frameSync[currentFrameIdx].renderFinished.get(),
         };
 
-        m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
-        // TODO: It would be better to pass the semaphores and cbs directly to the queue class
-        // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
-        // vulkan arraywrappers ?
-        m_pDevice->GetGraphicsQueue().Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
-
-        m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_pRenderEngine->GetVkDevice().resetFences(m_frameSync[currentFrameIdx].inFlight.get());
+        m_pRenderEngine->GetGraphicsQueue().Submit(submitInfo, m_frameSync[currentFrameIdx].inFlight.get());
     }
 
-    Device* GetDevice()
+    RenderEngine* GetDevice()
     {
         // TODO: Get rid of all the references.
-        std::cout << "Warning: accessing device outside of renderer context." << std::endl;
-        return m_pDevice;
+        std::cout << "Warning: accessing pRenderEngine outside of renderer context." << std::endl;
+        return m_pRenderEngine;
     }
 
     RenderPass& GetRenderPass()
@@ -303,5 +311,5 @@ class IRenderer
         return m_targetImages[m_activeImageIndex];
     }
 };
-} // namespace vkg::render
+} // namespace render
 } // namespace aln

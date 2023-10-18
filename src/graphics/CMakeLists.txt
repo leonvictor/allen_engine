@@ -3,7 +3,7 @@ set(LIB_NAME graphics)
 add_library(
     ${LIB_NAME} STATIC
     src/commandpool.cpp
-    src/device.cpp
+    src/render_engine.cpp
     src/instance.cpp
     src/pipeline.cpp
     src/render_pass.cpp

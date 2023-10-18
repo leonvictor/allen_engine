@@ -4,7 +4,7 @@
 
 #include <optional>
 
-namespace aln::vkg
+namespace aln
 {
 class Queue
 {
@@ -15,9 +15,9 @@ class Queue
   public:
     Queue() {}
 
-    Queue(vk::Device& device, uint32_t family)
+    Queue(vk::Device& pRenderEngine, uint32_t family)
     {
-        m_vkQueue = device.getQueue(family, 0);
+        m_vkQueue = pRenderEngine.getQueue(family, 0);
         m_familyIndex = family;
     }
 
@@ -93,4 +93,4 @@ class Queue
         }
     };
 };
-} // namespace aln::vkg
+} // namespace aln

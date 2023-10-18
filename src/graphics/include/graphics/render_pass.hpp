@@ -10,17 +10,11 @@
 
 #include <assert.h>
 
-namespace aln::vkg
+namespace aln
 {
 /// @brief Wrapper around the vulkan render pass object. Also acts as a sort of factory.
 class RenderPass
 {
-    enum State
-    {
-        Uninitialized,
-        Initialized,
-    };
-
   public:
     struct Context
     {
@@ -29,15 +23,36 @@ class RenderPass
         aln::RGBAColor backgroundColor = {0, 0, 0, 255};
     };
 
+  private:
+    RenderEngine* m_pRenderEngine;
+    Array<vk::ClearValue, 2> m_clearValues;
+
+    Vector<Subpass> m_subpasses;
+    Vector<vk::SubpassDependency> m_subpassDependencies;
+    Vector<vk::AttachmentDescription> m_attachmentDescriptions;
+
+    uint32_t m_width, m_height;
+
+    // Wrapped vulkan renderpass
+    vk::UniqueRenderPass m_vkRenderPass;
+
+  private:
+    /// @brief (Re-)Create the render pass and its inner state objects (i.e.intermediary render targets)
+    /// Called whenever the rendering target change sizes.
+    void CreateInternal(uint32_t width, uint32_t height);
+
+  public:
     RenderPass() {}
 
     // Possible feature: Put back a callback logic if and when we make the creation process modular
     // (i.e. renderpass watches the target swapchain and automatically updates when it changes.)
     // This was working ok until we merged the creation process in the constructor, making passing "this" a problem.
-    RenderPass(Device* pDevice, uint32_t width, uint32_t height);
+    RenderPass(RenderEngine* pDevice, uint32_t width, uint32_t height);
 
-    /// @brief A renderpass is considered initialized as long as it's underlying vulkan renderpass is created.
-    bool IsInitialized() const { return m_status == State::Initialized; }
+    void Shutdown()
+    {
+        m_vkRenderPass.reset();        
+    }
 
     /// @brief Create the renderpass.
     void Create();
@@ -64,24 +79,5 @@ class RenderPass
 
     // TODO: This is a lazy solution
     void Resize(uint32_t width, uint32_t height);
-
-  private:
-    Device* m_pDevice;
-    Array<vk::ClearValue, 2> m_clearValues;
-
-    State m_status = State::Uninitialized;
-
-    Vector<Subpass> m_subpasses;
-    Vector<vk::SubpassDependency> m_subpassDependencies;
-    Vector<vk::AttachmentDescription> m_attachmentDescriptions;
-
-    uint32_t m_width, m_height;
-
-    // Wrapped vulkan renderpass
-    vk::UniqueRenderPass m_vkRenderPass;
-
-    /// @brief (Re-)Create the render pass and its inner state objects (i.e.intermediary render targets)
-    /// Called whenever the rendering target change sizes.
-    void CreateInternal(uint32_t width, uint32_t height);
 };
-} // namespace aln::vkg
+} // namespace aln

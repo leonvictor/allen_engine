@@ -34,8 +34,11 @@ namespace aln
 
 class Engine
 {
+    friend class GLFWApplication;
+
   private:
     // Rendering
+    RenderEngine m_renderEngine;
     UIRenderer m_uiRenderer;
     SceneRenderer m_sceneRenderer;
 
@@ -49,7 +52,7 @@ class Engine
 
     // Editor
     Editor m_editor;
-    vkg::ImGUI m_imgui;
+    ImGUI m_imgui;
 
     WorldEntity m_worldEntity;
     UpdateContext m_updateContext;
@@ -62,28 +65,29 @@ class Engine
     Entities::Module m_entitiesModule;
 
   public:
-    Engine() : m_assetService(&m_taskService), m_editor(m_worldEntity) {}
+    Engine() : m_editor(m_worldEntity) {}
 
     // TODO: Get rid of the glfwWindow
-    void Initialize(GLFWwindow* pGLFWWindow, vkg::Swapchain& swapchain, vkg::Device& device, const Vec2& windowSize)
+    // void Initialize(GLFWwindow* pGLFWWindow, Swapchain& swapchain, RenderEngine& pRenderEngine, const Vec2& windowSize) void Initialize(GLFWwindow* pGLFWWindow, Swapchain& swapchain, RenderEngine& pRenderEngine, const Vec2& windowSize) void Initialize(GLFWwindow* pGLFWWindow, Swapchain& swapchain, RenderEngine& pRenderEngine, const Vec2& windowSize)
+    void Initialize(GLFWwindow* pGLFWWindow, const Vec2& windowSize)
     {
         ZoneScoped;
 
         // Initialize the render engine
-        m_uiRenderer.Initialize(&swapchain);
-
+        m_renderEngine.Initialize(pGLFWWindow);
+        m_uiRenderer.Initialize(&m_renderEngine.GetSwapchain());
         m_sceneRenderer.Initialize(
-            &device,
+            &m_renderEngine,
             windowSize.x, windowSize.y,
             2,
-            swapchain.GetImageFormat());
+            m_renderEngine.GetSwapchain().GetImageFormat());
 
-        m_imgui.Initialize(pGLFWWindow, &device, m_uiRenderer.GetRenderPass(), m_uiRenderer.GetFramesInFlightCount());
+        m_imgui.Initialize(pGLFWWindow, &m_renderEngine, m_uiRenderer.GetRenderPass(), m_uiRenderer.GetFramesInFlightCount());
 
-        // TODO: Get rid of all the references to m_device
-        // They should not be part of this class
-
-        // Initialize services
+        // Initialize services and provider
+        // TODO: Uniformize services initialization. Make it happen in the register function ?
+        m_assetService.Initialize(m_taskService, m_renderEngine);
+        
         m_serviceProvider.RegisterService(&m_taskService);
         m_serviceProvider.RegisterService(&m_assetService);
         m_serviceProvider.RegisterService(&m_timeService);
@@ -105,10 +109,10 @@ class Engine
 
         // TODO: Add a vector of loaded types to the Loader base class, specify them in the constructor of the specialized Loaders,
         // then register each of them with a single function.
-        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(&device);
-        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(&device);
-        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(&device);
-        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&device);
+        m_assetService.RegisterAssetLoader<StaticMesh, MeshLoader>(&m_renderEngine);
+        m_assetService.RegisterAssetLoader<SkeletalMesh, MeshLoader>(&m_renderEngine);
+        m_assetService.RegisterAssetLoader<Texture, TextureLoader>(&m_renderEngine);
+        m_assetService.RegisterAssetLoader<Material, MaterialLoader>(&m_renderEngine);
         m_assetService.RegisterAssetLoader<AnimationClip, AnimationLoader>(nullptr);
         m_assetService.RegisterAssetLoader<Skeleton, SkeletonLoader>();
         m_assetService.RegisterAssetLoader<AnimationGraphDataset, AnimationGraphDatasetLoader>();
@@ -126,9 +130,15 @@ class Engine
     {
         ZoneScoped;
 
+        m_renderEngine.WaitIdle();
+
         m_editor.Shutdown();
 
         // TODO: Destroy world entity
+        m_worldEntity.Shutdown();
+
+        m_assetService.Shutdown();
+
 
         EngineModuleContext moduleContext = {
             .m_pTypeRegistryService = &m_typeRegistryService,
@@ -145,7 +155,8 @@ class Engine
         m_imgui.Shutdown();
 
         m_sceneRenderer.Shutdown();
-        m_uiRenderer.Shutdown();        
+        m_uiRenderer.Shutdown();
+        m_renderEngine.Shutdown();
     }
 
     /// @brief Copy the main ImGui context from the Engine class to other DLLs that might need it.
@@ -161,10 +172,6 @@ class Engine
         editor::SetImGuiContext(context);
     }
 
-    void CreateWorld()
-    {
-    }
-
     void Update()
     {
         ZoneScoped;
@@ -175,15 +182,15 @@ class Engine
         m_assetService.Update();
 
         // TODO: Uniformize NewFrame and BeginFrame methods
-        m_uiRenderer.BeginFrame(aln::vkg::render::RenderContext());
-        m_imgui.NewFrame();
+        m_renderEngine.StartFrame();
+        m_uiRenderer.StartFrame(aln::render::RenderContext());
+        m_imgui.StartFrame();
 
         // Populate update context
+        auto& dim = m_editor.GetScenePreviewSize();
         m_updateContext.m_deltaTime = m_timeService.GetDeltaTime();
         m_updateContext.m_currentTime = m_timeService.GetTime();
         m_updateContext.m_timeSinceAppStart = m_timeService.GetTimeSinceAppStart();
-
-        auto& dim = m_editor.GetScenePreviewSize();
         m_updateContext.m_displayWidth = dim.x;
         m_updateContext.m_displayHeight = dim.y;
 
@@ -207,9 +214,10 @@ class Engine
         auto desc = m_sceneRenderer.GetActiveImage()->GetDescriptorSet();
         m_editor.Update(desc, m_updateContext);
 
-        m_imgui.Render(m_uiRenderer.GetActiveRenderTarget().commandBuffer.get());
-
+        m_imgui.EndFrame(m_uiRenderer.GetActiveRenderTarget().commandBuffer.get());
         m_uiRenderer.EndFrame();
+        m_renderEngine.EndFrame();
+
         m_inputService.ClearFrameState();
     }
 

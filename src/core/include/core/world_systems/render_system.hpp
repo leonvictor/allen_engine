@@ -1,18 +1,17 @@
 #pragma once
 
-#include "../debug_render_states.hpp"
+#include "../components/light.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 #include "../components/static_mesh_component.hpp"
-#include "../components/light.hpp"
+#include "../debug_render_states.hpp"
 
+#include <common/containers/vector.hpp>
 #include <common/drawing_context.hpp>
 #include <common/hash_vector.hpp>
 #include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
-#include <common/containers/vector.hpp>
 
 #include <vulkan/vulkan.hpp>
-
 
 namespace aln
 {

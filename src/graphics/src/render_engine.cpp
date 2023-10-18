@@ -1,57 +1,91 @@
-#include "device.hpp"
+#include "render_engine.hpp"
 #include "commandpool.hpp"
 #include "instance.hpp"
-#include <assert.h>
-#include <set>
 
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg
+#include <assert.h>
+#include <set>
+
+namespace aln
 {
 
-/// @brief Create a vulkan device.
-void Device::Initialize(vkg::Instance* pInstance, const vk::SurfaceKHR& surface)
+/// @brief Create a vulkan pRenderEngine.
+void RenderEngine::Initialize(GLFWwindow* pGlfwWindow)
 {
-    m_pInstance = pInstance;
-    m_physical = PickPhysicalDevice(surface);
+    uint32_t glfwExtensionCount;
+    auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    Vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+    m_instance.Initialize(extensions);
+
+    glfwCreateWindowSurface(m_instance.GetVkInstance(), pGlfwWindow, nullptr, (VkSurfaceKHR*) &m_surface);
+
+    m_physical = PickPhysicalDevice(m_surface);
     m_gpuProperties = m_physical.getProperties();
 
-    CreateLogicalDevice(surface);
-
-    auto threadCount = std::thread::hardware_concurrency();
-    for (auto threadIdx = 0; threadIdx <= threadCount; ++threadIdx)
-    {
-        auto& threadData = m_threadData.emplace_back();
-        threadData.m_graphicsCommandPool.Initialize(&m_logical.get(), &m_queues.graphics, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-        threadData.m_transferCommandPool.Initialize(&m_logical.get(), &m_queues.transfer, vk::CommandPoolCreateFlagBits::eTransient);
-
-        SetDebugUtilsObjectName(threadData.m_graphicsCommandPool.m_vkCommandPool.get(), "Graphics Command Pool (Thread " + threadIdx + ')');
-        SetDebugUtilsObjectName(threadData.m_transferCommandPool.m_vkCommandPool.get(), "Transfer Command Pool (Thread " + threadIdx + ')');
-    }
+    CreateLogicalDevice(m_surface);
 
     m_msaaSamples = GetMaxUsableSampleCount();
     m_descriptorAllocator.Init(&m_logical.get());
+
+    int windowWidth, windowHeight;
+    glfwGetFramebufferSize(pGlfwWindow, &windowWidth, &windowHeight);
+
+    m_swapchain.Initialize(this, &m_surface, windowWidth, windowHeight);
+
+    auto threadCount = std::thread::hardware_concurrency();
+    for (auto frameIdx = 0; frameIdx < FRAME_QUEUE_SIZE; ++frameIdx)
+    {
+        auto& frameData = m_frameData[frameIdx];
+        for (auto threadIdx = 0; threadIdx <= threadCount; ++threadIdx)
+        {
+            auto& threadData = frameData.m_threadData.emplace_back();
+            threadData.m_graphicsCommandPool.Initialize(&m_logical.get(), &m_graphicsQueue, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+            threadData.m_transferCommandPool.Initialize(&m_logical.get(), &m_transferQueue, vk::CommandPoolCreateFlagBits::eTransient);
+
+            SetDebugUtilsObjectName(threadData.m_graphicsCommandPool.m_vkCommandPool.get(), "Graphics Command Pool (Thread " + threadIdx + ')');
+            SetDebugUtilsObjectName(threadData.m_transferCommandPool.m_vkCommandPool.get(), "Transfer Command Pool (Thread " + threadIdx + ')');
+        }
+    }
 }
 
-void Device::Shutdown()
+void RenderEngine::Shutdown()
 {
-    // TODO: Explicitely destry vulkan resources once the API is better !
-    /* for (auto& threadData : m_threadData)
-     {
-         threadData.m_graphicsCommandPool.Shutdown();
-         threadData.m_transferCommandPool.Shutdown();
-     }
+    for (auto& frameData : m_frameData)
+    {
+        for (auto& threadData : frameData.m_threadData)
+        {
+            threadData.m_graphicsCommandPool.Shutdown();
+            threadData.m_transferCommandPool.Shutdown();
+        }
 
-     m_logical.reset();*/
+        frameData.m_imageAvailableSemaphore.reset();
+        frameData.m_inFlight.reset();
+        frameData.m_renderFinished.reset();
+    }
+
+    m_swapchain.Shutdown();
+
+    for (auto& [typeIndex, descriptorSetLayout] : m_descriptorSetLayoutsCache)
+    {
+        descriptorSetLayout.reset();
+    }
+
+    m_descriptorAllocator.Cleanup();
+
+    m_logical.reset();
+    m_instance.GetVkInstance().destroySurfaceKHR(m_surface);
+    m_instance.Shutdown();
 }
 
-SwapchainSupportDetails Device::GetSwapchainSupport(const vk::SurfaceKHR& surface)
+SwapchainSupportDetails RenderEngine::GetSwapchainSupport(const vk::SurfaceKHR& surface)
 {
     // TODO: Store support as class attribute ?
     return SwapchainSupportDetails(m_physical, surface);
 }
 
-bool Device::CheckDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice, Vector<const char*> requiredExtensions)
+bool RenderEngine::CheckDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice, Vector<const char*> requiredExtensions)
 {
     // Populate available extensions list
     auto availableExtensions = physicalDevice.enumerateDeviceExtensionProperties().value;
@@ -66,7 +100,7 @@ bool Device::CheckDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevi
     return requiredExtentionsSet.empty();
 }
 
-uint32_t Device::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+uint32_t RenderEngine::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
 {
     auto memProperties = m_physical.getMemoryProperties();
 
@@ -82,7 +116,7 @@ uint32_t Device::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags pro
     throw std::runtime_error("Failed to find suitable memory type.");
 }
 
-vk::Format Device::FindDepthFormat()
+vk::Format RenderEngine::FindDepthFormat()
 {
     // TODO: Cache return value
     return FindSupportedFormat(
@@ -91,7 +125,7 @@ vk::Format Device::FindDepthFormat()
         vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
 
-vk::Format Device::FindSupportedFormat(const Vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
+vk::Format RenderEngine::FindSupportedFormat(const Vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
 {
     for (vk::Format format : candidates)
     {
@@ -108,9 +142,9 @@ vk::Format Device::FindSupportedFormat(const Vector<vk::Format>& candidates, vk:
     throw std::runtime_error("Failed to find a supported format.");
 }
 
-size_t Device::PadUniformBufferSize(size_t originalSize)
+size_t RenderEngine::PadUniformBufferSize(size_t originalSize)
 {
-    // Calculate required alignment based on minimum device offset alignment
+    // Calculate required alignment based on minimum pRenderEngine offset alignment
     size_t minUboAlignment = m_gpuProperties.limits.minUniformBufferOffsetAlignment;
     size_t alignedSize = originalSize;
     if (minUboAlignment > 0)
@@ -120,7 +154,7 @@ size_t Device::PadUniformBufferSize(size_t originalSize)
     return alignedSize;
 }
 
-bool Device::SupportsBlittingToLinearImages()
+bool RenderEngine::SupportsBlittingToLinearImages()
 {
     auto formatProps = GetFormatProperties(vk::Format::eR8G8B8A8Unorm);
     if (!(formatProps.linearTilingFeatures & vk::FormatFeatureFlagBits::eBlitDst))
@@ -130,7 +164,7 @@ bool Device::SupportsBlittingToLinearImages()
     return true;
 }
 
-void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
+void RenderEngine::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 {
     auto queueFamilyIndices = Queue::FamilyIndices(m_physical, surface);
 
@@ -180,9 +214,9 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
     };
 
     Vector<const char*> validationLayers;
-    if (m_pInstance->ValidationLayersEnabled())
+    if (m_instance.ValidationLayersEnabled())
     {
-        validationLayers = m_pInstance->GetValidationLayers();
+        validationLayers = m_instance.GetValidationLayers();
         deviceCreateInfo.enabledLayerCount = static_cast<uint_fast32_t>(validationLayers.size());
         deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
     }
@@ -191,31 +225,31 @@ void Device::CreateLogicalDevice(const vk::SurfaceKHR& surface)
         deviceCreateInfo.enabledLayerCount = 0;
     }
 
-    // Create the device
+    // Create the pRenderEngine
     m_logical = m_physical.createDeviceUnique(deviceCreateInfo).value;
 
     // Create queues
-    m_queues.graphics = Queue(m_logical.get(), queueFamilyIndices.graphicsFamily.value());
-    m_queues.present = Queue(m_logical.get(), queueFamilyIndices.presentFamily.value());
-    m_queues.transfer = Queue(m_logical.get(), queueFamilyIndices.transferFamily.value());
+    m_graphicsQueue = Queue(m_logical.get(), queueFamilyIndices.graphicsFamily.value());
+    m_presentQueue = Queue(m_logical.get(), queueFamilyIndices.presentFamily.value());
+    m_transferQueue = Queue(m_logical.get(), queueFamilyIndices.transferFamily.value());
 
-    SetDebugUtilsObjectName(m_queues.transfer.GetVkQueue(), "Transfer Queue");
+    SetDebugUtilsObjectName(m_transferQueue.GetVkQueue(), "Transfer Queue");
     if (queueFamilyIndices.graphicsFamily == queueFamilyIndices.presentFamily)
     {
-        SetDebugUtilsObjectName(m_queues.present.GetVkQueue(), "Graphics/Present Queue");
+        SetDebugUtilsObjectName(m_presentQueue.GetVkQueue(), "Graphics/Present Queue");
     }
     else
     {
-        SetDebugUtilsObjectName(m_queues.present.GetVkQueue(), "Present Queue");
-        SetDebugUtilsObjectName(m_queues.graphics.GetVkQueue(), "Graphics Queue");
+        SetDebugUtilsObjectName(m_presentQueue.GetVkQueue(), "Present Queue");
+        SetDebugUtilsObjectName(m_graphicsQueue.GetVkQueue(), "Graphics Queue");
     }
 }
 
 /// @brief Select a suitable GPU among the detected ones.
-vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
+vk::PhysicalDevice RenderEngine::PickPhysicalDevice(const vk::SurfaceKHR& surface)
 {
     // TODO: core::Instance could wrap this call and keep a list of devices cached... but it's not necessary right now
-    auto devices = m_pInstance->GetVkInstance().enumeratePhysicalDevices().value;
+    auto devices = m_instance.GetVkInstance().enumeratePhysicalDevices().value;
 
     if (devices.empty())
     {
@@ -224,7 +258,7 @@ vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
 
     for (const auto d : devices)
     {
-        if (Device::IsDeviceSuitable(d, surface, m_extensions))
+        if (RenderEngine::IsDeviceSuitable(d, surface, m_extensions))
         {
             return d;
         }
@@ -233,7 +267,7 @@ vk::PhysicalDevice Device::PickPhysicalDevice(const vk::SurfaceKHR& surface)
     throw std::runtime_error("Failed to find a suitable GPU.");
 }
 
-vk::SampleCountFlagBits Device::GetMaxUsableSampleCount()
+vk::SampleCountFlagBits RenderEngine::GetMaxUsableSampleCount()
 {
     vk::SampleCountFlags counts = m_gpuProperties.limits.framebufferColorSampleCounts & m_gpuProperties.limits.framebufferDepthSampleCounts;
 
@@ -265,22 +299,22 @@ vk::SampleCountFlagBits Device::GetMaxUsableSampleCount()
     return vk::SampleCountFlagBits::e1;
 }
 
-/// @brief Check if a device is suitable for the specified surface and requested extensions.
-bool Device::IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions)
+/// @brief Check if a pRenderEngine is suitable for the specified surface and requested extensions.
+bool RenderEngine::IsDeviceSuitable(const vk::PhysicalDevice& pRenderEngine, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions)
 {
-    auto familyIndices = Queue::FamilyIndices(device, surface);
-    bool extensionsSupported = CheckDeviceExtensionsSupport(device, requiredExtensions);
+    auto familyIndices = Queue::FamilyIndices(pRenderEngine, surface);
+    bool extensionsSupported = CheckDeviceExtensionsSupport(pRenderEngine, requiredExtensions);
 
     bool swapchainAdequate = false;
     if (extensionsSupported)
     {
-        auto swapChainSupport = SwapchainSupportDetails(device, surface);
-        // In this tutorial a device is adequate as long as it supports at least one image format and one supported presentation mode.
+        auto swapChainSupport = SwapchainSupportDetails(pRenderEngine, surface);
+        // In this tutorial a pRenderEngine is adequate as long as it supports at least one image format and one supported presentation mode.
         swapchainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
     // TODO : Instead of enforcing features, we can disable their usage if not available
-    auto supportedFeatures = device.getFeatures();
+    auto supportedFeatures = pRenderEngine.getFeatures();
     return familyIndices.IsComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy;
 }
-}; // namespace aln::vkg
+}; // namespace aln

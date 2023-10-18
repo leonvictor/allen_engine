@@ -1,21 +1,22 @@
-// Adapted from https://github.com/jherico/Vulkan/blob/cpp/base/vks/allocation.hpp
 #pragma once
 
-#include "../device.hpp"
+#include "../render_engine.hpp"
+
 #include <vulkan/vulkan.hpp>
 
 // TODO: Make a class w/ private fields
-namespace aln::vkg::resources
+/// @note Adapted from https://github.com/jherico/Vulkan/blob/cpp/base/vks/allocation.hpp
+namespace aln::resources
 {
 
 /// @brief A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
 /// but only as a base class providing common functionality for the classes below.
 ///
-/// Provides easy to use mechanisms for mapping, unmapping and copying host data to the device memory
+/// Provides easy to use mechanisms for mapping, unmapping and copying host data to the pRenderEngine memory
 class Allocation
 {
   protected:
-    Device* m_pDevice;
+    RenderEngine* m_pRenderEngine;
     vk::UniqueDeviceMemory m_memory;
     vk::DeviceSize m_size;
 
@@ -25,10 +26,10 @@ class Allocation
     {
         vk::MemoryAllocateInfo allocInfo = {
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
+            .memoryTypeIndex = m_pRenderEngine->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
         };
 
-        m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr).value;
+        m_memory = m_pRenderEngine->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr).value;
     }
 
   public:
@@ -43,7 +44,7 @@ class Allocation
     {
         if (this != &other)
         {
-            m_pDevice = std::move(other.m_pDevice);
+            m_pRenderEngine = std::move(other.m_pRenderEngine);
             m_memory = std::move(other.m_memory);
 
             m_size = other.m_size;
@@ -55,11 +56,16 @@ class Allocation
     // Move constructor
     Allocation(Allocation&& other)
     {
-        m_pDevice = std::move(other.m_pDevice);
+        m_pRenderEngine = std::move(other.m_pRenderEngine);
         m_memory = std::move(other.m_memory);
 
         m_size = other.m_size;
         m_mapped = other.m_mapped;
+    }
+
+    virtual void Shutdown()
+    {
+        m_memory.reset();
     }
 
     vk::DeviceSize GetSize() const { return m_size; }
@@ -68,14 +74,14 @@ class Allocation
     inline T* Map(size_t offset = 0, vk::DeviceSize size = vk::WholeSize)
     {
         assert(m_mapped == nullptr);
-        m_mapped = m_pDevice->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags()).value;
+        m_mapped = m_pRenderEngine->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags()).value;
         return (T*) m_mapped;
     }
 
     inline void Unmap()
     {
         assert(m_mapped != nullptr);
-        m_pDevice->GetVkDevice().unmapMemory(m_memory.get());
+        m_pRenderEngine->GetVkDevice().unmapMemory(m_memory.get());
         m_mapped = nullptr;
     }
 
@@ -114,7 +120,7 @@ class Allocation
             .size = size,
         };
 
-        m_pDevice->GetVkDevice().flushMappedMemoryRanges(mappedRange);
+        m_pRenderEngine->GetVkDevice().flushMappedMemoryRanges(mappedRange);
     }
 
     /// @brief Invalidate a memory range of the buffer to make it visible to the host
@@ -134,7 +140,7 @@ class Allocation
             .size = size,
         };
 
-        m_pDevice->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
+        m_pRenderEngine->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
     }
 };
-} // namespace aln::vkg::resources
+} // namespace aln::resources
