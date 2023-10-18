@@ -9,8 +9,12 @@ void AssetRequest::Load()
 {
     ZoneScoped;
 
-    // Load the resource
-    if (!m_pLoader->LoadAsset(m_pAssetRecord))
+    IAssetLoader::RequestContext ctx = {
+        .m_threadIdx = m_threadIdx,
+        .m_pSourceRequest = this,
+    };
+
+    if (!m_pLoader->LoadAsset(ctx, m_pAssetRecord)) // Load the resource
     {
         // TODO: Loading failed. Handle it !
         m_status = State::Failed;
@@ -63,6 +67,13 @@ void AssetRequest::Install()
 
     assert(m_status == State::Installing);
     assert(m_pLoader != nullptr);
+
+    if ((HasTouchedGPUTransferQueue() && !m_pRenderDevice->GetVkDevice().getSemaphoreCounterValue(m_pTransferQueueCommandsSemaphore.get()).value) ||
+        (HasTouchedGPUGraphicsQueue() && !m_pRenderDevice->GetVkDevice().getSemaphoreCounterValue(m_pGraphicsQueueCommandsSemaphore.get()).value))
+    {
+        // We've already started loading. Wait on the semaphore being signaled to actually mark the asset as ready
+        return;
+    }
 
     m_pLoader->InstallAsset(m_pAssetRecord->GetAssetID(), m_pAssetRecord, m_dependencies);
     m_dependencies.clear();

@@ -5,6 +5,9 @@
 #include "record.hpp"
 
 #include <common/uuid.hpp>
+#include <graphics/render_engine.hpp>
+
+#include <vulkan/vulkan.hpp>
 
 namespace aln
 {
@@ -24,20 +27,30 @@ struct AssetRequest
         Invalid,
         Pending,
         Loading,
-        Unloading,
         WaitingForDependencies,
         Installing,
         Complete,
+        Unloading,
         Failed
     };
 
-    GUID m_requesterEntityID;
+    UUID m_requesterEntityID = UUID::InvalidID;
     AssetRecord* m_pAssetRecord = nullptr;
     IAssetLoader* m_pLoader = nullptr;
+    RenderEngine* m_pRenderDevice = nullptr;
 
     std::function<void(IAssetHandle&)> m_requestAssetLoad;
     std::function<void(IAssetHandle&)> m_requestAssetUnload;
 
+    // Sync
+    uint32_t m_threadIdx = 0; // Thread this request is being processed on
+
+    vk::CommandBuffer* m_pTransferCommandBuffer = nullptr;
+    vk::CommandBuffer* m_pGraphicsCommandBuffer = nullptr;
+    vk::UniqueSemaphore m_pTransferQueueCommandsSemaphore; // Signaled when commands submitted to the transfer queue are done (i.e. vertex buffer cpu->gpu)
+    vk::UniqueSemaphore m_pGraphicsQueueCommandsSemaphore; // Signaled when commands submitted to the graphics queue are done (i.e. mipmap generation)
+    bool m_commandBuffersSubmitted = false;
+    
     Type m_type = Type::Invalid;
     State m_status = State::Invalid;
 
@@ -53,5 +66,49 @@ struct AssetRequest
     void Unload();
 
     bool IsComplete() { return m_status == State::Complete; }
+
+    bool HasTouchedGPUTransferQueue() const { return (bool) m_pTransferQueueCommandsSemaphore; }
+    bool HasTouchedGPUGraphicsQueue() const { return (bool) m_pGraphicsQueueCommandsSemaphore; }
+    bool HasTouchedAnyGPUQueue() const { return HasTouchedGPUGraphicsQueue() || HasTouchedGPUTransferQueue(); }
+
+    vk::CommandBuffer* GetTransferCommandBuffer()
+    {
+        assert(m_pRenderDevice != nullptr && m_pTransferCommandBuffer != nullptr);
+        if (!m_pTransferQueueCommandsSemaphore)
+        {
+            static constexpr vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
+                .semaphoreType = vk::SemaphoreType::eTimeline,
+                .initialValue = 0,
+            };
+
+            static constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo = {
+                .pNext = &semaphoreTypeCreateInfo,
+            };
+
+            m_pTransferQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphoreUnique(semaphoreCreateInfo).value;
+        }
+
+        return m_pTransferCommandBuffer;
+    }
+
+    vk::CommandBuffer* GetGraphicsCommandBuffer()
+    {
+        assert(m_pRenderDevice != nullptr && m_pGraphicsCommandBuffer != nullptr);
+        if (!m_pGraphicsQueueCommandsSemaphore)
+        {
+            static constexpr vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
+                .semaphoreType = vk::SemaphoreType::eTimeline,
+                .initialValue = 0,
+            };
+
+            static constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo = {
+                .pNext = &semaphoreTypeCreateInfo,
+            };
+
+            m_pGraphicsQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphoreUnique(semaphoreCreateInfo).value;
+        }
+
+        return m_pGraphicsCommandBuffer;
+    }
 };
 } // namespace aln

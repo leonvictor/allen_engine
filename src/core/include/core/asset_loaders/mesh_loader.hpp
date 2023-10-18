@@ -12,12 +12,47 @@ namespace aln
 class MeshLoader : public IAssetLoader
 {
   private:
-    vkg::Device* m_pDevice;
+    RenderEngine* m_pRenderEngine;
+
+    resources::Buffer m_vertexStagingBuffer;
+    resources::Buffer m_indexStagingBuffer;
+
+    static constexpr uint32_t STAGING_BUFFER_SIZE = 64 * 1000 * 1000 * 8;
 
   public:
-    MeshLoader(vkg::Device* pDevice) : m_pDevice(pDevice) {}
+    MeshLoader(RenderEngine* pDevice) : m_pRenderEngine(pDevice)
+    {
+        m_vertexStagingBuffer = resources::Buffer(
+            m_pRenderEngine,
+            STAGING_BUFFER_SIZE,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        
+        m_pRenderEngine->SetDebugUtilsObjectName(m_vertexStagingBuffer.GetVkBuffer(), "Mesh Loader Vertex Staging Buffer");
 
-    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+        m_indexStagingBuffer = resources::Buffer(
+            m_pRenderEngine,
+            STAGING_BUFFER_SIZE,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+        m_pRenderEngine->SetDebugUtilsObjectName(m_indexStagingBuffer.GetVkBuffer(), "Mesh Loader Index Staging Buffer");
+
+        m_vertexStagingBuffer.Map();
+        m_indexStagingBuffer.Map();
+    }
+
+    ~MeshLoader()
+    {
+        m_vertexStagingBuffer.Shutdown();
+        m_indexStagingBuffer.Shutdown();
+    }
+
+    MeshLoader(const MeshLoader&) = delete;
+    MeshLoader(MeshLoader&&) = delete;
+    MeshLoader& operator=(const MeshLoader&) = delete;
+
+    bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
 
@@ -59,20 +94,42 @@ class MeshLoader : public IAssetLoader
 
         /// @todo GPU buffers could be all be kept in the renderer itself
         // Create and fill the vulkan buffers to back the mesh.
-        vkg::resources::Buffer vertexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, pMesh->m_vertices);
-        pMesh->m_vertexBuffer = vkg::resources::Buffer(m_pDevice, vertexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        m_vertexStagingBuffer.Copy(pMesh->m_vertices);
+        pMesh->m_vertexBuffer = resources::Buffer(m_pRenderEngine, pMesh->m_vertices.size(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        m_pRenderEngine->SetDebugUtilsObjectName(pMesh->m_vertexBuffer.GetVkBuffer(), "Mesh Vertex Buffer");
 
-        vkg::resources::Buffer indexStagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, pMesh->m_indices);
-        pMesh->m_indexBuffer = vkg::resources::Buffer(m_pDevice, indexStagingBuffer.GetSize(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        m_indexStagingBuffer.Copy(pMesh->m_indices);
+        pMesh->m_indexBuffer = resources::Buffer(m_pRenderEngine, pMesh->m_indices.size() * sizeof(uint32_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        m_pRenderEngine->SetDebugUtilsObjectName(pMesh->m_indexBuffer.GetVkBuffer(), "Mesh Index Buffer");
 
-        m_pDevice->GetTransferCommandPool().Execute([&](vk::CommandBuffer cb)
-            {
-            vertexStagingBuffer.CopyTo(cb, pMesh->m_vertexBuffer);
-            indexStagingBuffer.CopyTo(cb, pMesh->m_indexBuffer); });
+        // TODO: Only record command buffers here
+        // This method is called from multiple thread and we must submit them at once
+        auto pCB = ctx.GetTransferCommandBuffer();
+        m_vertexStagingBuffer.CopyTo(*pCB, pMesh->m_vertexBuffer);
+        m_indexStagingBuffer.CopyTo(*pCB, pMesh->m_indexBuffer);
 
         pRecord->SetAsset(pMesh);
 
         return true;
+    }
+
+    void Unload(AssetRecord* pRecord) override
+    {
+        auto pMesh = pRecord->GetAsset<Mesh>();
+        pMesh->m_indices.clear();
+        pMesh->m_vertices.clear();
+        pMesh->m_descriptorSet.reset();
+        pMesh->m_indexBuffer.Shutdown();
+        pMesh->m_vertexBuffer.Shutdown();
+
+        if (pRecord->GetAssetTypeID() == SkeletalMesh::GetStaticAssetTypeID())
+        {
+            auto pSkeletalMesh = pRecord->GetAsset<SkeletalMesh>();
+            pSkeletalMesh->m_bindPose.clear();
+            pSkeletalMesh->m_inverseBindPose.clear();
+            pSkeletalMesh->m_boneNames.clear();
+            pSkeletalMesh->m_parentBoneIndices.clear();
+        }
     }
 
     void InstallDependencies(AssetRecord* pAssetRecord, const Vector<IAssetHandle>& dependencies) override
@@ -83,7 +140,7 @@ class MeshLoader : public IAssetLoader
         auto pMaterialRecord = GetDependencyRecord(dependencies, 0);
         pMesh->m_pMaterial.m_pAssetRecord = pMaterialRecord;
 
-        auto descriptorSet = m_pDevice->AllocateDescriptorSet<Mesh>();
+        auto descriptorSet = m_pRenderEngine->AllocateDescriptorSet<Mesh>();
 
         auto textureDescriptor = pMesh->m_pMaterial->GetAlbedoMap()->GetDescriptor();
         auto materialDescriptor = pMesh->GetMaterial()->GetBuffer().GetDescriptor();
@@ -105,10 +162,10 @@ class MeshLoader : public IAssetLoader
             },
         };
 
-        m_pDevice->GetVkDevice().updateDescriptorSets(writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
+        m_pRenderEngine->GetVkDevice().updateDescriptorSets(writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
 
         pMesh->m_descriptorSet = std::move(descriptorSet);
-        m_pDevice->SetDebugUtilsObjectName(pMesh->m_descriptorSet.get(), "Mesh Descriptor Set");
+        m_pRenderEngine->SetDebugUtilsObjectName(pMesh->m_descriptorSet.get(), "Mesh Descriptor Set");
     }
 };
 } // namespace aln

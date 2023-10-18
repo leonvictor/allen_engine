@@ -31,7 +31,7 @@ class Subpass
     {
         vk::SubpassDescription desc = {
             .pipelineBindPoint = m_bindPoint,
-            .colorAttachmentCount = m_colorAttachments.size(),
+            .colorAttachmentCount = static_cast<uint32_t>(m_colorAttachments.size()),
             .pColorAttachments = m_colorAttachments.data(),
             .pResolveAttachments = m_resolveAttachments.data(),
             .pDepthStencilAttachment = m_depthAttachments.data(),

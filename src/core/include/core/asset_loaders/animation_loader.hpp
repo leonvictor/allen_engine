@@ -2,7 +2,7 @@
 
 #include <anim/animation_clip.hpp>
 #include <assets/loader.hpp>
-#include <graphics/device.hpp>
+#include <graphics/render_engine.hpp>
 
 namespace aln
 {
@@ -10,15 +10,15 @@ namespace aln
 class AnimationLoader : public IAssetLoader
 {
   private:
-    vkg::Device* m_pDevice;
+    RenderEngine* m_pRenderEngine;
 
   public:
-    AnimationLoader(vkg::Device* pDevice)
+    AnimationLoader(RenderEngine* pDevice)
     {
-        m_pDevice = pDevice;
+        m_pRenderEngine = pDevice;
     }
 
-    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+    bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
 

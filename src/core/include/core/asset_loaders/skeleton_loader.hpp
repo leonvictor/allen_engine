@@ -10,7 +10,7 @@ namespace aln
 class SkeletonLoader : public IAssetLoader
 {
   private:
-    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+    bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
         assert(pRecord->GetAssetTypeID() == Skeleton::GetStaticAssetTypeID());

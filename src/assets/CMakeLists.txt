@@ -1,18 +1,25 @@
 set(LIB_NAME assets)
 
 add_library(${LIB_NAME}
+    src/loader.cpp
     src/request.cpp
     src/asset_service.cpp
     
     src/module/module.cpp
-    )
+)
 
 set(LIB_DEPENDENCIES
     ${STB_INCLUDE_DIR}
-    common
-    )
+)
 
-set(LIB_LINK_DEPENDENCIES reflection common lz4_static nlohmann_json::nlohmann_json)
+set(LIB_LINK_DEPENDENCIES 
+    reflection 
+    common
+    graphics
+    lz4_static 
+    nlohmann_json::nlohmann_json 
+    Vulkan::Vulkan
+)
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
@@ -31,4 +38,4 @@ target_include_directories(${LIB_NAME}
 target_link_libraries(
     ${LIB_NAME} 
     PUBLIC ${LIB_LINK_DEPENDENCIES}
-    )
+)

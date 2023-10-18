@@ -10,6 +10,11 @@
 #include "handle.hpp"
 #include "record.hpp"
 
+namespace vk
+{
+class CommandBuffer;
+};
+
 namespace aln
 {
 /// TODO: Hide from clients
@@ -18,9 +23,19 @@ class IAssetLoader
     friend class AssetService;
     friend class AssetRequest;
 
+  public:
+    struct RequestContext
+    {
+        uint32_t m_threadIdx = 0;
+        AssetRequest* m_pSourceRequest = nullptr;
+
+        vk::CommandBuffer* GetTransferCommandBuffer();
+        vk::CommandBuffer* GetGraphicsCommandBuffer();
+    };
+
   private:
     // Concrete loading functions called by the asset service
-    bool LoadAsset(AssetRecord* pRecord)
+    bool LoadAsset(RequestContext& ctx, AssetRecord* pRecord)
     {
         assert(pRecord->IsUnloaded());
 
@@ -35,18 +50,19 @@ class IAssetLoader
         }
 
         AssetArchiveHeader header;
-        archive >> header;
+        Vector<std::byte> dataStream;
 
-        Vector<std::byte> data;
-        archive >> data;
+        archive >> header;
+        archive >> dataStream;
 
         for (auto& dependency : header.GetDependencies())
         {
             pRecord->AddDependency(dependency);
         }
 
-        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Read);
-        return Load(pRecord, dataArchive);
+        auto dataArchive = BinaryMemoryArchive(dataStream, IBinaryArchive::IOMode::Read);
+
+        return Load(ctx, pRecord, dataArchive);
     }
 
     void UnloadAsset(AssetRecord* pRecord)
@@ -72,7 +88,7 @@ class IAssetLoader
 
   protected:
     // Virtual loading functions, overload in specialized loader classes to implement asset-specific behavior
-    virtual bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
+    virtual bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
     virtual void Unload(AssetRecord* pRecord){};
     virtual void InstallDependencies(AssetRecord* pRecord, const Vector<IAssetHandle>& dependencies) {}
 

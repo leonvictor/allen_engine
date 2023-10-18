@@ -11,15 +11,15 @@ namespace aln
 class MaterialLoader : public IAssetLoader
 {
   private:
-    vkg::Device* m_pDevice;
+    RenderEngine* m_pRenderEngine;
 
   public:
-    MaterialLoader(vkg::Device* pDevice)
+    MaterialLoader(RenderEngine* pDevice)
     {
-        m_pDevice = pDevice;
+        m_pRenderEngine = pDevice;
     }
 
-    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+    bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
         assert(pRecord->GetAssetTypeID() == Material::GetStaticAssetTypeID());
@@ -32,7 +32,8 @@ class MaterialLoader : public IAssetLoader
         pMaterial->m_albedoMap = AssetHandle<Texture>(id);
 
         // TMP while materials are poopy
-        pMaterial->m_buffer = vkg::resources::Buffer(m_pDevice, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        pMaterial->m_buffer = resources::Buffer(m_pRenderEngine, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        m_pRenderEngine->SetDebugUtilsObjectName(pMaterial->m_buffer.GetVkBuffer(), "Material Buffer Object");
 
         auto material = MaterialBufferObject();
         pMaterial->m_buffer.Map(0, sizeof(material));
@@ -42,6 +43,12 @@ class MaterialLoader : public IAssetLoader
         pRecord->SetAsset(pMaterial);
 
         return true;
+    }
+
+    void Unload(AssetRecord* pRecord)
+    {
+        auto pMaterial = pRecord->GetAsset<Material>();
+        pMaterial->m_buffer.Shutdown();
     }
 
     void InstallDependencies(AssetRecord* pAssetRecord, const Vector<IAssetHandle>& dependencies) override

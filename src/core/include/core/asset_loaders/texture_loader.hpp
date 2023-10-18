@@ -13,21 +13,40 @@ namespace aln
 class TextureLoader : public IAssetLoader
 {
   private:
-    vkg::Device* m_pDevice;
+    RenderEngine* m_pRenderEngine;
+
+    resources::Buffer m_stagingBuffer;
 
   public:
-    TextureLoader(vkg::Device* pDevice)
+    TextureLoader(RenderEngine* pDevice)
     {
-        m_pDevice = pDevice;
+        m_pRenderEngine = pDevice;
+
+        // TODO: Use a smarter allocation strategy for staging buffers
+        static const uint32_t stagingBufferSize = 64 * 1000 * 1000 * 8;
+        m_stagingBuffer = resources::Buffer(
+            m_pRenderEngine,
+            stagingBufferSize,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        
+        m_pRenderEngine->SetDebugUtilsObjectName(m_stagingBuffer.GetVkBuffer(), "Texture Loader Staging Buffer");
+
+        m_stagingBuffer.Map();
+
+        // Strategy : Fixed sized buffer. Keep an offset of what has already been reserved for a transfer. Reset that index when a command finishes
+        // If there is not enough memory, wait the next cycle
     }
 
-    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+    bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
         assert(pRecord->GetAssetTypeID() == Texture::GetStaticAssetTypeID());
 
-        Texture* pTex = aln::New<Texture>();
+        Texture* pTexture = aln::New<Texture>();
 
+        /// @todo Also handle 2D/3D Textures here
+        /// @todo Replace with uint32_t
         int width, height;
         Vector<std::byte> data;
 
@@ -35,28 +54,31 @@ class TextureLoader : public IAssetLoader
         archive >> height;
         archive >> data;
 
-        // TODO: only RGBA8 supported for now
+        /// @note Only RGBA8 supported for now
         auto vkFormat = vk::Format::eR8G8B8A8Srgb;
         auto mipLevels = static_cast<uint32_t>(Maths::Floor(Maths::Log2(Maths::Max((float) width, (float) height)))) + 1;
 
         // Copy data to staging buffer
-        // TODO: Skip the temporary buffer and stream directly to a vk::Buffer
-        vkg::resources::Buffer stagingBuffer(m_pDevice, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data);
-        data.clear();
+        // resources::Buffer stagingBuffer(m_pRenderEngine, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data);
+        m_stagingBuffer.Copy(data);
 
-        pTex->m_image = vkg::resources::Image::FromBuffer(m_pDevice, stagingBuffer, width, height, mipLevels, vkFormat);
+        // TODO: Move what can be moved to the transfer queue
+        auto pCB = ctx.GetGraphicsCommandBuffer();
+        pTexture->m_image = resources::Image::FromBuffer(m_pRenderEngine, *pCB, m_stagingBuffer, width, height, mipLevels, vkFormat);
+        
+        pTexture->m_image.AddView();
+        pTexture->m_image.AddSampler();
+        pTexture->m_image.SetDebugName("Material Texture"); // todo: add id name
 
-        // TODO: Abstract io to another lib
-        // TODO: Split image loading and vulkan texture creation
-        // TODO: Handle 2D/3D Textures here
+        pRecord->SetAsset(pTexture);
 
-        // Vulkan objects loading happens during initialization as we do not handle threaded creation yet
-        pTex->m_image.AddView();
-        pTex->m_image.AddSampler();
-        pTex->m_image.SetDebugName("Material Texture"); // todo: add id name
-
-        pRecord->SetAsset(pTex);
         return true;
+    }
+
+    void Unload(AssetRecord* pRecord) override
+    {
+        auto pTextureture = pRecord->GetAsset<Texture>();
+        pTextureture->m_image.Shutdown();
     }
 };
 
