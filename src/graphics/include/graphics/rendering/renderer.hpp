@@ -48,7 +48,8 @@ class IRenderer
 
     virtual void CreateInternal(RenderEngine* pRenderEngine, uint32_t width, uint32_t height, vk::Format colorImageFormat) {}
 
-    virtual void Shutdown() {}
+    virtual void Initialize(RenderEngine* pRenderEngine) = 0;
+    virtual void Shutdown() = 0;
 
   public:
     RenderPass& GetRenderPass() { return m_renderpass; }

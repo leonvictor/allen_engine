@@ -17,11 +17,11 @@ class CommandPool
     friend class RenderEngine;
 
   private:
-    vk::UniqueCommandPool m_vkCommandPool;
+    vk::CommandPool m_commandPool;
     Vector<vk::CommandBuffer> m_commandBuffers; // CBs allocated from this pool
 
   protected:
-    vk::Device* m_pVkDevice = nullptr;
+    vk::Device* m_pLogicalDevice = nullptr;
     Queue* m_pQueue = nullptr;
 
     void Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPoolCreateFlagBits flags);
@@ -36,6 +36,8 @@ class CommandPool
     }
 
     void AllocateCommandBuffers(uint32_t commandBufferCount);
+    void FreeCommandBuffers();
+
     uint32_t GetCacheSize() const { return m_commandBuffers.size(); }
 };
 
@@ -52,7 +54,11 @@ class TransientCommandPool : public CommandPool
         AllocateCommandBuffers(5); // TODO: how many ?
     }
 
-    void Shutdown() { CommandPool::Shutdown(); }
+    void Shutdown()
+    {
+        FreeCommandBuffers();
+        CommandPool::Shutdown();
+    }
 
     void Reset()
     {
@@ -85,6 +91,8 @@ class PersistentCommandPool : public CommandPool
 
   private:
     SyncPrimitive CreateSyncPrimitive() const;
+    void DestroySyncPrimitive(SyncPrimitive* pSyncPrimitive) const;
+
     bool IsCommandBufferInUse(SyncPrimitive* pSyncPrimitive) const;
     void SetCommandBufferInUse(SyncPrimitive* pSyncPrimitive);
     void SetCommandBufferAvailable(SyncPrimitive* pSyncPrimitive);
@@ -92,12 +100,23 @@ class PersistentCommandPool : public CommandPool
     void AllocateCommandBuffers(uint32_t commandBufferCount)
     {
         CommandPool::AllocateCommandBuffers(commandBufferCount);
+        
         m_syncPrimitives.resize(commandBufferCount);
-
         for (auto syncIdx = 0; syncIdx < commandBufferCount; ++syncIdx)
         {
             m_syncPrimitives[syncIdx] = CreateSyncPrimitive();
         }
+    }
+
+    void FreeCommandBuffers()
+    {
+        for (auto& syncPrimitive : m_syncPrimitives)
+        {
+            DestroySyncPrimitive(&syncPrimitive);
+        }
+        m_syncPrimitives.clear();
+
+        CommandPool::FreeCommandBuffers();
     }
 
   public:
@@ -107,7 +126,11 @@ class PersistentCommandPool : public CommandPool
         AllocateCommandBuffers(5); // TODO: how many ?
     }
 
-    void Shutdown() { CommandPool::Shutdown(); }
+    void Shutdown()
+    {
+        FreeCommandBuffers();
+        CommandPool::Shutdown();
+    }
 
     PersistentCommandBuffer<SyncPrimitive> GetCommandBuffer()
     {

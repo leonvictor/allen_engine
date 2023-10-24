@@ -54,17 +54,17 @@ void RenderEngine::Initialize(IWindow* pGlfwWindow)
             threadData.m_graphicsPersistentCommandPool.Initialize(&m_logical.get(), &m_graphicsQueue);
             threadData.m_transferPersistentCommandPool.Initialize(&m_logical.get(), &m_transferQueue);
 
-            SetDebugUtilsObjectName(threadData.m_graphicsTransientCommandPool.m_vkCommandPool.get(), "Graphics Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
-            SetDebugUtilsObjectName(threadData.m_transferTransientCommandPool.m_vkCommandPool.get(), "Transfer Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
-            SetDebugUtilsObjectName(threadData.m_graphicsPersistentCommandPool.m_vkCommandPool.get(), "Graphics Persistent Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
-            SetDebugUtilsObjectName(threadData.m_transferPersistentCommandPool.m_vkCommandPool.get(), "Transfer Persistent Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
+            SetDebugUtilsObjectName(threadData.m_graphicsTransientCommandPool.m_commandPool, "Graphics Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
+            SetDebugUtilsObjectName(threadData.m_transferTransientCommandPool.m_commandPool, "Transfer Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
+            SetDebugUtilsObjectName(threadData.m_graphicsPersistentCommandPool.m_commandPool, "Graphics Persistent Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
+            SetDebugUtilsObjectName(threadData.m_transferPersistentCommandPool.m_commandPool, "Transfer Persistent Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
         }
 
         vk::FenceCreateInfo fenceCreateInfo = {
             .flags = vk::FenceCreateFlagBits::eSignaled,
         };
 
-        frameData.m_currentlyRendering = m_logical->createFenceUnique(fenceCreateInfo).value;
+        frameData.m_currentlyRendering = m_logical->createFence(fenceCreateInfo).value;
     }
 }
 
@@ -72,6 +72,8 @@ void RenderEngine::Shutdown()
 {
     for (auto& frameData : m_frameData)
     {
+        m_logical->destroyFence(frameData.m_currentlyRendering);
+
         for (auto& threadData : frameData.m_threadData)
         {
             threadData.m_graphicsTransientCommandPool.Shutdown();

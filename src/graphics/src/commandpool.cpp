@@ -12,7 +12,7 @@ namespace aln
 
 void CommandPool::Reset()
 {
-    m_pVkDevice->resetCommandPool(m_vkCommandPool.get());
+    m_pLogicalDevice->resetCommandPool(m_commandPool);
 }
 
 void CommandPool::AllocateCommandBuffers(uint32_t cbCount)
@@ -22,17 +22,23 @@ void CommandPool::AllocateCommandBuffers(uint32_t cbCount)
     m_commandBuffers.resize(cbCount);
 
     vk::CommandBufferAllocateInfo allocInfo = {
-        .commandPool = m_vkCommandPool.get(),
+        .commandPool = m_commandPool,
         .level = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = cbCount,
     };
 
-    m_pVkDevice->allocateCommandBuffers(&allocInfo, m_commandBuffers.data());
+    m_pLogicalDevice->allocateCommandBuffers(&allocInfo, m_commandBuffers.data());
+}
+
+void CommandPool::FreeCommandBuffers()
+{
+    m_pLogicalDevice->freeCommandBuffers(m_commandPool, m_commandBuffers);
+    m_commandBuffers.clear();
 }
 
 void CommandPool::Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPoolCreateFlagBits flags)
 {
-    m_pVkDevice = pDevice;
+    m_pLogicalDevice = pDevice;
     m_pQueue = pQueue;
 
     vk::CommandPoolCreateInfo createInfo = {
@@ -40,12 +46,12 @@ void CommandPool::Initialize(vk::Device* pDevice, Queue* pQueue, vk::CommandPool
         .queueFamilyIndex = m_pQueue->GetFamilyIndex(),
     };
 
-    m_vkCommandPool = m_pVkDevice->createCommandPoolUnique(createInfo).value;
+    m_commandPool = m_pLogicalDevice->createCommandPool(createInfo).value;
 }
 
 void CommandPool::Shutdown()
 {
-    m_vkCommandPool.reset();
+    m_pLogicalDevice->destroyCommandPool(m_commandPool);
 }
 
 /// --- Event syncing
@@ -53,25 +59,31 @@ void CommandPool::Shutdown()
 template <>
 vk::Event PersistentCommandPool<vk::Event>::CreateSyncPrimitive() const
 {
-    return m_pVkDevice->createEvent({}).value;
+    return m_pLogicalDevice->createEvent({}).value;
+}
+
+template <>
+void PersistentCommandPool<vk::Event>::DestroySyncPrimitive(vk::Event* pEvent) const
+{
+    m_pLogicalDevice->destroyEvent(*pEvent);
 }
 
 template <>
 bool PersistentCommandPool<vk::Event>::IsCommandBufferInUse(vk::Event* pEvent) const
 {
-    return m_pVkDevice->getEventStatus(*pEvent) == vk::Result::eEventSet;
+    return m_pLogicalDevice->getEventStatus(*pEvent) == vk::Result::eEventSet;
 }
 
 template <>
 void PersistentCommandPool<vk::Event>::SetCommandBufferInUse(vk::Event* pEvent)
 {
-    m_pVkDevice->setEvent(*pEvent);
+    m_pLogicalDevice->setEvent(*pEvent);
 }
 
-template<>
+template <>
 void PersistentCommandPool<vk::Event>::SetCommandBufferAvailable(vk::Event* pEvent)
 {
-    m_pVkDevice->resetEvent(*pEvent);
+    m_pLogicalDevice->resetEvent(*pEvent);
 }
 
 // --- Semaphore syncing
@@ -89,7 +101,7 @@ TimelineSemaphore PersistentCommandPool<TimelineSemaphore>::CreateSyncPrimitive(
     };
 
     TimelineSemaphore timelineSemaphore = {
-        .m_semaphore = m_pVkDevice->createSemaphore(semaphoreCreateInfo).value,
+        .m_semaphore = m_pLogicalDevice->createSemaphore(semaphoreCreateInfo).value,
         .m_value = 0,
     };
 
@@ -97,9 +109,15 @@ TimelineSemaphore PersistentCommandPool<TimelineSemaphore>::CreateSyncPrimitive(
 }
 
 template <>
+void PersistentCommandPool<TimelineSemaphore>::DestroySyncPrimitive(TimelineSemaphore* pSemaphore) const
+{
+    m_pLogicalDevice->destroySemaphore(pSemaphore->m_semaphore);
+}
+
+template <>
 bool PersistentCommandPool<TimelineSemaphore>::IsCommandBufferInUse(TimelineSemaphore* pSemaphore) const
 {
-    return m_pVkDevice->getSemaphoreCounterValue(pSemaphore->m_semaphore).value != pSemaphore->m_value;
+    return m_pLogicalDevice->getSemaphoreCounterValue(pSemaphore->m_semaphore).value != pSemaphore->m_value;
 }
 
 template <>

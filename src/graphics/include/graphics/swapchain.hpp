@@ -35,7 +35,7 @@ class Swapchain
     // Wrapped vulkan swapchain.
     vk::UniqueSwapchainKHR m_vkSwapchain;
     Vector<vk::Image> m_images;
-    Vector<vk::UniqueSemaphore> m_imageAvailableSemaphores;
+    Vector<vk::Semaphore> m_imageAvailableSemaphores;
 
     vk::SurfaceFormatKHR m_surfaceFormat;
     vk::Extent2D m_extent;

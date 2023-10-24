@@ -28,12 +28,19 @@ void Swapchain::Initialize(RenderEngine* pRenderEngine, vk::SurfaceKHR& surface)
     m_imageAvailableSemaphores.resize(swapchainImageCount);
     for (auto imageIdx = 0; imageIdx < swapchainImageCount; ++imageIdx)
     {
-        m_imageAvailableSemaphores[imageIdx] = m_pRenderEngine->GetVkDevice().createSemaphoreUnique({}).value;
+        m_imageAvailableSemaphores[imageIdx] = m_pRenderEngine->GetVkDevice().createSemaphore({}).value;
+        m_pRenderEngine->SetDebugUtilsObjectName(m_imageAvailableSemaphores[imageIdx], "Swapchain Image Available Semaphore (" + std::to_string(imageIdx) + ")");
     }
 }
 
 void Swapchain::Shutdown(RenderEngine* pRenderEngine)
 {
+    for (auto& semaphore : m_imageAvailableSemaphores)
+    {
+        m_pRenderEngine->GetVkDevice().destroySemaphore(semaphore);
+    }
+    m_imageAvailableSemaphores.clear();
+
     m_vkSwapchain.reset();
 }
 
@@ -44,7 +51,7 @@ void Swapchain::TargetWindowResizedCallback(uint32_t width, uint32_t height)
 
 uint32_t Swapchain::AcquireNextImage()
 {
-    auto& currentFrameImageAvailableSemaphore = m_imageAvailableSemaphores[m_pRenderEngine->GetCurrentFrameIdx()].get();
+    auto& currentFrameImageAvailableSemaphore = m_imageAvailableSemaphores[m_pRenderEngine->GetCurrentFrameIdx()];
     auto result = m_pRenderEngine->GetVkDevice().acquireNextImageKHR(m_vkSwapchain.get(), UINT64_MAX, currentFrameImageAvailableSemaphore, nullptr, &m_activeImageIndex);
     if (result == vk::Result::eErrorOutOfDateKHR)
     {
@@ -60,7 +67,7 @@ uint32_t Swapchain::AcquireNextImage()
 
 vk::Semaphore& Swapchain::GetFrameImageAvailableSemaphore()
 {
-    return m_imageAvailableSemaphores[m_pRenderEngine->GetCurrentFrameIdx()].get();
+    return m_imageAvailableSemaphores[m_pRenderEngine->GetCurrentFrameIdx()];
 }
 
 void Swapchain::Resize(uint32_t width, uint32_t height)

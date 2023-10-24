@@ -67,7 +67,7 @@ class  RenderEngine
     struct FrameData
     {
         Vector<ThreadData> m_threadData;
-        vk::UniqueFence m_currentlyRendering;
+        vk::Fence m_currentlyRendering;
     };
 
   private:
@@ -123,7 +123,7 @@ class  RenderEngine
 
     void StartFrame()
     {
-        auto& frameCurrentlyRenderingFence = m_frameData[m_currentFrameIdx].m_currentlyRendering.get();
+        auto& frameCurrentlyRenderingFence = m_frameData[m_currentFrameIdx].m_currentlyRendering;
         assert(frameCurrentlyRenderingFence);
         // Ensure the current frame's previous render is finished then reset it
         // TODO: We could delay the reset until we're actually submitting
@@ -145,7 +145,7 @@ class  RenderEngine
 
     static constexpr uint32_t GetFrameQueueSize() { return FRAME_QUEUE_SIZE; }
     inline uint32_t GetCurrentFrameIdx() const { return m_currentFrameIdx; }
-    vk::Fence& GetCurrentFrameRenderingFence() { return m_frameData[m_currentFrameIdx].m_currentlyRendering.get(); }
+    vk::Fence& GetCurrentFrameRenderingFence() { return m_frameData[m_currentFrameIdx].m_currentlyRendering; }
 
     // -- Query properties
     SwapchainSupportDetails GetSwapchainSupport();

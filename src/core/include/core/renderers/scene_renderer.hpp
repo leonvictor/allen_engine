@@ -403,7 +403,7 @@ class SceneRenderer : public IRenderer
     }
 
   public:
-    void Initialize(RenderEngine* pRenderEngine)
+    void Initialize(RenderEngine* pRenderEngine) override
     {
         CreateInternal(pRenderEngine);
         CreatePipelines();
@@ -438,7 +438,7 @@ class SceneRenderer : public IRenderer
         m_modelTransformsBuffer.Shutdown();
         m_sceneDataBuffer.Shutdown();
 
-        IRenderer::Shutdown();
+        m_renderpass.Shutdown();
     }
 
     void RenderStaticMeshes(const Vector<const StaticMeshComponent*>& staticMeshComponents, vk::CommandBuffer& cb, uint32_t currentMeshIndex)

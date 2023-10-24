@@ -18,7 +18,7 @@ class EditorRenderer : public IRenderer
     Swapchain* m_pSwapchain;
 
   public:
-    void Initialize(RenderEngine* pRenderEngine)
+    void Initialize(RenderEngine* pRenderEngine) override
     {
         m_pSwapchain = &pRenderEngine->GetWindow()->GetSwapchain();
         m_pSwapchain->AddResizeCallback(std::bind(&EditorRenderer::Resize, this, std::placeholders::_1, std::placeholders::_2));
@@ -119,7 +119,7 @@ class EditorRenderer : public IRenderer
         };
     }
 
-    void Shutdown()
+    void Shutdown() override
     {
         for (auto& renderTarget : m_renderTargets)
         {
@@ -129,17 +129,18 @@ class EditorRenderer : public IRenderer
             renderTarget.m_resolveImage.Shutdown();
             renderTarget.m_renderFinished.reset();
         }
-
-        IRenderer::Shutdown();
+    
+        m_renderpass.Shutdown();
     }
 
     void Resize(uint32_t width, uint32_t height)
     {
-        CreateInternal(
+        assert(false); // TODO
+       /* CreateInternal(
             m_pSwapchain->GetDevice(),
             width,
             height,
-            m_pSwapchain->GetImageFormat());
+            m_pSwapchain->GetImageFormat());*/
     }
 
     void StartFrame(TransientCommandBuffer& cb, const RenderContext& ctx)
