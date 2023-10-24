@@ -40,14 +40,14 @@ class Mesh : public IAsset
     // Rendering resources
     resources::Buffer m_vertexBuffer;
     resources::Buffer m_indexBuffer;
-    vk::UniqueDescriptorSet m_descriptorSet;
+    vk::DescriptorSet m_descriptorSet;
 
   public:
     const AssetHandle<Material>& GetMaterial() const { return m_pMaterial; }
     const resources::Buffer& GetVertexBuffer() const { return m_vertexBuffer; }
     const resources::Buffer& GetIndexBuffer() const { return m_indexBuffer; }
     uint32_t GetIndicesCount() const { return m_indices.size(); }
-    const vk::DescriptorSet& GetDescriptorSet() const { return m_descriptorSet.get(); }
+    const vk::DescriptorSet& GetDescriptorSet() const { return m_descriptorSet; }
 
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {

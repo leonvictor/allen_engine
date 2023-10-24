@@ -19,7 +19,7 @@ class Image : public Allocation
     vk::UniqueImage m_vkImage;
     vk::UniqueImageView m_vkView;
     vk::UniqueSampler m_vkSampler;
-    vk::UniqueDescriptorSet m_vkDescriptorSet;
+    vk::DescriptorSet m_vkDescriptorSet;
 
     vk::ImageLayout m_layout;
     vk::Format m_format = vk::Format::eUndefined;
@@ -102,7 +102,7 @@ class Image : public Allocation
 
     void Shutdown() override
     {
-        m_vkDescriptorSet.reset();
+        //m_vkDescriptorSet.reset();
         m_vkSampler.reset();
         m_vkView.reset();
 

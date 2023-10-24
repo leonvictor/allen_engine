@@ -45,21 +45,21 @@ class SceneRenderer : public IRenderer
 
     // Per frame data
     resources::Buffer m_sceneDataBuffer;
-    vk::UniqueDescriptorSetLayout m_pSceneDataDescriptorSetLayout;
-    vk::UniqueDescriptorSet m_pSceneDataDescriptorSet;
+    vk::DescriptorSetLayout m_sceneDataDescriptorSetLayout;
+    vk::DescriptorSet m_sceneDataDescriptorSet;
 
     resources::Buffer m_lightComponentsBuffer;
-    vk::UniqueDescriptorSet m_pLightsDescriptorSet;
+    vk::DescriptorSet m_lightsDescriptorSet;
 
     // Model transforms storage buffer.
     /// @todo One per frame in flight ?
     resources::Buffer m_modelTransformsBuffer;
-    vk::UniqueDescriptorSetLayout m_pModelTransformsDescriptorSetLayout;
-    vk::UniqueDescriptorSet m_pModelTransformsDescriptorSet;
+    vk::DescriptorSetLayout m_modelTransformsDescriptorSetLayout;
+    vk::DescriptorSet m_modelTransformsDescriptorSet;
 
     resources::Buffer m_skinningBuffer;
-    vk::UniqueDescriptorSetLayout m_pSkinningBufferDescriptorSetLayout;
-    vk::UniqueDescriptorSet m_pSkinningBufferDescriptorSet;
+    vk::DescriptorSetLayout m_skinningBufferDescriptorSetLayout;
+    vk::DescriptorSet m_skinningBufferDescriptorSet;
 
   private:
     // TODO: Rename
@@ -200,11 +200,11 @@ class SceneRenderer : public IRenderer
             .pBindings = &sceneDataBinding,
         };
 
-        m_pSceneDataDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayoutUnique(sceneDataDescriptorSetLayoutCreateInfo).value;
-        m_pRenderEngine->SetDebugUtilsObjectName(m_pSceneDataDescriptorSetLayout.get(), "Scene Data Descriptor Set Layout");
+        m_sceneDataDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayout(sceneDataDescriptorSetLayoutCreateInfo).value;
+        m_pRenderEngine->SetDebugUtilsObjectName(m_sceneDataDescriptorSetLayout, "Scene Data Descriptor Set Layout");
 
-        m_pSceneDataDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_pSceneDataDescriptorSetLayout.get());
-        m_pRenderEngine->SetDebugUtilsObjectName(m_pSceneDataDescriptorSet.get(), "Scene Data Descriptor Set");
+        m_sceneDataDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_sceneDataDescriptorSetLayout);
+        m_pRenderEngine->SetDebugUtilsObjectName(m_sceneDataDescriptorSet, "Scene Data Descriptor Set");
 
         vk::DescriptorBufferInfo sceneDataBufferInfo = {
             .buffer = m_sceneDataBuffer.GetVkBuffer(),
@@ -213,7 +213,7 @@ class SceneRenderer : public IRenderer
         };
 
         writeDescriptorSets.push_back({
-            .dstSet = m_pSceneDataDescriptorSet.get(),
+            .dstSet = m_sceneDataDescriptorSet,
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorCount = 1,
@@ -231,8 +231,8 @@ class SceneRenderer : public IRenderer
 
         m_pRenderEngine->SetDebugUtilsObjectName(m_lightComponentsBuffer.GetVkBuffer(), "Renderer Lights Buffer");
 
-        m_pLightsDescriptorSet = pRenderEngine->AllocateDescriptorSet<Light>();
-        pRenderEngine->SetDebugUtilsObjectName(m_pLightsDescriptorSet.get(), "Lights Descriptor Set");
+        m_lightsDescriptorSet = pRenderEngine->AllocateDescriptorSet<Light>();
+        pRenderEngine->SetDebugUtilsObjectName(m_lightsDescriptorSet, "Lights Descriptor Set");
 
         // TODO: How do we update the lights array ?
         vk::DescriptorBufferInfo lightsBufferInfo = {
@@ -242,7 +242,7 @@ class SceneRenderer : public IRenderer
         };
 
         vk::WriteDescriptorSet writeDescriptor = {
-            .dstSet = m_pLightsDescriptorSet.get(),
+            .dstSet = m_lightsDescriptorSet,
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorCount = 1,
@@ -274,11 +274,11 @@ class SceneRenderer : public IRenderer
             .pBindings = &binding,
         };
 
-        m_pModelTransformsDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayoutUnique(info).value;
-        m_pRenderEngine->SetDebugUtilsObjectName(m_pModelTransformsDescriptorSetLayout.get(), "Model Transforms Descriptor Set Layout");
+        m_modelTransformsDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayout(info).value;
+        m_pRenderEngine->SetDebugUtilsObjectName(m_modelTransformsDescriptorSetLayout, "Model Transforms Descriptor Set Layout");
 
-        m_pModelTransformsDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_pModelTransformsDescriptorSetLayout.get());
-        m_pRenderEngine->SetDebugUtilsObjectName(m_pModelTransformsDescriptorSet.get(), "Model Transforms Descriptor Set");
+        m_modelTransformsDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_modelTransformsDescriptorSetLayout);
+        m_pRenderEngine->SetDebugUtilsObjectName(m_modelTransformsDescriptorSet, "Model Transforms Descriptor Set");
 
         vk::DescriptorBufferInfo transformsBufferInfo = {
             .buffer = m_modelTransformsBuffer.GetVkBuffer(),
@@ -287,7 +287,7 @@ class SceneRenderer : public IRenderer
         };
 
         writeDescriptorSets.push_back({
-            .dstSet = m_pModelTransformsDescriptorSet.get(),
+            .dstSet = m_modelTransformsDescriptorSet,
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorCount = 1,
@@ -323,14 +323,14 @@ class SceneRenderer : public IRenderer
             .pBindings = &skinningBufferBinding,
         };
 
-        m_pSkinningBufferDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayoutUnique(skinningDescriptorSetLayoutCreateInfo).value;
-        m_pRenderEngine->SetDebugUtilsObjectName(m_pSkinningBufferDescriptorSetLayout.get(), "Skinning Buffer Descriptor Set Layout");
+        m_skinningBufferDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayout(skinningDescriptorSetLayoutCreateInfo).value;
+        m_pRenderEngine->SetDebugUtilsObjectName(m_skinningBufferDescriptorSetLayout, "Skinning Buffer Descriptor Set Layout");
 
-        m_pSkinningBufferDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_pSkinningBufferDescriptorSetLayout.get());
-        m_pRenderEngine->SetDebugUtilsObjectName(m_pSkinningBufferDescriptorSetLayout.get(), "Skinning Buffer Descriptor Set");
+        m_skinningBufferDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_skinningBufferDescriptorSetLayout);
+        m_pRenderEngine->SetDebugUtilsObjectName(m_skinningBufferDescriptorSet, "Skinning Buffer Descriptor Set");
 
         writeDescriptorSets.push_back({
-            .dstSet = m_pSkinningBufferDescriptorSet.get(),
+            .dstSet = m_skinningBufferDescriptorSet,
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorCount = 1,
@@ -357,10 +357,10 @@ class SceneRenderer : public IRenderer
         m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
         m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
         m_staticMeshesPipeline.AddPushConstant(vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant)); // Note: This is necessary for now so that static/skinned meshes pipelines are compatible and we can bind descriptor sets once for both
-        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pSceneDataDescriptorSetLayout.get());
+        m_staticMeshesPipeline.RegisterDescriptorLayout(m_sceneDataDescriptorSetLayout);
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Light>());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Mesh>());
-        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pModelTransformsDescriptorSetLayout.get());
+        m_staticMeshesPipeline.RegisterDescriptorLayout(m_modelTransformsDescriptorSetLayout);
 
         m_staticMeshesPipeline.Create("static_meshes_pipeline_cache_data.bin");
         m_pRenderEngine->SetDebugUtilsObjectName(m_staticMeshesPipeline.GetVkPipeline(), "Static Meshes Pipeline");
@@ -376,11 +376,11 @@ class SceneRenderer : public IRenderer
         m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/skeletal_mesh.vert", vk::ShaderStageFlagBits::eVertex);
         m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
         m_skeletalMeshesPipeline.AddPushConstant(vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant));
-        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pSceneDataDescriptorSetLayout.get());
+        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_sceneDataDescriptorSetLayout);
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Light>());
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Mesh>());
-        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pModelTransformsDescriptorSetLayout.get());
-        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pSkinningBufferDescriptorSetLayout.get());
+        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_modelTransformsDescriptorSetLayout);
+        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_skinningBufferDescriptorSetLayout);
 
         m_skeletalMeshesPipeline.Create("skeletal_meshes_pipeline_cache_data.bin");
         m_pRenderEngine->SetDebugUtilsObjectName(m_skeletalMeshesPipeline.GetVkPipeline(), "Skeletal Meshes Pipeline");
@@ -424,14 +424,9 @@ class SceneRenderer : public IRenderer
             renderTarget.m_renderFinished.reset();
         }
 
-        m_pSkinningBufferDescriptorSet.reset();
-        m_pModelTransformsDescriptorSet.reset();
-        m_pSceneDataDescriptorSet.reset();
-        m_pLightsDescriptorSet.reset();
-
-        m_pSkinningBufferDescriptorSetLayout.reset();
-        m_pModelTransformsDescriptorSetLayout.reset();
-        m_pSceneDataDescriptorSetLayout.reset();
+        m_pRenderEngine->GetVkDevice().destroyDescriptorSetLayout(m_skinningBufferDescriptorSetLayout);
+        m_pRenderEngine->GetVkDevice().destroyDescriptorSetLayout(m_modelTransformsDescriptorSetLayout);
+        m_pRenderEngine->GetVkDevice().destroyDescriptorSetLayout(m_sceneDataDescriptorSetLayout);
 
         m_skinningBuffer.Shutdown();
         m_lightComponentsBuffer.Shutdown();
@@ -624,10 +619,10 @@ class SceneRenderer : public IRenderer
 
         // Rendering
         /// @note: Descriptors are only bound to the skeletal meshes pipeline first because it's the first thing we render, but that could change
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_pSceneDataDescriptorSet.get(), 0);
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_pLightsDescriptorSet.get(), 1);
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_pModelTransformsDescriptorSet.get(), 3);
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_pSkinningBufferDescriptorSet.get(), 4);
+        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_sceneDataDescriptorSet, 0);
+        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_lightsDescriptorSet, 1);
+        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_modelTransformsDescriptorSet, 3);
+        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_skinningBufferDescriptorSet, 4);
 
         uint32_t meshIndex = 0;
 

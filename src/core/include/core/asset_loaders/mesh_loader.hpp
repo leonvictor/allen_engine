@@ -120,7 +120,6 @@ class MeshLoader : public IAssetLoader
         auto pMesh = pRecord->GetAsset<Mesh>();
         pMesh->m_indices.clear();
         pMesh->m_vertices.clear();
-        pMesh->m_descriptorSet.reset();
         pMesh->m_indexBuffer.Shutdown();
         pMesh->m_vertexBuffer.Shutdown();
 
@@ -142,21 +141,20 @@ class MeshLoader : public IAssetLoader
         auto pMaterialRecord = GetDependencyRecord(dependencies, 0);
         pMesh->m_pMaterial.m_pAssetRecord = pMaterialRecord;
 
-        auto descriptorSet = m_pRenderEngine->AllocateDescriptorSet<Mesh>();
-
+        pMesh->m_descriptorSet = m_pRenderEngine->AllocateDescriptorSet<Mesh>();
         auto textureDescriptor = pMesh->m_pMaterial->GetAlbedoMap()->GetDescriptor();
         auto materialDescriptor = pMesh->GetMaterial()->GetBuffer().GetDescriptor();
 
         Vector<vk::WriteDescriptorSet> writeDescriptors = {
             {
-                .dstSet = descriptorSet.get(),
+                .dstSet = pMesh->m_descriptorSet,
                 .dstBinding = 0,
                 .descriptorCount = 1,
                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
                 .pImageInfo = &textureDescriptor,
             },
             {
-                .dstSet = descriptorSet.get(),
+                .dstSet = pMesh->m_descriptorSet,
                 .dstBinding = 1,
                 .descriptorCount = 1,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
@@ -166,8 +164,7 @@ class MeshLoader : public IAssetLoader
 
         m_pRenderEngine->GetVkDevice().updateDescriptorSets(writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
 
-        pMesh->m_descriptorSet = std::move(descriptorSet);
-        m_pRenderEngine->SetDebugUtilsObjectName(pMesh->m_descriptorSet.get(), "Mesh Descriptor Set");
+        m_pRenderEngine->SetDebugUtilsObjectName(pMesh->m_descriptorSet, "Mesh Descriptor Set");
     }
 };
 } // namespace aln

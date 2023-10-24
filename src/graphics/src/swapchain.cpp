@@ -21,9 +21,9 @@ void Swapchain::Initialize(RenderEngine* pRenderEngine, vk::SurfaceKHR& surface)
 
     // Retrieve swapchain images
     uint32_t swapchainImageCount;
-    m_pRenderEngine->GetVkDevice().getSwapchainImagesKHR(m_vkSwapchain.get(), &swapchainImageCount, nullptr);
+    m_pRenderEngine->GetVkDevice().getSwapchainImagesKHR(m_swapchain, &swapchainImageCount, nullptr);
     m_images.resize(swapchainImageCount);
-    m_pRenderEngine->GetVkDevice().getSwapchainImagesKHR(m_vkSwapchain.get(), &swapchainImageCount, m_images.data());
+    m_pRenderEngine->GetVkDevice().getSwapchainImagesKHR(m_swapchain, &swapchainImageCount, m_images.data());
 
     m_imageAvailableSemaphores.resize(swapchainImageCount);
     for (auto imageIdx = 0; imageIdx < swapchainImageCount; ++imageIdx)
@@ -41,7 +41,7 @@ void Swapchain::Shutdown(RenderEngine* pRenderEngine)
     }
     m_imageAvailableSemaphores.clear();
 
-    m_vkSwapchain.reset();
+    m_pRenderEngine->GetVkDevice().destroySwapchainKHR(m_swapchain);
 }
 
 void Swapchain::TargetWindowResizedCallback(uint32_t width, uint32_t height)
@@ -52,7 +52,7 @@ void Swapchain::TargetWindowResizedCallback(uint32_t width, uint32_t height)
 uint32_t Swapchain::AcquireNextImage()
 {
     auto& currentFrameImageAvailableSemaphore = m_imageAvailableSemaphores[m_pRenderEngine->GetCurrentFrameIdx()];
-    auto result = m_pRenderEngine->GetVkDevice().acquireNextImageKHR(m_vkSwapchain.get(), UINT64_MAX, currentFrameImageAvailableSemaphore, nullptr, &m_activeImageIndex);
+    auto result = m_pRenderEngine->GetVkDevice().acquireNextImageKHR(m_swapchain, UINT64_MAX, currentFrameImageAvailableSemaphore, nullptr, &m_activeImageIndex);
     if (result == vk::Result::eErrorOutOfDateKHR)
     {
         Resize(m_width, m_height);
@@ -99,7 +99,7 @@ void Swapchain::Present(vk::Semaphore& waitSemaphore)
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &waitSemaphore,
         .swapchainCount = 1,
-        .pSwapchains = &m_vkSwapchain.get(),
+        .pSwapchains = &m_swapchain,
         .pImageIndices = &m_activeImageIndex,
         .pResults = nullptr, // For checking every individual swap chain results. We only have one so we don't need i,
     };
@@ -123,7 +123,7 @@ void Swapchain::CreateInternal()
     assert(m_pSurface != nullptr);
 
     // Create the swapchain; reusing the info if it has already been created
-    vk::UniqueSwapchainKHR pOldSwapchain = std::move(m_vkSwapchain);
+    vk::SwapchainKHR oldSwapchain = std::move(m_swapchain);
 
     auto swapchainSupport = m_pRenderEngine->GetSwapchainSupport();
     auto presentMode = ChoosePresentMode(swapchainSupport.presentModes);
@@ -151,7 +151,7 @@ void Swapchain::CreateInternal()
         .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
         .presentMode = presentMode,
         .clipped = vk::True, // We don't care about the color of obscured pixels (ex: if another window is on top)
-        .oldSwapchain = *pOldSwapchain,
+        .oldSwapchain = oldSwapchain,
     };
 
     uint32_t queueFamilyIndices[] = {
@@ -172,7 +172,7 @@ void Swapchain::CreateInternal()
         createInfo.pQueueFamilyIndices = nullptr; // Optionnal
     }
 
-    m_vkSwapchain = m_pRenderEngine->GetVkDevice().createSwapchainKHRUnique(createInfo).value;
+    m_swapchain = m_pRenderEngine->GetVkDevice().createSwapchainKHR(createInfo).value;
 }
 
 vk::Extent2D Swapchain::ChooseExtent(const vk::SurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height)

@@ -25,7 +25,7 @@ class LinesRenderState
 
     resources::Buffer m_vertexBuffer;
     resources::Buffer m_viewProjectionUBO;
-    vk::UniqueDescriptorSet m_descriptorSet;
+    vk::DescriptorSet m_descriptorSet;
 
   public:
     void Initialize(RenderEngine* pRenderEngine, IRenderer* pRenderer)
@@ -44,7 +44,7 @@ class LinesRenderState
 
         // Create descriptor set
         m_descriptorSet = pRenderEngine->AllocateDescriptorSet<LinesRenderState>();
-        pRenderEngine->SetDebugUtilsObjectName(m_descriptorSet.get(), "Lines Descriptor Set");
+        pRenderEngine->SetDebugUtilsObjectName(m_descriptorSet, "Lines Descriptor Set");
 
         vk::DescriptorBufferInfo viewProjectionUBOInfo = {
             .buffer = m_viewProjectionUBO.GetVkBuffer(),
@@ -53,7 +53,7 @@ class LinesRenderState
         };
 
         vk::WriteDescriptorSet writeDescriptorSet = {
-            .dstSet = m_descriptorSet.get(),
+            .dstSet = m_descriptorSet,
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorCount = 1,

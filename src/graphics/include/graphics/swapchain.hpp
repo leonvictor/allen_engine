@@ -33,7 +33,7 @@ class Swapchain
     vk::SurfaceKHR* m_pSurface = nullptr;
 
     // Wrapped vulkan swapchain.
-    vk::UniqueSwapchainKHR m_vkSwapchain;
+    vk::SwapchainKHR m_swapchain;
     Vector<vk::Image> m_images;
     Vector<vk::Semaphore> m_imageAvailableSemaphores;
 
@@ -64,7 +64,7 @@ class Swapchain
     vk::Semaphore& GetFrameImageAvailableSemaphore();
 
     /// @brief Get the wrapped swapchain object.
-    inline vk::SwapchainKHR& GetVkSwapchain() { return m_vkSwapchain.get(); }
+    inline vk::SwapchainKHR& GetVkSwapchain() { return m_swapchain; }
 
     inline const vk::Format GetImageFormat() const { return m_surfaceFormat.format; }
     inline uint32_t GetWidth() const { return m_extent.width; }

@@ -47,7 +47,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     auto& pipeline = m_linesRenderState.m_pipeline;
     pipeline.Bind(cb);
 
-    pipeline.BindDescriptorSet(cb, m_linesRenderState.m_descriptorSet.get(), 0);
+    pipeline.BindDescriptorSet(cb, m_linesRenderState.m_descriptorSet, 0);
     cb.bindVertexBuffers(0, m_linesRenderState.m_vertexBuffer.GetVkBuffer(), (vk::DeviceSize) 0);
     cb.draw(vertexBuffer.size(), 1, 0, 0);
 }

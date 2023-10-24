@@ -35,14 +35,15 @@ class DescriptorAllocator
 
     /// @brief: Resets all the dirty pools and ready them for reuse.
     void ResetPools();
-    vk::UniqueDescriptorSet Allocate(const vk::DescriptorSetLayout* pLayout);
-    void Init(vk::Device* newDevice);
-    void Cleanup();
+    vk::DescriptorSet Allocate(const vk::DescriptorSetLayout* pLayout);
+
+    void Initialize(vk::Device* pDevice);
+    void Shutdown();
 
     vk::DescriptorPool& GetActivePool();
 
   private:
-    vk::Device* m_pRenderEngine = nullptr;
+    vk::Device* m_pLogicalDevice = nullptr;
     PoolSizes descriptorSizes;
 
     /// Pointer to the current active pool.

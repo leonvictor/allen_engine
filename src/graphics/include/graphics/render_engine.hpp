@@ -197,9 +197,9 @@ class  RenderEngine
     /// @brief Allocates a single descriptor set from this pRenderEngine's default pool.
     /// @todo Handle multi-threading.
     template <typename T>
-    vk::UniqueDescriptorSet AllocateDescriptorSet() { return std::move(m_descriptorAllocator.Allocate(&GetDescriptorSetLayout<T>())); }
+    vk::DescriptorSet AllocateDescriptorSet() { return std::move(m_descriptorAllocator.Allocate(&GetDescriptorSetLayout<T>())); }
 
-    vk::UniqueDescriptorSet AllocateDescriptorSet(const vk::DescriptorSetLayout* pDescriptorSetLayout) { return std::move(m_descriptorAllocator.Allocate(pDescriptorSetLayout)); }
+    vk::DescriptorSet AllocateDescriptorSet(const vk::DescriptorSetLayout* pDescriptorSetLayout) { return std::move(m_descriptorAllocator.Allocate(pDescriptorSetLayout)); }
 
     /// @brief Get the descriptor set layout associated with type T. If the layout doesn't exist it will be created.
     /// Additionnaly caches the layout to enable automatic destruction.

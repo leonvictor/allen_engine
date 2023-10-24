@@ -32,7 +32,7 @@ void DescriptorAllocator::ResetPools()
 {
     for (auto& p : m_usedPools)
     {
-        m_pRenderEngine->resetDescriptorPool(p.get());
+        m_pLogicalDevice->resetDescriptorPool(p.get());
     }
 
     m_freePools = std::move(m_usedPools);
@@ -41,9 +41,9 @@ void DescriptorAllocator::ResetPools()
     m_currentPool = nullptr;
 }
 
-vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLayout* pLayout)
+vk::DescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLayout* pLayout)
 {
-    assert(m_pRenderEngine != nullptr);
+    assert(m_pLogicalDevice != nullptr);
 
     if (m_currentPool == nullptr)
     {
@@ -60,10 +60,10 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
     };
 
     bool needReallocate = false;
-    auto result = m_pRenderEngine->allocateDescriptorSetsUnique(allocInfo);
+    auto result = m_pLogicalDevice->allocateDescriptorSets(allocInfo);
     if (result.result == vk::Result::eSuccess)
     {
-        return std::move(result.value[0]);
+        return result.value[0];
     }
     else if (result.result == vk::Result::eErrorFragmentedPool || result.result == vk::Result::eErrorOutOfPoolMemory)
     {
@@ -81,10 +81,10 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
         m_usedPools.push_back(std::move(pool));
         m_currentPool = &m_usedPools.back();
 
-        result = m_pRenderEngine->allocateDescriptorSetsUnique(allocInfo);
+        result = m_pLogicalDevice->allocateDescriptorSets(allocInfo);
         if (result.result == vk::Result::eSuccess)
         {
-            return std::move(result.value[0]);
+            return result.value[0];
         }
         else
         {
@@ -94,15 +94,15 @@ vk::UniqueDescriptorSet DescriptorAllocator::Allocate(const vk::DescriptorSetLay
     }
 
     assert(false);
-    return vk::UniqueDescriptorSet();
+    return vk::DescriptorSet();
 }
 
-void DescriptorAllocator::Init(vk::Device* newDevice)
+void DescriptorAllocator::Initialize(vk::Device* pLogicalDevice)
 {
-    m_pRenderEngine = newDevice;
+    m_pLogicalDevice = pLogicalDevice;
 }
 
-void DescriptorAllocator::Cleanup()
+void DescriptorAllocator::Shutdown()
 {
     // delete every pool held
     for (auto& p : m_freePools)
@@ -129,7 +129,7 @@ vk::UniqueDescriptorPool DescriptorAllocator::GrabPool()
     else
     {
         // Default: a new pool can hold 1000 descriptors. This is arbitrary.
-        return std::move(CreatePool(m_pRenderEngine, descriptorSizes, 1000, vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet));
+        return std::move(CreatePool(m_pLogicalDevice, descriptorSizes, 1000, vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet));
     }
 }
 

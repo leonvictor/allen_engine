@@ -496,7 +496,7 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 const vk::DescriptorSet& Image::GetDescriptorSet() const
 {
     assert(m_vkDescriptorSet);
-    return m_vkDescriptorSet.get();
+    return m_vkDescriptorSet;
 }
 
 void Image::CreateDescriptorSet()
@@ -510,14 +510,14 @@ void Image::CreateDescriptorSet()
     auto desc = GetDescriptor();
     
     vk::WriteDescriptorSet writeDesc[1] = {{
-        .dstSet = m_vkDescriptorSet.get(),
+        .dstSet = m_vkDescriptorSet,
         .descriptorCount = 1,
         .descriptorType = vk::DescriptorType::eCombinedImageSampler,
         .pImageInfo = &desc,
     }};
 
     m_pRenderEngine->GetVkDevice().updateDescriptorSets(1, writeDesc, 0, nullptr);
-    m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), m_debugName + " Descriptor Set");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet, m_debugName + " Descriptor Set");
 }
 
 Vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
@@ -664,7 +664,7 @@ void Image::SetDebugName(std::string name)
     }
     if (m_vkDescriptorSet)
     {
-        m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), name + " Descriptor Set");
+        m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet, name + " Descriptor Set");
     }
 #endif
 }

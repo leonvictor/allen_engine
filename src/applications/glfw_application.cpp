@@ -20,7 +20,7 @@ class GLFWApplication
     GLFWInputMapper m_glfwInputMapper;
     GlfwWindow m_window;
 
-    vk::UniqueSurfaceKHR m_pSurface;
+    vk::SurfaceKHR m_surface;
 
     Engine m_engine;
 

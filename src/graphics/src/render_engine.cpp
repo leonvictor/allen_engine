@@ -38,7 +38,7 @@ void RenderEngine::Initialize(IWindow* pGlfwWindow)
     CreateLogicalDevice();
 
     m_msaaSamples = GetMaxUsableSampleCount();
-    m_descriptorAllocator.Init(&m_logical.get());
+    m_descriptorAllocator.Initialize(&m_logical.get());
 
     m_pWindow->CreateSwapchain(this);
 
@@ -90,8 +90,7 @@ void RenderEngine::Shutdown()
         descriptorSetLayout.reset();
     }
 
-    m_descriptorAllocator.Cleanup();
-
+    m_descriptorAllocator.Shutdown();
     m_logical.reset();
 
     auto& surface = m_pWindow->GetSurface();
