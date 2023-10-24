@@ -10,6 +10,6 @@ class Viewport
     Rectangle m_size;    
 
   public:
-    float GetAspectRatio() const { return m_size.width / m_size.height; }
+    float GetAspectRatio() const { return (float) m_size.width / (float) m_size.height; }
 };
 } // namespace aln

@@ -144,14 +144,12 @@ void Editor::Update(const UpdateContext& context)
         }
 
         // Update current scene preview dims
-        // @todo: use a dedicated struct for dimensions
         auto dim = ImGui::GetContentRegionAvail();
-        m_scenePreviewWidth = dim.x;
-        m_scenePreviewHeight = dim.y;
+        m_worldEntity.m_viewport.m_size.width = dim.x;
+        m_worldEntity.m_viewport.m_size.height = dim.y;
 
-        // TODO: We need to access the current frame scene render target (resolve image)
         auto& descriptor = m_pRenderingService->GetRenderTarget()->m_resolveImage.GetDescriptorSet();
-        ImGui::Image((ImTextureID) descriptor, {m_scenePreviewWidth, m_scenePreviewHeight});
+        ImGui::Image((ImTextureID) descriptor, dim);
     }
 
     ImGui::End();
