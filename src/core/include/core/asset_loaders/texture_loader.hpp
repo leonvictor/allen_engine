@@ -15,7 +15,7 @@ class TextureLoader : public IAssetLoader
   private:
     RenderEngine* m_pRenderEngine;
 
-    resources::Buffer m_stagingBuffer;
+    GPUBuffer m_stagingBuffer;
 
   public:
     TextureLoader(RenderEngine* pDevice)
@@ -65,7 +65,7 @@ class TextureLoader : public IAssetLoader
         auto mipLevels = static_cast<uint32_t>(Maths::Floor(Maths::Log2(Maths::Max((float) width, (float) height)))) + 1;
 
         // Copy data to staging buffer
-        // resources::Buffer stagingBuffer(m_pRenderEngine, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data);
+        // GPUBuffer stagingBuffer(m_pRenderEngine, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, data);
         m_stagingBuffer.Copy(data);
 
         // TODO: Move what can be moved to the transfer queue

@@ -38,14 +38,14 @@ class Mesh : public IAsset
     AssetHandle<Material> m_pMaterial;
 
     // Rendering resources
-    resources::Buffer m_vertexBuffer;
-    resources::Buffer m_indexBuffer;
+    GPUBuffer m_vertexBuffer;
+    GPUBuffer m_indexBuffer;
     vk::DescriptorSet m_descriptorSet;
 
   public:
     const AssetHandle<Material>& GetMaterial() const { return m_pMaterial; }
-    const resources::Buffer& GetVertexBuffer() const { return m_vertexBuffer; }
-    const resources::Buffer& GetIndexBuffer() const { return m_indexBuffer; }
+    const GPUBuffer& GetVertexBuffer() const { return m_vertexBuffer; }
+    const GPUBuffer& GetIndexBuffer() const { return m_indexBuffer; }
     uint32_t GetIndicesCount() const { return m_indices.size(); }
     const vk::DescriptorSet& GetDescriptorSet() const { return m_descriptorSet; }
 

@@ -14,8 +14,8 @@ class MeshLoader : public IAssetLoader
   private:
     RenderEngine* m_pRenderEngine;
 
-    resources::Buffer m_vertexStagingBuffer;
-    resources::Buffer m_indexStagingBuffer;
+    GPUBuffer m_vertexStagingBuffer;
+    GPUBuffer m_indexStagingBuffer;
 
     static constexpr uint32_t STAGING_BUFFER_SIZE = 64 * 1000 * 1000 * 8;
 

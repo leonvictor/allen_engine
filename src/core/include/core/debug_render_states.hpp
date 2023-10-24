@@ -23,8 +23,8 @@ class LinesRenderState
   private:
     Pipeline m_pipeline;
 
-    resources::Buffer m_vertexBuffer;
-    resources::Buffer m_viewProjectionUBO;
+    GPUBuffer m_vertexBuffer;
+    GPUBuffer m_viewProjectionUBO;
     vk::DescriptorSet m_descriptorSet;
 
   public:

@@ -8,11 +8,9 @@ namespace aln
 {
 class RenderEngine;
 
-namespace resources
-{
-class Image;
+class GPUImage;
 
-class Buffer : public Allocation
+class GPUBuffer : public GPUAllocation
 {
   private:
     vk::Buffer m_buffer;
@@ -32,9 +30,9 @@ class Buffer : public Allocation
     /// @brief Copy the content of this buffer to an image.
     void CopyTo(vk::CommandBuffer& cb, vk::Image& image, Vector<vk::BufferImageCopy> bufferCopyRegions) const;
     void CopyTo(vk::CommandBuffer& cb, vk::Image& image, const uint32_t width, const uint32_t height) const;
-    void CopyTo(vk::CommandBuffer& cb, resources::Image& image) const;
-    void CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSize& size) const;
-    void CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer) const;
+    void CopyTo(vk::CommandBuffer& cb, GPUImage& image) const;
+    void CopyTo(vk::CommandBuffer& cb, GPUBuffer& dstBuffer, const vk::DeviceSize& size) const;
+    void CopyTo(vk::CommandBuffer& cb, GPUBuffer& dstBuffer) const;
 
     inline vk::DescriptorBufferInfo GetDescriptor() const
     {
@@ -43,5 +41,4 @@ class Buffer : public Allocation
 
     inline const vk::Buffer& GetVkBuffer() const { return m_buffer; }
 };
-} // namespace resources
 } // namespace aln

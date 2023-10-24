@@ -13,14 +13,11 @@ namespace aln
 
 class RenderEngine;
 
-namespace resources
-{
-
 /// @brief A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
 /// but only as a base class providing common functionality for the classes below.
 ///
 /// Provides easy to use mechanisms for mapping, unmapping and copying host data to the pRenderEngine memory
-class Allocation
+class GPUAllocation
 {
   protected:
     RenderEngine* m_pRenderEngine;
@@ -32,17 +29,17 @@ class Allocation
     virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties);
 
   public:
-    Allocation() = default;
+    GPUAllocation() = default;
 
     // No copy allowed
-    Allocation(const Allocation&) = delete;
-    Allocation& operator=(const Allocation&) = delete;
+    GPUAllocation(const GPUAllocation&) = delete;
+    GPUAllocation& operator=(const GPUAllocation&) = delete;
 
     // Move assignement
-    Allocation& operator=(Allocation&& other);
+    GPUAllocation& operator=(GPUAllocation&& other);
 
     // Move constructor
-    Allocation(Allocation&& other);
+    GPUAllocation(GPUAllocation&& other);
 
     virtual void Shutdown();
 
@@ -97,5 +94,4 @@ class Allocation
     /// @return VkResult of the invalidate call
     void Invalidate(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
 };
-} // namespace resources
 } // namespace aln

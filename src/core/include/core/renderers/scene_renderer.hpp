@@ -44,20 +44,20 @@ class SceneRenderer : public IRenderer
     Pipeline m_skyboxPipeline;
 
     // Per frame data
-    resources::Buffer m_sceneDataBuffer;
+    GPUBuffer m_sceneDataBuffer;
     vk::DescriptorSetLayout m_sceneDataDescriptorSetLayout;
     vk::DescriptorSet m_sceneDataDescriptorSet;
 
-    resources::Buffer m_lightComponentsBuffer;
+    GPUBuffer m_lightComponentsBuffer;
     vk::DescriptorSet m_lightsDescriptorSet;
 
     // Model transforms storage buffer.
     /// @todo One per frame in flight ?
-    resources::Buffer m_modelTransformsBuffer;
+    GPUBuffer m_modelTransformsBuffer;
     vk::DescriptorSetLayout m_modelTransformsDescriptorSetLayout;
     vk::DescriptorSet m_modelTransformsDescriptorSet;
 
-    resources::Buffer m_skinningBuffer;
+    GPUBuffer m_skinningBuffer;
     vk::DescriptorSetLayout m_skinningBufferDescriptorSetLayout;
     vk::DescriptorSet m_skinningBufferDescriptorSet;
 

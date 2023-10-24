@@ -25,7 +25,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
 
     // TODO: Profile with a staging buffer
     // but vk buffer copy is not allowed inside a render pass
-    // resources::Buffer stagingBuffer(m_pRenderer->GetDevice(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertexBuffer);
+    // GPUBuffer stagingBuffer(m_pRenderer->GetDevice(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertexBuffer);
     // m_linesRenderState.m_stagingBuffer.Map();
     // m_linesRenderState.m_stagingBuffer.Copy(vertexBuffer);
     // m_linesRenderState.m_stagingBuffer.Unmap();

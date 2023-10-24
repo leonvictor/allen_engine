@@ -8,9 +8,9 @@
 
 #include <memory>
 
-namespace aln::resources
+namespace aln
 {
-void Buffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
+void GPUBuffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data)
 {
     m_pRenderEngine = pDevice;
     m_size = size;
@@ -33,7 +33,7 @@ void Buffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const
     m_buffer = m_pRenderEngine->GetVkDevice().createBuffer(bufferInfo).value;
 
     auto memRequirements = m_pRenderEngine->GetVkDevice().getBufferMemoryRequirements(m_buffer);
-    Allocation::Allocate(memRequirements, memProperties);
+    GPUAllocation::Allocate(memRequirements, memProperties);
 
     m_pRenderEngine->GetVkDevice().bindBufferMemory(m_buffer, m_memory, 0);
 
@@ -57,23 +57,23 @@ void Buffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const
     }
 }
 
-void Buffer::Shutdown()
+void GPUBuffer::Shutdown()
 {
     m_pRenderEngine->GetVkDevice().destroyBuffer(m_buffer);
-    Allocation::Shutdown();
+    GPUAllocation::Shutdown();
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, Vector<vk::BufferImageCopy> bufferCopyRegions) const
+void GPUBuffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, Vector<vk::BufferImageCopy> bufferCopyRegions) const
 {
     cb.copyBufferToImage(m_buffer, vkImage, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions.size(), bufferCopyRegions.data());
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, resources::Image& image) const
+void GPUBuffer::CopyTo(vk::CommandBuffer& cb, GPUImage& image) const
 {
     CopyTo(cb, image.GetVkImage(), image.GetWidth(), image.GetHeight());
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, const uint32_t width, const uint32_t height) const
+void GPUBuffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, const uint32_t width, const uint32_t height) const
 {
     vk::BufferImageCopy copy = {
         .bufferOffset = 0,
@@ -95,7 +95,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, const uint32_t wi
     cb.copyBufferToImage(m_buffer, vkImage, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSize& size) const
+void GPUBuffer::CopyTo(vk::CommandBuffer& cb, GPUBuffer& dstBuffer, const vk::DeviceSize& size) const
 {
     vk::BufferCopy copyRegion = {
         .srcOffset = 0,
@@ -106,7 +106,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSi
     cb.copyBuffer(m_buffer, dstBuffer.m_buffer, copyRegion);
 }
 
-void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer) const
+void GPUBuffer::CopyTo(vk::CommandBuffer& cb, GPUBuffer& dstBuffer) const
 {
     // Default to dstBuffer's size
     CopyTo(cb, dstBuffer, dstBuffer.m_size);

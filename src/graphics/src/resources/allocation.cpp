@@ -1,15 +1,14 @@
 #pragma once
 
-
 #include "resources/allocation.hpp"
 
 #include "render_engine.hpp"
 
 #include <utility>
 
-namespace aln::resources
+namespace aln
 {
-void Allocation::Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
+void GPUAllocation::Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
 {
     vk::MemoryAllocateInfo allocInfo = {
         .allocationSize = memRequirements.size,
@@ -20,7 +19,7 @@ void Allocation::Allocate(const vk::MemoryRequirements& memRequirements, const v
 }
 
 // Move assignement
-Allocation& Allocation::operator=(Allocation&& other)
+GPUAllocation& GPUAllocation::operator=(GPUAllocation&& other)
 {
     if (this != &other)
     {
@@ -34,7 +33,7 @@ Allocation& Allocation::operator=(Allocation&& other)
 }
 
 // Move constructor
-Allocation::Allocation(Allocation&& other)
+GPUAllocation::GPUAllocation(GPUAllocation&& other)
 {
     m_pRenderEngine = std::move(other.m_pRenderEngine);
     m_memory = std::move(other.m_memory);
@@ -43,25 +42,25 @@ Allocation::Allocation(Allocation&& other)
     m_mapped = other.m_mapped;
 }
 
-void Allocation::Shutdown()
+void GPUAllocation::Shutdown()
 {
     m_pRenderEngine->GetVkDevice().freeMemory(m_memory);
 }
 
-void Allocation::Map(size_t offset, vk::DeviceSize size)
+void GPUAllocation::Map(size_t offset, vk::DeviceSize size)
 {
     assert(m_mapped == nullptr);
     m_mapped = m_pRenderEngine->GetVkDevice().mapMemory(m_memory, offset, size, vk::MemoryMapFlags()).value;
 }
 
-void Allocation::Unmap()
+void GPUAllocation::Unmap()
 {
     assert(m_mapped != nullptr);
     m_pRenderEngine->GetVkDevice().unmapMemory(m_memory);
     m_mapped = nullptr;
 }
 
-void Allocation::Flush(vk::DeviceSize size, vk::DeviceSize offset)
+void GPUAllocation::Flush(vk::DeviceSize size, vk::DeviceSize offset)
 {
     vk::MappedMemoryRange mappedRange = {
         .memory = m_memory,
@@ -72,8 +71,7 @@ void Allocation::Flush(vk::DeviceSize size, vk::DeviceSize offset)
     m_pRenderEngine->GetVkDevice().flushMappedMemoryRanges(mappedRange);
 }
 
-
-void Allocation::Invalidate(vk::DeviceSize size, vk::DeviceSize offset)
+void GPUAllocation::Invalidate(vk::DeviceSize size, vk::DeviceSize offset)
 {
     vk::MappedMemoryRange mappedRange = {
         .memory = m_memory,
@@ -83,4 +81,4 @@ void Allocation::Invalidate(vk::DeviceSize size, vk::DeviceSize offset)
 
     m_pRenderEngine->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
 }
-}
+} // namespace aln

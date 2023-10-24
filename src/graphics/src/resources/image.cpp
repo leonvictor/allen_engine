@@ -11,17 +11,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace aln::resources
+namespace aln
 {
 
-void Image::Initialize(RenderEngine* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+void GPUImage::Initialize(RenderEngine* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
     vk::ImageUsageFlags usage, int arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
     m_pRenderEngine = pDevice;
     InitImage(width, height, mipLevels, numSamples, format, tiling, usage, arrayLayers, flags, layout, type);
 }
 
-void Image::Initialize(RenderEngine* pDevice, vk::Image& image, vk::Format format)
+void GPUImage::Initialize(RenderEngine* pDevice, vk::Image& image, vk::Format format)
 {
     m_pRenderEngine = pDevice;
     m_externallyOwnedImage = true;
@@ -29,7 +29,7 @@ void Image::Initialize(RenderEngine* pDevice, vk::Image& image, vk::Format forma
     m_format = format;
 }
 
-void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+void GPUImage::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
     vk::ImageUsageFlags usage, uint32_t arrayLayers, vk::ImageCreateFlagBits flags, vk::ImageLayout layout, vk::ImageType type)
 {
     // Enforce vk specs
@@ -63,7 +63,7 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     m_height = height;
 }
 
-void Image::Shutdown()
+void GPUImage::Shutdown()
 {
     m_pRenderEngine->GetVkDevice().destroySampler(m_sampler);
     m_pRenderEngine->GetVkDevice().destroyImageView(m_view);
@@ -73,10 +73,10 @@ void Image::Shutdown()
         m_pRenderEngine->GetVkDevice().destroyImage(m_image);
     }
 
-    Allocation::Shutdown();
+    GPUAllocation::Shutdown();
 }
 
-void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
+void GPUImage::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
     assert(!m_view && "Image view is already initialized.");
 
@@ -100,14 +100,14 @@ void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 #endif
 }
 
-void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
+void GPUImage::Allocate(const vk::MemoryPropertyFlags& memProperties)
 {
     auto memRequirements = m_pRenderEngine->GetVkDevice().getImageMemoryRequirements(m_image);
-    Allocation::Allocate(memRequirements, memProperties);
+    GPUAllocation::Allocate(memRequirements, memProperties);
     m_pRenderEngine->GetVkDevice().bindImageMemory(m_image, m_memory, 0);
 }
 
-void Image::AddSampler(vk::SamplerAddressMode adressMode)
+void GPUImage::AddSampler(vk::SamplerAddressMode adressMode)
 {
     vk::SamplerCreateInfo samplerInfo = {
         .magFilter = vk::Filter::eLinear,
@@ -134,30 +134,29 @@ void Image::AddSampler(vk::SamplerAddressMode adressMode)
 #endif
 }
 
-void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
+void GPUImage::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
 {
     if (m_layout == newLayout)
     {
         return;
     }
 
-    vk::ImageMemoryBarrier memoryBarrier =
-        {
-            .srcAccessMask = {},
-            .dstAccessMask = {},
-            .oldLayout = m_layout,
-            .newLayout = newLayout,
-            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .image = m_image,
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = m_mipLevels,
-                .baseArrayLayer = 0,
-                .layerCount = m_arrayLayers,
-            },
-        };
+    vk::ImageMemoryBarrier memoryBarrier = {
+        .srcAccessMask = {},
+        .dstAccessMask = {},
+        .oldLayout = m_layout,
+        .newLayout = newLayout,
+        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .image = m_image,
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = m_mipLevels,
+            .baseArrayLayer = 0,
+            .layerCount = m_arrayLayers,
+        },
+    };
 
     vk::PipelineStageFlagBits srcStage = vk::PipelineStageFlagBits::eTopOfPipe;
     vk::PipelineStageFlagBits dstStage = vk::PipelineStageFlagBits::eTopOfPipe;
@@ -250,12 +249,12 @@ void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
     m_layout = newLayout;
 }
 
-void Image::Blit(vk::CommandBuffer cb, Image& dstImage)
+void GPUImage::Blit(vk::CommandBuffer cb, GPUImage& dstImage)
 {
     Blit(cb, dstImage, m_width, m_height);
 }
 
-void Image::Blit(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t height)
+void GPUImage::Blit(vk::CommandBuffer cb, GPUImage& dstImage, uint32_t width, uint32_t height)
 {
     vk::Offset3D blitSize = {width, height, 1};
     vk::Offset3D defaultOffset = {0, 0, 0};
@@ -279,12 +278,12 @@ void Image::Blit(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t
         vk::Filter::eNearest);
 }
 
-void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage)
+void GPUImage::CopyTo(vk::CommandBuffer cb, GPUImage& dstImage)
 {
     CopyTo(cb, dstImage, m_width, m_height);
 }
 
-void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t height)
+void GPUImage::CopyTo(vk::CommandBuffer cb, GPUImage& dstImage, uint32_t width, uint32_t height)
 {
     vk::ImageCopy imageCopyRegion = {
         .srcSubresource = {
@@ -311,7 +310,7 @@ void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32
 
 // Save image on disk as a ppm file.
 // FIXME: This only works in 8-bits per channel formats
-void Image::Save(std::string filename, bool colorSwizzle)
+void GPUImage::Save(std::string filename, bool colorSwizzle)
 {
     // TODO: Swizzle or not based on format
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
@@ -358,7 +357,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 // Retreive the pixel value at index
 // FIXME: This won't work if the image is in GPU-specific format
 // FIXME: This only works in 8-bits per channel formats
-Vec3 Image::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
+Vec3 GPUImage::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
     auto subResourceLayout = m_pRenderEngine->GetVkDevice().getImageSubresourceLayout(m_image, subresource);
@@ -405,7 +404,7 @@ Vec3 Image::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
     return Vec3();
 }
 
-void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
+void GPUImage::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 {
     auto formatProperties = m_pRenderEngine->GetFormatProperties(m_format);
 
@@ -506,20 +505,18 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
     m_layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 }
 
-const vk::DescriptorSet& Image::GetDescriptorSet() const
+const vk::DescriptorSet& GPUImage::GetDescriptorSet() const
 {
     assert(m_descriptorSet);
     return m_descriptorSet;
 }
 
-void Image::CreateDescriptorSet()
+void GPUImage::CreateDescriptorSet()
 {
-    // Lazy allocation of the descriptor set
     assert(!m_descriptorSet);
 
-    m_descriptorSet = m_pRenderEngine->AllocateDescriptorSet<Image>();
+    m_descriptorSet = m_pRenderEngine->AllocateDescriptorSet<GPUImage>();
 
-    // Update the Descriptor Set:
     auto desc = GetDescriptor();
 
     vk::WriteDescriptorSet writeDesc[1] = {{
@@ -533,7 +530,7 @@ void Image::CreateDescriptorSet()
     m_pRenderEngine->SetDebugUtilsObjectName(m_descriptorSet, m_debugName + " Descriptor Set");
 }
 
-Vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
+Vector<vk::DescriptorSetLayoutBinding> GPUImage::GetDescriptorSetLayoutBindings()
 {
     // Is it possible do get a descriptor for a non-sampled image ?
     Vector<vk::DescriptorSetLayoutBinding> bindings = {
@@ -543,7 +540,7 @@ Vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
     return bindings;
 }
 
-void Image::InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
+void GPUImage::InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, GPUBuffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
 {
     Initialize(pDevice, width, height, mipLevels,
         vk::SampleCountFlagBits::e1, format, vk::ImageTiling::eOptimal,
@@ -566,7 +563,7 @@ void Image::InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, B
     }
 }
 
-// void Image::InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path)
+// void GPUImage::InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path)
 //{
 //     // TODO: Quick and dirty way of storing faces names for now
 //     // Generate optimized file ?
@@ -659,7 +656,7 @@ void Image::InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, B
 
 /// @brief [DEBUG ONLY] Set a debug name to this image and all its underlying vulkan objects.
 /// @todo Make sure this is a noop in release.
-void Image::SetDebugName(std::string name)
+void GPUImage::SetDebugName(std::string name)
 {
 #ifndef NDEBUG
     m_debugName = name;
@@ -681,4 +678,4 @@ void Image::SetDebugName(std::string name)
     }
 #endif
 }
-} // namespace aln::resources
+} // namespace aln
