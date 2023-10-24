@@ -117,12 +117,12 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
         instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
     }
 
-    m_vkInstance = vk::createInstanceUnique(instanceCreateInfo).value;
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_vkInstance.get());
+    m_instance = vk::createInstance(instanceCreateInfo).value;
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_instance);
 
     if (m_validationLayersEnabled)
     {
-        m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(
+        m_debugMessenger = m_instance.createDebugUtilsMessengerEXT(
             debugUtilsMessengerCreateInfo,
             nullptr).value;
     }
@@ -130,8 +130,8 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
 
 void Instance::Shutdown()
 {
-    m_debugMessenger.reset();
-    m_vkInstance.reset();
+    m_instance.destroyDebugUtilsMessengerEXT(m_debugMessenger);
+    m_instance.destroy();
 }
 
 }; // namespace aln

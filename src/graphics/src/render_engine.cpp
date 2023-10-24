@@ -38,7 +38,7 @@ void RenderEngine::Initialize(IWindow* pGlfwWindow)
     CreateLogicalDevice();
 
     m_msaaSamples = GetMaxUsableSampleCount();
-    m_descriptorAllocator.Initialize(&m_logical.get());
+    m_descriptorAllocator.Initialize(&m_logical);
 
     m_pWindow->CreateSwapchain(this);
 
@@ -49,10 +49,10 @@ void RenderEngine::Initialize(IWindow* pGlfwWindow)
         for (auto threadIdx = 0; threadIdx <= threadCount; ++threadIdx)
         {
             auto& threadData = frameData.m_threadData.emplace_back();
-            threadData.m_graphicsTransientCommandPool.Initialize(&m_logical.get(), &m_graphicsQueue);
-            threadData.m_transferTransientCommandPool.Initialize(&m_logical.get(), &m_transferQueue);
-            threadData.m_graphicsPersistentCommandPool.Initialize(&m_logical.get(), &m_graphicsQueue);
-            threadData.m_transferPersistentCommandPool.Initialize(&m_logical.get(), &m_transferQueue);
+            threadData.m_graphicsTransientCommandPool.Initialize(&m_logical, &m_graphicsQueue);
+            threadData.m_transferTransientCommandPool.Initialize(&m_logical, &m_transferQueue);
+            threadData.m_graphicsPersistentCommandPool.Initialize(&m_logical, &m_graphicsQueue);
+            threadData.m_transferPersistentCommandPool.Initialize(&m_logical, &m_transferQueue);
 
             SetDebugUtilsObjectName(threadData.m_graphicsTransientCommandPool.m_commandPool, "Graphics Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
             SetDebugUtilsObjectName(threadData.m_transferTransientCommandPool.m_commandPool, "Transfer Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
@@ -64,7 +64,7 @@ void RenderEngine::Initialize(IWindow* pGlfwWindow)
             .flags = vk::FenceCreateFlagBits::eSignaled,
         };
 
-        frameData.m_currentlyRendering = m_logical->createFence(fenceCreateInfo).value;
+        frameData.m_currentlyRendering = m_logical.createFence(fenceCreateInfo).value;
     }
 }
 
@@ -72,7 +72,7 @@ void RenderEngine::Shutdown()
 {
     for (auto& frameData : m_frameData)
     {
-        m_logical->destroyFence(frameData.m_currentlyRendering);
+        m_logical.destroyFence(frameData.m_currentlyRendering);
 
         for (auto& threadData : frameData.m_threadData)
         {
@@ -87,14 +87,14 @@ void RenderEngine::Shutdown()
 
     for (auto& [typeIndex, descriptorSetLayout] : m_descriptorSetLayoutsCache)
     {
-        descriptorSetLayout.reset();
+        m_logical.destroyDescriptorSetLayout(descriptorSetLayout);
     }
+    m_descriptorSetLayoutsCache.clear();
 
     m_descriptorAllocator.Shutdown();
-    m_logical.reset();
+    m_logical.destroy();
 
-    auto& surface = m_pWindow->GetSurface();
-    m_instance.GetVkInstance().destroySurfaceKHR(surface);
+    m_pWindow->DestroySurface(m_instance.GetVkInstance());
 
     m_instance.Shutdown();
 }
@@ -259,13 +259,13 @@ void RenderEngine::CreateLogicalDevice()
     }
 
     // Create the pRenderEngine
-    m_logical = m_physical.createDeviceUnique(deviceCreateInfo).value;
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_logical.get());
+    m_logical = m_physical.createDevice(deviceCreateInfo).value;
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_logical);
 
     // Create queues
-    m_graphicsQueue = Queue(m_logical.get(), queueFamilyIndices.graphicsFamily.value());
-    m_presentQueue = Queue(m_logical.get(), queueFamilyIndices.presentFamily.value());
-    m_transferQueue = Queue(m_logical.get(), queueFamilyIndices.transferFamily.value());
+    m_graphicsQueue = Queue(m_logical, queueFamilyIndices.graphicsFamily.value());
+    m_presentQueue = Queue(m_logical, queueFamilyIndices.presentFamily.value());
+    m_transferQueue = Queue(m_logical, queueFamilyIndices.transferFamily.value());
 
     SetDebugUtilsObjectName(m_transferQueue.GetVkQueue(), "Transfer Queue");
     if (queueFamilyIndices.graphicsFamily == queueFamilyIndices.presentFamily)

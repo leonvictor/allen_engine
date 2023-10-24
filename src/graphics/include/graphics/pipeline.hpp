@@ -26,7 +26,7 @@ class Pipeline
 
   private:
     RenderEngine* m_pRenderEngine;
-    vk::UniquePipelineLayout m_layout;
+    vk::PipelineLayout m_layout;
     vk::GraphicsPipelineCreateInfo m_pipelineCreateInfo;
     Vector<shaders::ShaderInfo> m_shaderStages;
     Vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
@@ -36,7 +36,7 @@ class Pipeline
     // Pipeline Input Assembly State
     vk::PrimitiveTopology m_primitiveTopology;
 
-    vk::UniquePipeline m_vkPipeline;
+    vk::Pipeline m_pipeline;
     vk::PipelineBindPoint m_bindPoint;
 
     // Vertex description
@@ -51,7 +51,7 @@ class Pipeline
     /// @brief Try to load a cached pipeline file. Based on https://github.com/KhronosGroup/Vulkan-Hpp/blob/master/samples/PipelineCache/PipelineCache.cpp
     /// @todo:
     /// - remove verbose output OR make it debug only
-    vk::UniquePipelineCache LoadCachedPipeline(std::string path);
+    vk::PipelineCache LoadCachedPipeline(std::string& path);
 
   public:
     // TODO: Move that to private
@@ -62,18 +62,18 @@ class Pipeline
     vk::Viewport m_viewport;
     vk::Rect2D m_scissor;
 
-    Pipeline() {}
-
-    explicit Pipeline(RenderEngine* pDevice)
+    Pipeline() = default;
+    Pipeline(RenderEngine* pRenderEngine)
     {
-        m_pRenderEngine = pDevice;
+        m_pRenderEngine = pRenderEngine;
         InitializeInternal();
     }
 
     void Shutdown()
     {
-        m_vkPipeline.reset();
-        m_layout.reset();
+        assert(m_pipeline);
+        m_pRenderEngine->GetVkDevice().destroyPipeline(m_pipeline);
+        m_pRenderEngine->GetVkDevice().destroyPipelineLayout(m_layout);
     }
 
     /// @brief Copy the internal state of this pipeline. The other pipeline must not be initialized.
@@ -140,7 +140,7 @@ class Pipeline
     void BindDescriptorSet(vk::CommandBuffer& cb, const vk::DescriptorSet& descriptorSet, uint32_t index);
 
     inline bool IsInitialized() const { return m_status == State::Initialized; }
-    inline const vk::Pipeline& GetVkPipeline() const { return m_vkPipeline.get(); }
-    inline const vk::PipelineLayout& GetLayout() const { return m_layout.get(); }
+    inline const vk::Pipeline& GetVkPipeline() const { return m_pipeline; }
+    inline const vk::PipelineLayout& GetLayout() const { return m_layout; }
 };
 } // namespace aln

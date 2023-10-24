@@ -94,7 +94,6 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 
 void Swapchain::Present(vk::Semaphore& waitSemaphore)
 {
-    // TODO: Pull out
     vk::PresentInfoKHR presentInfo = {
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &waitSemaphore,

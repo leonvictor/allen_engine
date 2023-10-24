@@ -47,14 +47,14 @@ class DescriptorAllocator
     PoolSizes descriptorSizes;
 
     /// Pointer to the current active pool.
-    vk::UniqueDescriptorPool* m_currentPool = nullptr;
+    vk::DescriptorPool* m_pCurrentPool = nullptr;
 
     /// Used pools for cleanup.
-    Vector<vk::UniqueDescriptorPool> m_usedPools;
+    Vector<vk::DescriptorPool> m_usedPools;
     /// Free pools available to reuse.
-    Vector<vk::UniqueDescriptorPool> m_freePools;
+    Vector<vk::DescriptorPool> m_freePools;
 
     /// @brief: Grab a free pool if one is available, otherwise create a new one and return it.
-    vk::UniqueDescriptorPool GrabPool();
+    vk::DescriptorPool GrabPool();
 };
 } // namespace aln

@@ -14,8 +14,8 @@ class Instance
     friend class RenderEngine;
 
   private:
-    vk::UniqueInstance m_vkInstance; // Wrapped vulkan instance
-    vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> m_debugMessenger;
+    vk::Instance m_instance; // Wrapped vulkan instance
+    vk::DebugUtilsMessengerEXT m_debugMessenger;
 
     const Vector<const char*> m_validationLayers = {
         "VK_LAYER_KHRONOS_validation",
@@ -39,7 +39,7 @@ class Instance
     void Shutdown();
 
     /// @brief Get the wrapped vulkan instance.
-    const vk::Instance& GetVkInstance() const { return m_vkInstance.get(); }
+    const vk::Instance& GetVkInstance() const { return m_instance; }
     const Vector<const char*>& GetValidationLayers() const { return m_validationLayers; }
     bool ValidationLayersEnabled() const { return m_validationLayersEnabled; }
 };

@@ -63,11 +63,11 @@ class RenderingService : public IService
 
         Queue::SubmissionRequest request;
         request.ExecuteCommandBuffer(cb);
-        request.SignalSemaphore(m_editorRenderer.GetCurrentRenderTarget().m_renderFinished.get());
+        request.SignalSemaphore(m_editorRenderer.GetCurrentRenderTarget().m_renderFinished);
         request.WaitSemaphore(m_pRenderEngine->GetWindow()->GetSwapchain().GetFrameImageAvailableSemaphore(), vk::PipelineStageFlagBits2::eColorAttachmentOutput);
         
         m_pRenderEngine->GetGraphicsQueue().Submit(request, m_pRenderEngine->GetCurrentFrameRenderingFence());
-        m_pRenderEngine->GetWindow()->GetSwapchain().Present(m_editorRenderer.GetCurrentRenderTarget().m_renderFinished.get());
+        m_pRenderEngine->GetWindow()->GetSwapchain().Present(m_editorRenderer.GetCurrentRenderTarget().m_renderFinished);
         m_pRenderEngine->EndFrame();
     }
 

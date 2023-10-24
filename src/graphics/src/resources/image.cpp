@@ -25,7 +25,7 @@ void Image::Initialize(RenderEngine* pDevice, vk::Image& image, vk::Format forma
 {
     m_pRenderEngine = pDevice;
     m_externallyOwnedImage = true;
-    m_vkImage = vk::UniqueImage(image);
+    m_image = image;
     m_format = format;
 }
 
@@ -49,10 +49,10 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
         .initialLayout = layout,
     };
 
-    m_vkImage = m_pRenderEngine->GetVkDevice().createImageUnique(imageInfo).value;
+    m_image = m_pRenderEngine->GetVkDevice().createImage(imageInfo).value;
 
 #ifndef NDEBUG
-    m_pRenderEngine->SetDebugUtilsObjectName(m_vkImage.get(), m_debugName + " Image");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_image, m_debugName + " Image");
 #endif
 
     m_layout = layout;
@@ -63,12 +63,25 @@ void Image::InitImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::S
     m_height = height;
 }
 
+void Image::Shutdown()
+{
+    m_pRenderEngine->GetVkDevice().destroySampler(m_sampler);
+    m_pRenderEngine->GetVkDevice().destroyImageView(m_view);
+
+    if (!m_externallyOwnedImage)
+    {
+        m_pRenderEngine->GetVkDevice().destroyImage(m_image);
+    }
+
+    Allocation::Shutdown();
+}
+
 void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
 {
-    assert(!m_vkView && "Image view is already initialized.");
+    assert(!m_view && "Image view is already initialized.");
 
     vk::ImageViewCreateInfo createInfo = {
-        .image = m_vkImage.get(),
+        .image = m_image,
         .viewType = viewtype,
         .format = m_format,
         .subresourceRange = {
@@ -80,18 +93,18 @@ void Image::AddView(vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype)
         },
     };
 
-    m_vkView = m_pRenderEngine->GetVkDevice().createImageViewUnique(createInfo).value;
+    m_view = m_pRenderEngine->GetVkDevice().createImageView(createInfo).value;
 
 #ifndef NDEBUG
-    m_pRenderEngine->SetDebugUtilsObjectName(m_vkView.get(), m_debugName + " Image View");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_view, m_debugName + " Image View");
 #endif
 }
 
 void Image::Allocate(const vk::MemoryPropertyFlags& memProperties)
 {
-    auto memRequirements = m_pRenderEngine->GetVkDevice().getImageMemoryRequirements(m_vkImage.get());
+    auto memRequirements = m_pRenderEngine->GetVkDevice().getImageMemoryRequirements(m_image);
     Allocation::Allocate(memRequirements, memProperties);
-    m_pRenderEngine->GetVkDevice().bindImageMemory(m_vkImage.get(), m_memory.get(), 0);
+    m_pRenderEngine->GetVkDevice().bindImageMemory(m_image, m_memory, 0);
 }
 
 void Image::AddSampler(vk::SamplerAddressMode adressMode)
@@ -114,10 +127,10 @@ void Image::AddSampler(vk::SamplerAddressMode adressMode)
         .unnormalizedCoordinates = vk::False,
     };
 
-    m_vkSampler = m_pRenderEngine->GetVkDevice().createSamplerUnique(samplerInfo).value;
+    m_sampler = m_pRenderEngine->GetVkDevice().createSampler(samplerInfo).value;
 
 #ifndef NDEBUG
-    m_pRenderEngine->SetDebugUtilsObjectName(m_vkSampler.get(), m_debugName + " Sampler");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_sampler, m_debugName + " Sampler");
 #endif
 }
 
@@ -136,7 +149,7 @@ void Image::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
             .newLayout = newLayout,
             .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
             .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-            .image = m_vkImage.get(),
+            .image = m_image,
             .subresourceRange = {
                 .aspectMask = vk::ImageAspectFlagBits::eColor,
                 .baseMipLevel = 0,
@@ -260,8 +273,8 @@ void Image::Blit(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32_t
     };
 
     cb.blitImage(
-        m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
-        dstImage.m_vkImage.get(), vk::ImageLayout::eTransferDstOptimal,
+        m_image, vk::ImageLayout::eTransferSrcOptimal,
+        dstImage.m_image, vk::ImageLayout::eTransferDstOptimal,
         imageBlitRegion,
         vk::Filter::eNearest);
 }
@@ -291,8 +304,8 @@ void Image::CopyTo(vk::CommandBuffer cb, Image& dstImage, uint32_t width, uint32
     };
 
     cb.copyImage(
-        m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
-        dstImage.m_vkImage.get(), vk::ImageLayout::eTransferDstOptimal,
+        m_image, vk::ImageLayout::eTransferSrcOptimal,
+        dstImage.m_image, vk::ImageLayout::eTransferDstOptimal,
         imageCopyRegion);
 }
 
@@ -302,7 +315,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 {
     // TODO: Swizzle or not based on format
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = m_pRenderEngine->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
+    auto subResourceLayout = m_pRenderEngine->GetVkDevice().getImageSubresourceLayout(m_image, subresource);
 
     if (m_mapped == nullptr)
     {
@@ -348,7 +361,7 @@ void Image::Save(std::string filename, bool colorSwizzle)
 Vec3 Image::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
 {
     vk::ImageSubresource subresource = {vk::ImageAspectFlagBits::eColor, 0, 0};
-    auto subResourceLayout = m_pRenderEngine->GetVkDevice().getImageSubresourceLayout(m_vkImage.get(), subresource);
+    auto subResourceLayout = m_pRenderEngine->GetVkDevice().getImageSubresourceLayout(m_image, subresource);
 
     if (m_mapped == nullptr)
     {
@@ -399,7 +412,7 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
     vk::ImageMemoryBarrier barrier = {
         .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
         .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .image = m_vkImage.get(),
+        .image = m_image,
         .subresourceRange = {
             .aspectMask = vk::ImageAspectFlagBits::eColor,
             .levelCount = 1,
@@ -445,8 +458,8 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
         };
 
         cb.blitImage(
-            m_vkImage.get(), vk::ImageLayout::eTransferSrcOptimal,
-            m_vkImage.get(), vk::ImageLayout::eTransferDstOptimal,
+            m_image, vk::ImageLayout::eTransferSrcOptimal,
+            m_image, vk::ImageLayout::eTransferDstOptimal,
             blit, vk::Filter::eLinear);
 
         barrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
@@ -495,29 +508,29 @@ void Image::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
 
 const vk::DescriptorSet& Image::GetDescriptorSet() const
 {
-    assert(m_vkDescriptorSet);
-    return m_vkDescriptorSet;
+    assert(m_descriptorSet);
+    return m_descriptorSet;
 }
 
 void Image::CreateDescriptorSet()
 {
     // Lazy allocation of the descriptor set
-    assert(!m_vkDescriptorSet);
+    assert(!m_descriptorSet);
 
-    m_vkDescriptorSet = m_pRenderEngine->AllocateDescriptorSet<Image>();
+    m_descriptorSet = m_pRenderEngine->AllocateDescriptorSet<Image>();
 
     // Update the Descriptor Set:
     auto desc = GetDescriptor();
-    
+
     vk::WriteDescriptorSet writeDesc[1] = {{
-        .dstSet = m_vkDescriptorSet,
+        .dstSet = m_descriptorSet,
         .descriptorCount = 1,
         .descriptorType = vk::DescriptorType::eCombinedImageSampler,
         .pImageInfo = &desc,
     }};
 
     m_pRenderEngine->GetVkDevice().updateDescriptorSets(1, writeDesc, 0, nullptr);
-    m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet, m_debugName + " Descriptor Set");
+    m_pRenderEngine->SetDebugUtilsObjectName(m_descriptorSet, m_debugName + " Descriptor Set");
 }
 
 Vector<vk::DescriptorSetLayoutBinding> Image::GetDescriptorSetLayoutBindings()
@@ -553,96 +566,96 @@ void Image::InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, B
     }
 }
 
-//void Image::InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path)
+// void Image::InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path)
 //{
-//    // TODO: Quick and dirty way of storing faces names for now
-//    // Generate optimized file ?
-//    Array<std::string, 6> faces = {
-//        "Right",
-//        "Left",
-//        "Up",
-//        "Down",
-//        "Front",
-//        "Back",
-//    };
+//     // TODO: Quick and dirty way of storing faces names for now
+//     // Generate optimized file ?
+//     Array<std::string, 6> faces = {
+//         "Right",
+//         "Left",
+//         "Up",
+//         "Down",
+//         "Front",
+//         "Back",
+//     };
 //
-//    // TODO: Remove hardcoded path to textures
-//    // TODO: Load the first face before the loop to initialize buffers
-//    auto facePath = std::string(DEFAULT_ASSETS_DIR) + "/skyboxes/midday/CloudyCrown_Midday_" + faces[0] + ".png";
-//    int width, height, channels;
-//    stbi_uc* pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+//     // TODO: Remove hardcoded path to textures
+//     // TODO: Load the first face before the loop to initialize buffers
+//     auto facePath = std::string(DEFAULT_ASSETS_DIR) + "/skyboxes/midday/CloudyCrown_Midday_" + faces[0] + ".png";
+//     int width, height, channels;
+//     stbi_uc* pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 //
-//    if (!pixels)
-//    {
-//        std::cout << "Failed to load texture file " << facePath << std::endl;
-//        auto why = stbi_failure_reason();
-//        std::cout << why << std::endl;
-//        throw;
-//    }
+//     if (!pixels)
+//     {
+//         std::cout << "Failed to load texture file " << facePath << std::endl;
+//         auto why = stbi_failure_reason();
+//         std::cout << why << std::endl;
+//         throw;
+//     }
 //
-//    vk::DeviceSize faceSize = width * height * channels;
-//    Buffer stagingBuffer;
-//    stagingBuffer.Initialize(pDevice, faceSize * 6, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+//     vk::DeviceSize faceSize = width * height * channels;
+//     Buffer stagingBuffer;
+//     stagingBuffer.Initialize(pDevice, faceSize * 6, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 //
-//    stagingBuffer.Map(0, faceSize);
-//    stagingBuffer.Copy(pixels, static_cast<size_t>(faceSize));
-//    stagingBuffer.Unmap();
+//     stagingBuffer.Map(0, faceSize);
+//     stagingBuffer.Copy(pixels, static_cast<size_t>(faceSize));
+//     stagingBuffer.Unmap();
 //
-//    vk::BufferImageCopy bufferImageCopy = {
-//        .bufferOffset = 0,
-//        .imageSubresource = {
-//            .aspectMask = vk::ImageAspectFlagBits::eColor,
-//            .mipLevel = 0,
-//            .baseArrayLayer = 0,
-//            .layerCount = 1,
-//        },
-//        .imageExtent = {
-//            .width = static_cast<uint32_t>(width),
-//            .height = static_cast<uint32_t>(height),
-//            .depth = 1,
-//        },
-//    };
+//     vk::BufferImageCopy bufferImageCopy = {
+//         .bufferOffset = 0,
+//         .imageSubresource = {
+//             .aspectMask = vk::ImageAspectFlagBits::eColor,
+//             .mipLevel = 0,
+//             .baseArrayLayer = 0,
+//             .layerCount = 1,
+//         },
+//         .imageExtent = {
+//             .width = static_cast<uint32_t>(width),
+//             .height = static_cast<uint32_t>(height),
+//             .depth = 1,
+//         },
+//     };
 //
-//    Vector<vk::BufferImageCopy> bufferCopyRegions;
-//    bufferCopyRegions.push_back(bufferImageCopy);
+//     Vector<vk::BufferImageCopy> bufferCopyRegions;
+//     bufferCopyRegions.push_back(bufferImageCopy);
 //
-//    for (uint32_t i = 1; i < faces.size(); i++)
-//    {
-//        facePath = std::string(DEFAULT_ASSETS_DIR) + "/skyboxes/midday/CloudyCrown_Midday_" + faces[i] + ".png";
+//     for (uint32_t i = 1; i < faces.size(); i++)
+//     {
+//         facePath = std::string(DEFAULT_ASSETS_DIR) + "/skyboxes/midday/CloudyCrown_Midday_" + faces[i] + ".png";
 //
-//        pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+//         pixels = stbi_load(facePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 //
-//        if (!pixels)
-//        {
-//            std::cout << "Failed to load texture file " << path << std::endl;
-//            throw;
-//        }
+//         if (!pixels)
+//         {
+//             std::cout << "Failed to load texture file " << path << std::endl;
+//             throw;
+//         }
 //
-//        // Copy data to staging buffer
-//        stagingBuffer.Map(i * faceSize, faceSize);
-//        stagingBuffer.Copy(pixels, static_cast<size_t>(faceSize));
-//        stagingBuffer.Unmap();
+//         // Copy data to staging buffer
+//         stagingBuffer.Map(i * faceSize, faceSize);
+//         stagingBuffer.Copy(pixels, static_cast<size_t>(faceSize));
+//         stagingBuffer.Unmap();
 //
-//        bufferImageCopy.bufferOffset = faceSize * i;
-//        bufferImageCopy.imageSubresource.mipLevel = 0;
-//        bufferImageCopy.imageSubresource.baseArrayLayer = i;
-//        // bufferImageCopy.imageExtent = {width, height};
-//        bufferCopyRegions.push_back(bufferImageCopy);
-//    }
+//         bufferImageCopy.bufferOffset = faceSize * i;
+//         bufferImageCopy.imageSubresource.mipLevel = 0;
+//         bufferImageCopy.imageSubresource.baseArrayLayer = i;
+//         // bufferImageCopy.imageExtent = {width, height};
+//         bufferCopyRegions.push_back(bufferImageCopy);
+//     }
 //
-//    Initialize(pDevice, width, height, 1,
-//        vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
-//        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
-//        6, vk::ImageCreateFlagBits::eCubeCompatible, vk::ImageLayout::eUndefined, vk::ImageType::e3D);
+//     Initialize(pDevice, width, height, 1,
+//         vk::SampleCountFlagBits::e1, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+//         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
+//         6, vk::ImageCreateFlagBits::eCubeCompatible, vk::ImageLayout::eUndefined, vk::ImageType::e3D);
 //
-//    Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+//     Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
 //
-//    pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
-//        {
-//            TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-//            stagingBuffer.CopyTo(cb, *this);
-//            TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal); });
-//}
+//     pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
+//         {
+//             TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
+//             stagingBuffer.CopyTo(cb, *this);
+//             TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal); });
+// }
 
 /// @brief [DEBUG ONLY] Set a debug name to this image and all its underlying vulkan objects.
 /// @todo Make sure this is a noop in release.
@@ -650,21 +663,21 @@ void Image::SetDebugName(std::string name)
 {
 #ifndef NDEBUG
     m_debugName = name;
-    if (m_vkImage)
+    if (m_image)
     {
-        m_pRenderEngine->SetDebugUtilsObjectName(m_vkImage.get(), name + " Image");
+        m_pRenderEngine->SetDebugUtilsObjectName(m_image, name + " Image");
     }
-    if (m_vkView)
+    if (m_view)
     {
-        m_pRenderEngine->SetDebugUtilsObjectName(m_vkView.get(), name + " Image View");
+        m_pRenderEngine->SetDebugUtilsObjectName(m_view, name + " Image View");
     }
-    if (m_vkSampler)
+    if (m_sampler)
     {
-        m_pRenderEngine->SetDebugUtilsObjectName(m_vkSampler.get(), name + " Sampler");
+        m_pRenderEngine->SetDebugUtilsObjectName(m_sampler, name + " Sampler");
     }
-    if (m_vkDescriptorSet)
+    if (m_descriptorSet)
     {
-        m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet, name + " Descriptor Set");
+        m_pRenderEngine->SetDebugUtilsObjectName(m_descriptorSet, name + " Descriptor Set");
     }
 #endif
 }

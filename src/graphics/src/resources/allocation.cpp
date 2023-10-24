@@ -16,7 +16,7 @@ void Allocation::Allocate(const vk::MemoryRequirements& memRequirements, const v
         .memoryTypeIndex = m_pRenderEngine->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
     };
 
-    m_memory = m_pRenderEngine->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr).value;
+    m_memory = m_pRenderEngine->GetVkDevice().allocateMemory(allocInfo, nullptr).value;
 }
 
 // Move assignement
@@ -45,26 +45,26 @@ Allocation::Allocation(Allocation&& other)
 
 void Allocation::Shutdown()
 {
-    m_memory.reset();
+    m_pRenderEngine->GetVkDevice().freeMemory(m_memory);
 }
 
 void Allocation::Map(size_t offset, vk::DeviceSize size)
 {
     assert(m_mapped == nullptr);
-    m_mapped = m_pRenderEngine->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags()).value;
+    m_mapped = m_pRenderEngine->GetVkDevice().mapMemory(m_memory, offset, size, vk::MemoryMapFlags()).value;
 }
 
 void Allocation::Unmap()
 {
     assert(m_mapped != nullptr);
-    m_pRenderEngine->GetVkDevice().unmapMemory(m_memory.get());
+    m_pRenderEngine->GetVkDevice().unmapMemory(m_memory);
     m_mapped = nullptr;
 }
 
 void Allocation::Flush(vk::DeviceSize size, vk::DeviceSize offset)
 {
     vk::MappedMemoryRange mappedRange = {
-        .memory = m_memory.get(),
+        .memory = m_memory,
         .offset = offset,
         .size = size,
     };
@@ -76,7 +76,7 @@ void Allocation::Flush(vk::DeviceSize size, vk::DeviceSize offset)
 void Allocation::Invalidate(vk::DeviceSize size, vk::DeviceSize offset)
 {
     vk::MappedMemoryRange mappedRange = {
-        .memory = m_memory.get(),
+        .memory = m_memory,
         .offset = offset,
         .size = size,
     };

@@ -45,7 +45,7 @@ struct SwapchainSupportDetails
 
 /// @brief Core rendering engine
 /// @todo Use "unique" vk structs only when beneficial to avoid unecessary overhead
-class  RenderEngine
+class RenderEngine
 {
   private:
     static constexpr uint32_t FRAME_QUEUE_SIZE = 2;
@@ -75,8 +75,8 @@ class  RenderEngine
     vk::DynamicLoader m_dynamicLoader;
     Instance m_instance;
     vk::PhysicalDevice m_physical; // Physical pRenderEngine we're associated to.
-    vk::UniqueDevice m_logical;    // Wrapped logical vulkan pRenderEngine.
-    
+    vk::Device m_logical;          // Wrapped logical vulkan pRenderEngine.
+
     // Disambiguation : Frame Queue refers to the frames we can be rendering at the same time.
     // It is not the same as swapchainImages, which represent the number of images the swapchain is able to provide
     // FrameQueueSize <= SwapchainImageCount
@@ -96,7 +96,7 @@ class  RenderEngine
     Vector<const char*> m_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     // Descriptors
-    HashMap<std::type_index, vk::UniqueDescriptorSetLayout, std::hash<std::type_index>> m_descriptorSetLayoutsCache;
+    HashMap<std::type_index, vk::DescriptorSetLayout, std::hash<std::type_index>> m_descriptorSetLayoutsCache;
     DescriptorAllocator m_descriptorAllocator;
 
     // Runtime
@@ -112,14 +112,14 @@ class  RenderEngine
     // -- Getters
     // TODO: Those are necessary for now because of some functionnality gravitating outside. Remove when possible !
     Instance* GetInstance() { return &m_instance; }
-    vk::Device& GetVkDevice() { return m_logical.get(); }
+    vk::Device& GetVkDevice() { return m_logical; }
     vk::PhysicalDevice& GetVkPhysicalDevice() { return m_physical; }
     IWindow* GetWindow() { return m_pWindow; }
 
     // -- Lifetime
     void Initialize(IWindow* pWindow);
     void Shutdown();
-    void WaitIdle() { m_logical->waitIdle(); }
+    void WaitIdle() { m_logical.waitIdle(); }
 
     void StartFrame()
     {
@@ -127,8 +127,8 @@ class  RenderEngine
         assert(frameCurrentlyRenderingFence);
         // Ensure the current frame's previous render is finished then reset it
         // TODO: We could delay the reset until we're actually submitting
-        m_logical->waitForFences(frameCurrentlyRenderingFence, vk::True, UINT64_MAX);
-        m_logical->resetFences(frameCurrentlyRenderingFence);
+        m_logical.waitForFences(frameCurrentlyRenderingFence, vk::True, UINT64_MAX);
+        m_logical.resetFences(frameCurrentlyRenderingFence);
 
         // Reset all command pools
         for (auto& threadData : m_frameData[m_currentFrameIdx].m_threadData)
@@ -177,7 +177,7 @@ class  RenderEngine
             .pObjectName = name.c_str(),
         };
 
-        m_logical->setDebugUtilsObjectNameEXT(debugName);
+        m_logical.setDebugUtilsObjectNameEXT(debugName);
     }
 
     // -- Queues
@@ -217,16 +217,17 @@ class  RenderEngine
             // Requires that T implements the function
             auto bindings = T::GetDescriptorSetLayoutBindings();
 
-            vk::DescriptorSetLayoutCreateInfo info;
-            info.bindingCount = static_cast<uint32_t>(bindings.size());
-            info.pBindings = bindings.data();
+            vk::DescriptorSetLayoutCreateInfo info = {
+                .bindingCount = static_cast<uint32_t>(bindings.size()),
+                .pBindings = bindings.data(),
+            };
 
-            auto [result, layout] = m_logical->createDescriptorSetLayoutUnique(info);
-            SetDebugUtilsObjectName(layout.get(), typeid(T).name());
+            auto [result, layout] = m_logical.createDescriptorSetLayout(info);
+            SetDebugUtilsObjectName(layout, typeid(T).name());
 
-            iter = m_descriptorSetLayoutsCache.emplace(type_index, std::move(layout)).first;
+            iter = m_descriptorSetLayoutsCache.emplace(type_index, layout).first;
         }
-        return iter->second.get();
+        return iter->second;
     }
 };
 } // namespace aln

@@ -71,7 +71,7 @@ void Pipeline::Create(std::string cachePath)
         .pPushConstantRanges = m_pushConstants.data(),
     };
 
-    m_layout = m_pRenderEngine->GetVkDevice().createPipelineLayoutUnique(layoutInfo).value;
+    m_layout = m_pRenderEngine->GetVkDevice().createPipelineLayout(layoutInfo).value;
 
     // Shader stages
     Vector<vk::PipelineShaderStageCreateInfo> stages;
@@ -98,22 +98,22 @@ void Pipeline::Create(std::string cachePath)
     m_pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
     // Pipeline layout
-    m_pipelineCreateInfo.layout = m_layout.get();
+    m_pipelineCreateInfo.layout = m_layout;
 
     // Render pass
     m_pipelineCreateInfo.subpass = 0;
     m_pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
     // TODO: Generate different pipeline cache path depending on the options
-    vk::UniquePipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                           // TODO
-    m_vkPipeline = m_pRenderEngine->GetVkDevice().createGraphicsPipelineUnique(pipelineCache.get(), m_pipelineCreateInfo).value; // TODO
+    vk::PipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                           // TODO
+    m_pipeline = m_pRenderEngine->GetVkDevice().createGraphicsPipeline(pipelineCache, m_pipelineCreateInfo).value; // TODO
 
     // Store away the cache that we've populated.  This could conceivably happen
     // earlier, depends on when the pipeline cache stops being populated
     // internally.
     if (!pipelineCache)
     {
-        auto endCacheData = m_pRenderEngine->GetVkDevice().getPipelineCacheData(pipelineCache.get()).value;
+        auto endCacheData = m_pRenderEngine->GetVkDevice().getPipelineCacheData(pipelineCache).value;
 
         // Write the file to disk, overwriting whatever was there
         std::ofstream writeCacheStream(cachePath, std::ios_base::out | std::ios_base::binary);
@@ -128,6 +128,10 @@ void Pipeline::Create(std::string cachePath)
             // Something bad happened
             std::cout << "  Unable to write cache data to disk!\n";
         }
+    }
+    else
+    {
+        m_pRenderEngine->GetVkDevice().destroyPipelineCache(pipelineCache);
     }
 
     ClearShaders();
@@ -209,13 +213,13 @@ void Pipeline::SetBindPoint(vk::PipelineBindPoint bindPoint)
 void Pipeline::Bind(vk::CommandBuffer& cb)
 {
     assert(IsInitialized());
-    cb.bindPipeline(m_bindPoint, m_vkPipeline.get());
+    cb.bindPipeline(m_bindPoint, m_pipeline);
 }
 
 void Pipeline::BindDescriptorSet(vk::CommandBuffer& cb, const vk::DescriptorSet& descriptorSet, uint32_t index)
 {
     // TODO: firstSet and offsets.
-    cb.bindDescriptorSets(m_bindPoint, m_layout.get(), index, descriptorSet, nullptr);
+    cb.bindDescriptorSets(m_bindPoint, m_layout, index, descriptorSet, nullptr);
 }
 
 void Pipeline::InitializeInternal()
@@ -272,7 +276,7 @@ void Pipeline::InitializeInternal()
     m_primitiveTopology = vk::PrimitiveTopology::eTriangleList;
 }
 
-vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
+vk::PipelineCache Pipeline::LoadCachedPipeline(std::string& path)
 {
     // Check disk for existing cache data
     size_t startCacheSize = 0;
@@ -373,7 +377,7 @@ vk::UniquePipelineCache Pipeline::LoadCachedPipeline(std::string path)
         .pInitialData = startCacheData,
     };
     
-    auto pipelineCache = m_pRenderEngine->GetVkDevice().createPipelineCacheUnique(cacheCreateInfo).value;
+    auto pipelineCache = m_pRenderEngine->GetVkDevice().createPipelineCache(cacheCreateInfo).value;
     
     // Free our initialData now that pipeline cache has been created
     free(startCacheData);

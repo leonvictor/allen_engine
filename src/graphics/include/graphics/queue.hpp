@@ -87,7 +87,7 @@ class Queue
     };
 
   private:
-    vk::Queue m_vkQueue;
+    vk::Queue m_queue;
     uint32_t m_familyIndex;
 
   public:
@@ -95,7 +95,7 @@ class Queue
 
     Queue(vk::Device& pRenderEngine, uint32_t family)
     {
-        m_vkQueue = pRenderEngine.getQueue(family, 0);
+        m_queue = pRenderEngine.getQueue(family, 0);
         m_familyIndex = family;
     }
 
@@ -110,13 +110,13 @@ class Queue
             .pSignalSemaphoreInfos = request.m_signalSemaphoreSubmitInfos.data(),
         };
 
-        m_vkQueue.submit2(submitInfo, fence);
+        m_queue.submit2(submitInfo, fence);
     }
 
-    void WaitIdle() { m_vkQueue.waitIdle(); }
+    void WaitIdle() { m_queue.waitIdle(); }
 
     const uint32_t GetFamilyIndex() const { return m_familyIndex; }
-    vk::Queue& GetVkQueue() { return m_vkQueue; }
+    vk::Queue& GetVkQueue() { return m_queue; }
 
     struct FamilyIndices
     {

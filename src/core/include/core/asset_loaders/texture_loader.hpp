@@ -38,6 +38,12 @@ class TextureLoader : public IAssetLoader
         // If there is not enough memory, wait the next cycle
     }
 
+    ~TextureLoader()
+    {
+        m_stagingBuffer.Unmap();
+        m_stagingBuffer.Shutdown();
+    }
+
     bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
@@ -77,8 +83,8 @@ class TextureLoader : public IAssetLoader
 
     void Unload(AssetRecord* pRecord) override
     {
-        auto pTextureture = pRecord->GetAsset<Texture>();
-        pTextureture->m_image.Shutdown();
+        auto pTexture = pRecord->GetAsset<Texture>();
+        pTexture->m_image.Shutdown();
     }
 };
 

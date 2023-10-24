@@ -112,10 +112,10 @@ class EditorRenderer : public IRenderer
                 .layers = 1,
             };
 
-            renderTarget.m_framebuffer = m_pRenderEngine->GetVkDevice().createFramebufferUnique(framebufferInfo).value;
+            renderTarget.m_framebuffer = m_pRenderEngine->GetVkDevice().createFramebuffer(framebufferInfo).value;
             
             // Sync
-            renderTarget.m_renderFinished = m_pRenderEngine->GetVkDevice().createSemaphoreUnique({}).value;
+            renderTarget.m_renderFinished = m_pRenderEngine->GetVkDevice().createSemaphore({}).value;
         };
     }
 
@@ -123,11 +123,11 @@ class EditorRenderer : public IRenderer
     {
         for (auto& renderTarget : m_renderTargets)
         {
-            renderTarget.m_framebuffer.reset();
+            m_pRenderEngine->GetVkDevice().destroyFramebuffer(renderTarget.m_framebuffer);
             renderTarget.m_depthImage.Shutdown();
             renderTarget.m_multisamplingImage.Shutdown();
             renderTarget.m_resolveImage.Shutdown();
-            renderTarget.m_renderFinished.reset();
+            m_pRenderEngine->GetVkDevice().destroySemaphore(renderTarget.m_renderFinished);
         }
     
         m_renderpass.Shutdown();
@@ -155,7 +155,7 @@ class EditorRenderer : public IRenderer
 
         RenderPass::Context renderPassCtx = {
             .commandBuffer = (vk::CommandBuffer&) cb,
-            .framebuffer = renderTarget.m_framebuffer.get(),
+            .framebuffer = renderTarget.m_framebuffer,
             .backgroundColor = ctx.backgroundColor,
         };
 

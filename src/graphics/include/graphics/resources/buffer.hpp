@@ -15,7 +15,7 @@ class Image;
 class Buffer : public Allocation
 {
   private:
-    vk::UniqueBuffer m_vkBuffer;
+    vk::Buffer m_buffer;
 
   public:
     void Initialize(RenderEngine* pRenderEngine, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data = nullptr);
@@ -27,11 +27,7 @@ class Buffer : public Allocation
         Initialize(pRenderEngine, size, usage, memProperties, data.data());
     }
 
-    void Shutdown() override
-    {
-        m_vkBuffer.reset();
-        Allocation::Shutdown();
-    }
+    void Shutdown() override;
 
     /// @brief Copy the content of this buffer to an image.
     void CopyTo(vk::CommandBuffer& cb, vk::Image& image, Vector<vk::BufferImageCopy> bufferCopyRegions) const;
@@ -42,10 +38,10 @@ class Buffer : public Allocation
 
     inline vk::DescriptorBufferInfo GetDescriptor() const
     {
-        return vk::DescriptorBufferInfo(m_vkBuffer.get(), 0, m_size);
+        return vk::DescriptorBufferInfo(m_buffer, 0, m_size);
     }
 
-    inline const vk::Buffer& GetVkBuffer() const { return m_vkBuffer.get(); }
+    inline const vk::Buffer& GetVkBuffer() const { return m_buffer; }
 };
 } // namespace resources
 } // namespace aln

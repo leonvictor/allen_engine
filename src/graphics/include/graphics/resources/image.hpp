@@ -16,10 +16,10 @@ class Image : public Allocation
 {
   protected:
     // Wrapped vulkan objects
-    vk::UniqueImage m_vkImage;
-    vk::UniqueImageView m_vkView;
-    vk::UniqueSampler m_vkSampler;
-    vk::DescriptorSet m_vkDescriptorSet;
+    vk::Image m_image;
+    vk::ImageView m_view;
+    vk::Sampler m_sampler;
+    vk::DescriptorSet m_descriptorSet;
 
     vk::ImageLayout m_layout;
     vk::Format m_format = vk::Format::eUndefined;
@@ -42,7 +42,6 @@ class Image : public Allocation
 
   public:
     Image() = default;
-    ~Image() { assert(!m_vkImage); }
 
     Image(const Image&) = delete;
     Image& operator=(const Image&) = delete;
@@ -53,10 +52,10 @@ class Image : public Allocation
         {
             Allocation::operator=(std::move(other));
 
-            m_vkSampler = std::move(other.m_vkSampler);
-            m_vkView = std::move(other.m_vkView);
-            m_vkImage = std::move(other.m_vkImage);
-            m_vkDescriptorSet = std::move(other.m_vkDescriptorSet);
+            m_sampler = std::move(other.m_sampler);
+            m_view = std::move(other.m_view);
+            m_image = std::move(other.m_image);
+            m_descriptorSet = std::move(other.m_descriptorSet);
 
             m_layout = other.m_layout;
             m_format = other.m_format;
@@ -71,10 +70,10 @@ class Image : public Allocation
 
     Image(Image&& other) : Allocation(std::move(other))
     {
-        m_vkSampler = std::move(other.m_vkSampler);
-        m_vkView = std::move(other.m_vkView);
-        m_vkImage = std::move(other.m_vkImage);
-        m_vkDescriptorSet = std::move(other.m_vkDescriptorSet);
+        m_sampler = std::move(other.m_sampler);
+        m_view = std::move(other.m_view);
+        m_image = std::move(other.m_image);
+        m_descriptorSet = std::move(other.m_descriptorSet);
 
         m_layout = other.m_layout;
         m_format = other.m_format;
@@ -100,23 +99,7 @@ class Image : public Allocation
     /// @brief Load a cubemap from a directory.
     //void InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path);
 
-    void Shutdown() override
-    {
-        //m_vkDescriptorSet.reset();
-        m_vkSampler.reset();
-        m_vkView.reset();
-
-        if (m_externallyOwnedImage)
-        {
-            m_vkImage.release();
-        }
-        else
-        {
-            m_vkImage.reset();
-        }
-
-        Allocation::Shutdown();
-    }
+    void Shutdown() override;
 
     /// @brief Add a vulkan view to this image.
     void AddView(vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
@@ -154,20 +137,20 @@ class Image : public Allocation
 
     // Accessors
     // TODO: Put const back when we've move to copyFrom functions
-    vk::Image& GetVkImage() { return m_vkImage.get(); }
-    const vk::ImageView& GetVkView() const { return m_vkView.get(); }
-    const vk::Sampler& GetVkSampler() const { return m_vkSampler.get(); }
+    vk::Image& GetVkImage() { return m_image; }
+    const vk::ImageView& GetVkView() const { return m_view; }
+    const vk::Sampler& GetVkSampler() const { return m_sampler; }
     uint32_t GetWidth() const { return m_width; }
     uint32_t GetHeight() const { return m_height; }
     vk::ImageLayout GetLayout() const { return m_layout; }
 
-    inline bool HasView() const { return (bool) m_vkView; }
-    inline bool HasSampler() const { return (bool) m_vkSampler; }
+    inline bool HasView() const { return (bool) m_view; }
+    inline bool HasSampler() const { return (bool) m_sampler; }
 
     inline const vk::DescriptorImageInfo GetDescriptor() const
     {
-        assert(m_vkView && m_vkSampler);
-        return vk::DescriptorImageInfo{m_vkSampler.get(), m_vkView.get(), m_layout};
+        assert(m_view && m_sampler);
+        return vk::DescriptorImageInfo{m_sampler, m_view, m_layout};
     }
 
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();

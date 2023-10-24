@@ -30,12 +30,12 @@ void Buffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const
         .pQueueFamilyIndices = queues,
     };
 
-    m_vkBuffer = m_pRenderEngine->GetVkDevice().createBufferUnique(bufferInfo).value;
+    m_buffer = m_pRenderEngine->GetVkDevice().createBuffer(bufferInfo).value;
 
-    auto memRequirements = m_pRenderEngine->GetVkDevice().getBufferMemoryRequirements(m_vkBuffer.get());
+    auto memRequirements = m_pRenderEngine->GetVkDevice().getBufferMemoryRequirements(m_buffer);
     Allocation::Allocate(memRequirements, memProperties);
 
-    m_pRenderEngine->GetVkDevice().bindBufferMemory(m_vkBuffer.get(), m_memory.get(), 0);
+    m_pRenderEngine->GetVkDevice().bindBufferMemory(m_buffer, m_memory, 0);
 
     if (data != nullptr)
     {
@@ -46,7 +46,7 @@ void Buffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const
         if (!(memProperties & vk::MemoryPropertyFlagBits::eHostCoherent))
         {
             vk::MappedMemoryRange mappedRange = {
-                .memory = *m_memory,
+                .memory = m_memory,
                 .offset = 0,
                 .size = size,
             };
@@ -57,9 +57,15 @@ void Buffer::Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const
     }
 }
 
+void Buffer::Shutdown()
+{
+    m_pRenderEngine->GetVkDevice().destroyBuffer(m_buffer);
+    Allocation::Shutdown();
+}
+
 void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, Vector<vk::BufferImageCopy> bufferCopyRegions) const
 {
-    cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions.size(), bufferCopyRegions.data());
+    cb.copyBufferToImage(m_buffer, vkImage, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions.size(), bufferCopyRegions.data());
 }
 
 void Buffer::CopyTo(vk::CommandBuffer& cb, resources::Image& image) const
@@ -86,7 +92,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, vk::Image& vkImage, const uint32_t wi
             .depth = 1,
         },
     };
-    cb.copyBufferToImage(m_vkBuffer.get(), vkImage, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
+    cb.copyBufferToImage(m_buffer, vkImage, vk::ImageLayout::eTransferDstOptimal, 1, &copy);
 }
 
 void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSize& size) const
@@ -97,7 +103,7 @@ void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer, const vk::DeviceSi
         .size = size,
     };
 
-    cb.copyBuffer(m_vkBuffer.get(), dstBuffer.m_vkBuffer.get(), copyRegion);
+    cb.copyBuffer(m_buffer, dstBuffer.m_buffer, copyRegion);
 }
 
 void Buffer::CopyTo(vk::CommandBuffer& cb, Buffer& dstBuffer) const

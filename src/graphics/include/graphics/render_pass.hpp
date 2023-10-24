@@ -34,7 +34,7 @@ class RenderPass
     uint32_t m_width, m_height;
 
     // Wrapped vulkan renderpass
-    vk::UniqueRenderPass m_vkRenderPass;
+    vk::RenderPass m_renderPass;
 
   private:
     /// @brief (Re-)Create the render pass and its inner state objects (i.e.intermediary render targets)
@@ -49,15 +49,12 @@ class RenderPass
     // This was working ok until we merged the creation process in the constructor, making passing "this" a problem.
     RenderPass(RenderEngine* pDevice, uint32_t width, uint32_t height);
 
-    void Shutdown()
-    {
-        m_vkRenderPass.reset();        
-    }
+    void Shutdown();
 
     /// @brief Create the renderpass.
     void Create();
 
-    operator bool() { return (bool) m_vkRenderPass; }
+    operator bool() { return (bool) m_renderPass; }
     
     /// @brief Add a color attachment to this render pass, and return its index.
     int AddColorAttachment(vk::Format format);
@@ -77,7 +74,7 @@ class RenderPass
 
     void End(vk::CommandBuffer& cb);
 
-    inline vk::RenderPass& GetVkRenderPass() { return m_vkRenderPass.get(); }
+    inline vk::RenderPass& GetVkRenderPass() { return m_renderPass; }
 
     // TODO: This is a lazy solution
     void Resize(uint32_t width, uint32_t height);

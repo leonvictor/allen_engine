@@ -24,7 +24,7 @@ class Allocation
 {
   protected:
     RenderEngine* m_pRenderEngine;
-    vk::UniqueDeviceMemory m_memory;
+    vk::DeviceMemory m_memory;
     vk::DeviceSize m_size;
 
     void* m_mapped = nullptr;

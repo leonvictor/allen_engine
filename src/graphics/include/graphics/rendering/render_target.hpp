@@ -13,8 +13,8 @@ struct RenderTarget
     resources::Image m_multisamplingImage;
     resources::Image m_depthImage;
     resources::Image m_resolveImage;
-    vk::UniqueFramebuffer m_framebuffer;
+    vk::Framebuffer m_framebuffer;
 
-    vk::UniqueSemaphore m_renderFinished; // Signaled when the render is done / waited upon by the present engine before presenting
+    vk::Semaphore m_renderFinished; // Signaled when the render is done / waited upon by the present engine before presenting
 };
 } // namespace aln
