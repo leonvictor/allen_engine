@@ -4,6 +4,6 @@
 
 namespace aln
 {
-vk::CommandBuffer* IAssetLoader::RequestContext::GetTransferCommandBuffer() { return m_pSourceRequest->GetTransferCommandBuffer(); }
-vk::CommandBuffer* IAssetLoader::RequestContext::GetGraphicsCommandBuffer() { return m_pSourceRequest->GetGraphicsCommandBuffer(); }
+TransferQueuePersistentCommandBuffer& IAssetLoader::RequestContext::GetTransferCommandBuffer() { return m_pSourceRequest->GetTransferCommandBuffer(); }
+GraphicsQueuePersistentCommandBuffer& IAssetLoader::RequestContext::GetGraphicsCommandBuffer() { return m_pSourceRequest->GetGraphicsCommandBuffer(); }
 }

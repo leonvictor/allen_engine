@@ -4,19 +4,16 @@
 #include <memory>
 
 #include <common/serialization/binary_archive.hpp>
+#include <graphics/command_buffer.hpp>
 
 #include "asset.hpp"
 #include "asset_archive_header.hpp"
 #include "handle.hpp"
 #include "record.hpp"
 
-namespace vk
-{
-class CommandBuffer;
-};
-
 namespace aln
 {
+
 /// TODO: Hide from clients
 class IAssetLoader
 {
@@ -29,8 +26,8 @@ class IAssetLoader
         uint32_t m_threadIdx = 0;
         AssetRequest* m_pSourceRequest = nullptr;
 
-        vk::CommandBuffer* GetTransferCommandBuffer();
-        vk::CommandBuffer* GetGraphicsCommandBuffer();
+        TransferQueuePersistentCommandBuffer& GetTransferCommandBuffer();
+        GraphicsQueuePersistentCommandBuffer& GetGraphicsCommandBuffer();
     };
 
   private:

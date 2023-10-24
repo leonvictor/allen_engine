@@ -17,19 +17,11 @@ class Buffer : public Allocation
   private:
     vk::UniqueBuffer m_vkBuffer;
 
-  private:
-    void CreateBuffer(const vk::DeviceSize& size, const vk::BufferUsageFlags& usage);
-    void Allocate(const vk::MemoryPropertyFlags& memProperties);
-    void Initialize(RenderEngine* pDevice, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data);
-
   public:
-    Buffer(); // Empty ctor is required for now. Todo: Remove when we can
-
-    // TODO: Replace constructors w/ "initialize" function
-    Buffer(RenderEngine* pRenderEngine, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data = nullptr);
+    void Initialize(RenderEngine* pRenderEngine, const vk::DeviceSize& size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const void* data = nullptr);
 
     template <typename T>
-    Buffer(RenderEngine* pRenderEngine, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const Vector<T>& data)
+    void Initialize(RenderEngine* pRenderEngine, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& memProperties, const Vector<T>& data)
     {
         vk::DeviceSize size = sizeof(T) * data.size();
         Initialize(pRenderEngine, size, usage, memProperties, data.data());

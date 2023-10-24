@@ -45,7 +45,8 @@ class AssetService : public IService
     TaskSet m_loadingTask;
     bool m_isLoadingTaskRunning = false;
 
-    Array<vk::UniqueCommandBuffer, 2> m_commandBuffers;
+    TransferQueuePersistentCommandBuffer m_transferCommandBuffer;
+    GraphicsQueuePersistentCommandBuffer m_graphicsCommandBuffer;
 
     /// @brief Find an existing record. The record must have already been created !
     AssetRecord* FindRecord(const AssetID& assetID);

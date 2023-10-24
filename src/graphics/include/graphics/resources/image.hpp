@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
 
 namespace aln::resources
 {
@@ -26,7 +27,7 @@ class Image : public Allocation
     uint32_t m_arrayLayers = 1;
     uint32_t m_width, m_height;
 
-#ifndef NDEBUG
+#ifdef ALN_DEBUG
     std::string m_debugName;
 #endif
 
@@ -40,14 +41,12 @@ class Image : public Allocation
     void InitView(vk::Format format, vk::ImageAspectFlags aspectMask, vk::ImageViewType viewtype = vk::ImageViewType::e2D);
 
   public:
+    Image() = default;
     ~Image() { assert(!m_vkImage); }
 
-    // TODO: Rework creation API
-    // No copy allowed
     Image(const Image&) = delete;
     Image& operator=(const Image&) = delete;
-
-    // Move assignement
+    
     Image& operator=(Image&& other)
     {
         if (this != &other)
@@ -70,7 +69,6 @@ class Image : public Allocation
         return *this;
     }
 
-    // Move constructor
     Image(Image&& other) : Allocation(std::move(other))
     {
         m_vkSampler = std::move(other.m_vkSampler);
@@ -87,22 +85,20 @@ class Image : public Allocation
         m_externallyOwnedImage = other.m_externallyOwnedImage;
     }
 
-    // Creation API
-    Image() {}
-
     /// @brief Create a new empty vulkan image.
     /// @todo Maybe move this to a Create() fn ?
-    Image(RenderEngine* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
+    void Initialize(RenderEngine* pDevice, uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling,
         vk::ImageUsageFlags usage, int arrayLayers = 1, vk::ImageCreateFlagBits flags = {}, vk::ImageLayout layout = vk::ImageLayout::eUndefined, vk::ImageType type = vk::ImageType::e2D);
 
+    /// @todo Rename to make more explicit
     /// @brief Wrap an existing VkImage. The original image won't be automatically destroyed.
-    Image(RenderEngine* pDevice, vk::Image& image, vk::Format format);
+    void Initialize(RenderEngine* pDevice, vk::Image& image, vk::Format format);
 
     /// @brief Create an image an upload the content of a buffer to it.
-    static Image FromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
+    void InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, Buffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
 
     /// @brief Load a cubemap from a directory.
-    static Image CubemapFromDirectory(RenderEngine* pDevice, std::string path);
+    //void InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path);
 
     void Shutdown() override
     {
@@ -130,28 +126,7 @@ class Image : public Allocation
 
     /// @brief [DEBUG ONLY] Set a debug name to this image and all its underlying vulkan objects.
     /// @todo Make sure this is a noop in release.
-    void SetDebugName(std::string name)
-    {
-#ifndef NDEBUG
-        m_debugName = name;
-        if (m_vkImage)
-        {
-            m_pRenderEngine->SetDebugUtilsObjectName(m_vkImage.get(), name + " Image");
-        }
-        if (m_vkView)
-        {
-            m_pRenderEngine->SetDebugUtilsObjectName(m_vkView.get(), name + " Image View");
-        }
-        if (m_vkSampler)
-        {
-            m_pRenderEngine->SetDebugUtilsObjectName(m_vkSampler.get(), name + " Sampler");
-        }
-        if (m_vkDescriptorSet)
-        {
-            m_pRenderEngine->SetDebugUtilsObjectName(m_vkDescriptorSet.get(), name + " Descriptor Set");
-        }
-#endif
-    }
+    void SetDebugName(std::string name);
 
     void Allocate(const vk::MemoryPropertyFlags& memProperties);
 
@@ -186,8 +161,8 @@ class Image : public Allocation
     uint32_t GetHeight() const { return m_height; }
     vk::ImageLayout GetLayout() const { return m_layout; }
 
-    inline bool HasView() { return (bool) m_vkView; }
-    inline bool HasSampler() { return (bool) m_vkSampler; }
+    inline bool HasView() const { return (bool) m_vkView; }
+    inline bool HasSampler() const { return (bool) m_vkSampler; }
 
     inline const vk::DescriptorImageInfo GetDescriptor() const
     {
@@ -197,6 +172,7 @@ class Image : public Allocation
 
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings();
 
-    vk::DescriptorSet& GetDescriptorSet();
+    const vk::DescriptorSet& GetDescriptorSet() const;
+    void CreateDescriptorSet();
 };
 } // namespace aln::resources

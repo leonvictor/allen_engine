@@ -1,14 +1,18 @@
 #pragma once
 
+#include "../components/camera.hpp"
 #include "../components/light.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 #include "../components/static_mesh_component.hpp"
+#include "../world_systems/render_system.hpp"
 
+#include <entities/world_entity.hpp>
 #include <graphics/render_engine.hpp>
 #include <graphics/rendering/render_target.hpp>
 #include <graphics/rendering/renderer.hpp>
 #include <graphics/resources/image.hpp>
-#include <graphics/swapchain.hpp>
+#include <graphics/viewport.hpp>
+#include <graphics/window.hpp>
 
 #include <tracy/Tracy.hpp>
 #include <vulkan/vulkan.hpp>
@@ -18,7 +22,7 @@
 namespace aln
 {
 
-class SceneRenderer : public render::IRenderer
+class SceneRenderer : public IRenderer
 {
   public:
     struct SceneGPUData
@@ -34,17 +38,7 @@ class SceneRenderer : public render::IRenderer
         uint32_t m_bonesStartIndex;
     };
 
-    struct RenderData
-    {
-        Vector<const SkeletalMeshComponent*>& m_skeletalMeshComponents;
-        Vector<const StaticMeshComponent*>& m_staticMeshComponents;
-        IDVector<Light*>& m_lights;
-        SceneGPUData m_sceneData;
-    };
-
   private:
-    uint32_t m_nTargetImages;
-
     Pipeline m_staticMeshesPipeline;
     Pipeline m_skeletalMeshesPipeline;
     Pipeline m_skyboxPipeline;
@@ -54,7 +48,7 @@ class SceneRenderer : public render::IRenderer
     vk::UniqueDescriptorSetLayout m_pSceneDataDescriptorSetLayout;
     vk::UniqueDescriptorSet m_pSceneDataDescriptorSet;
 
-    resources::Buffer m_lightsBuffer;
+    resources::Buffer m_lightComponentsBuffer;
     vk::UniqueDescriptorSet m_pLightsDescriptorSet;
 
     // Model transforms storage buffer.
@@ -67,50 +61,20 @@ class SceneRenderer : public render::IRenderer
     vk::UniqueDescriptorSetLayout m_pSkinningBufferDescriptorSetLayout;
     vk::UniqueDescriptorSet m_pSkinningBufferDescriptorSet;
 
-    void CreateTargetImages() override
+  private:
+    // TODO: Rename
+    void CreateInternal(RenderEngine* pRenderEngine)
     {
-        m_targetImages.clear();
+        m_pRenderEngine = pRenderEngine;
+        auto colorImageFormat = m_pRenderEngine->GetWindow()->GetSwapchain().GetImageFormat();
+        // TODO: Update the viewport based on the imgui scene window size
+        auto windowSize = m_pRenderEngine->GetWindow()->GetFramebufferSize();
 
-        auto cbs = m_pRenderEngine->GetGraphicsCommandPool().BeginSingleTimeCommands();
-
-        for (uint8_t i = 0; i < m_nTargetImages; ++i)
-        {
-            auto target = std::make_shared<resources::Image>(
-                m_pRenderEngine, m_width, m_height, 1,
-                vk::SampleCountFlagBits::e1,
-                m_colorImageFormat,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled);
-            target->Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
-            target->AddView(vk::ImageAspectFlagBits::eColor);
-            target->AddSampler();
-            target->TransitionLayout(cbs[0], vk::ImageLayout::eGeneral);
-
-            target->SetDebugName("Scene Renderer Target (" + std::to_string(i) + ")");
-
-            m_targetImages.push_back(target);
-        }
-
-        m_pRenderEngine->GetGraphicsCommandPool().EndSingleTimeCommands(cbs);
-    }
-
-    render::RenderTarget& GetNextTarget() override
-    {
-        m_activeImageIndex++;
-        if (m_activeImageIndex >= m_nTargetImages)
-        {
-            m_activeImageIndex = 0;
-        }
-
-        return m_renderTargets[m_activeImageIndex];
-    }
-
-    void CreateRenderpass() override
-    {
-        m_renderpass = RenderPass(m_pRenderEngine, m_width, m_height);
-        m_renderpass.AddColorAttachment(m_colorImageFormat);
+        // --- Render Pass
+        m_renderpass = RenderPass(m_pRenderEngine, windowSize.width, windowSize.height);
+        m_renderpass.AddColorAttachment(colorImageFormat);
         m_renderpass.AddDepthAttachment();
-        m_renderpass.AddColorResolveAttachment(m_colorImageFormat, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        m_renderpass.AddColorResolveAttachment(colorImageFormat, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
 
         auto& subpass = m_renderpass.AddSubpass();
         subpass.ReferenceColorAttachment(0);
@@ -130,19 +94,95 @@ class SceneRenderer : public render::IRenderer
 
         m_renderpass.AddSubpassDependency(dep);
         m_renderpass.Create();
-    }
 
-    // TODO: Rename
-    void CreateInternal(RenderEngine* pDevice, uint32_t width, uint32_t height, vk::Format colorImageFormat) override
-    {
-        render::IRenderer::CreateInternal(pDevice, width, height, colorImageFormat);
+        // --- Create the render targets
+
+        auto cb = m_pRenderEngine->GetGraphicsPersistentCommandPool().GetCommandBuffer();
+
+        constexpr auto renderTargetCount = RenderEngine::GetFrameQueueSize();
+        m_renderTargets.resize(renderTargetCount);
+        for (auto renderTargetIdx = 0; renderTargetIdx < renderTargetCount; ++renderTargetIdx)
+        {
+            auto& renderTarget = m_renderTargets[renderTargetIdx];
+
+            // Resolve image
+            renderTarget.m_resolveImage.Initialize(
+                m_pRenderEngine,
+                windowSize.width,
+                windowSize.height,
+                1,
+                vk::SampleCountFlagBits::e1,
+                colorImageFormat,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled);
+            renderTarget.m_resolveImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+            renderTarget.m_resolveImage.AddView(vk::ImageAspectFlagBits::eColor);
+            renderTarget.m_resolveImage.AddSampler();
+            renderTarget.m_resolveImage.TransitionLayout(cb, vk::ImageLayout::eGeneral);
+            renderTarget.m_resolveImage.CreateDescriptorSet();
+            renderTarget.m_resolveImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Resolve");
+
+            // Multisampling image
+            renderTarget.m_multisamplingImage.Initialize(
+                m_pRenderEngine,
+                windowSize.width,
+                windowSize.height,
+                1,
+                m_pRenderEngine->GetMSAASamples(),
+                colorImageFormat,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
+
+            renderTarget.m_multisamplingImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+            renderTarget.m_multisamplingImage.AddView(vk::ImageAspectFlagBits::eColor);
+            renderTarget.m_multisamplingImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Multisampling");
+
+            // Depth image
+            renderTarget.m_depthImage.Initialize(
+                m_pRenderEngine,
+                windowSize.width,
+                windowSize.height,
+                1,
+                m_pRenderEngine->GetMSAASamples(),
+                m_pRenderEngine->FindDepthFormat(),
+                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
+            renderTarget.m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+            renderTarget.m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
+            renderTarget.m_depthImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Depth");
+
+            // Framebuffer
+            Vector<vk::ImageView> attachments = {
+                renderTarget.m_multisamplingImage.GetVkView(),
+                renderTarget.m_depthImage.GetVkView(),
+                renderTarget.m_resolveImage.GetVkView(),
+            };
+
+            vk::FramebufferCreateInfo framebufferInfo = {
+                .renderPass = m_renderpass.GetVkRenderPass(),
+                .attachmentCount = static_cast<uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .width = windowSize.width,
+                .height = windowSize.height,
+                .layers = 1,
+            };
+
+            renderTarget.m_framebuffer = m_pRenderEngine->GetVkDevice().createFramebufferUnique(framebufferInfo).value;
+
+            // Sync
+            renderTarget.m_renderFinished = m_pRenderEngine->GetVkDevice().createSemaphoreUnique({}).value;
+        }
+
+        Queue::SubmissionRequest request;
+        request.ExecuteCommandBuffer(cb);
+
+        m_pRenderEngine->GetGraphicsQueue().Submit(request, vk::Fence{});
 
         Vector<vk::WriteDescriptorSet> writeDescriptorSets;
 
         // ---- Per frame resources
-        m_sceneDataBuffer = resources::Buffer(
-            pDevice,
-            pDevice->PadUniformBufferSize(sizeof(SceneGPUData)),
+        m_sceneDataBuffer.Initialize(
+            pRenderEngine,
+            pRenderEngine->PadUniformBufferSize(sizeof(SceneGPUData)),
             vk::BufferUsageFlagBits::eUniformBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
@@ -160,16 +200,16 @@ class SceneRenderer : public render::IRenderer
             .pBindings = &sceneDataBinding,
         };
 
-        m_pSceneDataDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(sceneDataDescriptorSetLayoutCreateInfo).value;
+        m_pSceneDataDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayoutUnique(sceneDataDescriptorSetLayoutCreateInfo).value;
         m_pRenderEngine->SetDebugUtilsObjectName(m_pSceneDataDescriptorSetLayout.get(), "Scene Data Descriptor Set Layout");
 
-        m_pSceneDataDescriptorSet = pDevice->AllocateDescriptorSet(&m_pSceneDataDescriptorSetLayout.get());
+        m_pSceneDataDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_pSceneDataDescriptorSetLayout.get());
         m_pRenderEngine->SetDebugUtilsObjectName(m_pSceneDataDescriptorSet.get(), "Scene Data Descriptor Set");
 
         vk::DescriptorBufferInfo sceneDataBufferInfo = {
             .buffer = m_sceneDataBuffer.GetVkBuffer(),
             .offset = 0,
-            .range = pDevice->PadUniformBufferSize(sizeof(SceneGPUData)),
+            .range = pRenderEngine->PadUniformBufferSize(sizeof(SceneGPUData)),
         };
 
         writeDescriptorSets.push_back({
@@ -183,20 +223,20 @@ class SceneRenderer : public render::IRenderer
 
         // ---- Lights resources
         // TODO: Dynamic size
-        m_lightsBuffer = resources::Buffer(
-            pDevice,
+        m_lightComponentsBuffer.Initialize(
+            pRenderEngine,
             16 + (5 * 48),
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-        m_pRenderEngine->SetDebugUtilsObjectName(m_lightsBuffer.GetVkBuffer(), "Renderer Lights Buffer");
+        m_pRenderEngine->SetDebugUtilsObjectName(m_lightComponentsBuffer.GetVkBuffer(), "Renderer Lights Buffer");
 
-        m_pLightsDescriptorSet = pDevice->AllocateDescriptorSet<Light>();
-        pDevice->SetDebugUtilsObjectName(m_pLightsDescriptorSet.get(), "Lights Descriptor Set");
+        m_pLightsDescriptorSet = pRenderEngine->AllocateDescriptorSet<Light>();
+        pRenderEngine->SetDebugUtilsObjectName(m_pLightsDescriptorSet.get(), "Lights Descriptor Set");
 
         // TODO: How do we update the lights array ?
         vk::DescriptorBufferInfo lightsBufferInfo = {
-            .buffer = m_lightsBuffer.GetVkBuffer(),
+            .buffer = m_lightComponentsBuffer.GetVkBuffer(),
             .offset = 0,
             .range = vk::WholeSize,
         };
@@ -214,8 +254,8 @@ class SceneRenderer : public render::IRenderer
 
         // ---- Per-object resources
         /// @todo Automatically grow the buffer if more objects are added
-        m_modelTransformsBuffer = resources::Buffer(
-            pDevice,
+        m_modelTransformsBuffer.Initialize(
+            pRenderEngine,
             sizeof(Matrix4x4) * MAX_MODELS,
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -234,10 +274,10 @@ class SceneRenderer : public render::IRenderer
             .pBindings = &binding,
         };
 
-        m_pModelTransformsDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(info).value;
+        m_pModelTransformsDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayoutUnique(info).value;
         m_pRenderEngine->SetDebugUtilsObjectName(m_pModelTransformsDescriptorSetLayout.get(), "Model Transforms Descriptor Set Layout");
 
-        m_pModelTransformsDescriptorSet = pDevice->AllocateDescriptorSet(&m_pModelTransformsDescriptorSetLayout.get());
+        m_pModelTransformsDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_pModelTransformsDescriptorSetLayout.get());
         m_pRenderEngine->SetDebugUtilsObjectName(m_pModelTransformsDescriptorSet.get(), "Model Transforms Descriptor Set");
 
         vk::DescriptorBufferInfo transformsBufferInfo = {
@@ -257,8 +297,8 @@ class SceneRenderer : public render::IRenderer
 
         // ----- Skinning resources
         /// @todo What size ?
-        m_skinningBuffer = resources::Buffer(
-            pDevice,
+        m_skinningBuffer.Initialize(
+            pRenderEngine,
             MAX_SKINNING_TRANSFORMS * sizeof(Matrix4x4),
             vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -283,10 +323,10 @@ class SceneRenderer : public render::IRenderer
             .pBindings = &skinningBufferBinding,
         };
 
-        m_pSkinningBufferDescriptorSetLayout = pDevice->GetVkDevice().createDescriptorSetLayoutUnique(skinningDescriptorSetLayoutCreateInfo).value;
+        m_pSkinningBufferDescriptorSetLayout = pRenderEngine->GetVkDevice().createDescriptorSetLayoutUnique(skinningDescriptorSetLayoutCreateInfo).value;
         m_pRenderEngine->SetDebugUtilsObjectName(m_pSkinningBufferDescriptorSetLayout.get(), "Skinning Buffer Descriptor Set Layout");
 
-        m_pSkinningBufferDescriptorSet = pDevice->AllocateDescriptorSet(&m_pSkinningBufferDescriptorSetLayout.get());
+        m_pSkinningBufferDescriptorSet = pRenderEngine->AllocateDescriptorSet(&m_pSkinningBufferDescriptorSetLayout.get());
         m_pRenderEngine->SetDebugUtilsObjectName(m_pSkinningBufferDescriptorSetLayout.get(), "Skinning Buffer Descriptor Set");
 
         writeDescriptorSets.push_back({
@@ -306,13 +346,14 @@ class SceneRenderer : public render::IRenderer
         // TODO: Handle default shader dir in case of separate projects
         // How do we bundle them ?
 
+        auto windowSize = m_pRenderEngine->GetWindow()->GetFramebufferSize();
         // ---------------
         // Static Meshes Pipeline
         // ---------------
         m_staticMeshesPipeline = Pipeline(m_pRenderEngine);
         m_staticMeshesPipeline.SetVertexType<Vertex>();
         m_staticMeshesPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
-        m_staticMeshesPipeline.SetExtent({m_width, m_height});
+        m_staticMeshesPipeline.SetExtent({windowSize.width, windowSize.height});
         m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.vert", vk::ShaderStageFlagBits::eVertex);
         m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
         m_staticMeshesPipeline.AddPushConstant(vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant)); // Note: This is necessary for now so that static/skinned meshes pipelines are compatible and we can bind descriptor sets once for both
@@ -331,7 +372,7 @@ class SceneRenderer : public render::IRenderer
         m_skeletalMeshesPipeline = Pipeline(m_pRenderEngine);
         m_skeletalMeshesPipeline.SetVertexType<SkinnedVertex>();
         m_skeletalMeshesPipeline.SetRenderPass(m_renderpass.GetVkRenderPass());
-        m_skeletalMeshesPipeline.SetExtent({m_width, m_height});
+        m_skeletalMeshesPipeline.SetExtent({windowSize.width, windowSize.height});
         m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/skeletal_mesh.vert", vk::ShaderStageFlagBits::eVertex);
         m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
         m_skeletalMeshesPipeline.AddPushConstant(vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant));
@@ -362,10 +403,9 @@ class SceneRenderer : public render::IRenderer
     }
 
   public:
-    void Initialize(RenderEngine* pDevice, uint32_t width, uint32_t height, int nTargetImages, vk::Format colorImageFormat)
+    void Initialize(RenderEngine* pRenderEngine)
     {
-        m_nTargetImages = nTargetImages;
-        CreateInternal(pDevice, width, height, colorImageFormat);
+        CreateInternal(pRenderEngine);
         CreatePipelines();
     }
 
@@ -375,9 +415,13 @@ class SceneRenderer : public render::IRenderer
         m_skeletalMeshesPipeline.Shutdown();
         m_skyboxPipeline.Shutdown();
 
-        for (auto& image : m_targetImages)
+        for (auto& renderTarget : m_renderTargets)
         {
-            image->Shutdown();
+            renderTarget.m_framebuffer.reset();
+            renderTarget.m_depthImage.Shutdown();
+            renderTarget.m_multisamplingImage.Shutdown();
+            renderTarget.m_resolveImage.Shutdown();
+            renderTarget.m_renderFinished.reset();
         }
 
         m_pSkinningBufferDescriptorSet.reset();
@@ -390,28 +434,11 @@ class SceneRenderer : public render::IRenderer
         m_pSceneDataDescriptorSetLayout.reset();
 
         m_skinningBuffer.Shutdown();
-        m_lightsBuffer.Shutdown();
+        m_lightComponentsBuffer.Shutdown();
         m_modelTransformsBuffer.Shutdown();
         m_sceneDataBuffer.Shutdown();
 
         IRenderer::Shutdown();
-    }
-
-    // TODO: De-duplicate
-    void EndFrame()
-    {
-        auto& cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
-        cb.endRenderPass();
-        cb.end();
-
-        vk::SubmitInfo submitInfo = {
-            .commandBufferCount = 1,
-            .pCommandBuffers = &cb,
-        };
-
-        const auto& currentFrameIdx = m_pRenderEngine->GetCurrentFrameIdx();
-        m_pRenderEngine->GetVkDevice().resetFences(m_frameSync[currentFrameIdx].inFlight.get());
-        m_pRenderEngine->GetGraphicsQueue().Submit(submitInfo, m_frameSync[currentFrameIdx].inFlight.get());
     }
 
     void RenderStaticMeshes(const Vector<const StaticMeshComponent*>& staticMeshComponents, vk::CommandBuffer& cb, uint32_t currentMeshIndex)
@@ -455,14 +482,14 @@ class SceneRenderer : public render::IRenderer
         cb.drawIndexed(pCurrentMesh->GetIndicesCount(), instanceCount, 0, 0, firstInstance);
     }
 
-    void RenderSkeletalMeshes(const RenderData& data, vk::CommandBuffer& cb, uint32_t currentMeshIndex)
+    void RenderSkeletalMeshes(const Vector<const SkeletalMeshComponent*>& skeletalMeshComponents, vk::CommandBuffer& cb, uint32_t currentMeshIndex)
     {
         m_skeletalMeshesPipeline.Bind(cb);
 
         SkinnedMeshPushConstant pushConstant;
         uint32_t totalBonesCount = 0;
 
-        const SkeletalMeshComponent* pMeshComponent = data.m_skeletalMeshComponents[0];
+        const SkeletalMeshComponent* pMeshComponent = skeletalMeshComponents[0];
         const Mesh* pCurrentMesh = pMeshComponent->GetMesh();
 
         cb.bindVertexBuffers(0, pCurrentMesh->GetVertexBuffer().GetVkBuffer(), vk::DeviceSize(0));
@@ -478,10 +505,10 @@ class SceneRenderer : public render::IRenderer
 
         // This list has already gone through culling and is ordered by instance
         uint32_t firstInstance = currentMeshIndex;
-        size_t componentsCount = data.m_skeletalMeshComponents.size();
+        size_t componentsCount = skeletalMeshComponents.size();
         for (size_t componentIndex = 1; componentIndex < componentsCount; ++componentIndex)
         {
-            pMeshComponent = data.m_skeletalMeshComponents[componentIndex];
+            pMeshComponent = skeletalMeshComponents[componentIndex];
             const Mesh* pMesh = pMeshComponent->GetMesh();
 
             if (pCurrentMesh != pMesh)
@@ -515,8 +542,7 @@ class SceneRenderer : public render::IRenderer
         cb.drawIndexed(pCurrentMesh->GetIndicesCount(), instanceCount, 0, 0, firstInstance);
     }
 
-    /// @todo: cb should be removable once all the rendering happens here
-    virtual void Render(const RenderData& data, vk::CommandBuffer& cb)
+    void Render(WorldEntity* pWorld, TransientCommandBuffer& cb)
     {
         // Descriptors
         // 0 - Per frame (scene data (=viewproj matrix))
@@ -525,25 +551,45 @@ class SceneRenderer : public render::IRenderer
         // 3 - Per mesh instance (transforms array) // STORAGE
         // 4 - (optionnal) Per skinned mesh skinning transforms // Storage
 
+        ZoneScoped;
+
+        const auto currentFrameIdx = m_pRenderEngine->GetCurrentFrameIdx();
+        auto& renderTarget = m_renderTargets[currentFrameIdx];
+        const auto& data = pWorld->GetSystem<GraphicsSystem>()->GetRenderData();
+
+        RenderPass::Context renderPassCtx = {
+            .commandBuffer = (vk::CommandBuffer&) cb,
+            .framebuffer = renderTarget.m_framebuffer.get(),
+            .backgroundColor = data.m_pCameraComponent->m_backgroundColor,
+        };
+
+        m_renderpass.Begin(renderPassCtx);
+
+        SceneGPUData sceneData = {
+            .m_view = data.m_pCameraComponent->GetViewMatrix(),
+            .m_projection = data.m_pCameraComponent->GetProjectionMatrix(pWorld->GetViewport()->GetAspectRatio()),
+            .m_cameraPosition = data.m_pCameraComponent->GetLocalTransform().GetTranslation(),
+        };
+
         // ---- Upload frame data
         m_sceneDataBuffer.Map();
-        m_sceneDataBuffer.Copy(data.m_sceneData);
+        m_sceneDataBuffer.Copy(sceneData);
         m_sceneDataBuffer.Unmap();
 
         // ---- Update the lights buffer
         /// @todo: FIXME !
-        int nLights = data.m_lights.Size();
-        m_lightsBuffer.Map(0, sizeof(int)); // TODO: Respect spec alignment for int
-        m_lightsBuffer.Copy(nLights);
-        m_lightsBuffer.Unmap();
+        int nLights = data.m_lightComponents.Size();
+        m_lightComponentsBuffer.Map(0, sizeof(int)); // TODO: Respect spec alignment for int
+        m_lightComponentsBuffer.Copy(nLights);
+        m_lightComponentsBuffer.Unmap();
 
         int i = 0;
-        for (auto pLight : data.m_lights)
+        for (auto pLight : data.m_lightComponents)
         {
             auto ubo = pLight->GetUniform();
-            m_lightsBuffer.Map(sizeof(int) + i * sizeof(LightUniform), sizeof(LightUniform));
-            m_lightsBuffer.Copy(ubo);
-            m_lightsBuffer.Unmap();
+            m_lightComponentsBuffer.Map(sizeof(int) + i * sizeof(LightUniform), sizeof(LightUniform));
+            m_lightComponentsBuffer.Copy(ubo);
+            m_lightComponentsBuffer.Unmap();
             i++;
         }
 
@@ -551,14 +597,14 @@ class SceneRenderer : public render::IRenderer
         // TODO: Only upload transforms that changed ? It would require keeping the same index between render passes
         Matrix4x4 modelMatrix;
         auto pBufferMemory = m_modelTransformsBuffer.Map<Matrix4x4>();
-        for (const auto pSkeletalMeshComponent : data.m_skeletalMeshComponents)
+        for (const auto pSkeletalMeshComponent : data.m_visibleSkeletalMeshComponents)
         {
             modelMatrix = pSkeletalMeshComponent->GetWorldTransform().ToMatrix();
             memcpy(pBufferMemory, &modelMatrix, sizeof(Matrix4x4));
             pBufferMemory++;
         }
 
-        for (const auto pStaticMeshComponent : data.m_staticMeshComponents)
+        for (const auto pStaticMeshComponent : data.m_visibleStaticMeshComponents)
         {
             modelMatrix = pStaticMeshComponent->GetWorldTransform().ToMatrix();
             memcpy(pBufferMemory, &modelMatrix, sizeof(Matrix4x4));
@@ -568,7 +614,7 @@ class SceneRenderer : public render::IRenderer
 
         // ---- Upload skeletal mesh's transform matrices
         pBufferMemory = m_skinningBuffer.Map<Matrix4x4>();
-        for (auto& pSkeletalMeshComponent : data.m_skeletalMeshComponents)
+        for (auto& pSkeletalMeshComponent : data.m_visibleSkeletalMeshComponents)
         {
             auto boneCount = pSkeletalMeshComponent->GetBonesCount();
             memcpy(pBufferMemory, pSkeletalMeshComponent->m_skinningTransforms.data(), boneCount * sizeof(Matrix4x4));
@@ -586,20 +632,24 @@ class SceneRenderer : public render::IRenderer
         uint32_t meshIndex = 0;
 
         // ---- Render skeletal meshes
-        if (!data.m_skeletalMeshComponents.empty())
+        if (!data.m_visibleSkeletalMeshComponents.empty())
         {
-            RenderSkeletalMeshes(data, cb, meshIndex);
-            meshIndex += data.m_skeletalMeshComponents.size();
+            RenderSkeletalMeshes(data.m_visibleSkeletalMeshComponents, cb, meshIndex);
+            meshIndex += data.m_visibleSkeletalMeshComponents.size();
         }
 
         // ---- Render static meshes
-        if (!data.m_staticMeshComponents.empty())
+        if (!data.m_visibleStaticMeshComponents.empty())
         {
-            RenderStaticMeshes(data.m_staticMeshComponents, cb, meshIndex);
-            meshIndex += data.m_skeletalMeshComponents.size();
+            RenderStaticMeshes(data.m_visibleStaticMeshComponents, cb, meshIndex);
+            meshIndex += data.m_visibleSkeletalMeshComponents.size();
         }
 
         // ...
+
+        cb->endRenderPass();
     }
+
+    const RenderTarget* GetCurrentRenderTarget() const { return &m_renderTargets[m_pRenderEngine->GetCurrentFrameIdx()]; }
 };
 } // namespace aln

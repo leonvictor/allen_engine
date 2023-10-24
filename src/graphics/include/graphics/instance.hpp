@@ -15,7 +15,6 @@ class Instance
 
   private:
     vk::UniqueInstance m_vkInstance; // Wrapped vulkan instance
-    vk::DispatchLoaderDynamic m_dispatchLoaderDynamic;
     vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> m_debugMessenger;
 
     const Vector<const char*> m_validationLayers = {

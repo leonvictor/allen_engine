@@ -1,12 +1,19 @@
 #pragma once
 
-#include "../render_engine.hpp"
+#include <common/containers/vector.hpp>
 
 #include <vulkan/vulkan.hpp>
 
+#include <memory>
+
 // TODO: Make a class w/ private fields
 /// @note Adapted from https://github.com/jherico/Vulkan/blob/cpp/base/vks/allocation.hpp
-namespace aln::resources
+namespace aln
+{
+
+class RenderEngine;
+
+namespace resources
 {
 
 /// @brief A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
@@ -22,15 +29,7 @@ class Allocation
 
     void* m_mapped = nullptr;
 
-    virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
-    {
-        vk::MemoryAllocateInfo allocInfo = {
-            .allocationSize = memRequirements.size,
-            .memoryTypeIndex = m_pRenderEngine->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
-        };
-
-        m_memory = m_pRenderEngine->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr).value;
-    }
+    virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties);
 
   public:
     Allocation() = default;
@@ -40,50 +39,25 @@ class Allocation
     Allocation& operator=(const Allocation&) = delete;
 
     // Move assignement
-    Allocation& operator=(Allocation&& other)
-    {
-        if (this != &other)
-        {
-            m_pRenderEngine = std::move(other.m_pRenderEngine);
-            m_memory = std::move(other.m_memory);
-
-            m_size = other.m_size;
-            m_mapped = other.m_mapped;
-        }
-        return *this;
-    }
+    Allocation& operator=(Allocation&& other);
 
     // Move constructor
-    Allocation(Allocation&& other)
-    {
-        m_pRenderEngine = std::move(other.m_pRenderEngine);
-        m_memory = std::move(other.m_memory);
+    Allocation(Allocation&& other);
 
-        m_size = other.m_size;
-        m_mapped = other.m_mapped;
-    }
+    virtual void Shutdown();
 
-    virtual void Shutdown()
-    {
-        m_memory.reset();
-    }
+    inline vk::DeviceSize GetSize() const { return m_size; }
 
-    vk::DeviceSize GetSize() const { return m_size; }
+    void Map(size_t offset = 0, vk::DeviceSize = vk::WholeSize);
 
     template <typename T = void>
     inline T* Map(size_t offset = 0, vk::DeviceSize size = vk::WholeSize)
     {
-        assert(m_mapped == nullptr);
-        m_mapped = m_pRenderEngine->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags()).value;
+        Map(offset, size);
         return (T*) m_mapped;
     }
 
-    inline void Unmap()
-    {
-        assert(m_mapped != nullptr);
-        m_pRenderEngine->GetVkDevice().unmapMemory(m_memory.get());
-        m_mapped = nullptr;
-    }
+    void Unmap();
 
     inline void Copy(const void* data, size_t size, vk::DeviceSize offset = 0) const
     {
@@ -111,17 +85,7 @@ class Allocation
     /// @param offset (Optional) Byte offset from beginning
     ///
     /// @return VkResult of the flush call
-    ///
-    void Flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0)
-    {
-        vk::MappedMemoryRange mappedRange = {
-            .memory = m_memory.get(),
-            .offset = offset,
-            .size = size,
-        };
-
-        m_pRenderEngine->GetVkDevice().flushMappedMemoryRanges(mappedRange);
-    }
+    void Flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
 
     /// @brief Invalidate a memory range of the buffer to make it visible to the host
     ///
@@ -131,16 +95,7 @@ class Allocation
     /// @param offset (Optional) Byte offset from beginning
     ///
     /// @return VkResult of the invalidate call
-    ///
-    void Invalidate(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0)
-    {
-        vk::MappedMemoryRange mappedRange = {
-            .memory = m_memory.get(),
-            .offset = offset,
-            .size = size,
-        };
-
-        m_pRenderEngine->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
-    }
+    void Invalidate(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
 };
-} // namespace aln::resources
+} // namespace resources
+} // namespace aln

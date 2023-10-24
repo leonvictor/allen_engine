@@ -19,63 +19,75 @@
 namespace aln
 {
 
+class IWindow;
+
 struct SwapchainSupportDetails
 {
     vk::SurfaceCapabilitiesKHR capabilities;
     Vector<vk::SurfaceFormatKHR> formats;
     Vector<vk::PresentModeKHR> presentModes;
 
-    SwapchainSupportDetails(const vk::PhysicalDevice& pRenderEngine, const vk::SurfaceKHR& surface)
+    SwapchainSupportDetails(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface)
     {
-        capabilities = pRenderEngine.getSurfaceCapabilitiesKHR(surface).value;
+        capabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface).value;
 
         uint32_t formatsCount;
-        pRenderEngine.getSurfaceFormatsKHR(surface, &formatsCount, nullptr);
+        physicalDevice.getSurfaceFormatsKHR(surface, &formatsCount, nullptr);
         formats.resize(formatsCount);
-        pRenderEngine.getSurfaceFormatsKHR(surface, &formatsCount, formats.data());
+        physicalDevice.getSurfaceFormatsKHR(surface, &formatsCount, formats.data());
 
         uint32_t presentModesCount;
-        pRenderEngine.getSurfacePresentModesKHR(surface, &presentModesCount, nullptr);
+        physicalDevice.getSurfacePresentModesKHR(surface, &presentModesCount, nullptr);
         presentModes.resize(presentModesCount);
-        pRenderEngine.getSurfacePresentModesKHR(surface, &presentModesCount, presentModes.data());
+        physicalDevice.getSurfacePresentModesKHR(surface, &presentModesCount, presentModes.data());
     };
 };
 
 /// @brief Core rendering engine
 /// @todo Use "unique" vk structs only when beneficial to avoid unecessary overhead
-class RenderEngine
+class  RenderEngine
 {
+  private:
     static constexpr uint32_t FRAME_QUEUE_SIZE = 2;
 
     // Per-frame per-thread data
+    /// @note // It's more efficient to reset command pools than reseting individual command buffers
+    // We have 2x(queue types) pools:
+    // - one for "transient" cbs, that must be done before we reuse the pool, i.e. rendering cbs
+    // - one for "one time" cbs, that can cross frame boundaries and are reset when their execution is complete
     struct ThreadData
     {
-        CommandPool m_graphicsCommandPool;
-        CommandPool m_transferCommandPool;
+        TransientCommandPool m_graphicsTransientCommandPool;
+        TransientCommandPool m_transferTransientCommandPool;
+        GraphicsQueuePersistentCommandPool m_graphicsPersistentCommandPool;
+        TransferQueuePersistentCommandPool m_transferPersistentCommandPool;
     };
 
     // Per-frame in queue data
     struct FrameData
     {
         Vector<ThreadData> m_threadData;
-
-        vk::UniqueSemaphore m_imageAvailableSemaphore; // Signaled when the image is available
-        vk::UniqueSemaphore m_renderFinished;          //
-        vk::UniqueFence m_inFlight;
+        vk::UniqueFence m_currentlyRendering;
     };
 
   private:
     // Vulkan objects
+    vk::DynamicLoader m_dynamicLoader;
     Instance m_instance;
-    vk::SurfaceKHR m_surface;
     vk::PhysicalDevice m_physical; // Physical pRenderEngine we're associated to.
     vk::UniqueDevice m_logical;    // Wrapped logical vulkan pRenderEngine.
-    Swapchain m_swapchain;
+    
+    // Disambiguation : Frame Queue refers to the frames we can be rendering at the same time.
+    // It is not the same as swapchainImages, which represent the number of images the swapchain is able to provide
+    // FrameQueueSize <= SwapchainImageCount
     Array<FrameData, FRAME_QUEUE_SIZE> m_frameData;
 
     Queue m_graphicsQueue;
     Queue m_presentQueue;
     Queue m_transferQueue;
+
+    // TODO: Decouple so that we can draw to multiple windows
+    IWindow* m_pWindow = nullptr;
 
     // Properties and capabilities
     vk::PhysicalDeviceMemoryProperties m_memoryProperties;
@@ -91,32 +103,39 @@ class RenderEngine
     uint32_t m_currentFrameIdx = 0;
 
   private:
-    void CreateLogicalDevice(const vk::SurfaceKHR& surface);
-    vk::PhysicalDevice PickPhysicalDevice(const vk::SurfaceKHR& surface);
+    void CreateLogicalDevice();
+    vk::PhysicalDevice PickPhysicalDevice();
     vk::SampleCountFlagBits GetMaxUsableSampleCount();
     static bool IsDeviceSuitable(const vk::PhysicalDevice& pRenderEngine, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions);
 
   public:
     // -- Getters
     // TODO: Those are necessary for now because of some functionnality gravitating outside. Remove when possible !
-    inline Instance* GetInstance() { return &m_instance; }
-    inline vk::Device& GetVkDevice() { return m_logical.get(); }
-    inline vk::PhysicalDevice& GetVkPhysicalDevice() { return m_physical; }
-    inline Swapchain& GetSwapchain() { return m_swapchain; }
+    Instance* GetInstance() { return &m_instance; }
+    vk::Device& GetVkDevice() { return m_logical.get(); }
+    vk::PhysicalDevice& GetVkPhysicalDevice() { return m_physical; }
+    IWindow* GetWindow() { return m_pWindow; }
 
     // -- Lifetime
-    void Initialize(GLFWwindow* pGlfwWindow);
+    void Initialize(IWindow* pWindow);
     void Shutdown();
     void WaitIdle() { m_logical->waitIdle(); }
 
     void StartFrame()
     {
+        auto& frameCurrentlyRenderingFence = m_frameData[m_currentFrameIdx].m_currentlyRendering.get();
+        assert(frameCurrentlyRenderingFence);
+        // Ensure the current frame's previous render is finished then reset it
+        // TODO: We could delay the reset until we're actually submitting
+        m_logical->waitForFences(frameCurrentlyRenderingFence, vk::True, UINT64_MAX);
+        m_logical->resetFences(frameCurrentlyRenderingFence);
+
         // Reset all command pools
-        /*for (auto& threadData : m_frameData[m_currentFrameIdx].m_threadData)
+        for (auto& threadData : m_frameData[m_currentFrameIdx].m_threadData)
         {
-            threadData.m_graphicsCommandPool.Reset();
-            threadData.m_transferCommandPool.Reset();
-        }*/
+            threadData.m_graphicsTransientCommandPool.Reset();
+            threadData.m_transferTransientCommandPool.Reset();
+        }
     }
 
     void EndFrame()
@@ -124,11 +143,12 @@ class RenderEngine
         m_currentFrameIdx = (m_currentFrameIdx + 1) % FRAME_QUEUE_SIZE;
     }
 
-    constexpr uint32_t GetFrameQueueSize() const { return FRAME_QUEUE_SIZE; }
+    static constexpr uint32_t GetFrameQueueSize() { return FRAME_QUEUE_SIZE; }
     inline uint32_t GetCurrentFrameIdx() const { return m_currentFrameIdx; }
+    vk::Fence& GetCurrentFrameRenderingFence() { return m_frameData[m_currentFrameIdx].m_currentlyRendering.get(); }
 
     // -- Query properties
-    SwapchainSupportDetails GetSwapchainSupport(const vk::SurfaceKHR& surface);
+    SwapchainSupportDetails GetSwapchainSupport();
     static bool CheckDeviceExtensionsSupport(const vk::PhysicalDevice& dev, Vector<const char*> requiredExtensions);
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
     vk::Format FindDepthFormat();
@@ -136,7 +156,7 @@ class RenderEngine
     bool SupportsBlittingToLinearImages();
     inline vk::SampleCountFlagBits GetMSAASamples() const { return m_msaaSamples; }
     inline vk::FormatProperties GetFormatProperties(vk::Format format) { return m_physical.getFormatProperties(format); }
-    inline const vk::PhysicalDeviceProperties& GetPhysicalDeviceProperties() const { return m_physical.getProperties(); }
+    inline const vk::PhysicalDeviceProperties GetPhysicalDeviceProperties() const { return m_physical.getProperties(); }
 
     // -- Helpers
     /// @brief Pad a given size to meet the pRenderEngine's alignment requirements.
@@ -157,17 +177,19 @@ class RenderEngine
             .pObjectName = name.c_str(),
         };
 
-        m_logical->setDebugUtilsObjectNameEXT(debugName, m_instance.GetDispatchLoaderDynamic());
+        m_logical->setDebugUtilsObjectNameEXT(debugName);
     }
 
     // -- Queues
-    inline Queue& GetGraphicsQueue() { return m_graphicsQueue; }
-    inline Queue& GetPresentQueue() { return m_presentQueue; }
-    inline Queue& GetTransferQueue() { return m_transferQueue; }
+    Queue& GetGraphicsQueue() { return m_graphicsQueue; }
+    Queue& GetPresentQueue() { return m_presentQueue; }
+    Queue& GetTransferQueue() { return m_transferQueue; }
 
     // -- Command Pools
-    inline CommandPool& GetTransferCommandPool(uint32_t threadIdx = 0) { return m_frameData[m_currentFrameIdx].m_threadData[threadIdx].m_transferCommandPool; };
-    inline CommandPool& GetGraphicsCommandPool(uint32_t threadIdx = 0) { return m_frameData[m_currentFrameIdx].m_threadData[threadIdx].m_graphicsCommandPool; };
+    inline TransientCommandPool& GetTransferTransientCommandPool(uint32_t threadIdx = 0) { return m_frameData[m_currentFrameIdx].m_threadData[threadIdx].m_transferTransientCommandPool; };
+    inline TransientCommandPool& GetGraphicsTransientCommandPool(uint32_t threadIdx = 0) { return m_frameData[m_currentFrameIdx].m_threadData[threadIdx].m_graphicsTransientCommandPool; };
+    inline TransferQueuePersistentCommandPool& GetTransferPersistentCommandPool(uint32_t threadIdx = 0) { return m_frameData[m_currentFrameIdx].m_threadData[threadIdx].m_transferPersistentCommandPool; };
+    inline GraphicsQueuePersistentCommandPool& GetGraphicsPersistentCommandPool(uint32_t threadIdx = 0) { return m_frameData[m_currentFrameIdx].m_threadData[threadIdx].m_graphicsPersistentCommandPool; };
 
     // -- Descriptors
     inline vk::DescriptorPool& GetDescriptorPool() { return m_descriptorAllocator.GetActivePool(); }

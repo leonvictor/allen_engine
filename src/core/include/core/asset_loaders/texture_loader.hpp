@@ -24,12 +24,12 @@ class TextureLoader : public IAssetLoader
 
         // TODO: Use a smarter allocation strategy for staging buffers
         static const uint32_t stagingBufferSize = 64 * 1000 * 1000 * 8;
-        m_stagingBuffer = resources::Buffer(
+        m_stagingBuffer.Initialize(
             m_pRenderEngine,
             stagingBufferSize,
             vk::BufferUsageFlagBits::eTransferSrc,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        
+
         m_pRenderEngine->SetDebugUtilsObjectName(m_stagingBuffer.GetVkBuffer(), "Texture Loader Staging Buffer");
 
         m_stagingBuffer.Map();
@@ -64,8 +64,8 @@ class TextureLoader : public IAssetLoader
 
         // TODO: Move what can be moved to the transfer queue
         auto pCB = ctx.GetGraphicsCommandBuffer();
-        pTexture->m_image = resources::Image::FromBuffer(m_pRenderEngine, *pCB, m_stagingBuffer, width, height, mipLevels, vkFormat);
-        
+        pTexture->m_image.InitializeFromBuffer(m_pRenderEngine, pCB, m_stagingBuffer, width, height, mipLevels, vkFormat);
+
         pTexture->m_image.AddView();
         pTexture->m_image.AddSampler();
         pTexture->m_image.SetDebugName("Material Texture"); // todo: add id name

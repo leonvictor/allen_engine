@@ -57,6 +57,8 @@ class RenderPass
     /// @brief Create the renderpass.
     void Create();
 
+    operator bool() { return (bool) m_vkRenderPass; }
+    
     /// @brief Add a color attachment to this render pass, and return its index.
     int AddColorAttachment(vk::Format format);
 

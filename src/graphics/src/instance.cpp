@@ -92,7 +92,7 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
         .pEngineName = "AllenEngine",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_2,
+        .apiVersion = VK_API_VERSION_1_3,
     };
 
     vk::InstanceCreateInfo instanceCreateInfo = {
@@ -118,15 +118,13 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
     }
 
     m_vkInstance = vk::createInstanceUnique(instanceCreateInfo).value;
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_vkInstance.get());
 
     if (m_validationLayersEnabled)
     {
-        m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{m_vkInstance.get(), vkGetInstanceProcAddr};
         m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(
-                                           debugUtilsMessengerCreateInfo,
-                                           nullptr,
-                                           m_dispatchLoaderDynamic)
-                               .value;
+            debugUtilsMessengerCreateInfo,
+            nullptr).value;
     }
 }
 

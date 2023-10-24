@@ -22,19 +22,21 @@ class MeshLoader : public IAssetLoader
   public:
     MeshLoader(RenderEngine* pDevice) : m_pRenderEngine(pDevice)
     {
-        m_vertexStagingBuffer = resources::Buffer(
+        m_vertexStagingBuffer.Initialize(
             m_pRenderEngine,
             STAGING_BUFFER_SIZE,
             vk::BufferUsageFlagBits::eTransferSrc,
-            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+        );
         
         m_pRenderEngine->SetDebugUtilsObjectName(m_vertexStagingBuffer.GetVkBuffer(), "Mesh Loader Vertex Staging Buffer");
 
-        m_indexStagingBuffer = resources::Buffer(
+        m_indexStagingBuffer.Initialize(
             m_pRenderEngine,
             STAGING_BUFFER_SIZE,
             vk::BufferUsageFlagBits::eTransferSrc,
-            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+        );
 
         m_pRenderEngine->SetDebugUtilsObjectName(m_indexStagingBuffer.GetVkBuffer(), "Mesh Loader Index Staging Buffer");
 
@@ -95,18 +97,18 @@ class MeshLoader : public IAssetLoader
         /// @todo GPU buffers could be all be kept in the renderer itself
         // Create and fill the vulkan buffers to back the mesh.
         m_vertexStagingBuffer.Copy(pMesh->m_vertices);
-        pMesh->m_vertexBuffer = resources::Buffer(m_pRenderEngine, pMesh->m_vertices.size(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        pMesh->m_vertexBuffer.Initialize(m_pRenderEngine, pMesh->m_vertices.size(), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_pRenderEngine->SetDebugUtilsObjectName(pMesh->m_vertexBuffer.GetVkBuffer(), "Mesh Vertex Buffer");
 
         m_indexStagingBuffer.Copy(pMesh->m_indices);
-        pMesh->m_indexBuffer = resources::Buffer(m_pRenderEngine, pMesh->m_indices.size() * sizeof(uint32_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        pMesh->m_indexBuffer.Initialize(m_pRenderEngine, pMesh->m_indices.size() * sizeof(uint32_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
         m_pRenderEngine->SetDebugUtilsObjectName(pMesh->m_indexBuffer.GetVkBuffer(), "Mesh Index Buffer");
 
         // TODO: Only record command buffers here
         // This method is called from multiple thread and we must submit them at once
         auto pCB = ctx.GetTransferCommandBuffer();
-        m_vertexStagingBuffer.CopyTo(*pCB, pMesh->m_vertexBuffer);
-        m_indexStagingBuffer.CopyTo(*pCB, pMesh->m_indexBuffer);
+        m_vertexStagingBuffer.CopyTo(pCB, pMesh->m_vertexBuffer);
+        m_indexStagingBuffer.CopyTo(pCB, pMesh->m_indexBuffer);
 
         pRecord->SetAsset(pMesh);
 

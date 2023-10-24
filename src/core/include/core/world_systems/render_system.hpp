@@ -23,6 +23,14 @@ class IComponent;
 class SkeletalMesh;
 class StaticMesh;
 
+struct RenderData
+{
+    Vector<const SkeletalMeshComponent*> m_visibleSkeletalMeshComponents;
+    Vector<const StaticMeshComponent*> m_visibleStaticMeshComponents;
+    IDVector<Light*> m_lightComponents;
+    const CameraComponent* m_pCameraComponent;
+};
+
 class GraphicsSystem : public IWorldSystem
 {
     // Mesh components are grouped by mesh instance so that we can have one descriptor per mesh instance
@@ -45,8 +53,9 @@ class GraphicsSystem : public IWorldSystem
         uint32_t GetID() const { return m_pMesh->GetID(); }
     };
 
-    SceneRenderer* m_pRenderer = nullptr;
-
+  private:
+    RenderData m_renderData;
+     
     // Viewport info
     /// @todo: Move to a specific Viewport class that get passed around
     float m_aspectRatio = 1.0f;
@@ -55,14 +64,10 @@ class GraphicsSystem : public IWorldSystem
     LinesRenderState m_linesRenderState;
 
     // Registered components
-    const CameraComponent* m_pCameraComponent = nullptr;
     IDVector<SkeletalMeshRenderInstance> m_skeletalMeshRenderInstances;
     IDVector<StaticMeshRenderInstance> m_staticMeshRenderInstances;
-    IDVector<Light*> m_lightComponents;
 
-    Vector<const SkeletalMeshComponent*> m_visibleSkeletalMeshComponents;
-    Vector<const StaticMeshComponent*> m_visibleStaticMeshComponents;
-
+  private:
     // -------------------------------------------------
     // System Methods
     // -------------------------------------------------
@@ -77,12 +82,12 @@ class GraphicsSystem : public IWorldSystem
     void RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext);
 
   public:
-    GraphicsSystem(SceneRenderer* pRenderer) : m_pRenderer(pRenderer) {}
-
     void SetRenderCamera(const CameraComponent* pCameraComponent)
     {
         assert(pCameraComponent != nullptr);
-        m_pCameraComponent = pCameraComponent;
+        m_renderData.m_pCameraComponent = pCameraComponent;
     }
+
+    const RenderData& GetRenderData() const { return m_renderData; }
 };
 } // namespace aln

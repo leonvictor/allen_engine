@@ -45,12 +45,13 @@ struct AssetRequest
     // Sync
     uint32_t m_threadIdx = 0; // Thread this request is being processed on
 
-    vk::CommandBuffer* m_pTransferCommandBuffer = nullptr;
-    vk::CommandBuffer* m_pGraphicsCommandBuffer = nullptr;
+    TransferQueuePersistentCommandBuffer m_transferCommandBuffer;
+    GraphicsQueuePersistentCommandBuffer m_graphicsCommandBuffer;
+
     vk::UniqueSemaphore m_pTransferQueueCommandsSemaphore; // Signaled when commands submitted to the transfer queue are done (i.e. vertex buffer cpu->gpu)
     vk::UniqueSemaphore m_pGraphicsQueueCommandsSemaphore; // Signaled when commands submitted to the graphics queue are done (i.e. mipmap generation)
     bool m_commandBuffersSubmitted = false;
-    
+
     Type m_type = Type::Invalid;
     State m_status = State::Invalid;
 
@@ -71,9 +72,10 @@ struct AssetRequest
     bool HasTouchedGPUGraphicsQueue() const { return (bool) m_pGraphicsQueueCommandsSemaphore; }
     bool HasTouchedAnyGPUQueue() const { return HasTouchedGPUGraphicsQueue() || HasTouchedGPUTransferQueue(); }
 
-    vk::CommandBuffer* GetTransferCommandBuffer()
+    TransferQueuePersistentCommandBuffer& GetTransferCommandBuffer()
     {
-        assert(m_pRenderDevice != nullptr && m_pTransferCommandBuffer != nullptr);
+        assert(m_pRenderDevice != nullptr && m_transferCommandBuffer);
+        
         if (!m_pTransferQueueCommandsSemaphore)
         {
             static constexpr vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
@@ -86,14 +88,15 @@ struct AssetRequest
             };
 
             m_pTransferQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphoreUnique(semaphoreCreateInfo).value;
+            m_pRenderDevice->SetDebugUtilsObjectName(m_pTransferQueueCommandsSemaphore.get(), "Asset Request Transfer Queue Semaphore");
         }
 
-        return m_pTransferCommandBuffer;
+        return m_transferCommandBuffer;
     }
 
-    vk::CommandBuffer* GetGraphicsCommandBuffer()
+    GraphicsQueuePersistentCommandBuffer& GetGraphicsCommandBuffer()
     {
-        assert(m_pRenderDevice != nullptr && m_pGraphicsCommandBuffer != nullptr);
+        assert(m_pRenderDevice != nullptr && m_graphicsCommandBuffer);
         if (!m_pGraphicsQueueCommandsSemaphore)
         {
             static constexpr vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
@@ -106,9 +109,10 @@ struct AssetRequest
             };
 
             m_pGraphicsQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphoreUnique(semaphoreCreateInfo).value;
+            m_pRenderDevice->SetDebugUtilsObjectName(m_pGraphicsQueueCommandsSemaphore.get(), "Asset Request Graphics Queue Semaphore");
         }
 
-        return m_pGraphicsCommandBuffer;
+        return m_graphicsCommandBuffer;
     }
 };
 } // namespace aln

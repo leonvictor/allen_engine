@@ -1,38 +1,46 @@
 #include "render_engine.hpp"
 #include "commandpool.hpp"
 #include "instance.hpp"
+#include "window.hpp"
+
+#include <aln_graphics_export.h>
 
 #include <vulkan/vulkan.hpp>
 
 #include <assert.h>
 #include <set>
 
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
 namespace aln
 {
 
 /// @brief Create a vulkan pRenderEngine.
-void RenderEngine::Initialize(GLFWwindow* pGlfwWindow)
+void RenderEngine::Initialize(IWindow* pGlfwWindow)
 {
+    auto& test = VULKAN_HPP_DEFAULT_DISPATCHER;
+
+    PFN_vkGetInstanceProcAddr getInstanceProcAddr = m_dynamicLoader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(getInstanceProcAddr);
+
+    m_pWindow = pGlfwWindow;
+
     uint32_t glfwExtensionCount;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     Vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     m_instance.Initialize(extensions);
 
-    glfwCreateWindowSurface(m_instance.GetVkInstance(), pGlfwWindow, nullptr, (VkSurfaceKHR*) &m_surface);
-
-    m_physical = PickPhysicalDevice(m_surface);
+    m_pWindow->CreateSurface(m_instance.GetVkInstance());
+    m_physical = PickPhysicalDevice();
     m_gpuProperties = m_physical.getProperties();
 
-    CreateLogicalDevice(m_surface);
+    CreateLogicalDevice();
 
     m_msaaSamples = GetMaxUsableSampleCount();
     m_descriptorAllocator.Init(&m_logical.get());
 
-    int windowWidth, windowHeight;
-    glfwGetFramebufferSize(pGlfwWindow, &windowWidth, &windowHeight);
-
-    m_swapchain.Initialize(this, &m_surface, windowWidth, windowHeight);
+    m_pWindow->CreateSwapchain(this);
 
     auto threadCount = std::thread::hardware_concurrency();
     for (auto frameIdx = 0; frameIdx < FRAME_QUEUE_SIZE; ++frameIdx)
@@ -41,12 +49,22 @@ void RenderEngine::Initialize(GLFWwindow* pGlfwWindow)
         for (auto threadIdx = 0; threadIdx <= threadCount; ++threadIdx)
         {
             auto& threadData = frameData.m_threadData.emplace_back();
-            threadData.m_graphicsCommandPool.Initialize(&m_logical.get(), &m_graphicsQueue, vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-            threadData.m_transferCommandPool.Initialize(&m_logical.get(), &m_transferQueue, vk::CommandPoolCreateFlagBits::eTransient);
+            threadData.m_graphicsTransientCommandPool.Initialize(&m_logical.get(), &m_graphicsQueue);
+            threadData.m_transferTransientCommandPool.Initialize(&m_logical.get(), &m_transferQueue);
+            threadData.m_graphicsPersistentCommandPool.Initialize(&m_logical.get(), &m_graphicsQueue);
+            threadData.m_transferPersistentCommandPool.Initialize(&m_logical.get(), &m_transferQueue);
 
-            SetDebugUtilsObjectName(threadData.m_graphicsCommandPool.m_vkCommandPool.get(), "Graphics Command Pool (Thread " + threadIdx + ')');
-            SetDebugUtilsObjectName(threadData.m_transferCommandPool.m_vkCommandPool.get(), "Transfer Command Pool (Thread " + threadIdx + ')');
+            SetDebugUtilsObjectName(threadData.m_graphicsTransientCommandPool.m_vkCommandPool.get(), "Graphics Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
+            SetDebugUtilsObjectName(threadData.m_transferTransientCommandPool.m_vkCommandPool.get(), "Transfer Transient Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
+            SetDebugUtilsObjectName(threadData.m_graphicsPersistentCommandPool.m_vkCommandPool.get(), "Graphics Persistent Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
+            SetDebugUtilsObjectName(threadData.m_transferPersistentCommandPool.m_vkCommandPool.get(), "Transfer Persistent Command Pool (Image " + std::to_string(frameIdx) + ", Thread " + std::to_string(threadIdx) + ")");
         }
+
+        vk::FenceCreateInfo fenceCreateInfo = {
+            .flags = vk::FenceCreateFlagBits::eSignaled,
+        };
+
+        frameData.m_currentlyRendering = m_logical->createFenceUnique(fenceCreateInfo).value;
     }
 }
 
@@ -56,16 +74,14 @@ void RenderEngine::Shutdown()
     {
         for (auto& threadData : frameData.m_threadData)
         {
-            threadData.m_graphicsCommandPool.Shutdown();
-            threadData.m_transferCommandPool.Shutdown();
+            threadData.m_graphicsTransientCommandPool.Shutdown();
+            threadData.m_transferTransientCommandPool.Shutdown();
+            threadData.m_graphicsPersistentCommandPool.Shutdown();
+            threadData.m_transferPersistentCommandPool.Shutdown();
         }
-
-        frameData.m_imageAvailableSemaphore.reset();
-        frameData.m_inFlight.reset();
-        frameData.m_renderFinished.reset();
     }
 
-    m_swapchain.Shutdown();
+    m_pWindow->DestroySwapchain(this);
 
     for (auto& [typeIndex, descriptorSetLayout] : m_descriptorSetLayoutsCache)
     {
@@ -75,13 +91,17 @@ void RenderEngine::Shutdown()
     m_descriptorAllocator.Cleanup();
 
     m_logical.reset();
-    m_instance.GetVkInstance().destroySurfaceKHR(m_surface);
+
+    auto& surface = m_pWindow->GetSurface();
+    m_instance.GetVkInstance().destroySurfaceKHR(surface);
+
     m_instance.Shutdown();
 }
 
-SwapchainSupportDetails RenderEngine::GetSwapchainSupport(const vk::SurfaceKHR& surface)
+SwapchainSupportDetails RenderEngine::GetSwapchainSupport()
 {
     // TODO: Store support as class attribute ?
+    auto& surface = m_pWindow->GetSurface();
     return SwapchainSupportDetails(m_physical, surface);
 }
 
@@ -164,8 +184,11 @@ bool RenderEngine::SupportsBlittingToLinearImages()
     return true;
 }
 
-void RenderEngine::CreateLogicalDevice(const vk::SurfaceKHR& surface)
+void RenderEngine::CreateLogicalDevice()
 {
+    assert(m_pWindow != nullptr && m_physical);
+    auto& surface = m_pWindow->GetSurface();
+
     auto queueFamilyIndices = Queue::FamilyIndices(m_physical, surface);
 
     Vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -188,22 +211,31 @@ void RenderEngine::CreateLogicalDevice(const vk::SurfaceKHR& surface)
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features> chain = {
-        {
-            // 1.0 features
-            .features = {
-                .sampleRateShading = vk::True,
-                .samplerAnisotropy = vk::True,
-                .fragmentStoresAndAtomics = vk::True,
+    vk::StructureChain<
+        vk::PhysicalDeviceFeatures2,
+        vk::PhysicalDeviceVulkan11Features,
+        vk::PhysicalDeviceVulkan12Features,
+        vk::PhysicalDeviceVulkan13Features>
+        chain = {
+            {
+                // 1.0 features
+                .features = {
+                    .sampleRateShading = vk::True,
+                    .samplerAnisotropy = vk::True,
+                    .fragmentStoresAndAtomics = vk::True,
+                },
             },
-        },
-        // 1.1 features
-        {},
-        // 1.2 features
-        {
-            .timelineSemaphore = vk::True,
-        },
-    };
+            // 1.1 features
+            {},
+            // 1.2 features
+            {
+                .timelineSemaphore = vk::True,
+            },
+            // 1.3 features
+            {
+                .synchronization2 = vk::True,
+            },
+        };
 
     vk::DeviceCreateInfo deviceCreateInfo = {
         .pNext = &chain.get<vk::PhysicalDeviceFeatures2>(),
@@ -227,6 +259,7 @@ void RenderEngine::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 
     // Create the pRenderEngine
     m_logical = m_physical.createDeviceUnique(deviceCreateInfo).value;
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_logical.get());
 
     // Create queues
     m_graphicsQueue = Queue(m_logical.get(), queueFamilyIndices.graphicsFamily.value());
@@ -246,8 +279,11 @@ void RenderEngine::CreateLogicalDevice(const vk::SurfaceKHR& surface)
 }
 
 /// @brief Select a suitable GPU among the detected ones.
-vk::PhysicalDevice RenderEngine::PickPhysicalDevice(const vk::SurfaceKHR& surface)
+vk::PhysicalDevice RenderEngine::PickPhysicalDevice()
 {
+    assert(m_pWindow != nullptr);
+    const auto& surface = m_pWindow->GetSurface();
+
     // TODO: core::Instance could wrap this call and keep a list of devices cached... but it's not necessary right now
     auto devices = m_instance.GetVkInstance().enumeratePhysicalDevices().value;
 
@@ -302,6 +338,8 @@ vk::SampleCountFlagBits RenderEngine::GetMaxUsableSampleCount()
 /// @brief Check if a pRenderEngine is suitable for the specified surface and requested extensions.
 bool RenderEngine::IsDeviceSuitable(const vk::PhysicalDevice& pRenderEngine, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions)
 {
+    assert(pRenderEngine != nullptr && surface);
+
     auto familyIndices = Queue::FamilyIndices(pRenderEngine, surface);
     bool extensionsSupported = CheckDeviceExtensionsSupport(pRenderEngine, requiredExtensions);
 

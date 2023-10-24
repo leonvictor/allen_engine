@@ -9,6 +9,7 @@
 #include <core/components/camera.hpp>
 #include <core/entity_systems/camera_controller.hpp>
 #include <core/renderers/scene_renderer.hpp>
+#include <core/services/rendering_service.hpp>
 #include <core/world_systems/render_system.hpp>
 #include <entities/world_entity.hpp>
 #include <reflection/services/type_registry_service.hpp>
@@ -37,12 +38,9 @@ Editor::Editor(WorldEntity& worldEntity)
     : m_worldEntity(worldEntity),
       m_assetsBrowser(DEFAULT_ASSETS_DIR) {}
 
-void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context)
+void Editor::Update(const UpdateContext& context)
 {
     ZoneScoped;
-
-    // TODO: Save service on initialization
-    const auto pTypeRegistryService = context.GetService<TypeRegistryService>();
 
     // Draw ImGUI components
     ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
@@ -136,7 +134,7 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
                     if (ImGui::MenuItem((camera.m_pOwningEntity->GetName() + "::" + camera.m_pComponent->GetTypeInfo()->GetPrettyName()).c_str()))
                     {
                         auto pRenderingSystem = m_worldEntity.GetSystem<GraphicsSystem>();
-                        pRenderingSystem->SetRenderCamera(static_cast<CameraComponent*>(camera.m_pComponent));
+                        pRenderingSystem->SetRenderCamera(static_cast<const CameraComponent*>(camera.m_pComponent));
                     }
                     // TODO: Tooltip with component ID to disambiguate an entity having mutliple cameras of the same type
                 }
@@ -150,7 +148,10 @@ void Editor::Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, co
         auto dim = ImGui::GetContentRegionAvail();
         m_scenePreviewWidth = dim.x;
         m_scenePreviewHeight = dim.y;
-        ImGui::Image((ImTextureID) renderedSceneImageDescriptorSet, {m_scenePreviewWidth, m_scenePreviewHeight});
+
+        // TODO: We need to access the current frame scene render target (resolve image)
+        auto& descriptor = m_pRenderingService->GetRenderTarget()->m_resolveImage.GetDescriptorSet();
+        ImGui::Image((ImTextureID) descriptor, {m_scenePreviewWidth, m_scenePreviewHeight});
     }
 
     ImGui::End();
@@ -404,6 +405,7 @@ void Editor::ResolveAssetWindowRequests()
 void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath)
 {
     m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+    m_pRenderingService = serviceProvider.GetService<RenderingService>();
 
     // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
     m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();

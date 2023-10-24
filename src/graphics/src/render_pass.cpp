@@ -1,5 +1,7 @@
 #include "render_pass.hpp"
 
+#include "render_engine.hpp"
+
 namespace aln
 {
 

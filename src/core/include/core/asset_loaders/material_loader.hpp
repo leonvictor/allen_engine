@@ -32,7 +32,7 @@ class MaterialLoader : public IAssetLoader
         pMaterial->m_albedoMap = AssetHandle<Texture>(id);
 
         // TMP while materials are poopy
-        pMaterial->m_buffer = resources::Buffer(m_pRenderEngine, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+        pMaterial->m_buffer.Initialize(m_pRenderEngine, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
         m_pRenderEngine->SetDebugUtilsObjectName(pMaterial->m_buffer.GetVkBuffer(), "Material Buffer Object");
 
         auto material = MaterialBufferObject();

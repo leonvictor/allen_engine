@@ -51,14 +51,10 @@ void AssetService::Update()
         if (m_loadingTask.GetIsComplete())
         {
             // Submit all the recorded command buffers (mostly cpu->gpu transfers tasks)
-
-            // End command buffers recording
-            m_commandBuffers[0]->end();
-            m_commandBuffers[1]->end();
-
             // Grab all semaphore that need notifying
             Vector<vk::Semaphore> transferQueueSemaphores;
             Vector<vk::Semaphore> graphicsQueueSemaphores;
+
             for (auto& request : m_activeRequests)
             {
                 if (request.m_pTransferQueueCommandsSemaphore && !request.m_commandBuffersSubmitted)
@@ -66,6 +62,7 @@ void AssetService::Update()
                     transferQueueSemaphores.push_back(*request.m_pTransferQueueCommandsSemaphore);
                     request.m_commandBuffersSubmitted = true;
                 }
+
                 if (request.m_pGraphicsQueueCommandsSemaphore && !request.m_commandBuffersSubmitted)
                 {
                     graphicsQueueSemaphores.push_back(*request.m_pGraphicsQueueCommandsSemaphore);
@@ -73,64 +70,35 @@ void AssetService::Update()
                 }
             }
 
-            // TMP Fences
-            Array<vk::Fence, 2> fences;
-            vk::FenceCreateInfo fenceCreateInfo = {};
-            m_pRenderDevice->GetVkDevice().createFence(&fenceCreateInfo, nullptr, &fences[0]);
-            m_pRenderDevice->GetVkDevice().createFence(&fenceCreateInfo, nullptr, &fences[1]);
-
-            if (transferQueueSemaphores.size() > 0)
+            if (!transferQueueSemaphores.empty())
             {
                 Vector<uint64_t> values(transferQueueSemaphores.size(), 1);
 
-                vk::TimelineSemaphoreSubmitInfo semaphoreSubmitInfo = {
-                    .signalSemaphoreValueCount = static_cast<uint32_t>(transferQueueSemaphores.size()),
-                    .pSignalSemaphoreValues = values.data(),
-                };
-
-                vk::SubmitInfo transferSubmitInfo = {
-                    .pNext = &semaphoreSubmitInfo,
-                    .commandBufferCount = 1,
-                    .pCommandBuffers = &m_commandBuffers[0].get(),
-                    .signalSemaphoreCount = static_cast<uint32_t>(transferQueueSemaphores.size()),
-                    .pSignalSemaphores = transferQueueSemaphores.data(),
-                };
-
-                m_pRenderDevice->GetTransferQueue().Submit(transferSubmitInfo, fences[0]);
-
-                // TMP: Wait for both fences then delete commandbuffers
-                m_pRenderDevice->GetVkDevice().waitForFences(1, &fences[0], true, UINT64_MAX);
+                Queue::SubmissionRequest request;
+                request.ExecuteCommandBuffer(m_transferCommandBuffer);
+                request.SignalSemaphores(transferQueueSemaphores, 1);
+                
+                m_pRenderDevice->GetTransferQueue().Submit(request, vk::Fence{});
+            }
+            else
+            {
+                m_transferCommandBuffer.Release();
             }
 
-            if (graphicsQueueSemaphores.size() > 0)
+            if (!graphicsQueueSemaphores.empty())
             {
                 Vector<uint64_t> values(graphicsQueueSemaphores.size(), 1);
 
-                vk::TimelineSemaphoreSubmitInfo semaphoreSubmitInfo = {
-                    .signalSemaphoreValueCount = static_cast<uint32_t>(graphicsQueueSemaphores.size()),
-                    .pSignalSemaphoreValues = values.data(),
-                };
+                Queue::SubmissionRequest request;
+                request.ExecuteCommandBuffer(m_graphicsCommandBuffer);
+                request.SignalSemaphores(graphicsQueueSemaphores, 1);
 
-                vk::SubmitInfo graphicsSubmitInfo = {
-                    .pNext = &semaphoreSubmitInfo,
-                    .commandBufferCount = 1,
-                    .pCommandBuffers = &m_commandBuffers[1].get(),
-                    .signalSemaphoreCount = static_cast<uint32_t>(graphicsQueueSemaphores.size()),
-                    .pSignalSemaphores = graphicsQueueSemaphores.data(),
-                };
-
-                m_pRenderDevice->GetGraphicsQueue().Submit(graphicsSubmitInfo, fences[1]);
-
-                // TMP
-                m_pRenderDevice->GetVkDevice().waitForFences(1, &fences[1], true, UINT64_MAX);
+                m_pRenderDevice->GetGraphicsQueue().Submit(request, vk::Fence{});
             }
-
-            m_commandBuffers[0].reset();
-            m_commandBuffers[1].reset();
-
-            // TMP
-            m_pRenderDevice->GetVkDevice().destroyFence(fences[0]);
-            m_pRenderDevice->GetVkDevice().destroyFence(fences[1]);
+            else
+            {
+                m_graphicsCommandBuffer.Release();
+            }
         }
         else
         {
@@ -210,8 +178,8 @@ void AssetService::Update()
     // Handle active requests
     if (!m_activeRequests.empty())
     {
-        m_pTaskService->ScheduleTask(&m_loadingTask);
         m_isLoadingTaskRunning = true;
+        m_pTaskService->ScheduleTask(&m_loadingTask);
     }
 }
 
@@ -220,12 +188,8 @@ void AssetService::HandleActiveRequests(uint32_t threadIdx = 0)
     ZoneScoped;
 
     // Start command buffers that loaders will record to
-    m_commandBuffers[0] = m_pRenderDevice->GetTransferCommandPool(threadIdx).AllocateUniqueCommandBuffer();
-    m_commandBuffers[1] = m_pRenderDevice->GetGraphicsCommandPool(threadIdx).AllocateUniqueCommandBuffer();
-
-    vk::CommandBufferBeginInfo cbBeginInfo = {.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
-    m_commandBuffers[0]->begin(cbBeginInfo);
-    m_commandBuffers[1]->begin(cbBeginInfo);
+    m_transferCommandBuffer = m_pRenderDevice->GetTransferPersistentCommandPool(threadIdx).GetCommandBuffer();
+    m_graphicsCommandBuffer = m_pRenderDevice->GetGraphicsPersistentCommandPool(threadIdx).GetCommandBuffer();
 
     int32_t requestCount = (int32_t) m_activeRequests.size() - 1;
     for (auto idx = requestCount; idx >= 0; idx--)
@@ -236,8 +200,8 @@ void AssetService::HandleActiveRequests(uint32_t threadIdx = 0)
         pRequest->m_requestAssetUnload = std::bind(&AssetService::Unload, this, std::placeholders::_1);
         pRequest->m_pRenderDevice = m_pRenderDevice;
         pRequest->m_threadIdx = threadIdx;
-        pRequest->m_pTransferCommandBuffer = &m_commandBuffers[0].get();
-        pRequest->m_pGraphicsCommandBuffer = &m_commandBuffers[1].get();
+        pRequest->m_transferCommandBuffer = m_transferCommandBuffer;
+        pRequest->m_graphicsCommandBuffer = m_graphicsCommandBuffer;
 
         if (pRequest->IsLoadingRequest())
         {
