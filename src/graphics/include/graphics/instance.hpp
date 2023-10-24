@@ -41,7 +41,6 @@ class Instance
     /// @brief Get the wrapped vulkan instance.
     const vk::Instance& GetVkInstance() const { return m_vkInstance.get(); }
     const Vector<const char*>& GetValidationLayers() const { return m_validationLayers; }
-    const vk::DispatchLoaderDynamic& GetDispatchLoaderDynamic() const { return m_dispatchLoaderDynamic; }
     bool ValidationLayersEnabled() const { return m_validationLayersEnabled; }
 };
 } // namespace aln
