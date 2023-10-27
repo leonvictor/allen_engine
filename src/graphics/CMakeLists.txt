@@ -15,9 +15,11 @@ add_library(
     src/command_buffer.cpp
     src/resources/buffer.cpp
     src/resources/image.cpp
+    src/resources/staging_buffer.cpp
     src/resources/allocation.cpp
-
     src/descriptor_allocator.cpp
+
+     src/external/vma.cpp
 
     ${IMGUI_SOURCE}
 )
@@ -36,6 +38,15 @@ set(LIB_DEPENDENCIES
     TracyClient
 )
 
+# Vulkan Memory Allocator
+FetchContent_Declare(
+    vma
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/
+    GIT_TAG a6bfc237255a6bac1513f7c1ebde6d8aed6b5191 # v3.0.1 https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.0.1
+)
+
+FetchContent_MakeAvailable(vma)
+
 target_compile_definitions(${LIB_NAME}
     PRIVATE
         VULKAN_HPP_STORAGE_SHARED_EXPORT
@@ -45,7 +56,9 @@ target_compile_definitions(${LIB_NAME}
 
 target_link_libraries(${LIB_NAME} 
     PUBLIC
-        ${LIB_DEPENDENCIES})
+        ${LIB_DEPENDENCIES}
+        VulkanMemoryAllocator
+)
 
 target_include_directories(${LIB_NAME}
     PRIVATE # Include directories inside this lib access the headers directly

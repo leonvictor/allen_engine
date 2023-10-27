@@ -3,6 +3,7 @@
 #include "handle.hpp"
 #include "loader.hpp"
 #include "record.hpp"
+#include "request_context.hpp"
 
 #include <common/uuid.hpp>
 #include <graphics/render_engine.hpp>
@@ -13,8 +14,11 @@ namespace aln
 {
 class AssetService;
 
-struct AssetRequest
+class AssetRequest
 {
+    friend class AssetService;
+
+  private:
     enum class Type : uint8_t
     {
         Load,
@@ -34,22 +38,21 @@ struct AssetRequest
         Failed
     };
 
+  private:
     UUID m_requesterEntityID = UUID::InvalidID;
     AssetRecord* m_pAssetRecord = nullptr;
     IAssetLoader* m_pLoader = nullptr;
     RenderEngine* m_pRenderDevice = nullptr;
 
+    // Callbacks to queue dependency requests
     std::function<void(IAssetHandle&)> m_requestAssetLoad;
     std::function<void(IAssetHandle&)> m_requestAssetUnload;
 
     // Sync
-    uint32_t m_threadIdx = 0; // Thread this request is being processed on
+    AssetRequestContext m_context;
 
-    TransferQueuePersistentCommandBuffer m_transferCommandBuffer;
-    GraphicsQueuePersistentCommandBuffer m_graphicsCommandBuffer;
-
-    vk::UniqueSemaphore m_pTransferQueueCommandsSemaphore; // Signaled when commands submitted to the transfer queue are done (i.e. vertex buffer cpu->gpu)
-    vk::UniqueSemaphore m_pGraphicsQueueCommandsSemaphore; // Signaled when commands submitted to the graphics queue are done (i.e. mipmap generation)
+    vk::Semaphore m_transferQueueCommandsSemaphore; // Signaled when commands submitted to the transfer queue are done (i.e. vertex buffer cpu->gpu)
+    vk::Semaphore m_graphicsQueueCommandsSemaphore; // Signaled when commands submitted to the graphics queue are done (i.e. mipmap generation)
     bool m_commandBuffersSubmitted = false;
 
     Type m_type = Type::Invalid;
@@ -57,47 +60,33 @@ struct AssetRequest
 
     Vector<IAssetHandle> m_dependencies;
 
-    bool IsValid() const { return m_type != Type::Invalid; }
-    bool IsLoadingRequest() const { return m_type == Type::Load; }
-    bool IsUnloadingRequest() const { return m_type == Type::Unload; }
-
+  private:
     void Load();
     void WaitForDependencies();
     void Install();
     void Unload();
 
-    bool IsComplete() { return m_status == State::Complete; }
-
-    bool HasTouchedGPUTransferQueue() const { return (bool) m_pTransferQueueCommandsSemaphore; }
-    bool HasTouchedGPUGraphicsQueue() const { return (bool) m_pGraphicsQueueCommandsSemaphore; }
-    bool HasTouchedAnyGPUQueue() const { return HasTouchedGPUGraphicsQueue() || HasTouchedGPUTransferQueue(); }
-
-    TransferQueuePersistentCommandBuffer& GetTransferCommandBuffer()
+    void Shutdown()
     {
-        assert(m_pRenderDevice != nullptr && m_transferCommandBuffer);
-        
-        if (!m_pTransferQueueCommandsSemaphore)
-        {
-            static constexpr vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
-                .semaphoreType = vk::SemaphoreType::eTimeline,
-                .initialValue = 0,
-            };
-
-            static constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo = {
-                .pNext = &semaphoreTypeCreateInfo,
-            };
-
-            m_pTransferQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphoreUnique(semaphoreCreateInfo).value;
-            m_pRenderDevice->SetDebugUtilsObjectName(m_pTransferQueueCommandsSemaphore.get(), "Asset Request Transfer Queue Semaphore");
-        }
-
-        return m_transferCommandBuffer;
+        m_pRenderDevice->GetVkDevice().destroySemaphore(m_transferQueueCommandsSemaphore);
+        m_pRenderDevice->GetVkDevice().destroySemaphore(m_graphicsQueueCommandsSemaphore);
     }
 
-    GraphicsQueuePersistentCommandBuffer& GetGraphicsCommandBuffer()
+  public:
+    bool IsValid() const { return m_type != Type::Invalid; }
+    bool IsLoadingRequest() const { return m_type == Type::Load; }
+    bool IsUnloadingRequest() const { return m_type == Type::Unload; }
+    bool IsComplete() { return m_status == State::Complete; }
+
+    bool WereCommandsSubmitted() const { return m_commandBuffersSubmitted; }
+    bool HasTouchedGPUTransferQueue() const { return (bool) m_transferQueueCommandsSemaphore; }
+    bool HasTouchedGPUGraphicsQueue() const { return (bool) m_graphicsQueueCommandsSemaphore; }
+    bool AreGraphicsCommandsInProgress() const { return m_graphicsQueueCommandsSemaphore && m_pRenderDevice->GetVkDevice().getSemaphoreCounterValue(m_graphicsQueueCommandsSemaphore).value == 0; }
+    bool AreTransferCommandsInProgress() const { return m_transferQueueCommandsSemaphore && m_pRenderDevice->GetVkDevice().getSemaphoreCounterValue(m_transferQueueCommandsSemaphore).value == 0; }
+
+    bool FinalizeTransferQueueCommands()
     {
-        assert(m_pRenderDevice != nullptr && m_graphicsCommandBuffer);
-        if (!m_pGraphicsQueueCommandsSemaphore)
+        if (m_context.WasTransferSubmissionAccessed())
         {
             static constexpr vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
                 .semaphoreType = vk::SemaphoreType::eTimeline,
@@ -108,11 +97,37 @@ struct AssetRequest
                 .pNext = &semaphoreTypeCreateInfo,
             };
 
-            m_pGraphicsQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphoreUnique(semaphoreCreateInfo).value;
-            m_pRenderDevice->SetDebugUtilsObjectName(m_pGraphicsQueueCommandsSemaphore.get(), "Asset Request Graphics Queue Semaphore");
+            m_transferQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphore(semaphoreCreateInfo).value;
+            m_pRenderDevice->SetDebugUtilsObjectName(m_transferQueueCommandsSemaphore, "Asset Request Transfer Queue Semaphore");
+
+            m_context.GetTransferQueueSubmission()->SignalSemaphore(&m_transferQueueCommandsSemaphore, 1);
+            return true;
         }
 
-        return m_graphicsCommandBuffer;
+        return false;
+    }
+
+    bool FinalizeGraphicsQueueCommands()
+    {
+        if (m_context.WasGraphicsSubmissionAccessed())
+        {
+            static constexpr vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
+                .semaphoreType = vk::SemaphoreType::eTimeline,
+                .initialValue = 0,
+            };
+
+            static constexpr vk::SemaphoreCreateInfo semaphoreCreateInfo = {
+                .pNext = &semaphoreTypeCreateInfo,
+            };
+
+            m_graphicsQueueCommandsSemaphore = m_pRenderDevice->GetVkDevice().createSemaphore(semaphoreCreateInfo).value;
+            m_pRenderDevice->SetDebugUtilsObjectName(m_graphicsQueueCommandsSemaphore, "Asset Request Graphics Queue Semaphore");
+
+            m_context.GetGraphicsQueueSubmission()->SignalSemaphore(&m_graphicsQueueCommandsSemaphore, 1);
+            return true;
+        }
+
+        return false;
     }
 };
 } // namespace aln

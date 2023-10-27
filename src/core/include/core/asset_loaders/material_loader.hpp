@@ -19,7 +19,7 @@ class MaterialLoader : public IAssetLoader
         m_pRenderEngine = pDevice;
     }
 
-    bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+    bool Load(AssetRequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
         assert(pRecord->GetAssetTypeID() == Material::GetStaticAssetTypeID());

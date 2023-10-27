@@ -2,6 +2,8 @@
 
 #include "asset_service.hpp"
 
+#include <graphics/command_buffer.hpp>
+
 #include <vulkan/vulkan.hpp>
 
 namespace aln
@@ -51,54 +53,53 @@ void AssetService::Update()
         if (m_loadingTask.GetIsComplete())
         {
             // Submit all the recorded command buffers (mostly cpu->gpu transfers tasks)
-            // Grab all semaphore that need notifying
-            Vector<vk::Semaphore> transferQueueSemaphores;
-            Vector<vk::Semaphore> graphicsQueueSemaphores;
-
+            bool transferCommandsRecorded = false;
+            bool graphicsCommandsRecorded = false;
             for (auto& request : m_activeRequests)
             {
-                if (request.m_pTransferQueueCommandsSemaphore && !request.m_commandBuffersSubmitted)
+                if (request.WereCommandsSubmitted())
                 {
-                    transferQueueSemaphores.push_back(*request.m_pTransferQueueCommandsSemaphore);
-                    request.m_commandBuffersSubmitted = true;
+                    continue;
                 }
 
-                if (request.m_pGraphicsQueueCommandsSemaphore && !request.m_commandBuffersSubmitted)
+                if (request.FinalizeTransferQueueCommands())
                 {
-                    graphicsQueueSemaphores.push_back(*request.m_pGraphicsQueueCommandsSemaphore);
-                    request.m_commandBuffersSubmitted = true;
+                    transferCommandsRecorded = true;
                 }
+
+                if (request.FinalizeGraphicsQueueCommands())
+                {
+                    graphicsCommandsRecorded = true;
+                }
+
+                request.m_commandBuffersSubmitted = true;
             }
 
-            if (!transferQueueSemaphores.empty())
+            // Submit transfer commands
+            if (transferCommandsRecorded)
             {
-                Vector<uint64_t> values(transferQueueSemaphores.size(), 1);
-
-                Queue::SubmissionRequest request;
-                request.ExecuteCommandBuffer(m_transferCommandBuffer);
-                request.SignalSemaphores(transferQueueSemaphores, 1);
-                
-                m_pRenderDevice->GetTransferQueue().Submit(request, vk::Fence{});
+                QueueSubmissionRequest submissionRequest;
+                m_transferQueueSubmission.PopulateRequest(submissionRequest);
+                m_pRenderDevice->GetTransferQueue().Submit(submissionRequest, vk::Fence{});
             }
             else
             {
                 m_transferCommandBuffer.Release();
             }
+            m_transferQueueSubmission.Reset();
 
-            if (!graphicsQueueSemaphores.empty())
+            // Submit graphics command
+            if (graphicsCommandsRecorded)
             {
-                Vector<uint64_t> values(graphicsQueueSemaphores.size(), 1);
-
-                Queue::SubmissionRequest request;
-                request.ExecuteCommandBuffer(m_graphicsCommandBuffer);
-                request.SignalSemaphores(graphicsQueueSemaphores, 1);
-
-                m_pRenderDevice->GetGraphicsQueue().Submit(request, vk::Fence{});
+                QueueSubmissionRequest submissionRequest;
+                m_graphicsQueueSubmission.PopulateRequest(submissionRequest);
+                m_pRenderDevice->GetGraphicsQueue().Submit(submissionRequest, vk::Fence{});
             }
             else
             {
                 m_graphicsCommandBuffer.Release();
             }
+            m_graphicsQueueSubmission.Reset();
         }
         else
         {
@@ -108,7 +109,7 @@ void AssetService::Update()
 
     m_isLoadingTaskRunning = false;
 
-    std::lock_guard lock(m_mutex);
+    m_mutex.lock();
 
     // Filter pending requests and move them to active according to their status
     for (auto& pendingRequest : m_pendingRequests)
@@ -174,6 +175,7 @@ void AssetService::Update()
     }
 
     m_pendingRequests.clear();
+    m_mutex.unlock();
 
     // Handle active requests
     if (!m_activeRequests.empty())
@@ -190,6 +192,13 @@ void AssetService::HandleActiveRequests(uint32_t threadIdx = 0)
     // Start command buffers that loaders will record to
     m_transferCommandBuffer = m_pRenderDevice->GetTransferPersistentCommandPool(threadIdx).GetCommandBuffer();
     m_graphicsCommandBuffer = m_pRenderDevice->GetGraphicsPersistentCommandPool(threadIdx).GetCommandBuffer();
+    m_pRenderDevice->SetDebugUtilsObjectName((vk::CommandBuffer) m_transferCommandBuffer, "Asset Service Transfer CB");
+    m_pRenderDevice->SetDebugUtilsObjectName((vk::CommandBuffer) m_graphicsCommandBuffer, "Asset Service Graphics CB");
+
+    m_transferQueueSubmission.Initialize(&m_transferCommandBuffer);
+    m_graphicsQueueSubmission.Initialize(&m_graphicsCommandBuffer);
+
+    m_stagingBuffer.FrameUpdate();
 
     int32_t requestCount = (int32_t) m_activeRequests.size() - 1;
     for (auto idx = requestCount; idx >= 0; idx--)
@@ -199,9 +208,10 @@ void AssetService::HandleActiveRequests(uint32_t threadIdx = 0)
         pRequest->m_requestAssetLoad = std::bind(&AssetService::Load, this, std::placeholders::_1);
         pRequest->m_requestAssetUnload = std::bind(&AssetService::Unload, this, std::placeholders::_1);
         pRequest->m_pRenderDevice = m_pRenderDevice;
-        pRequest->m_threadIdx = threadIdx;
-        pRequest->m_transferCommandBuffer = m_transferCommandBuffer;
-        pRequest->m_graphicsCommandBuffer = m_graphicsCommandBuffer;
+
+        pRequest->m_context.m_pTransferQueueSubmission = &m_transferQueueSubmission;
+        pRequest->m_context.m_pGraphicsQueueSubmission = &m_graphicsQueueSubmission;
+        pRequest->m_context.m_pStagingBuffer = &m_stagingBuffer;
 
         if (pRequest->IsLoadingRequest())
         {
@@ -232,6 +242,7 @@ void AssetService::HandleActiveRequests(uint32_t threadIdx = 0)
         if (pRequest->IsComplete())
         {
             // Remove completed request
+            pRequest->Shutdown();
             m_activeRequests.erase(m_activeRequests.begin() + idx);
         }
     }

@@ -1,15 +1,16 @@
 #pragma once
 
-#include <assert.h>
-#include <memory>
-
-#include <common/serialization/binary_archive.hpp>
-#include <graphics/command_buffer.hpp>
-
 #include "asset.hpp"
 #include "asset_archive_header.hpp"
 #include "handle.hpp"
 #include "record.hpp"
+#include "request_context.hpp"
+
+#include <common/serialization/binary_archive.hpp>
+#include <graphics/command_buffer.hpp>
+
+#include <assert.h>
+#include <memory>
 
 namespace aln
 {
@@ -20,19 +21,9 @@ class IAssetLoader
     friend class AssetService;
     friend class AssetRequest;
 
-  public:
-    struct RequestContext
-    {
-        uint32_t m_threadIdx = 0;
-        AssetRequest* m_pSourceRequest = nullptr;
-
-        TransferQueuePersistentCommandBuffer& GetTransferCommandBuffer();
-        GraphicsQueuePersistentCommandBuffer& GetGraphicsCommandBuffer();
-    };
-
   private:
     // Concrete loading functions called by the asset service
-    bool LoadAsset(RequestContext& ctx, AssetRecord* pRecord)
+    bool LoadAsset(AssetRequestContext& ctx, AssetRecord* pRecord)
     {
         assert(pRecord->IsUnloaded());
 
@@ -85,7 +76,7 @@ class IAssetLoader
 
   protected:
     // Virtual loading functions, overload in specialized loader classes to implement asset-specific behavior
-    virtual bool Load(RequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
+    virtual bool Load(AssetRequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
     virtual void Unload(AssetRecord* pRecord){};
     virtual void InstallDependencies(AssetRecord* pRecord, const Vector<IAssetHandle>& dependencies) {}
 

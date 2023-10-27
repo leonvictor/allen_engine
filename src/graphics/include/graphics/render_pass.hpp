@@ -18,8 +18,8 @@ class RenderPass
   public:
     struct Context
     {
-        vk::CommandBuffer& commandBuffer;
-        vk::Framebuffer& framebuffer;
+        vk::CommandBuffer commandBuffer;
+        vk::Framebuffer framebuffer;
         aln::RGBAColor backgroundColor = {0, 0, 0, 255};
     };
 

@@ -132,12 +132,12 @@ class Pipeline
         m_pushConstants.push_back({stage, offset, size});
     }
 
-    void Bind(vk::CommandBuffer& cb);
+    void Bind(vk::CommandBuffer cb);
 
     /// @brief Bind a descriptor set to this pipeline.
     /// @todo: automatically handle the descriptor index
     /// We bind every frame, when are sets unbound ?
-    void BindDescriptorSet(vk::CommandBuffer& cb, const vk::DescriptorSet& descriptorSet, uint32_t index);
+    void BindDescriptorSet(vk::CommandBuffer cb, const vk::DescriptorSet& descriptorSet, uint32_t index);
 
     inline bool IsInitialized() const { return m_status == State::Initialized; }
     inline const vk::Pipeline& GetVkPipeline() const { return m_pipeline; }

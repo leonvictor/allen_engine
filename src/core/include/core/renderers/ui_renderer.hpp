@@ -154,7 +154,7 @@ class EditorRenderer : public IRenderer
         auto& renderTarget = m_renderTargets[renderTargetIdx];
 
         RenderPass::Context renderPassCtx = {
-            .commandBuffer = (vk::CommandBuffer&) cb,
+            .commandBuffer = (vk::CommandBuffer) cb,
             .framebuffer = renderTarget.m_framebuffer,
             .backgroundColor = ctx.backgroundColor,
         };

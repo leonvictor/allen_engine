@@ -40,6 +40,7 @@ class AssetService : public IService
 
     RenderEngine* m_pRenderDevice = nullptr;
 
+    // Sync
     std::recursive_mutex m_mutex;
     TaskService* m_pTaskService = nullptr;
     TaskSet m_loadingTask;
@@ -47,7 +48,11 @@ class AssetService : public IService
 
     TransferQueuePersistentCommandBuffer m_transferCommandBuffer;
     GraphicsQueuePersistentCommandBuffer m_graphicsCommandBuffer;
+    CommandBufferSubmission<TransferQueuePersistentCommandBuffer> m_transferQueueSubmission;
+    CommandBufferSubmission<GraphicsQueuePersistentCommandBuffer> m_graphicsQueueSubmission;
+    StagingBuffer m_stagingBuffer;
 
+  private:
     /// @brief Find an existing record. The record must have already been created !
     AssetRecord* FindRecord(const AssetID& assetID);
     AssetRecord* GetOrCreateRecord(const AssetID& assetID);
@@ -64,10 +69,13 @@ class AssetService : public IService
     AssetService() : m_loadingTask([this](TaskSetPartition range, uint32_t threadIdx)
                          { HandleActiveRequests(threadIdx); }) {}
 
-    void Initialize(TaskService& taskService, RenderEngine& pRenderEngine)
+    void Initialize(TaskService& taskService, RenderEngine& renderEngine)
     {
         m_pTaskService = &taskService;
-        m_pRenderDevice = &pRenderEngine;
+        m_pRenderDevice = &renderEngine;
+
+        static constexpr size_t STAGING_BUFFER_SIZE = 256 * 1024 * 1024; // 256MiB
+        m_stagingBuffer.Initialize(m_pRenderDevice, STAGING_BUFFER_SIZE);
     }
 
     void Shutdown()
@@ -76,6 +84,8 @@ class AssetService : public IService
         {
             Update();
         }
+
+        m_stagingBuffer.Shutdown();
 
         // TODO: Properly remove cache entries when the last reference is unloaded
         // assert(m_assetCache.empty());

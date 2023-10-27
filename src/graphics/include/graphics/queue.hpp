@@ -10,82 +10,73 @@
 
 namespace aln
 {
+// Wrapper around a VkSubmitInfo that automatically handles persistent CBs' events
+class QueueSubmissionRequest
+{
+    friend class Queue;
+
+  private:
+    Vector<vk::CommandBufferSubmitInfo> m_commandBufferSubmitInfos;
+    Vector<vk::SemaphoreSubmitInfo> m_signalSemaphoreSubmitInfos;
+    Vector<vk::SemaphoreSubmitInfo> m_waitSemaphoreSubmitInfos;
+
+  public:
+    void ExecuteCommandBuffer(PersistentCommandBuffer<vk::Event>& persistentCB)
+    {
+        assert(persistentCB);
+
+        persistentCB.m_pCommandBuffer->resetEvent(*persistentCB.m_pSyncPrimitive, {});
+        persistentCB.m_pCommandBuffer->end();
+
+        auto& cbSubmitInfo = m_commandBufferSubmitInfos.emplace_back();
+        cbSubmitInfo.commandBuffer = *persistentCB.m_pCommandBuffer;
+    }
+
+    void ExecuteCommandBuffer(PersistentCommandBuffer<TimelineSemaphore>& persistentCB)
+    {
+        assert(persistentCB);
+
+        persistentCB.m_pCommandBuffer->end();
+
+        auto& cbSubmitInfo = m_commandBufferSubmitInfos.emplace_back();
+        cbSubmitInfo.commandBuffer = *persistentCB.m_pCommandBuffer;
+
+        auto& signalSubmitInfo = m_signalSemaphoreSubmitInfos.emplace_back();
+        signalSubmitInfo.semaphore = persistentCB.m_pSyncPrimitive->m_semaphore;
+        signalSubmitInfo.value = persistentCB.m_pSyncPrimitive->m_value;
+    }
+
+    void ExecuteCommandBuffer(TransientCommandBuffer& transientCB)
+    {
+        assert(transientCB);
+
+        transientCB.m_pCommandBuffer->end();
+
+        auto& cbSubmitInfo = m_commandBufferSubmitInfos.emplace_back();
+        cbSubmitInfo.commandBuffer = *transientCB.m_pCommandBuffer;
+    }
+
+    /// @brief Add a signal semaphore operation. Value is ignored for binary semaphore
+    void SignalSemaphore(vk::Semaphore& semaphore, uint64_t value = 0, vk::PipelineStageFlagBits2 stageMask = vk::PipelineStageFlagBits2::eNone)
+    {
+        auto& semaphoreSubmitInfo = m_signalSemaphoreSubmitInfos.emplace_back();
+        semaphoreSubmitInfo.semaphore = semaphore;
+        semaphoreSubmitInfo.stageMask = stageMask;
+        semaphoreSubmitInfo.value = value;
+    }
+
+    /// @brief Add a wait semaphore operation. Value is ignored for binary semaphores
+    void WaitSemaphore(const vk::Semaphore& semaphore, uint64_t value = 0, vk::PipelineStageFlagBits2 stageMask = vk::PipelineStageFlagBits2::eNone)
+    {
+        auto& semaphoreSubmitInfo = m_waitSemaphoreSubmitInfos.emplace_back();
+        semaphoreSubmitInfo.semaphore = semaphore;
+        semaphoreSubmitInfo.stageMask = stageMask;
+        semaphoreSubmitInfo.value = value;
+    }
+};
+
 class Queue
 {
-  public:
-    // Wrapper around a SubmitInfo that automatically handles persistent CBs' events
-    class SubmissionRequest
-    {
-        friend class Queue;
-
-      private:
-        Vector<vk::CommandBufferSubmitInfo> m_commandBufferSubmitInfos;
-        Vector<vk::SemaphoreSubmitInfo> m_signalSemaphoreSubmitInfos;
-        Vector<vk::SemaphoreSubmitInfo> m_waitSemaphoreSubmitInfos;
-
-      public:
-        void ExecuteCommandBuffer(PersistentCommandBuffer<vk::Event>& persistentCB)
-        {
-            assert(persistentCB);
-
-            persistentCB.m_pCommandBuffer->resetEvent(*persistentCB.m_pSyncPrimitive, {});
-            persistentCB.m_pCommandBuffer->end();
-
-            auto& cbSubmitInfo = m_commandBufferSubmitInfos.emplace_back();
-            cbSubmitInfo.commandBuffer = *persistentCB.m_pCommandBuffer;
-        }
-
-        void ExecuteCommandBuffer(PersistentCommandBuffer<TimelineSemaphore>& persistentCB)
-        {
-            assert(persistentCB);
-
-            persistentCB.m_pCommandBuffer->end();
-
-            auto& cbSubmitInfo = m_commandBufferSubmitInfos.emplace_back();
-            cbSubmitInfo.commandBuffer = *persistentCB.m_pCommandBuffer;
-
-            auto& signalSubmitInfo = m_signalSemaphoreSubmitInfos.emplace_back();
-            signalSubmitInfo.semaphore = persistentCB.m_pSyncPrimitive->m_semaphore;
-            signalSubmitInfo.value = persistentCB.m_pSyncPrimitive->m_value;
-        }
-
-        void ExecuteCommandBuffer(TransientCommandBuffer& transientCB)
-        {
-            assert(transientCB);
-
-            transientCB.m_pCommandBuffer->end();
-
-            auto& cbSubmitInfo = m_commandBufferSubmitInfos.emplace_back();
-            cbSubmitInfo.commandBuffer = *transientCB.m_pCommandBuffer;
-        }
-
-        void SignalSemaphores(std::span<vk::Semaphore> semaphores, uint64_t value = 0)
-        {
-            m_signalSemaphoreSubmitInfos.reserve(m_signalSemaphoreSubmitInfos.size() + semaphores.size());
-            for (auto& semaphore : semaphores)
-            {
-                auto& semaphoreSubmitInfo = m_signalSemaphoreSubmitInfos.emplace_back();
-                semaphoreSubmitInfo.semaphore = semaphore;
-                semaphoreSubmitInfo.value = value;
-            }
-        }
-
-        void SignalSemaphore(vk::Semaphore& semaphore, uint64_t value = 0, vk::PipelineStageFlagBits2 stageMask = vk::PipelineStageFlagBits2::eNone)
-        {
-            auto& semaphoreSubmitInfo = m_signalSemaphoreSubmitInfos.emplace_back();
-            semaphoreSubmitInfo.semaphore = semaphore;
-            semaphoreSubmitInfo.stageMask = stageMask;
-            semaphoreSubmitInfo.value = value;
-        }
-
-        void WaitSemaphore(vk::Semaphore& semaphore, vk::PipelineStageFlagBits2 stageMask = vk::PipelineStageFlagBits2::eNone)
-        {
-            auto& semaphoreSubmitInfo = m_waitSemaphoreSubmitInfos.emplace_back();
-            semaphoreSubmitInfo.semaphore = semaphore;
-            semaphoreSubmitInfo.stageMask = stageMask;
-        }
-    };
-
   private:
     vk::Queue m_queue;
     uint32_t m_familyIndex;
@@ -99,7 +90,7 @@ class Queue
         m_familyIndex = family;
     }
 
-    void Submit(SubmissionRequest& request, vk::Fence fence)
+    void Submit(QueueSubmissionRequest& request, vk::Fence fence)
     {
         vk::SubmitInfo2 submitInfo = {
             .waitSemaphoreInfoCount = static_cast<uint32_t>(request.m_waitSemaphoreSubmitInfos.size()),

@@ -404,7 +404,7 @@ Vec3 GPUImage::PixelAt(uint32_t x, uint32_t y, bool colorSwizzle)
     return Vec3();
 }
 
-void GPUImage::GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels)
+void GPUImage::GenerateMipMaps(vk::CommandBuffer cb, uint32_t mipLevels)
 {
     auto formatProperties = m_pRenderEngine->GetFormatProperties(m_format);
 
@@ -538,29 +538,6 @@ Vector<vk::DescriptorSetLayoutBinding> GPUImage::GetDescriptorSetLayoutBindings(
     };
 
     return bindings;
-}
-
-void GPUImage::InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, GPUBuffer& buffer, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, uint32_t arrayLayers, vk::ImageType type)
-{
-    Initialize(pDevice, width, height, mipLevels,
-        vk::SampleCountFlagBits::e1, format, vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
-        arrayLayers, {}, vk::ImageLayout::eUndefined, type);
-
-    Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-    TransitionLayout(cb, vk::ImageLayout::eTransferDstOptimal);
-    buffer.CopyTo(cb, *this);
-
-    // Optionnaly generate mipmaps
-    if (mipLevels > 1)
-    {
-        GenerateMipMaps(cb, mipLevels);
-    }
-    else
-    {
-        TransitionLayout(cb, vk::ImageLayout::eShaderReadOnlyOptimal);
-    }
 }
 
 // void GPUImage::InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path)

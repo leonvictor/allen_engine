@@ -118,7 +118,7 @@ class SceneRenderer : public IRenderer
             renderTarget.m_resolveImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
             renderTarget.m_resolveImage.AddView(vk::ImageAspectFlagBits::eColor);
             renderTarget.m_resolveImage.AddSampler();
-            renderTarget.m_resolveImage.TransitionLayout(cb, vk::ImageLayout::eGeneral);
+            renderTarget.m_resolveImage.TransitionLayout((vk::CommandBuffer) cb, vk::ImageLayout::eGeneral);
             renderTarget.m_resolveImage.CreateDescriptorSet();
             renderTarget.m_resolveImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Resolve");
 
@@ -172,7 +172,7 @@ class SceneRenderer : public IRenderer
             renderTarget.m_renderFinished = m_pRenderEngine->GetVkDevice().createSemaphore({}).value;
         }
 
-        Queue::SubmissionRequest request;
+        QueueSubmissionRequest request;
         request.ExecuteCommandBuffer(cb);
 
         m_pRenderEngine->GetGraphicsQueue().Submit(request, vk::Fence{});
@@ -436,7 +436,7 @@ class SceneRenderer : public IRenderer
         m_renderpass.Shutdown();
     }
 
-    void RenderStaticMeshes(const Vector<const StaticMeshComponent*>& staticMeshComponents, vk::CommandBuffer& cb, uint32_t currentMeshIndex)
+    void RenderStaticMeshes(const Vector<const StaticMeshComponent*>& staticMeshComponents, vk::CommandBuffer cb, uint32_t currentMeshIndex)
     {
         m_staticMeshesPipeline.Bind(cb);
 
@@ -477,7 +477,7 @@ class SceneRenderer : public IRenderer
         cb.drawIndexed(pCurrentMesh->GetIndicesCount(), instanceCount, 0, 0, firstInstance);
     }
 
-    void RenderSkeletalMeshes(const Vector<const SkeletalMeshComponent*>& skeletalMeshComponents, vk::CommandBuffer& cb, uint32_t currentMeshIndex)
+    void RenderSkeletalMeshes(const Vector<const SkeletalMeshComponent*>& skeletalMeshComponents, vk::CommandBuffer cb, uint32_t currentMeshIndex)
     {
         m_skeletalMeshesPipeline.Bind(cb);
 
@@ -553,7 +553,7 @@ class SceneRenderer : public IRenderer
         const auto& data = pWorld->GetSystem<GraphicsSystem>()->GetRenderData();
 
         RenderPass::Context renderPassCtx = {
-            .commandBuffer = (vk::CommandBuffer&) cb,
+            .commandBuffer = (vk::CommandBuffer) cb,
             .framebuffer = renderTarget.m_framebuffer,
             .backgroundColor = data.m_pCameraComponent->m_backgroundColor,
         };
@@ -619,24 +619,24 @@ class SceneRenderer : public IRenderer
 
         // Rendering
         /// @note: Descriptors are only bound to the skeletal meshes pipeline first because it's the first thing we render, but that could change
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_sceneDataDescriptorSet, 0);
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_lightsDescriptorSet, 1);
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_modelTransformsDescriptorSet, 3);
-        m_skeletalMeshesPipeline.BindDescriptorSet(cb, m_skinningBufferDescriptorSet, 4);
+        m_skeletalMeshesPipeline.BindDescriptorSet((vk::CommandBuffer) cb, m_sceneDataDescriptorSet, 0);
+        m_skeletalMeshesPipeline.BindDescriptorSet((vk::CommandBuffer) cb, m_lightsDescriptorSet, 1);
+        m_skeletalMeshesPipeline.BindDescriptorSet((vk::CommandBuffer) cb, m_modelTransformsDescriptorSet, 3);
+        m_skeletalMeshesPipeline.BindDescriptorSet((vk::CommandBuffer) cb, m_skinningBufferDescriptorSet, 4);
 
         uint32_t meshIndex = 0;
 
         // ---- Render skeletal meshes
         if (!data.m_visibleSkeletalMeshComponents.empty())
         {
-            RenderSkeletalMeshes(data.m_visibleSkeletalMeshComponents, cb, meshIndex);
+            RenderSkeletalMeshes(data.m_visibleSkeletalMeshComponents, (vk::CommandBuffer) cb, meshIndex);
             meshIndex += data.m_visibleSkeletalMeshComponents.size();
         }
 
         // ---- Render static meshes
         if (!data.m_visibleStaticMeshComponents.empty())
         {
-            RenderStaticMeshes(data.m_visibleStaticMeshComponents, cb, meshIndex);
+            RenderStaticMeshes(data.m_visibleStaticMeshComponents, (vk::CommandBuffer) cb, meshIndex);
             meshIndex += data.m_visibleSkeletalMeshComponents.size();
         }
 

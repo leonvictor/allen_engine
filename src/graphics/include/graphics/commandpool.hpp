@@ -171,13 +171,13 @@ class PersistentCommandPool : public CommandPool
         commandBuffer.m_pCommandBuffer = nullptr;
     }
 
-    void Execute(const std::function<void(vk::CommandBuffer& cb)>& func)
+    void Execute(const std::function<void(vk::CommandBuffer cb)>& func)
     {
         auto cb = GetCommandBuffer();
 
-        func(cb);
+        func((vk::CommandBuffer) cb);
 
-        Queue::SubmissionRequest request;
+        QueueSubmissionRequest request;
         request.ExecuteCommandBuffer(cb);
         m_pQueue->Submit(request, vk::Fence{});
     }

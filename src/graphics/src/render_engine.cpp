@@ -336,24 +336,24 @@ vk::SampleCountFlagBits RenderEngine::GetMaxUsableSampleCount()
     return vk::SampleCountFlagBits::e1;
 }
 
-/// @brief Check if a pRenderEngine is suitable for the specified surface and requested extensions.
-bool RenderEngine::IsDeviceSuitable(const vk::PhysicalDevice& pRenderEngine, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions)
+/// @brief Check if a physical device is suitable for the specified surface and requested extensions.
+bool RenderEngine::IsDeviceSuitable(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface, Vector<const char*> requiredExtensions)
 {
-    assert(pRenderEngine != nullptr && surface);
+    assert(physicalDevice && surface);
 
-    auto familyIndices = Queue::FamilyIndices(pRenderEngine, surface);
-    bool extensionsSupported = CheckDeviceExtensionsSupport(pRenderEngine, requiredExtensions);
+    auto familyIndices = Queue::FamilyIndices(physicalDevice, surface);
+    bool extensionsSupported = CheckDeviceExtensionsSupport(physicalDevice, requiredExtensions);
 
     bool swapchainAdequate = false;
     if (extensionsSupported)
     {
-        auto swapChainSupport = SwapchainSupportDetails(pRenderEngine, surface);
+        auto swapChainSupport = SwapchainSupportDetails(physicalDevice, surface);
         // In this tutorial a pRenderEngine is adequate as long as it supports at least one image format and one supported presentation mode.
         swapchainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
     // TODO : Instead of enforcing features, we can disable their usage if not available
-    auto supportedFeatures = pRenderEngine.getFeatures();
+    auto supportedFeatures = physicalDevice.getFeatures();
     return familyIndices.IsComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy;
 }
 }; // namespace aln

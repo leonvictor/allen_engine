@@ -93,9 +93,6 @@ class GPUImage : public GPUAllocation
     /// @brief Wrap an existing VkImage. The original image won't be automatically destroyed.
     void Initialize(RenderEngine* pDevice, vk::Image& image, vk::Format format);
 
-    /// @brief Create an image an upload the content of a GPUBuffer to it.
-    void InitializeFromBuffer(RenderEngine* pDevice, vk::CommandBuffer& cb, GPUBuffer& GPUBuffer, uint32_t width, uint32_t height, uint32_t mipLevels = 1, vk::Format format = vk::Format::eR8G8B8A8Srgb, uint32_t arrayLayers = 1, vk::ImageType type = vk::ImageType::e2D);
-
     /// @brief Load a cubemap from a directory.
     //void InitializeFromCubemapFromDirectory(RenderEngine* pDevice, std::string path);
 
@@ -124,7 +121,7 @@ class GPUImage : public GPUAllocation
     void CopyTo(vk::CommandBuffer cb, GPUImage& dstImage, uint32_t width, uint32_t height);
 
     /// @brief Generate mipmaps and transfer the last level to shader_readonly layout.
-    void GenerateMipMaps(vk::CommandBuffer& cb, uint32_t mipLevels);
+    void GenerateMipMaps(vk::CommandBuffer cb, uint32_t mipLevels);
 
     /// @brief Save image on disk as a ppm file.
     /// FIXME: This only works in 8-bits per channel formats

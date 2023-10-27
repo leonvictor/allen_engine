@@ -16,7 +16,7 @@ class RenderEngine;
 /// @brief A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
 /// but only as a base class providing common functionality for the classes below.
 ///
-/// Provides easy to use mechanisms for mapping, unmapping and copying host data to the pRenderEngine memory
+/// Provides easy to use mechanisms for mapping, unmapping and copying host data to device memory
 class GPUAllocation
 {
   protected:

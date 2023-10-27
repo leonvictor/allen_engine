@@ -210,13 +210,13 @@ void Pipeline::SetBindPoint(vk::PipelineBindPoint bindPoint)
     m_bindPoint = bindPoint;
 }
 
-void Pipeline::Bind(vk::CommandBuffer& cb)
+void Pipeline::Bind(vk::CommandBuffer cb)
 {
     assert(IsInitialized());
     cb.bindPipeline(m_bindPoint, m_pipeline);
 }
 
-void Pipeline::BindDescriptorSet(vk::CommandBuffer& cb, const vk::DescriptorSet& descriptorSet, uint32_t index)
+void Pipeline::BindDescriptorSet(vk::CommandBuffer cb, const vk::DescriptorSet& descriptorSet, uint32_t index)
 {
     // TODO: firstSet and offsets.
     cb.bindDescriptorSets(m_bindPoint, m_layout, index, descriptorSet, nullptr);
