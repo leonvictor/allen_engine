@@ -1,17 +1,20 @@
 #pragma once
 
-#include <assert.h>
-#include <memory>
-
-#include <common/serialization/binary_archive.hpp>
-
 #include "asset.hpp"
 #include "asset_archive_header.hpp"
 #include "handle.hpp"
 #include "record.hpp"
+#include "request_context.hpp"
+
+#include <common/serialization/binary_archive.hpp>
+#include <graphics/command_buffer.hpp>
+
+#include <assert.h>
+#include <memory>
 
 namespace aln
 {
+
 /// TODO: Hide from clients
 class IAssetLoader
 {
@@ -20,7 +23,7 @@ class IAssetLoader
 
   private:
     // Concrete loading functions called by the asset service
-    bool LoadAsset(AssetRecord* pRecord)
+    bool LoadAsset(AssetRequestContext& ctx, AssetRecord* pRecord)
     {
         assert(pRecord->IsUnloaded());
 
@@ -35,18 +38,19 @@ class IAssetLoader
         }
 
         AssetArchiveHeader header;
-        archive >> header;
+        Vector<std::byte> dataStream;
 
-        Vector<std::byte> data;
-        archive >> data;
+        archive >> header;
+        archive >> dataStream;
 
         for (auto& dependency : header.GetDependencies())
         {
             pRecord->AddDependency(dependency);
         }
 
-        auto dataArchive = BinaryMemoryArchive(data, IBinaryArchive::IOMode::Read);
-        return Load(pRecord, dataArchive);
+        auto dataArchive = BinaryMemoryArchive(dataStream, IBinaryArchive::IOMode::Read);
+
+        return Load(ctx, pRecord, dataArchive);
     }
 
     void UnloadAsset(AssetRecord* pRecord)
@@ -72,7 +76,7 @@ class IAssetLoader
 
   protected:
     // Virtual loading functions, overload in specialized loader classes to implement asset-specific behavior
-    virtual bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
+    virtual bool Load(AssetRequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
     virtual void Unload(AssetRecord* pRecord){};
     virtual void InstallDependencies(AssetRecord* pRecord, const Vector<IAssetHandle>& dependencies) {}
 

@@ -10,7 +10,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg
+namespace aln
 {
 
 class DescriptorAllocator
@@ -35,25 +35,26 @@ class DescriptorAllocator
 
     /// @brief: Resets all the dirty pools and ready them for reuse.
     void ResetPools();
-    vk::UniqueDescriptorSet Allocate(const vk::DescriptorSetLayout* pLayout);
-    void Init(vk::Device* newDevice);
-    void Cleanup();
+    vk::DescriptorSet Allocate(const vk::DescriptorSetLayout* pLayout);
+
+    void Initialize(vk::Device* pDevice);
+    void Shutdown();
 
     vk::DescriptorPool& GetActivePool();
 
   private:
-    vk::Device* m_pDevice = nullptr;
+    vk::Device* m_pLogicalDevice = nullptr;
     PoolSizes descriptorSizes;
 
     /// Pointer to the current active pool.
-    vk::UniqueDescriptorPool* m_currentPool = nullptr;
+    vk::DescriptorPool* m_pCurrentPool = nullptr;
 
     /// Used pools for cleanup.
-    Vector<vk::UniqueDescriptorPool> m_usedPools;
+    Vector<vk::DescriptorPool> m_usedPools;
     /// Free pools available to reuse.
-    Vector<vk::UniqueDescriptorPool> m_freePools;
+    Vector<vk::DescriptorPool> m_freePools;
 
     /// @brief: Grab a free pool if one is available, otherwise create a new one and return it.
-    vk::UniqueDescriptorPool GrabPool();
+    vk::DescriptorPool GrabPool();
 };
-} // namespace aln::vkg
+} // namespace aln

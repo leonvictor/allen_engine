@@ -3,6 +3,7 @@
 #include "components/camera.hpp"
 #include "components/light.hpp"
 #include "renderers/scene_renderer.hpp"
+#include "services/rendering_service.hpp"
 
 #include <graphics/rendering/renderer.hpp>
 #include <entities/entity.hpp>
@@ -24,7 +25,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
 
     // TODO: Profile with a staging buffer
     // but vk buffer copy is not allowed inside a render pass
-    // vkg::resources::Buffer stagingBuffer(m_pRenderer->GetDevice(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertexBuffer);
+    // GPUBuffer stagingBuffer(m_pRenderer->GetDevice(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vertexBuffer);
     // m_linesRenderState.m_stagingBuffer.Map();
     // m_linesRenderState.m_stagingBuffer.Copy(vertexBuffer);
     // m_linesRenderState.m_stagingBuffer.Unmap();
@@ -33,7 +34,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
 
     // Update UBO
     LinesRenderState::UBO ubo;
-    ubo.m_viewProjectionMatrix = m_pCameraComponent->GetViewProjectionMatrix(m_aspectRatio);
+    ubo.m_viewProjectionMatrix = m_renderData.m_pCameraComponent->GetViewProjectionMatrix(m_aspectRatio);
 
     m_linesRenderState.m_viewProjectionUBO.Copy(ubo);
 
@@ -46,7 +47,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     auto& pipeline = m_linesRenderState.m_pipeline;
     pipeline.Bind(cb);
 
-    pipeline.BindDescriptorSet(cb, m_linesRenderState.m_descriptorSet.get(), 0);
+    pipeline.BindDescriptorSet(cb, m_linesRenderState.m_descriptorSet, 0);
     cb.bindVertexBuffers(0, m_linesRenderState.m_vertexBuffer.GetVkBuffer(), (vk::DeviceSize) 0);
     cb.draw(vertexBuffer.size(), 1, 0, 0);
 }
@@ -54,100 +55,99 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
 void GraphicsSystem::Shutdown()
 {
     // TODO
-    m_linesRenderState.Shutdown();
+    //m_linesRenderState.Shutdown();
 }
 
 void GraphicsSystem::Initialize()
 {
-    auto pDevice = m_pRenderer->GetDevice();
-
     // Debug resources
-    m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
+    // TODO: Rework line debugging
+    //m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
 }
 
 void GraphicsSystem::Update(const UpdateContext& context)
 {
-    ZoneScoped;
-
     if (context.GetUpdateStage() != UpdateStage::FrameEnd)
     {
         return;
     }
 
-    assert(m_pCameraComponent != nullptr);
-    if (!m_pCameraComponent->IsInitialized())
+    ZoneScoped;
+
+    assert(m_renderData.m_pCameraComponent != nullptr);
+    if (!m_renderData.m_pCameraComponent->IsInitialized())
     {
         return; // Camera is the only necessary component, return if it's not loaded yet
     }
 
+    // TODO: The graphics system is merely responsible for culling, the true rendering command
+    // recording is done by the graphics service. 
+    // How do the two communicate ?
+    // Conceptually it would be better if Systems were clients of services
+    // So set the things to render from here to the service
+    // Problem is we might have multiple worlds that should be rendered by different renderers
+    // (i.e. editor preview windows)
+    // Previews can have their own world, but the service should be shared
+    auto pRenderingService = context.GetService<RenderingService>();
+
     // Update viewport info
     m_aspectRatio = context.GetDisplayWidth() / context.GetDisplayHeight();
 
-    aln::vkg::render::RenderContext ctx = {.backgroundColor = m_pCameraComponent->m_backgroundColor};
-    m_pRenderer->BeginFrame(ctx);
+    //aln::RenderContext ctx = {.backgroundColor = m_pCameraComponent->m_backgroundColor};
+    //m_pRenderer->StartFrame(ctx);
 
-    m_visibleStaticMeshComponents.clear();
+    m_renderData.m_visibleStaticMeshComponents.clear();
     for (auto& meshInstance : m_staticMeshRenderInstances)
     {
         for (const auto& pStaticMeshComponent : meshInstance.m_components)
         {
             // TODO: Cull
-            m_visibleStaticMeshComponents.push_back(pStaticMeshComponent);
+            m_renderData.m_visibleStaticMeshComponents.push_back(pStaticMeshComponent);
         }
     }
 
-    m_visibleSkeletalMeshComponents.clear();
+    m_renderData.m_visibleSkeletalMeshComponents.clear();
     for (auto& meshInstance : m_skeletalMeshRenderInstances)
     {
         for (auto pSkeletalMeshComponent : meshInstance.m_components)
         {
             // TODO: Cull
             pSkeletalMeshComponent->UpdateSkinningTransforms();
-            m_visibleSkeletalMeshComponents.push_back(pSkeletalMeshComponent);
+            m_renderData.m_visibleSkeletalMeshComponents.push_back(pSkeletalMeshComponent);
         }
     }
 
-    SceneRenderer::RenderData data{
-        .m_skeletalMeshComponents = m_visibleSkeletalMeshComponents,
-        .m_staticMeshComponents = m_visibleStaticMeshComponents,
-        .m_lights = m_lightComponents,
-        .m_sceneData = {
-            .m_view = m_pCameraComponent->GetViewMatrix(),
-            .m_projection = m_pCameraComponent->GetProjectionMatrix(m_aspectRatio),
-            .m_cameraPosition = m_pCameraComponent->GetLocalTransform().GetTranslation(),
-        }};
-
     /// @todo Keep cb inside the renderer once we've moved debug rendering
-    auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();
-    m_pRenderer->Render(data, cb);
+    //auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();
+    //m_pRenderer->Render(data, cb);
 
     // Debug drawing
     /// @todo: Move to a dedicated renderer
-    DrawingContext drawingContext;
-    for (auto& meshInstance : m_skeletalMeshRenderInstances)
-    {
-        for (const auto& pSkeletalMeshComponent : meshInstance.m_components)
-        {
-            if (pSkeletalMeshComponent->m_drawDebugSkeleton)
-            {
-                pSkeletalMeshComponent->DrawPose(drawingContext);
-            }
-            // pSkeletalMeshComponent->DrawBindPose(drawingContext);
-        }
-    }
+    //DrawingContext drawingContext;
+    //for (auto& meshInstance : m_skeletalMeshRenderInstances)
+    //{
+    //    for (const auto& pSkeletalMeshComponent : meshInstance.m_components)
+    //    {
+    //        if (pSkeletalMeshComponent->m_drawDebugSkeleton)
+    //        {
+    //            pSkeletalMeshComponent->DrawPose(drawingContext);
+    //        }
+    //        // pSkeletalMeshComponent->DrawBindPose(drawingContext);
+    //    }
+    //}
 
-    RenderDebugLines(cb, drawingContext);
+    //RenderDebugLines(cb, drawingContext);
 
-    m_pRenderer->EndFrame();
+    //m_pRenderer->EndFrame();
 }
 
 void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pComponent)
 {
     // Set the first registered camera as the active one
     auto pCamera = dynamic_cast<CameraComponent*>(pComponent);
-    if (m_pCameraComponent == nullptr && pCamera != nullptr)
+    if (m_renderData.m_pCameraComponent == nullptr && pCamera != nullptr)
     {
-        m_pCameraComponent = pCamera;
+        m_renderData.m_pCameraComponent = pCamera;
         return;
     }
 
@@ -170,7 +170,7 @@ void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pCompo
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        m_lightComponents.PushBack(pLight);
+        m_renderData.m_lightComponents.PushBack(pLight);
         return;
     }
 }
@@ -180,8 +180,8 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     auto pCamera = dynamic_cast<CameraComponent*>(pComponent);
     if (pCamera != nullptr)
     {
-        assert(m_pCameraComponent != nullptr);
-        m_pCameraComponent = nullptr;
+        assert(m_renderData.m_pCameraComponent != nullptr);
+        m_renderData.m_pCameraComponent = nullptr;
         return;
     }
 
@@ -212,7 +212,7 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     auto pLight = dynamic_cast<Light*>(pComponent);
     if (pLight != nullptr)
     {
-        m_lightComponents.Erase(pLight);
+        m_renderData.m_lightComponents.Erase(pLight);
         return;
     }
 }

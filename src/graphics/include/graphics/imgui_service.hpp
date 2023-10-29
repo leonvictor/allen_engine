@@ -1,37 +1,36 @@
 #pragma once
 
-#include <config/path.h>
 
-#include "IconsFontAwesome6.h"
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
-#include "imnodes.h"
-
-#include "device.hpp"
 #include "instance.hpp"
+#include "render_engine.hpp"
 #include "render_pass.hpp"
+#include "window.hpp"
 
+#include <config/path.h>
+#include <common/services/service.hpp>
+
+#include <GLFW/glfw3.h>
+#include <IconsFontAwesome6.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+#include <imnodes.h>
 #include <tracy/Tracy.hpp>
 
-namespace aln::vkg
+namespace aln
 {
 
-/// @brief Handles RAII for ImGui.
-class ImGUI
+class ImGUIService : public IService
 {
   public:
-    void Initialize(GLFWwindow* pGlfwWindow, Device* pDevice, RenderPass& renderPass, int nSwapchainImages)
+    void Initialize()
     {
-        // Initialize Imgui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImNodes::CreateContext();
 
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        (void) io;
 
         ImVec4* colors = ImGui::GetStyle().Colors;
         colors[ImGuiCol_Text] = ImVec4(0.95f, 0.96f, 0.98f, 1.00f);
@@ -89,29 +88,35 @@ class ImGUI
         colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
         colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+    }
 
+    void InitializeRendering(RenderEngine* pRenderEngine, RenderPass& renderPass)
+    {
+        assert(pRenderEngine != nullptr && renderPass);
+
+        auto pGlfwWindow = reinterpret_cast<GLFWwindow*>(pRenderEngine->GetWindow()->GetWindowPtr());
         ImGui_ImplGlfw_InitForVulkan(pGlfwWindow, true);
 
         ImGui_ImplVulkan_InitInfo init_info;
-        init_info.Instance = (VkInstance) pDevice->GetInstance()->GetVkInstance();
-        init_info.PhysicalDevice = pDevice->GetVkPhysicalDevice();
-        init_info.Device = pDevice->GetVkDevice();
-        init_info.QueueFamily = pDevice->GetPresentQueue().GetFamilyIndex();
-        init_info.Queue = pDevice->GetPresentQueue().GetVkQueue();
+        init_info.Instance = (VkInstance) pRenderEngine->GetInstance()->GetVkInstance();
+        init_info.PhysicalDevice = pRenderEngine->GetVkPhysicalDevice();
+        init_info.Device = pRenderEngine->GetVkDevice();
+        init_info.QueueFamily = pRenderEngine->GetPresentQueue().GetFamilyIndex();
+        init_info.Queue = pRenderEngine->GetPresentQueue().GetVkQueue();
         init_info.PipelineCache = nullptr;
-        init_info.DescriptorPool = pDevice->GetDescriptorPool();
+        init_info.DescriptorPool = pRenderEngine->GetDescriptorPool();
         init_info.Allocator = nullptr;
         init_info.MinImageCount = 2;
-        init_info.ImageCount = nSwapchainImages;
+        init_info.ImageCount = pRenderEngine->GetFrameQueueSize();
         init_info.CheckVkResultFn = nullptr;
-        init_info.MSAASamples = (VkSampleCountFlagBits) pDevice->GetMSAASamples();
+        init_info.MSAASamples = (VkSampleCountFlagBits) pRenderEngine->GetMSAASamples();
         init_info.Subpass = 0;
         init_info.UseDynamicRendering = false;
 
         ImGui_ImplVulkan_Init(&init_info, renderPass.GetVkRenderPass());
 
         // Upload Fonts
-        io = ImGui::GetIO();
+        auto& io = ImGui::GetIO();
         io.Fonts->AddFontDefault();
 
         // merge in icons from Font Awesome
@@ -124,37 +129,46 @@ class ImGUI
         io.Fonts->AddFontFromFileTTF(FONTS_DIR "/fa-solid-900.ttf", 13.0f, &icons_config, icons_ranges);
 
         // Use any command queue
-        pDevice->GetGraphicsCommandPool().Execute([&](vk::CommandBuffer cb)
+        pRenderEngine->GetGraphicsPersistentCommandPool().Execute([&](vk::CommandBuffer cb)
             { ImGui_ImplVulkan_CreateFontsTexture(cb); });
 
+        pRenderEngine->GetGraphicsQueue().WaitIdle(); // Not ideal !
         ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+
+    void ShutdownRendering()
+    {
+        ImGui_ImplVulkan_Shutdown();
     }
 
     void Shutdown()
     {
         // Cleanup ImGui
-        ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
         ImNodes::DestroyContext();
     }
 
-    void NewFrame()
+    void StartFrame()
     {
         ZoneScoped;
-
-        ImGui_ImplVulkan_NewFrame();
+ 
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
     }
 
-    void Render(vk::CommandBuffer& cb)
+    void EndFrame()
     {
         ZoneScoped;
 
         ImGui::Render();
+    }
+
+    void Render(TransientCommandBuffer& cb)
+    {
+        ImGui_ImplVulkan_NewFrame();
         ImDrawData* draw_data = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(draw_data, cb);
+        ImGui_ImplVulkan_RenderDrawData(draw_data, (vk::CommandBuffer) cb);
     }
 };
-} // namespace aln::vkg
+} // namespace aln

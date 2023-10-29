@@ -32,7 +32,7 @@ TEST_CASE("Transforms to and from matrices", "[transform]")
     auto q = Quaternion(0.5f, 0.6f, 0.5f, 0.8f).Normalized();
     auto a = Transform(Vec3(52.0f, 8.0f, 7.0f), q, Vec3(5.0f, 2.0f, 3.0f));
     auto mat = a.ToMatrix();
-    auto b = mat.AsTransform();
+    auto b = mat.ToTransform();
 
     REQUIRE(a == b);
 }

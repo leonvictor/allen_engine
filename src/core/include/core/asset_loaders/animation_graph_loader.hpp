@@ -19,7 +19,7 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
     AnimationGraphDefinitionLoader(const TypeRegistryService* pTypeRegistryService)
         : m_pTypeRegistryService(pTypeRegistryService) {}
 
-    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+    bool Load(AssetRequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
         assert(pRecord->GetAssetTypeID() == AnimationGraphDefinition::GetStaticAssetTypeID());
@@ -62,7 +62,7 @@ class AnimationGraphDefinitionLoader : public IAssetLoader
 class AnimationGraphDatasetLoader : public IAssetLoader
 {
   public:
-    bool Load(AssetRecord* pRecord, BinaryMemoryArchive& archive) override
+    bool Load(AssetRequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) override
     {
         assert(pRecord->IsUnloaded());
         assert(pRecord->GetAssetTypeID() == AnimationGraphDataset::GetStaticAssetTypeID());

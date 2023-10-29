@@ -1,16 +1,20 @@
 #pragma once
 
+#include "../resources/image.hpp"
+
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg::render
+namespace aln
 {
 
 /// @brief Holds render target info and objects.
 struct RenderTarget
 {
-    uint32_t index;
-    vk::UniqueFramebuffer framebuffer;
-    vk::UniqueCommandBuffer commandBuffer;
-    vk::Fence fence;
+    GPUImage m_multisamplingImage;
+    GPUImage m_depthImage;
+    GPUImage m_resolveImage;
+    vk::Framebuffer m_framebuffer;
+
+    vk::Semaphore m_renderFinished; // Signaled when the render is done / waited upon by the present engine before presenting
 };
-} // namespace vkg
+} // namespace aln

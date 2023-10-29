@@ -11,7 +11,6 @@
 #include <common/containers/hash_map.hpp>
 #include <entities/entity_descriptors.hpp>
 #include <entities/world_entity.hpp>
-
 #include <common/maths/vec2.hpp>
 
 #include <filesystem>
@@ -32,6 +31,7 @@ class Entity;
 class CameraComponent;
 class WorldEntity;
 class TypeRegistryService;
+class RenderingService;
 class ServiceProvider;
 
 struct EditorImGuiContext
@@ -68,6 +68,7 @@ class Editor
     EntityDescriptor m_entityClipboard;
 
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
+    const RenderingService* m_pRenderingService = nullptr;
 
     EditorWindowContext m_editorWindowContext;
 
@@ -113,7 +114,7 @@ class Editor
     //--------------------
     void Initialize(ServiceProvider& serviceProvider, const std::filesystem::path& scenePath);
     void Shutdown();
-    void Update(const vk::DescriptorSet& renderedSceneImageDescriptorSet, const UpdateContext& context);
+    void Update(const UpdateContext& context);
 
     const Vec2 GetScenePreviewSize() const { return {m_scenePreviewWidth, m_scenePreviewHeight}; }
 

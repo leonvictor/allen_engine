@@ -1,85 +1,64 @@
-// Adapted from https://github.com/jherico/Vulkan/blob/cpp/base/vks/allocation.hpp
 #pragma once
 
-#include "../device.hpp"
+#include <common/containers/vector.hpp>
+
 #include <vulkan/vulkan.hpp>
 
+#include <memory>
+
 // TODO: Make a class w/ private fields
-namespace aln::vkg::resources
+/// @note Adapted from https://github.com/jherico/Vulkan/blob/cpp/base/vks/allocation.hpp
+namespace aln
 {
+
+class RenderEngine;
 
 /// @brief A wrapper class for an allocation, either an Image or Buffer.  Not intended to be used used directly
 /// but only as a base class providing common functionality for the classes below.
 ///
-/// Provides easy to use mechanisms for mapping, unmapping and copying host data to the device memory
-class Allocation
+/// Provides easy to use mechanisms for mapping, unmapping and copying host data to device memory
+class GPUAllocation
 {
   protected:
-    Device* m_pDevice;
-    vk::UniqueDeviceMemory m_memory;
+    RenderEngine* m_pRenderEngine;
+    vk::DeviceMemory m_memory;
     vk::DeviceSize m_size;
 
     void* m_mapped = nullptr;
 
-    virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties)
-    {
-        vk::MemoryAllocateInfo allocInfo =
-            {
-                .allocationSize = memRequirements.size,
-                .memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, memProperties),
-            };
-
-        m_memory = m_pDevice->GetVkDevice().allocateMemoryUnique(allocInfo, nullptr).value;
-    }
+    virtual void Allocate(const vk::MemoryRequirements& memRequirements, const vk::MemoryPropertyFlags& memProperties);
 
   public:
-    Allocation() = default;
+    GPUAllocation() = default;
 
     // No copy allowed
-    Allocation(const Allocation&) = delete;
-    Allocation& operator=(const Allocation&) = delete;
+    GPUAllocation(const GPUAllocation&) = delete;
+    GPUAllocation& operator=(const GPUAllocation&) = delete;
 
     // Move assignement
-    Allocation& operator=(Allocation&& other)
-    {
-        if (this != &other)
-        {
-            m_pDevice = std::move(other.m_pDevice);
-            m_memory = std::move(other.m_memory);
-
-            m_size = other.m_size;
-            m_mapped = other.m_mapped;
-        }
-        return *this;
-    }
+    GPUAllocation& operator=(GPUAllocation&& other);
 
     // Move constructor
-    Allocation(Allocation&& other)
-    {
-        m_pDevice = std::move(other.m_pDevice);
-        m_memory = std::move(other.m_memory);
+    GPUAllocation(GPUAllocation&& other);
 
-        m_size = other.m_size;
-        m_mapped = other.m_mapped;
-    }
+    virtual void Shutdown();
 
-    vk::DeviceSize GetSize() const { return m_size; }
+    inline vk::DeviceSize GetSize() const { return m_size; }
+
+    void Map(size_t offset = 0, vk::DeviceSize = vk::WholeSize);
 
     template <typename T = void>
     inline T* Map(size_t offset = 0, vk::DeviceSize size = vk::WholeSize)
     {
-        m_mapped = m_pDevice->GetVkDevice().mapMemory(m_memory.get(), offset, size, vk::MemoryMapFlags()).value;
+        Map(offset, size);
         return (T*) m_mapped;
     }
 
-    inline void Unmap()
-    {
-        m_pDevice->GetVkDevice().unmapMemory(m_memory.get());
-        m_mapped = nullptr;
-    }
+    void Unmap();
 
     inline void Copy(const void* data, size_t size, vk::DeviceSize offset = 0) const
     {
+        assert(m_mapped != nullptr);
         memcpy(static_cast<uint8_t*>(m_mapped) + offset, data, size);
     }
 
@@ -103,17 +82,7 @@ class Allocation
     /// @param offset (Optional) Byte offset from beginning
     ///
     /// @return VkResult of the flush call
-    ///
-    void Flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0)
-    {
-        vk::MappedMemoryRange mappedRange = {
-            .memory = m_memory.get(),
-            .offset = offset,
-            .size = size,
-        };
-
-        m_pDevice->GetVkDevice().flushMappedMemoryRanges(mappedRange);
-    }
+    void Flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
 
     /// @brief Invalidate a memory range of the buffer to make it visible to the host
     ///
@@ -123,16 +92,6 @@ class Allocation
     /// @param offset (Optional) Byte offset from beginning
     ///
     /// @return VkResult of the invalidate call
-    ///
-    void Invalidate(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0)
-    {
-        vk::MappedMemoryRange mappedRange = {
-            .memory = m_memory.get(),
-            .offset = offset,
-            .size = size,
-        };
-
-        m_pDevice->GetVkDevice().invalidateMappedMemoryRanges(mappedRange);
-    }
+    void Invalidate(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
 };
-} // namespace aln::vkg::resources
+} // namespace aln

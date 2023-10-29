@@ -5,92 +5,168 @@
 #include <graphics/rendering/render_target.hpp>
 #include <graphics/rendering/renderer.hpp>
 #include <graphics/resources/image.hpp>
+#include <graphics/window.hpp>
 
 namespace aln
 {
 
-class UIRenderer : public vkg::render::IRenderer
+// UI Renderer's role is to draw the editor windows. It actually renders to the the swapchain images which can be presented to the surface
+/// @todo: Maybe inherit from a "swapchain renderer" ? So that we can also display the main game without the editor
+class EditorRenderer : public IRenderer
 {
   private:
-    vkg::Swapchain* m_pSwapchain;
+    Swapchain* m_pSwapchain;
 
-    void CreateTargetImages() override
+  public:
+    void Initialize(RenderEngine* pRenderEngine) override
     {
-        m_targetImages.clear();
-        // Create the swapchain images
-        auto result = m_pDevice->GetVkDevice().getSwapchainImagesKHR(m_pSwapchain->GetVkSwapchain());
-        auto& images = result.value;
+        m_pSwapchain = &pRenderEngine->GetWindow()->GetSwapchain();
+        m_pSwapchain->AddResizeCallback(std::bind(&EditorRenderer::Resize, this, std::placeholders::_1, std::placeholders::_2));
 
-        for (size_t i = 0; i < images.size(); i++)
+        m_pRenderEngine = pRenderEngine;
+        auto windowSize = m_pRenderEngine->GetWindow()->GetFramebufferSize();
+        auto colorImageFormat = m_pRenderEngine->GetWindow()->GetSwapchain().GetImageFormat();
+
+        // Create Renderpass
+        // This is the default render pass
+        m_renderpass = RenderPass(m_pRenderEngine, windowSize.width, windowSize.height);
+        m_renderpass.AddColorAttachment(colorImageFormat);
+        m_renderpass.AddDepthAttachment();
+        m_renderpass.AddColorResolveAttachment(colorImageFormat);
+
+        auto& subpass = m_renderpass.AddSubpass();
+        subpass.ReferenceColorAttachment(0);
+        subpass.ReferenceDepthAttachment(1);
+        subpass.ReferenceResolveAttachment(2);
+
+        // Add a subpass dependency to ensure the render pass will wait for the right stage
+        // We need to wait for the image to be acquired before transitionning to it
+        vk::SubpassDependency dep = {
+            .srcSubpass = vk::SubpassExternal,                                 // The implicit subpass before or after the render pass
+            .dstSubpass = 0,                                                   // Target subpass index (we have only one)
+            .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput, // Stage to wait on
+            .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlagBits::eNone,
+            .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+        };
+
+        m_renderpass.AddSubpassDependency(dep);
+        m_renderpass.Create();
+
+        auto swapchainImageCount = m_pSwapchain->GetImageCount();
+        m_renderTargets.resize(swapchainImageCount);
+        for (auto imageIdx = 0; imageIdx < swapchainImageCount; imageIdx++)
         {
-            auto target = std::make_shared<vkg::resources::Image>(m_pDevice, images[i], m_colorImageFormat);
-            target->AddView(vk::ImageAspectFlagBits::eColor);
-            target->SetDebugName("Swapchain Target");
-            m_targetImages.push_back(target);
+            auto& renderTarget = m_renderTargets[imageIdx];
+
+            // Wrap swapchain image
+            renderTarget.m_resolveImage.Initialize(
+                m_pRenderEngine,
+                m_pSwapchain->GetImage(imageIdx),
+                m_pSwapchain->GetImageFormat());
+            renderTarget.m_resolveImage.AddView(vk::ImageAspectFlagBits::eColor);
+            renderTarget.m_resolveImage.SetDebugName("Swapchain Target");
+
+            // Depth image
+            renderTarget.m_depthImage.Initialize(
+                m_pRenderEngine,
+                windowSize.width,
+                windowSize.height,
+                1,
+                m_pRenderEngine->GetMSAASamples(),
+                m_pRenderEngine->FindDepthFormat(),
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eDepthStencilAttachment);
+            renderTarget.m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+            renderTarget.m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
+            renderTarget.m_depthImage.SetDebugName("Renderer Depth Attachment");
+
+            // Multisampling image
+            renderTarget.m_multisamplingImage.Initialize(
+                m_pRenderEngine,
+                windowSize.width,
+                windowSize.height,
+                1,
+                m_pRenderEngine->GetMSAASamples(),
+                m_pSwapchain->GetImageFormat(),
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
+
+            renderTarget.m_multisamplingImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
+            renderTarget.m_multisamplingImage.AddView(vk::ImageAspectFlagBits::eColor);
+            renderTarget.m_multisamplingImage.SetDebugName("Renderer Color Attachment");
+
+            //  Framebuffer
+            Vector<vk::ImageView> attachments = {
+                renderTarget.m_multisamplingImage.GetVkView(),
+                renderTarget.m_depthImage.GetVkView(),
+                renderTarget.m_resolveImage.GetVkView(),
+            };
+
+            vk::FramebufferCreateInfo framebufferInfo = {
+                .renderPass = m_renderpass.GetVkRenderPass(),
+                .attachmentCount = static_cast<uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .width = windowSize.width,
+                .height = windowSize.height,
+                .layers = 1,
+            };
+
+            renderTarget.m_framebuffer = m_pRenderEngine->GetVkDevice().createFramebuffer(framebufferInfo).value;
+            
+            // Sync
+            renderTarget.m_renderFinished = m_pRenderEngine->GetVkDevice().createSemaphore({}).value;
         };
     }
 
-    vkg::render::RenderTarget& GetNextTarget() override
+    void Shutdown() override
     {
-        m_activeImageIndex = m_pSwapchain->AcquireNextImage(m_frames[m_currentFrameIndex].imageAvailable.get());
-        return m_renderTargets[m_activeImageIndex];
-    }
-
-  public:
-    UIRenderer() {}
-
-    void Create(vkg::Swapchain* pSwapchain)
-    {
-        m_pSwapchain = pSwapchain;
-
-        // Hook a callback that will trigger when the associated swapchain is resized
-        m_pSwapchain->AddResizeCallback(std::bind(&UIRenderer::Resize, this, std::placeholders::_1, std::placeholders::_2));
-        CreateInternal(pSwapchain->GetDevice(),
-            pSwapchain->GetWidth(),
-            pSwapchain->GetHeight(),
-            pSwapchain->GetImageFormat());
-        // CreatePipelines();
+        for (auto& renderTarget : m_renderTargets)
+        {
+            m_pRenderEngine->GetVkDevice().destroyFramebuffer(renderTarget.m_framebuffer);
+            renderTarget.m_depthImage.Shutdown();
+            renderTarget.m_multisamplingImage.Shutdown();
+            renderTarget.m_resolveImage.Shutdown();
+            m_pRenderEngine->GetVkDevice().destroySemaphore(renderTarget.m_renderFinished);
+        }
+    
+        m_renderpass.Shutdown();
     }
 
     void Resize(uint32_t width, uint32_t height)
     {
-        CreateInternal(
+        assert(false); // TODO
+       /* CreateInternal(
             m_pSwapchain->GetDevice(),
             width,
             height,
-            m_pSwapchain->GetImageFormat());
+            m_pSwapchain->GetImageFormat());*/
     }
 
-    // TODO: Signal the semaphore manually
-    void EndFrame()
+    void StartFrame(TransientCommandBuffer& cb, const RenderContext& ctx)
     {
         ZoneScoped;
 
-        auto& cb = m_renderTargets[m_activeImageIndex].commandBuffer.get();
-        cb.endRenderPass();
-        cb.end();
+        const auto currentFrameIdx = m_pRenderEngine->GetCurrentFrameIdx();
 
-        vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+        // Acquire an image from the swap chain
+        auto renderTargetIdx = m_pSwapchain->AcquireNextImage();
+        auto& renderTarget = m_renderTargets[renderTargetIdx];
 
-        vk::SubmitInfo submitInfo;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &m_frames[m_currentFrameIndex].imageAvailable.get();
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &cb;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &m_frames[m_currentFrameIndex].renderFinished.get();
+        RenderPass::Context renderPassCtx = {
+            .commandBuffer = (vk::CommandBuffer) cb,
+            .framebuffer = renderTarget.m_framebuffer,
+            .backgroundColor = ctx.backgroundColor,
+        };
 
-        m_pDevice->GetVkDevice().resetFences(m_frames[m_currentFrameIndex].inFlight.get());
-        // TODO: It would be better to pass the semaphores and cbs directly to the queue class
-        // but we need a mechanism to avoid having x versions of the method for (single elements * arrays * n_occurences)
-        // vulkan arraywrappers ?
-        m_pDevice->GetGraphicsQueue()
-            .Submit(submitInfo, m_frames[m_currentFrameIndex].inFlight.get());
-
-        m_pSwapchain->Present(m_frames[m_currentFrameIndex].renderFinished.get());
-
-        m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_renderpass.Begin(renderPassCtx);
     }
+
+    void EndFrame(TransientCommandBuffer& cb)
+    {
+        cb->endRenderPass();
+    }
+
+    RenderTarget& GetCurrentRenderTarget() { return m_renderTargets[m_pSwapchain->GetCurrentImageIdx()]; }
 };
 } // namespace aln

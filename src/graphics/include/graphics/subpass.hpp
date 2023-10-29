@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace aln::vkg
+namespace aln
 {
 class Subpass
 {
@@ -29,14 +29,16 @@ class Subpass
 
     inline vk::SubpassDescription GetDescription()
     {
-        vk::SubpassDescription desc;
-        desc.pipelineBindPoint = m_bindPoint;
-        desc.colorAttachmentCount = m_colorAttachments.size();
-        desc.pColorAttachments = m_colorAttachments.data(); // The index of the attachment is directly referenced in the fragment shader ( layout(location = 0) )...
-        desc.pResolveAttachments = m_resolveAttachments.data();
-        desc.pDepthStencilAttachment = m_depthAttachments.data();
+        vk::SubpassDescription desc = {
+            .pipelineBindPoint = m_bindPoint,
+            .colorAttachmentCount = static_cast<uint32_t>(m_colorAttachments.size()),
+            .pColorAttachments = m_colorAttachments.data(),
+            .pResolveAttachments = m_resolveAttachments.data(),
+            .pDepthStencilAttachment = m_depthAttachments.data(),
+        };
+
         return desc;
     }
 };
 
-} // namespace aln::vkg
+} // namespace aln
