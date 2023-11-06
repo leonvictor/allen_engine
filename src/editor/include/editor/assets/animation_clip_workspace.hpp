@@ -9,25 +9,39 @@
 namespace aln
 {
 
-// TODO: Naming...
-class AnimationEventEditor
+struct EditorAnimationEvent
 {
+    /// @brief Events below this duration will be fused into a single immediate event
+    static constexpr float MinDurationEpsilon = 0.01;
+
     float m_startTime = 0.0f;
-    float m_duration = 0.0f;
+    float m_endTime = 0.0f;
+
+    bool IsImmediate() const { return Maths::IsNearEqual(m_startTime, m_endTime, MinDurationEpsilon); }
+    bool IsDurable() const { return !Maths::IsNearEqual(m_startTime, m_endTime, MinDurationEpsilon); }
 };
 
-struct EventTrack
+struct EditorEventTrack
 {
     std::string m_name;
-    Vector<AnimationEventEditor*> m_events;
+    Vector<EditorAnimationEvent*> m_events;
 };
 
 class AnimationClipWorkspace : public IAssetWorkspace
 {
+    struct State
+    {
+        float m_initialStartTime = 0.0f;
+        float m_initialEndTime = 0.0f;
+    };
+
   private:
     AssetHandle<AnimationClip> m_pAnimationClip;
-    Vector<EventTrack*> m_eventTracks;
-    EventTrack* m_pSyncTrack = nullptr;
+    Vector<EditorEventTrack*> m_eventTracks;
+    EditorEventTrack* m_pSyncTrack = nullptr;
+    EditorAnimationEvent* m_pCurrentlyEditedEvent = nullptr;
+    
+    State m_state;
 
     std::filesystem::path m_compiledAnimationClipPath;
     std::filesystem::path m_statePath;
@@ -35,17 +49,21 @@ class AnimationClipWorkspace : public IAssetWorkspace
     bool m_waitingForAssetLoad = true;
 
     // Sequencer state
-    float m_animationTime = 2.5f; // TODO
+    float m_animationTime = 0.0f;
+
+  private:
+    void DrawAnimationPreview();
+    void DrawAnimationEventsEditor();
 
   public:
-    // ----------- Window lifetime
+    // ----- Window lifetime
 
     void Update(const UpdateContext& context) override;
     virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
     virtual void Shutdown() override;
     void Clear();
 
-    // -------------- Saving/Loading
+    // ----- Saving/Loading
 
     AnimationClip* Compile();
 

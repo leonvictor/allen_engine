@@ -16,8 +16,8 @@ class AnimationEvent
     // Immediate or durable
     enum class Type : uint8_t
     {
-        Immediate,
-        Durable,
+        Immediate, // Fired exactly once
+        Durable, // Fired every frame over their duration
     };
 
     Type m_type = Type::Immediate;
