@@ -43,9 +43,9 @@ struct GraphDrawingContext
     static ColorScheme GetTypeColorScheme(const NodeValueType& valueType) {
         auto defaultColor = GetTypeColor(valueType);
 
-        auto hsvColor = defaultColor.ToHSV();
+        auto hsvColor = HSVColor(defaultColor);
         hsvColor.m_saturation -= 0.2;
-        auto alteredColor = hsvColor.ToRGB();
+        auto alteredColor = RGBColor(hsvColor);
         
         ColorScheme scheme;
         scheme.m_defaultColor = defaultColor;

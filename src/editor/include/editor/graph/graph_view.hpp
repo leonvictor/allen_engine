@@ -362,7 +362,7 @@ class GraphView
                     }
 
                     conduitColor = (pConduit == m_pSelectedConduit) ? RGBColor::Pink : conduitColor;
-                    ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, conduitColor.ToU32());
+                    ImGuiWidgets::DrawArrow(m_pImNodesContext->CanvasDrawList, startPosition, endPosition, static_cast<uint32_t>(conduitColor));
                 }
             }
         }
@@ -379,9 +379,9 @@ class GraphView
             const auto pPin = m_pGraph->m_pinLookupMap[link.m_inputPinID];
             auto colorScheme = drawingContext.GetTypeColorScheme(pPin->GetValueType());
 
-            ImNodes::PushColorStyle(ImNodesCol_Link, colorScheme.m_defaultColor.ToU32());
-            ImNodes::PushColorStyle(ImNodesCol_LinkHovered, colorScheme.m_hoveredColor.ToU32());
-            ImNodes::PushColorStyle(ImNodesCol_LinkSelected, colorScheme.m_selectedColor.ToU32());
+            ImNodes::PushColorStyle(ImNodesCol_Link, static_cast<uint32_t>(colorScheme.m_defaultColor));
+            ImNodes::PushColorStyle(ImNodesCol_LinkHovered, static_cast<uint32_t>(colorScheme.m_hoveredColor));
+            ImNodes::PushColorStyle(ImNodesCol_LinkSelected, static_cast<uint32_t>(colorScheme.m_selectedColor));
 
             ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
             

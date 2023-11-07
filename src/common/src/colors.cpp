@@ -15,83 +15,103 @@ const RGBColor RGBColor::Purple = RGBColor();
 const RGBColor RGBColor::Black = RGBColor(0, 0, 0);
 const RGBColor RGBColor::White = RGBColor(255, 255, 255);
 
-RGBColor HSVColor::ToRGB() const
+HSVColor::operator RGBColor() const { return RGBColor(RGBUnitColor(*this)); }
+
+HSVColor::HSVColor(const RGBUnitColor& rgbUnitColor)
 {
     /// @note https://www.cs.rit.edu/~ncs/color/t_convert.html
-    if (m_saturation == 0.0f) // Achromatic grey
+    float max = Maths::Max(rgbUnitColor.m_red, Maths::Max(rgbUnitColor.m_green, rgbUnitColor.m_blue));
+    float min = Maths::Min(rgbUnitColor.m_red, Maths::Min(rgbUnitColor.m_green, rgbUnitColor.m_blue));
+    float delta = max - min;
+
+    m_value = max;
+
+    if (max != 0)
     {
-        return RGBColor::FromUnitRGB({m_value, m_value, m_value});
+        m_saturation = delta / max;
+    }
+    else
+    {
+        m_hue = -1.0f;
+        m_saturation = 0.0f;
+        return; // Undefined, achromatic grey
     }
 
-    float h = m_hue / 60;
+    if (max == rgbUnitColor.m_red)
+    {
+        m_hue = (rgbUnitColor.m_green - rgbUnitColor.m_blue) / delta;
+    }
+    else if (max == rgbUnitColor.m_green)
+    {
+        m_hue = 2 + (rgbUnitColor.m_blue - rgbUnitColor.m_red) / delta;
+    }
+    else
+    {
+        m_hue = 4 + (rgbUnitColor.m_red - rgbUnitColor.m_green) / delta;
+    }
+
+    m_hue = m_hue * 60.0f;
+    if (m_hue < 0.0f)
+    {
+        m_hue += 360.0f;
+    }
+}
+
+HSVColor::HSVColor(const RGBColor& rgbColor) : HSVColor(static_cast<RGBUnitColor>(rgbColor)) {}
+
+RGBUnitColor::RGBUnitColor(const HSVColor& hsvColor)
+{
+    /// @note https://www.cs.rit.edu/~ncs/color/t_convert.html
+    if (hsvColor.m_saturation == 0.0f) // Achromatic grey
+    {
+        m_red = hsvColor.m_value;
+        m_green = hsvColor.m_value;
+        m_blue = hsvColor.m_value;
+    }
+
+    float h = hsvColor.m_hue / 60;
     uint8_t i = Maths::Floor(h);
     float f = h - i; // factorial part of h
-    float p = m_value * (1 - m_saturation);
-    float q = m_value * (1 - m_saturation * f);
-    float t = m_value * (1 - m_saturation * (1 - f));
+    float p = hsvColor.m_value * (1 - hsvColor.m_saturation);
+    float q = hsvColor.m_value * (1 - hsvColor.m_saturation * f);
+    float t = hsvColor.m_value * (1 - hsvColor.m_saturation * (1 - f));
 
     switch (i)
     {
     case 0:
-        return RGBColor::FromUnitRGB({m_value, t, p});
+        m_red = hsvColor.m_value;
+        m_green = t;
+        m_blue = p;
     case 1:
-        return RGBColor::FromUnitRGB({q, m_value, p});
+        m_red = q;
+        m_green = hsvColor.m_value;
+        m_blue = p;
     case 2:
-        return RGBColor::FromUnitRGB({p, m_value, t});
+        m_red = p;
+        m_green = hsvColor.m_value;
+        m_blue = t;
     case 3:
-        return RGBColor::FromUnitRGB({p, q, m_value});
+        m_red = p;
+        m_green = q;
+        m_blue = hsvColor.m_value;
     case 4:
-        return RGBColor::FromUnitRGB({t, p, m_value});
+        m_red = t;
+        m_green = p;
+        m_blue = hsvColor.m_value;
     case 5:
-        return RGBColor::FromUnitRGB({m_value, p, q});
+        m_red = hsvColor.m_value;
+        m_green = p;
+        m_blue = q;
     }
     assert(false);
-    return RGBColor::Black;
 }
 
-HSVColor RGBColor::ToHSV() const
-{
-    /// @note https://www.cs.rit.edu/~ncs/color/t_convert.html
-    float hue, saturation, value;
+RGBColor::RGBColor(const HSVColor& hsvColor) : RGBColor(RGBUnitColor(hsvColor)) {}
 
-    float redf = m_red / 255.0f;
-    float greenf = m_green / 255.0f;
-    float bluef = m_blue / 255.0f;
+RGBUnitColor::RGBUnitColor(const RGBColor& rgbColor) : m_red(rgbColor.m_red / 255.0f), m_green(rgbColor.m_green / 255.0f), m_blue(rgbColor.m_blue / 255.0f) {}
+RGBUnitColor::operator RGBColor() const { return RGBColor(*this); }
 
-    float max = Maths::Max(redf, Maths::Max(greenf, bluef));
-    float min = Maths::Min(redf, Maths::Min(greenf, bluef));
-    float delta = max - min;
+RGBAUnitColor::RGBAUnitColor(const RGBAColor& rgbaColor) : m_red(rgbaColor.m_red / 255.0f), m_green(rgbaColor.m_green / 255.0f), m_blue(rgbaColor.m_blue / 255.0f), m_alpha(rgbaColor.m_alpha / 255.0f) {}
+RGBAUnitColor::operator RGBAColor() const { return RGBAColor(*this); }
 
-    value = max;
-
-    if (max != 0)
-    {
-        saturation = delta / max;
-    }
-    else
-    {
-        return HSVColor(-1.0f, 0, value); // Undefined, achromatic grey
-    }
-
-    if (max == redf)
-    {
-        hue = (greenf - bluef) / delta;
-    }
-    else if (max == greenf)
-    {
-        hue = 2 + (bluef - redf) / delta;
-    }
-    else
-    {
-        hue = 4 + (redf - greenf) / delta;
-    }
-
-    hue = hue * 60;
-    if (hue < 0)
-    {
-        hue += 360;
-    }
-
-    return HSVColor(hue, saturation, value);
-}
 } // namespace aln

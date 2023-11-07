@@ -64,9 +64,9 @@ class EditorGraphNode : public reflect::IReflected
     {
         auto colorScheme = ctx.GetTypeColorScheme(GetValueType());
 
-        ImNodes::PushColorStyle(ImNodesCol_TitleBar, colorScheme.m_defaultColor.ToU32());
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, colorScheme.m_hoveredColor.ToU32());
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, colorScheme.m_selectedColor.ToU32());
+        ImNodes::PushColorStyle(ImNodesCol_TitleBar, static_cast<uint32_t>(colorScheme.m_defaultColor));
+        ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, static_cast<uint32_t>(colorScheme.m_hoveredColor));
+        ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, static_cast<uint32_t>(colorScheme.m_selectedColor));
     }
 
     virtual void PopNodeStyle(const GraphDrawingContext& ctx) const
@@ -183,8 +183,8 @@ class EditorGraphNode : public reflect::IReflected
     virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx)
     {
         auto colorScheme = ctx.GetTypeColorScheme(pin.GetValueType());
-        ImNodes::PushColorStyle(ImNodesCol_Pin, colorScheme.m_defaultColor.ToU32());
-        ImNodes::PushColorStyle(ImNodesCol_PinHovered, colorScheme.m_hoveredColor.ToU32());
+        ImNodes::PushColorStyle(ImNodesCol_Pin, static_cast<uint32_t>(colorScheme.m_defaultColor));
+        ImNodes::PushColorStyle(ImNodesCol_PinHovered, static_cast<uint32_t>(colorScheme.m_hoveredColor));
 
         if (pin.IsInput())
         {

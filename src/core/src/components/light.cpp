@@ -17,7 +17,7 @@ LightUniform Light::GetUniform()
     LightUniform u;
     u.position = Vec4(t.GetTranslation(), (float) m_type);
     u.direction = Vec4(m_direction, m_range);
-    u.color = Vec4(m_color.ToVec3(), m_intensity);
+    u.color = Vec4(static_cast<Vec3>(m_color), m_intensity);
 
     return u;
 }
