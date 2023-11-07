@@ -89,39 +89,39 @@ class StringEditor : public IPrimitiveTypeEditor
 
 class Color4Editor : public IPrimitiveTypeEditor
 {
-    Vec4 m_editingValue;
+    RGBAUnitColor m_editingValue;
     RGBAColor* m_pInstanceValue;
 
     bool DrawWidget(std::byte* pTypeInstance) override
     {
         m_pInstanceValue = reinterpret_cast<RGBAColor*>(pTypeInstance);
-        m_editingValue = m_pInstanceValue->ToUnitRGBA();
+        m_editingValue = static_cast<RGBAUnitColor>(*m_pInstanceValue);
 
         return ImGui::ColorEdit4("##Color4", (float*) &m_editingValue);
     }
 
     void UpdateValue() override
     {
-        *m_pInstanceValue = RGBAColor::FromUnitRGBA(m_editingValue);
+        *m_pInstanceValue = RGBAColor(m_editingValue);
     }
 };
 
 class Color3Editor : public IPrimitiveTypeEditor
 {
-    Vec3 m_editingValue;
+    RGBUnitColor m_editingValue;
     RGBColor* m_pInstanceValue;
 
     bool DrawWidget(std::byte* pTypeInstance) override
     {
         m_pInstanceValue = reinterpret_cast<RGBColor*>(pTypeInstance);
-        m_editingValue = m_pInstanceValue->ToUnitRGB();
+        m_editingValue = static_cast<RGBUnitColor>(*m_pInstanceValue);
 
         return ImGui::ColorEdit3("##Color3", (float*) &m_editingValue);
     }
 
     void UpdateValue() override
     {
-        *m_pInstanceValue = RGBColor::FromUnitRGB(m_editingValue);
+        *m_pInstanceValue = RGBColor(m_editingValue);
     }
 };
 

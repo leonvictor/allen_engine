@@ -232,7 +232,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                     startEventPosition + ImVec2(0.0f, eventIconWidth * 0.5f),
                     startEventPosition - ImVec2(eventIconWidth * 0.5f, 0.0f),
                     startEventPosition - ImVec2(0.0f, eventIconWidth * 0.5f),
-                    RGBColor::Green.ToU32());
+                    static_cast<uint32_t>(RGBColor::Green));
 
                 // Place an invisible button to allow context interactions
                 ImGui::SetCursorScreenPos({startEventPosition.x - eventIconWidth * 0.5f, startEventPosition.y - eventIconWidth * 0.5f});
@@ -322,7 +322,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                         *pSecondEventPosition + ImVec2(0, 2),
                     };
 
-                    ImGui::GetWindowDrawList()->AddRectFilled(durableEventBarBB.Min, durableEventBarBB.Max, RGBColor::Green.ToU32());
+                    ImGui::GetWindowDrawList()->AddRectFilled(durableEventBarBB.Min, durableEventBarBB.Max, static_cast<uint32_t>(RGBColor::Green));
                     ImGui::SetCursorScreenPos(durableEventBarBB.Min);
                     ImGui::InvisibleButton("Durable Event Bar", durableEventBarBB.GetSize());
 
@@ -363,7 +363,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                         endEventPosition + ImVec2(0.0f, eventIconWidth * 0.5f),
                         endEventPosition - ImVec2(eventIconWidth * 0.5f, 0.0f),
                         endEventPosition - ImVec2(0.0f, eventIconWidth * 0.5f),
-                        RGBColor::Green.ToU32());
+                        static_cast<uint32_t>(RGBColor::Green));
 
                     ImGui::SetCursorScreenPos({endEventPosition.x - eventIconWidth * 0.5f, endEventPosition.y - eventIconWidth * 0.5f});
                     ImGui::InvisibleButton("Durable Event End", {eventIconWidth, eventIconWidth});
@@ -433,7 +433,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
 
     // Cursor line
     auto lineEnd = ImVec2(timelineCursorPos.x, ImGui::GetWindowPos().y + ImGui::GetCursorPosY() - (ImGui::GetStyle().FramePadding.y * 2));
-    ImGui::GetWindowDrawList()->AddLine(timelineCursorPos, lineEnd, RGBColor::Blue.ToU32());
+    ImGui::GetWindowDrawList()->AddLine(timelineCursorPos, lineEnd, static_cast<uint32_t>(RGBColor::Blue));
 
     // Handle requests
     if (trackToEraseIdx != InvalidIndex)
