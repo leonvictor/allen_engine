@@ -237,6 +237,9 @@ struct ALN_COMMON_EXPORT EulerAnglesRadians
     EulerAnglesRadians() = default;
     EulerAnglesRadians(const Radians& yaw, const Radians& pitch, const Radians& roll) : yaw(yaw), pitch(pitch), roll(roll) {}
 
+    bool operator==(const EulerAnglesRadians& other) const { return yaw == other.yaw && pitch == other.pitch && roll == other.roll; }
+    bool operator!=(const EulerAnglesRadians& other) const { return yaw != other.yaw || pitch != other.pitch || roll != other.roll; }
+
     inline EulerAnglesDegrees ToDegrees() const;
 };
 
@@ -248,6 +251,9 @@ struct ALN_COMMON_EXPORT EulerAnglesDegrees
 
     EulerAnglesDegrees() = default;
     EulerAnglesDegrees(const Degrees& yaw, const Degrees& pitch, const Degrees& roll) : yaw(yaw), pitch(pitch), roll(roll) {}
+
+    bool operator==(const EulerAnglesDegrees& other) const { return yaw == other.yaw && pitch == other.pitch && roll == other.roll; }
+    bool operator!=(const EulerAnglesDegrees& other) const { return yaw != other.yaw || pitch != other.pitch || roll != other.roll; }
 
     inline EulerAnglesRadians ToRadians() const;
 };

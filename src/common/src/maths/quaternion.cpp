@@ -6,11 +6,14 @@
 
 namespace aln
 {
-// note: glm uses x = pitch, y = yaw, r = roll
+/// @note : Rotation order is x (pitch) -> y (yaw) -> z (roll)
 Quaternion Quaternion::FromEulerAngles(const EulerAnglesRadians& eulerAngles)
 {
-    auto vec = glm::vec3((float) eulerAngles.pitch, (float) eulerAngles.yaw, (float) eulerAngles.roll);
-    return Quaternion(glm::quat(vec)).Normalized();
+    auto x = Quaternion::FromAxisAngle(Vec3::X, eulerAngles.pitch);
+    auto y = Quaternion::FromAxisAngle(Vec3::Y, eulerAngles.yaw);
+    auto z = Quaternion::FromAxisAngle(Vec3::Z, eulerAngles.roll);
+
+    return x * y * z;
 }
 
 Quaternion Quaternion::FromAxisAngle(const Vec3& axis, const Radians& angle)

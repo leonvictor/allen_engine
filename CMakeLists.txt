@@ -82,6 +82,7 @@ set(IMGUI_INCLUDE_DIRS
 set(IMGUI_COMPILE_DEFINITIONS
     IMNODES_USER_CONFIG
     IMGUI_DEFINE_MATH_OPERATORS
+    IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING
 )
 
 # TODO: Use target-based version
@@ -120,11 +121,16 @@ FetchContent_MakeAvailable(enkiTS)
 # Tracy
 option(TRACY_ENABLE "" true)
 option(TRACY_CALLSTACK "" true)
+# option(TRACY_NO_EXIT "" true)
 FetchContent_Declare(
     TracyClient
     GIT_REPOSITORY https://github.com/wolfpld/tracy
     GIT_TAG 897aec5b062664d2485f4f9a213715d2e527e0ca # v0.9.1
 )
+
+#add_compile_definitions(
+#        $<$<CONFIG:Debug>:TRACY_NO_EXIT>
+#)
 
 FetchContent_MakeAvailable(TracyClient)
 
@@ -140,12 +146,14 @@ set_target_properties(TracyClient
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
+# TODO: Make a vulkan target
 add_compile_definitions(
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
     VULKAN_HPP_NO_EXCEPTIONS
     VULKAN_HPP_NO_NODISCARD_WARNINGS
     VULKAN_HPP_NO_SETTERS
 )
+
 find_package(Vulkan REQUIRED)
 target_include_directories(main PUBLIC ${Vulkan_INCLUDE_DIRS})
 

@@ -40,10 +40,15 @@ void EditorCameraController::Update(const UpdateContext& context)
     if (pMouse->IsHeld(Mouse::Button::Right))
     {
         auto delta = pMouse->GetDelta() * m_rotationSensitivity;
-        auto degrees = EulerAnglesDegrees(delta.x, -delta.y, 0.0f);
-        auto radians = degrees.ToRadians();
-        auto quat = Quaternion::FromEulerAngles(radians);
-        m_pCameraInstance->OffsetLocalTransformRotation(quat);
+        
+        auto yawAngle = Degrees(delta.x).ToRadians();
+        auto yawRotation = Quaternion::FromAxisAngle(Vec3::Y, yawAngle);
+        
+        auto pitchAngle = Degrees(-delta.y).ToRadians();
+        auto pitchRotation = Quaternion::FromAxisAngle(Vec3::X, pitchAngle);
+
+        auto q = pitchRotation * m_pCameraInstance->GetLocalTransform().GetRotation() * yawRotation;
+        m_pCameraInstance->SetLocalTransformRotation(q.Normalized());
     }
 }
 

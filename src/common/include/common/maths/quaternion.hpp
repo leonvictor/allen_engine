@@ -23,6 +23,8 @@ class ALN_COMMON_EXPORT Quaternion
     Quaternion(const glm::quat& quat) : w(quat.w), x(quat.x), y(quat.y), z(quat.z) {}
     glm::quat AsGLM() const { return glm::quat(w, x, y, z); }
 
+    bool IsNormalized() const { return *this == Normalized(); }
+
   public:
     float w, x, y, z;
 
@@ -42,7 +44,11 @@ class ALN_COMMON_EXPORT Quaternion
     bool operator==(const Quaternion& other) const { return IsNearEqual(other); }
     bool operator!=(const Quaternion& other) const { return !IsNearEqual(other); }
 
-    Quaternion operator*(const Quaternion& other) const { return Quaternion(AsGLM() * other.AsGLM()); }
+    Quaternion operator*(const Quaternion& other) const
+    {
+        assert(IsNormalized() && other.IsNormalized());
+        return Quaternion(AsGLM() * other.AsGLM());
+    }
 
     inline Quaternion Inversed() const { return Quaternion(glm::inverse(AsGLM())); };
     inline Quaternion Conjugated() const { return Quaternion(glm::conjugate(AsGLM())); }

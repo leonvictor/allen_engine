@@ -10,14 +10,16 @@ using namespace aln::assets::converter;
 
 int main(int argc, char* argv[])
 {
-    if (argc < 2)
+    /*if (argc < 2)
     {
         std::cout << "AssetConverter expects a directory to process as a first argument" << std::endl;
         return -1;
-    }
+    }*/
 
-    std::filesystem::path inputDirectory = std::filesystem::path(argv[1]);
-    std::filesystem::path rootOutputDirectory = inputDirectory.parent_path() / "assets_export";
+    //std::filesystem::path inputDirectory = std::filesystem::path(argv[1]);
+    std::filesystem::path inputDirectory = std::filesystem::path("D:/Dev/allen_engine/assets/converter_tests");
+    
+    std::filesystem::path rootOutputDirectory = inputDirectory.parent_path() / "output";
 
     std::cout << "Loaded asset directory: " << inputDirectory << std::endl;
 
