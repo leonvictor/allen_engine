@@ -9,8 +9,7 @@ void AssetRequest::Load()
 {
     ZoneScoped;
 
-    // Load the resource
-    if (!m_pLoader->LoadAsset(m_pAssetRecord))
+    if (!m_pLoader->LoadAsset(m_context, m_pAssetRecord)) // Load the resource
     {
         // TODO: Loading failed. Handle it !
         m_status = State::Failed;
@@ -63,6 +62,11 @@ void AssetRequest::Install()
 
     assert(m_status == State::Installing);
     assert(m_pLoader != nullptr);
+
+    if (AreTransferCommandsInProgress() || AreGraphicsCommandsInProgress())
+    {
+        return;
+    }
 
     m_pLoader->InstallAsset(m_pAssetRecord->GetAssetID(), m_pAssetRecord, m_dependencies);
     m_dependencies.clear();

@@ -1,12 +1,12 @@
 #include "shaders.hpp"
 
-#include "device.hpp"
+#include"render_engine.hpp"
 
 #include <shaderc/shaderc.hpp>
 
 #include <fstream>
 
-namespace aln::vkg::shaders
+namespace aln::shaders
 {
 static bool ReadShaderFile(const std::filesystem::path& shaderFilePath, Vector<char>& out)
 {
@@ -61,7 +61,7 @@ static bool CompileGlslToSpvBinary(const Vector<char>& shaderSource, const char*
     return true;
 }
 
-static vk::ShaderModule CreateShaderModule(Device* device, const std::filesystem::path& shaderFilePath)
+static vk::ShaderModule CreateShaderModule(RenderEngine* pRenderEngine, const std::filesystem::path& shaderFilePath)
 {
     Vector<char> shaderData;
     ReadShaderFile(shaderFilePath, shaderData);
@@ -73,7 +73,7 @@ static vk::ShaderModule CreateShaderModule(Device* device, const std::filesystem
         shaderModuleCreateInfo.codeSize = shaderData.size() * sizeof(char);
         shaderModuleCreateInfo.pCode = reinterpret_cast<uint32_t*>(shaderData.data());
 
-        return device->GetVkDevice().createShaderModule(shaderModuleCreateInfo).value;
+        return pRenderEngine->GetVkDevice().createShaderModule(shaderModuleCreateInfo).value;
     }
     else if (ext == ".vert" || ext == ".frag")
     {
@@ -84,7 +84,7 @@ static vk::ShaderModule CreateShaderModule(Device* device, const std::filesystem
         shaderModuleCreateInfo.codeSize = compiledShaderSource.size() * sizeof(uint32_t);
         shaderModuleCreateInfo.pCode =  compiledShaderSource.data();
 
-        return device->GetVkDevice().createShaderModule(shaderModuleCreateInfo).value;
+        return pRenderEngine->GetVkDevice().createShaderModule(shaderModuleCreateInfo).value;
     }
     else
     {
@@ -96,11 +96,11 @@ static vk::ShaderModule CreateShaderModule(Device* device, const std::filesystem
 /// @brief Load a shader from a file.
 /// @param shaderFilePath: shader file path (glsl or spirv)
 /// @return the vulkan createInfo struct to add to a pipeline.
-ShaderInfo LoadShader(Device* device, const std::filesystem::path& shaderFilePath, const vk::ShaderStageFlagBits stage, std::string entryPoint)
+ShaderInfo LoadShader(RenderEngine* pRenderEngine, const std::filesystem::path& shaderFilePath, const vk::ShaderStageFlagBits stage, std::string entryPoint)
 {
     ShaderInfo info = {
         .entryPoint = entryPoint,
-        .module = CreateShaderModule(device, shaderFilePath),
+        .module = CreateShaderModule(pRenderEngine, shaderFilePath),
         .stage = stage,
     };
 
@@ -110,4 +110,4 @@ ShaderInfo LoadShader(Device* device, const std::filesystem::path& shaderFilePat
 }
 
 
-} // namespace aln::vkg::shaders
+} // namespace aln::shaders

@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace aln::vkg
+namespace aln
 {
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -92,7 +92,7 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
         .pEngineName = "AllenEngine",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_2,
+        .apiVersion = VK_API_VERSION_1_3,
     };
 
     vk::InstanceCreateInfo instanceCreateInfo = {
@@ -117,14 +117,21 @@ void Instance::Initialize(Vector<const char*>& requestedExtensions)
         instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
     }
 
-    m_vkInstance = vk::createInstanceUnique(instanceCreateInfo).value;
+    m_instance = vk::createInstance(instanceCreateInfo).value;
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_instance);
 
     if (m_validationLayersEnabled)
     {
-        m_dispatchLoaderDynamic = vk::DispatchLoaderDynamic{m_vkInstance.get(), vkGetInstanceProcAddr};
-        m_debugMessenger = m_vkInstance->createDebugUtilsMessengerEXTUnique(
+        m_debugMessenger = m_instance.createDebugUtilsMessengerEXT(
             debugUtilsMessengerCreateInfo,
-            nullptr, m_dispatchLoaderDynamic).value;
+            nullptr).value;
     }
 }
-}; // namespace aln::vkg
+
+void Instance::Shutdown()
+{
+    m_instance.destroyDebugUtilsMessengerEXT(m_debugMessenger);
+    m_instance.destroy();
+}
+
+}; // namespace aln

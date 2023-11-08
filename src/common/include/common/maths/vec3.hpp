@@ -14,6 +14,8 @@
 namespace aln
 {
 
+class Matrix4x4;
+
 class ALN_COMMON_EXPORT Vec3
 {
     friend class Matrix4x4;

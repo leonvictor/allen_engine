@@ -5,6 +5,7 @@
 
 #include <common/services/service_provider.hpp>
 #include <common/uuid.hpp>
+#include <graphics/viewport.hpp>
 
 #include <typeindex>
 #include <typeinfo>
@@ -26,11 +27,9 @@ class WorldEntity
     HashMap<std::type_index, IWorldSystem*, std::hash<std::type_index>> m_systems;
 
     TaskService* m_pTaskService = nullptr;
+    Viewport m_viewport;
 
     LoadingContext m_loadingContext;
-
-    /// @brief Remove all entities and system from this world.
-    void Cleanup();
 
     /// @brief Register a component with all the world systems. Called when an entity is activated.
     void RegisterComponent(Entity* pEntity, IComponent* pComponent);
@@ -45,9 +44,8 @@ class WorldEntity
     void UnregisterEntityUpdate(Entity* pEntity);
 
   public:
-    ~WorldEntity();
-
     void Initialize(ServiceProvider& serviceProvider);
+    void Shutdown();
 
     /// @brief Update all entities' systems, then all world systems
     void Update(const UpdateContext& context);
@@ -87,7 +85,7 @@ class WorldEntity
     }
 
     template <typename T>
-    T* GetSystem()
+    T* GetSystem() 
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
 
@@ -98,6 +96,9 @@ class WorldEntity
 
     const Vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
 
+    void InitializeViewport(const Rectangle& size) { m_viewport.m_size = size; }
+    const Viewport* GetViewport() const { return &m_viewport; }
+    
     // -------- Editing
     // TODO: Disable in prod
 

@@ -47,8 +47,8 @@ class UpdateContext
     /// @brief Time elapsed since application start
     inline Seconds GetTimeSinceAppStart() const { return m_timeSinceAppStart; }
 
-    inline Seconds GetDisplayHeight() const { return m_displayHeight; }
-    inline Seconds GetDisplayWidth() const { return m_displayWidth; }
+    inline float GetDisplayHeight() const { return m_displayHeight; }
+    inline float GetDisplayWidth() const { return m_displayWidth; }
 
     template <typename T>
     T* GetService() const

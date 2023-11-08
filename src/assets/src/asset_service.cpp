@@ -2,6 +2,10 @@
 
 #include "asset_service.hpp"
 
+#include <graphics/command_buffer.hpp>
+
+#include <vulkan/vulkan.hpp>
+
 namespace aln
 {
 
@@ -44,14 +48,68 @@ void AssetService::Update()
 {
     ZoneScoped;
 
-    if (m_isLoadingTaskRunning && !m_loadingTask.GetIsComplete())
+    if (m_isLoadingTaskRunning)
     {
-        return;
+        if (m_loadingTask.GetIsComplete())
+        {
+            // Submit all the recorded command buffers (mostly cpu->gpu transfers tasks)
+            bool transferCommandsRecorded = false;
+            bool graphicsCommandsRecorded = false;
+            for (auto& request : m_activeRequests)
+            {
+                if (request.WereCommandsSubmitted())
+                {
+                    continue;
+                }
+
+                if (request.FinalizeTransferQueueCommands())
+                {
+                    transferCommandsRecorded = true;
+                }
+
+                if (request.FinalizeGraphicsQueueCommands())
+                {
+                    graphicsCommandsRecorded = true;
+                }
+
+                request.m_commandBuffersSubmitted = true;
+            }
+
+            // Submit transfer commands
+            if (transferCommandsRecorded)
+            {
+                QueueSubmissionRequest submissionRequest;
+                m_transferQueueSubmission.PopulateRequest(submissionRequest);
+                m_pRenderDevice->GetTransferQueue().Submit(submissionRequest, vk::Fence{});
+            }
+            else
+            {
+                m_transferCommandBuffer.Release();
+            }
+            m_transferQueueSubmission.Reset();
+
+            // Submit graphics command
+            if (graphicsCommandsRecorded)
+            {
+                QueueSubmissionRequest submissionRequest;
+                m_graphicsQueueSubmission.PopulateRequest(submissionRequest);
+                m_pRenderDevice->GetGraphicsQueue().Submit(submissionRequest, vk::Fence{});
+            }
+            else
+            {
+                m_graphicsCommandBuffer.Release();
+            }
+            m_graphicsQueueSubmission.Reset();
+        }
+        else
+        {
+            return;
+        }
     }
 
     m_isLoadingTaskRunning = false;
 
-    std::lock_guard lock(m_mutex);
+    m_mutex.lock();
 
     // Filter pending requests and move them to active according to their status
     for (auto& pendingRequest : m_pendingRequests)
@@ -117,20 +175,30 @@ void AssetService::Update()
     }
 
     m_pendingRequests.clear();
+    m_mutex.unlock();
 
     // Handle active requests
     if (!m_activeRequests.empty())
     {
-        // TODO: Enable multi-threading when the rendering engine is ready for it
-        // m_pTaskService->ScheduleTask(&m_loadingTask);
-        HandleActiveRequests();
         m_isLoadingTaskRunning = true;
+        m_pTaskService->ScheduleTask(&m_loadingTask);
     }
 }
 
-void AssetService::HandleActiveRequests()
+void AssetService::HandleActiveRequests(uint32_t threadIdx = 0)
 {
     ZoneScoped;
+
+    // Start command buffers that loaders will record to
+    m_transferCommandBuffer = m_pRenderDevice->GetTransferPersistentCommandPool(threadIdx).GetCommandBuffer();
+    m_graphicsCommandBuffer = m_pRenderDevice->GetGraphicsPersistentCommandPool(threadIdx).GetCommandBuffer();
+    m_pRenderDevice->SetDebugUtilsObjectName((vk::CommandBuffer) m_transferCommandBuffer, "Asset Service Transfer CB");
+    m_pRenderDevice->SetDebugUtilsObjectName((vk::CommandBuffer) m_graphicsCommandBuffer, "Asset Service Graphics CB");
+
+    m_transferQueueSubmission.Initialize(&m_transferCommandBuffer);
+    m_graphicsQueueSubmission.Initialize(&m_graphicsCommandBuffer);
+
+    m_stagingBuffer.FrameUpdate();
 
     int32_t requestCount = (int32_t) m_activeRequests.size() - 1;
     for (auto idx = requestCount; idx >= 0; idx--)
@@ -139,6 +207,11 @@ void AssetService::HandleActiveRequests()
         pRequest->m_pLoader = m_loaders.at(pRequest->m_pAssetRecord->GetAssetTypeID()).get();
         pRequest->m_requestAssetLoad = std::bind(&AssetService::Load, this, std::placeholders::_1);
         pRequest->m_requestAssetUnload = std::bind(&AssetService::Unload, this, std::placeholders::_1);
+        pRequest->m_pRenderDevice = m_pRenderDevice;
+
+        pRequest->m_context.m_pTransferQueueSubmission = &m_transferQueueSubmission;
+        pRequest->m_context.m_pGraphicsQueueSubmission = &m_graphicsQueueSubmission;
+        pRequest->m_context.m_pStagingBuffer = &m_stagingBuffer;
 
         if (pRequest->IsLoadingRequest())
         {
@@ -169,6 +242,7 @@ void AssetService::HandleActiveRequests()
         if (pRequest->IsComplete())
         {
             // Remove completed request
+            pRequest->Shutdown();
             m_activeRequests.erase(m_activeRequests.begin() + idx);
         }
     }
@@ -176,12 +250,12 @@ void AssetService::HandleActiveRequests()
 
 void AssetService::Load(IAssetHandle& assetHandle)
 {
-    std::lock_guard lock(m_mutex);
-
     if (!assetHandle.GetAssetID().IsValid())
     {
         return;
     }
+
+    std::lock_guard lock(m_mutex);
 
     auto pRecord = GetOrCreateRecord(assetHandle.GetAssetID());
     // Update the handle
@@ -203,7 +277,9 @@ void AssetService::Unload(IAssetHandle& assetHandle)
     std::lock_guard lock(m_mutex);
 
     if (!assetHandle.GetAssetID().IsValid())
+    {
         return;
+    }
 
     assetHandle.m_pAssetRecord = nullptr;
 

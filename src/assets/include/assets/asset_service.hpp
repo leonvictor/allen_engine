@@ -1,18 +1,19 @@
 #pragma once
 
-
-
-
 #include "asset.hpp"
 #include "handle.hpp"
 #include "loader.hpp"
 #include "record.hpp"
 #include "request.hpp"
 
-#include <common/threading/task_service.hpp>
+#include <common/containers/array.hpp>
 #include <common/containers/hash_map.hpp>
+#include <common/threading/task_service.hpp>
+#include <graphics/render_engine.hpp>
 
 #include <mutex>
+
+#include <vulkan/vulkan.hpp>
 
 namespace aln
 {
@@ -34,14 +35,24 @@ class AssetService : public IService
     HashMap<AssetTypeID, std::unique_ptr<IAssetLoader>> m_loaders;
     HashMap<AssetID, AssetRecord> m_assetCache;
 
-    std::recursive_mutex m_mutex;
     Vector<AssetRequest> m_pendingRequests;
     Vector<AssetRequest> m_activeRequests;
 
+    RenderEngine* m_pRenderDevice = nullptr;
+
+    // Sync
+    std::recursive_mutex m_mutex;
     TaskService* m_pTaskService = nullptr;
     TaskSet m_loadingTask;
     bool m_isLoadingTaskRunning = false;
 
+    TransferQueuePersistentCommandBuffer m_transferCommandBuffer;
+    GraphicsQueuePersistentCommandBuffer m_graphicsCommandBuffer;
+    CommandBufferSubmission<TransferQueuePersistentCommandBuffer> m_transferQueueSubmission;
+    CommandBufferSubmission<GraphicsQueuePersistentCommandBuffer> m_graphicsQueueSubmission;
+    StagingBuffer m_stagingBuffer;
+
+  private:
     /// @brief Find an existing record. The record must have already been created !
     AssetRecord* FindRecord(const AssetID& assetID);
     AssetRecord* GetOrCreateRecord(const AssetID& assetID);
@@ -49,23 +60,36 @@ class AssetService : public IService
 
     /// @brief Handle pending requests
     void Update();
-    void HandleActiveRequests();
+    void HandleActiveRequests(uint32_t threadIdx);
 
-    inline bool IsIdle() const { return m_pendingRequests.empty() && m_activeRequests.empty(); }
+    inline bool IsIdle() const { return m_pendingRequests.empty() && m_activeRequests.empty() && !m_isLoadingTaskRunning; }
     inline bool IsBusy() const { return !IsIdle(); }
 
   public:
-    AssetService(TaskService* pTaskService)
-        : m_pTaskService(pTaskService),
-          m_loadingTask([this](TaskSetPartition, uint32_t)
-              { HandleActiveRequests(); }) {}
+    AssetService() : m_loadingTask([this](TaskSetPartition range, uint32_t threadIdx)
+                         { HandleActiveRequests(threadIdx); }) {}
 
-    ~AssetService()
+    void Initialize(TaskService& taskService, RenderEngine& renderEngine)
+    {
+        m_pTaskService = &taskService;
+        m_pRenderDevice = &renderEngine;
+
+        static constexpr size_t STAGING_BUFFER_SIZE = 256 * 1024 * 1024; // 256MiB
+        m_stagingBuffer.Initialize(m_pRenderDevice, STAGING_BUFFER_SIZE);
+    }
+
+    void Shutdown()
     {
         while (IsBusy())
         {
             Update();
         }
+
+        m_stagingBuffer.Shutdown();
+
+        // TODO: Properly remove cache entries when the last reference is unloaded
+        // assert(m_assetCache.empty());
+        m_loaders.clear();
     }
 
     /// @brief Register a new loader

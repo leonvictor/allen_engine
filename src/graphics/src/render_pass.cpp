@@ -1,10 +1,12 @@
 #include "render_pass.hpp"
 
-namespace aln::vkg
+#include "render_engine.hpp"
+
+namespace aln
 {
 
-RenderPass::RenderPass(Device* pDevice, uint32_t width, uint32_t height)
-    : m_pDevice(pDevice),
+RenderPass::RenderPass(RenderEngine* pDevice, uint32_t width, uint32_t height)
+    : m_pRenderEngine(pDevice),
       m_width(width),
       m_height(height)
 {
@@ -15,13 +17,19 @@ RenderPass::RenderPass(Device* pDevice, uint32_t width, uint32_t height)
     m_clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
     m_clearValues[1].depthStencil = {
         .depth = 1.0f,
-        .stencil = 0};
+        .stencil = 0,
+    };
 }
 
 void RenderPass::Create()
 {
-    assert(!IsInitialized());
+    assert(!m_renderPass);
     CreateInternal(m_width, m_height);
+}
+
+void RenderPass::Shutdown()
+{
+    m_pRenderEngine->GetVkDevice().destroyRenderPass(m_renderPass);
 }
 
 /// @brief Add a color attachment to this render pass, and return its index.
@@ -29,7 +37,7 @@ int RenderPass::AddColorAttachment(vk::Format format)
 {
     vk::AttachmentDescription colorAttachment = {
         .format = format,
-        .samples = m_pDevice->GetMSAASamples(),
+        .samples = m_pRenderEngine->GetMSAASamples(),
         // Color and depth data
         .loadOp = vk::AttachmentLoadOp::eClear,   // What to do with the data before ...
         .storeOp = vk::AttachmentStoreOp::eStore, // ... and after rendering
@@ -65,8 +73,8 @@ int RenderPass::AddColorResolveAttachment(vk::Format format, vk::ImageLayout ini
 int RenderPass::AddDepthAttachment()
 {
     vk::AttachmentDescription depthAttachment = {
-        .format = m_pDevice->FindDepthFormat(),
-        .samples = m_pDevice->GetMSAASamples(),
+        .format = m_pRenderEngine->FindDepthFormat(),
+        .samples = m_pRenderEngine->GetMSAASamples(),
         .loadOp = vk::AttachmentLoadOp::eClear,
         .storeOp = vk::AttachmentStoreOp::eDontCare, // Depth data is not used after drawing has finished
         .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
@@ -95,7 +103,7 @@ void RenderPass::AddSubpassDependency(vk::SubpassDependency dependency)
 /// @brief Begin a render pass.
 void RenderPass::Begin(RenderPass::Context& ctx)
 {
-    assert(IsInitialized());
+    assert(m_renderPass);
 
     m_clearValues[0].color = {
         ctx.backgroundColor.m_red / 255.0f,
@@ -105,7 +113,7 @@ void RenderPass::Begin(RenderPass::Context& ctx)
     };
 
     vk::RenderPassBeginInfo renderPassInfo = {
-        .renderPass = m_vkRenderPass.get(),
+        .renderPass = m_renderPass,
         .framebuffer = ctx.framebuffer,
         .renderArea = {
             .offset = {0, 0},
@@ -133,28 +141,27 @@ void RenderPass::Resize(uint32_t width, uint32_t height)
 /// Called whenever the rendering target change sizes.
 void RenderPass::CreateInternal(uint32_t width, uint32_t height)
 {
-    assert(m_pDevice);
+    assert(m_pRenderEngine);
 
     m_width = width;
     m_height = height;
 
     // Aggregate subpasses descriptions
-    Vector<vk::SubpassDescription> vkSubpasses;
+    Vector<vk::SubpassDescription> subpassDescriptions;
     for (auto& s : m_subpasses)
     {
-        vkSubpasses.push_back(s.GetDescription());
+        subpassDescriptions.push_back(s.GetDescription());
     }
 
     vk::RenderPassCreateInfo renderPassInfo = {
         .attachmentCount = static_cast<uint32_t>(m_attachmentDescriptions.size()),
         .pAttachments = m_attachmentDescriptions.data(),
-        .subpassCount = static_cast<uint32_t>(vkSubpasses.size()),
-        .pSubpasses = vkSubpasses.data(),
+        .subpassCount = static_cast<uint32_t>(subpassDescriptions.size()),
+        .pSubpasses = subpassDescriptions.data(),
         .dependencyCount = static_cast<uint32_t>(m_subpassDependencies.size()),
         .pDependencies = m_subpassDependencies.data(),
     };
 
-    m_vkRenderPass = m_pDevice->GetVkDevice().createRenderPassUnique(renderPassInfo).value;
-    m_status = State::Initialized;
+    m_renderPass = m_pRenderEngine->GetVkDevice().createRenderPass(renderPassInfo).value;
 }
-} // namespace aln::vkg
+} // namespace aln

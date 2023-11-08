@@ -36,12 +36,7 @@ void WorldEntity::Initialize(ServiceProvider& serviceProvider)
     m_entityMap.Activate(m_loadingContext);
 }
 
-WorldEntity::~WorldEntity()
-{
-    Cleanup();
-}
-
-void WorldEntity::Cleanup()
+void WorldEntity::Shutdown()
 {
     for (auto& [id, pSystem] : m_systems)
     {

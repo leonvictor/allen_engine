@@ -77,7 +77,7 @@ Transform AssimpSceneContext::GetGlobalTransform(const aiNode* pNode) const
         NodeLookUp(const AssimpSceneContext* pSceneContext, const aiNode* pNode) : m_pSceneContext(pSceneContext), m_pNode(pNode)
         {
             const auto pRootNode = m_pSceneContext->m_pScene->mRootNode;
-            auto identity = aiMatrix4x4(aiVector3D(1, 1, 1), aiQuaternion(1, 0, 0, 0), aiVector3D(0, 0, 0));
+            const static auto identity = aiMatrix4x4(aiVector3D(1.0f, 1.0f, 1.0f), aiQuaternion(1.0f, 0.0f, 0.0f, 0.0f), aiVector3D(0, 0, 0));
             FindNode(pRootNode, identity);
         }
     };
