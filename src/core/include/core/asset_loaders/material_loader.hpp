@@ -56,8 +56,8 @@ class MaterialLoader : public IAssetLoader
         assert(dependencies.size() == 1);
         auto pMaterial = pAssetRecord->GetAsset<Material>();
 
-        auto pAlbedoMapRecord = GetDependencyRecord(dependencies, pMaterial->m_albedoMap.GetAssetID());
-        pMaterial->m_albedoMap.m_pAssetRecord = pAlbedoMapRecord;
+        const auto pAlbedoMapRecord = GetDependencyRecord(dependencies, pMaterial->m_albedoMap.GetAssetID());
+        UpdateDependencyRecord(pMaterial->m_albedoMap, pAlbedoMapRecord);
     }
 };
 

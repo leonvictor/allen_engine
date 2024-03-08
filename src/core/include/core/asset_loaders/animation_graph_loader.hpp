@@ -93,7 +93,8 @@ class AnimationGraphDatasetLoader : public IAssetLoader
         {
             // TODO: This is a lot of loops
             assert(clipHandle.GetAssetID().IsValid());
-            clipHandle.m_pAssetRecord = GetDependencyRecord(dependencies, clipHandle.GetAssetID());
+            const auto pClipRecord = GetDependencyRecord(dependencies, clipHandle.GetAssetID());
+            UpdateDependencyRecord(clipHandle, pClipRecord);
         }
     }
 };

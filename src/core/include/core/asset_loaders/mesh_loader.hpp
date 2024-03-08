@@ -108,8 +108,8 @@ class MeshLoader : public IAssetLoader
         assert(dependencies.size() == 1);
         auto pMesh = pAssetRecord->GetAsset<Mesh>();
 
-        auto pMaterialRecord = GetDependencyRecord(dependencies, 0);
-        pMesh->m_pMaterial.m_pAssetRecord = pMaterialRecord;
+        const auto pMaterialRecord = GetDependencyRecord(dependencies, 0);
+        UpdateDependencyRecord(pMesh->m_pMaterial, pMaterialRecord);
 
         pMesh->m_descriptorSet = m_pRenderEngine->AllocateDescriptorSet<Mesh>();
         auto textureDescriptor = pMesh->m_pMaterial->GetAlbedoMap()->GetDescriptor();

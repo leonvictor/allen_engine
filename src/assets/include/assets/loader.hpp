@@ -86,6 +86,11 @@ class IAssetLoader
         return dependencies[dependencyIndex].GetRecord();
     }
 
+    void UpdateDependencyRecord(IAssetHandle handle, const AssetRecord* pRecord)
+    {
+        handle.m_pAssetRecord = pRecord;
+    }
+
     const AssetRecord* GetDependencyRecord(const Vector<IAssetHandle>& dependencies, const AssetID& dependencyID)
     {
         for (auto& dependencyHandle : dependencies)

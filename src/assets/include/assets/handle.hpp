@@ -20,10 +20,10 @@ class IAssetHandle
     AssetID m_assetID;
     AssetStatus GetStatus() const { return (m_pAssetRecord != nullptr) ? m_pAssetRecord->GetStatus() : AssetStatus::Unloaded; }
 
-  public:
-    // TODO: shouldn't be public
+  protected:
     const AssetRecord* m_pAssetRecord = nullptr;
 
+  public:
     IAssetHandle() = default;
     IAssetHandle(AssetID assetID) : m_assetID(assetID) {}
     IAssetHandle(std::string assetPath) : m_assetID(assetPath) {}
