@@ -98,8 +98,8 @@ struct AssimpMeshReader
         {
             auto& vertex = vertices.emplace_back();
 
-            vertex.pos = context.ToGLM(pMesh->mVertices[vertexIndex]);
-            vertex.normal = context.ToGLM(pMesh->mNormals[vertexIndex]);
+            vertex.pos = context.ToVec3(pMesh->mVertices[vertexIndex]);
+            vertex.normal = context.ToVec3(pMesh->mNormals[vertexIndex]);
 
             if (pMesh->GetNumUVChannels() >= 1)
             {

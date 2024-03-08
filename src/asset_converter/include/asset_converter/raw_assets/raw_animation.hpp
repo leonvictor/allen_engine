@@ -111,9 +111,9 @@ struct AssimpAnimationReader
                     auto& scale = uniformScaling ? pChannel->mScalingKeys[0].mValue : pChannel->mScalingKeys[keyIndex].mValue;
 
                     auto& transform = track.m_transforms.emplace_back(
-                        sceneContext.ToGLM(translation),
-                        sceneContext.ToGLM(rotation),
-                        sceneContext.ToGLM(scale));
+                        sceneContext.ToVec3(translation),
+                        sceneContext.ToQuaternion(rotation),
+                        sceneContext.ToVec3(scale));
                 }
             }
             else

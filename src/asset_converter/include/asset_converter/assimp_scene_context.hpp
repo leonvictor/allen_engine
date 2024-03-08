@@ -39,12 +39,11 @@ class AssimpSceneContext
     const aiNode* GetRootNode() const { return m_pScene->mRootNode; }
 
     // Helpers translating assimp struct to ours
-    /// @todo Rename to more descriptive names (ToVec3, ToTransform)...
-    static Matrix4x4 ToGLM(const aiMatrix4x4& from);
-    static Vec3 ToGLM(const aiVector3D& in) { return Vec3(in.x, in.y, in.z); }
-    static Quaternion ToGLM(const aiQuaternion& in) { return Quaternion(in.w, in.x, in.y, in.z); }
-    static Vec2 ToVec2(const aiVector3D& in) { return Vec2{in.x, in.y}; }
-    static Vec3 ToVec3(const aiColor4D& in) { return Vec3{in[0], in[1], in[2]}; }
+    static Matrix4x4 ToMatrix(const aiMatrix4x4& from);
+    static Vec3 ToVec3(const aiVector3D& in) { return Vec3(in.x, in.y, in.z); }
+    static Quaternion ToQuaternion(const aiQuaternion& in) { return Quaternion(in.w, in.x, in.y, in.z); }
+    static Vec2 ToVec2(const aiVector3D& in) { return Vec2(in.x, in.y); }
+    static Vec3 ToVec3(const aiColor4D& in) { return Vec3(in[0], in[1], in[2]); }
 
     /// @brief Decompose an assimp matrix in an aln transform
     static Transform DecomposeMatrix(const aiMatrix4x4& in);

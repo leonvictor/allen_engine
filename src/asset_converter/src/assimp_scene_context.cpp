@@ -2,7 +2,7 @@
 
 namespace aln::assets::converter
 {
-Matrix4x4 AssimpSceneContext::ToGLM(const aiMatrix4x4& from)
+Matrix4x4 AssimpSceneContext::ToMatrix(const aiMatrix4x4& from)
 {
     // Row-major -> Column-major
     Matrix4x4 matrix;
@@ -24,9 +24,9 @@ Transform AssimpSceneContext::DecomposeMatrix(const aiMatrix4x4& in)
     in.Decompose(scaling, rotation, position);
 
     return Transform(
-        ToGLM(position),
-        ToGLM(rotation),
-        ToGLM(scaling));
+        ToVec3(position),
+        ToQuaternion(rotation),
+        ToVec3(scaling));
 }
 
 Transform AssimpSceneContext::RevertSceneTransform(const Transform& transform) const
