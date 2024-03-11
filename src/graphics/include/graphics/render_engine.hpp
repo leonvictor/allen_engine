@@ -9,7 +9,6 @@
 #include <common/containers/array.hpp>
 #include <common/containers/hash_map.hpp>
 
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
 #include <assert.h>
@@ -44,14 +43,12 @@ struct SwapchainSupportDetails
 };
 
 /// @brief Core rendering engine
-/// @todo Use "unique" vk structs only when beneficial to avoid unecessary overhead
 class RenderEngine
 {
   private:
     static constexpr uint32_t FRAME_QUEUE_SIZE = 2;
 
     // Per-frame per-thread data
-    /// @note // It's more efficient to reset command pools than reseting individual command buffers
     // We have 2x(queue types) pools:
     // - one for "transient" cbs, that must be done before we reuse the pool, i.e. rendering cbs
     // - one for "one time" cbs, that can cross frame boundaries and are reset when their execution is complete
@@ -146,6 +143,7 @@ class RenderEngine
     static constexpr uint32_t GetFrameQueueSize() { return FRAME_QUEUE_SIZE; }
     inline uint32_t GetCurrentFrameIdx() const { return m_currentFrameIdx; }
     vk::Fence& GetCurrentFrameRenderingFence() { return m_frameData[m_currentFrameIdx].m_currentlyRendering; }
+    const vk::Fence& GetFrameRenderingFence(uint32_t frameIdx) { return m_frameData[frameIdx].m_currentlyRendering; }
 
     // -- Query properties
     SwapchainSupportDetails GetSwapchainSupport();

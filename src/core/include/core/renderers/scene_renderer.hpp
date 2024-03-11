@@ -21,7 +21,8 @@
 
 namespace aln
 {
-
+/// @brief Holds resources and routines to render a world and its entities
+/// @todo Rename "WorldRenderer"
 class SceneRenderer : public IRenderer
 {
   public:
@@ -94,88 +95,6 @@ class SceneRenderer : public IRenderer
 
         m_renderpass.AddSubpassDependency(dep);
         m_renderpass.Create();
-
-        // --- Create the render targets
-
-        auto cb = m_pRenderEngine->GetGraphicsPersistentCommandPool().GetCommandBuffer();
-
-        constexpr auto renderTargetCount = RenderEngine::GetFrameQueueSize();
-        m_renderTargets.resize(renderTargetCount);
-        for (auto renderTargetIdx = 0; renderTargetIdx < renderTargetCount; ++renderTargetIdx)
-        {
-            auto& renderTarget = m_renderTargets[renderTargetIdx];
-
-            // Resolve image
-            renderTarget.m_resolveImage.Initialize(
-                m_pRenderEngine,
-                windowSize.width,
-                windowSize.height,
-                1,
-                vk::SampleCountFlagBits::e1,
-                colorImageFormat,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled);
-            renderTarget.m_resolveImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
-            renderTarget.m_resolveImage.AddView(vk::ImageAspectFlagBits::eColor);
-            renderTarget.m_resolveImage.AddSampler();
-            renderTarget.m_resolveImage.TransitionLayout((vk::CommandBuffer) cb, vk::ImageLayout::eGeneral);
-            renderTarget.m_resolveImage.CreateDescriptorSet();
-            renderTarget.m_resolveImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Resolve");
-
-            // Multisampling image
-            renderTarget.m_multisamplingImage.Initialize(
-                m_pRenderEngine,
-                windowSize.width,
-                windowSize.height,
-                1,
-                m_pRenderEngine->GetMSAASamples(),
-                colorImageFormat,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment);
-
-            renderTarget.m_multisamplingImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
-            renderTarget.m_multisamplingImage.AddView(vk::ImageAspectFlagBits::eColor);
-            renderTarget.m_multisamplingImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Multisampling");
-
-            // Depth image
-            renderTarget.m_depthImage.Initialize(
-                m_pRenderEngine,
-                windowSize.width,
-                windowSize.height,
-                1,
-                m_pRenderEngine->GetMSAASamples(),
-                m_pRenderEngine->FindDepthFormat(),
-                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
-            renderTarget.m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
-            renderTarget.m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
-            renderTarget.m_depthImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Depth");
-
-            // Framebuffer
-            Vector<vk::ImageView> attachments = {
-                renderTarget.m_multisamplingImage.GetVkView(),
-                renderTarget.m_depthImage.GetVkView(),
-                renderTarget.m_resolveImage.GetVkView(),
-            };
-
-            vk::FramebufferCreateInfo framebufferInfo = {
-                .renderPass = m_renderpass.GetVkRenderPass(),
-                .attachmentCount = static_cast<uint32_t>(attachments.size()),
-                .pAttachments = attachments.data(),
-                .width = windowSize.width,
-                .height = windowSize.height,
-                .layers = 1,
-            };
-
-            renderTarget.m_framebuffer = m_pRenderEngine->GetVkDevice().createFramebuffer(framebufferInfo).value;
-
-            // Sync
-            renderTarget.m_renderFinished = m_pRenderEngine->GetVkDevice().createSemaphore({}).value;
-        }
-
-        QueueSubmissionRequest request;
-        request.ExecuteCommandBuffer(cb);
-
-        m_pRenderEngine->GetGraphicsQueue().Submit(request, vk::Fence{});
 
         Vector<vk::WriteDescriptorSet> writeDescriptorSets;
 
@@ -415,15 +334,6 @@ class SceneRenderer : public IRenderer
         m_skeletalMeshesPipeline.Shutdown();
         //m_skyboxPipeline.Shutdown();
 
-        for (auto& renderTarget : m_renderTargets)
-        {
-            m_pRenderEngine->GetVkDevice().destroyFramebuffer(renderTarget.m_framebuffer);
-            renderTarget.m_depthImage.Shutdown();
-            renderTarget.m_multisamplingImage.Shutdown();
-            renderTarget.m_resolveImage.Shutdown();
-            m_pRenderEngine->GetVkDevice().destroySemaphore(renderTarget.m_renderFinished);
-        }
-
         m_pRenderEngine->GetVkDevice().destroyDescriptorSetLayout(m_skinningBufferDescriptorSetLayout);
         m_pRenderEngine->GetVkDevice().destroyDescriptorSetLayout(m_modelTransformsDescriptorSetLayout);
         m_pRenderEngine->GetVkDevice().destroyDescriptorSetLayout(m_sceneDataDescriptorSetLayout);
@@ -519,9 +429,7 @@ class SceneRenderer : public IRenderer
 
                 pushConstant.m_bonesCount = pMeshComponent->GetBonesCount();
                 pushConstant.m_bonesStartIndex = totalBonesCount;
-
                 cb.pushConstants(m_skeletalMeshesPipeline.GetLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant), &pushConstant);
-                // assert(constant.m_bonesCount < 255);
 
                 totalBonesCount += pushConstant.m_bonesCount;
 
@@ -537,7 +445,7 @@ class SceneRenderer : public IRenderer
         cb.drawIndexed(pCurrentMesh->GetIndicesCount(), instanceCount, 0, 0, firstInstance);
     }
 
-    void Render(WorldEntity* pWorld, TransientCommandBuffer& cb)
+    void Render(const WorldEntity* pWorld, TransientCommandBuffer& cb)
     {
         // Descriptors
         // 0 - Per frame (scene data (=viewproj matrix))
@@ -548,13 +456,18 @@ class SceneRenderer : public IRenderer
 
         ZoneScoped;
 
-        const auto currentFrameIdx = m_pRenderEngine->GetCurrentFrameIdx();
-        auto& renderTarget = m_renderTargets[currentFrameIdx];
-        const auto& data = pWorld->GetSystem<GraphicsSystem>()->GetRenderData();
+        const auto pWorldGraphicsSystem = pWorld->GetSystem<GraphicsSystem>();
+        if (!pWorldGraphicsSystem->IsReadyToRender())
+        {
+            return;
+        }
+
+        const auto& frameResources = pWorldGraphicsSystem->m_gpuResources[m_pRenderEngine->GetCurrentFrameIdx()];
+        const auto& data = pWorldGraphicsSystem->GetRenderData();
 
         RenderPass::Context renderPassCtx = {
             .commandBuffer = (vk::CommandBuffer) cb,
-            .framebuffer = renderTarget.m_framebuffer,
+            .framebuffer = frameResources.m_framebuffer,
             .backgroundColor = data.m_pCameraComponent->m_backgroundColor,
         };
 
@@ -644,7 +557,5 @@ class SceneRenderer : public IRenderer
 
         cb->endRenderPass();
     }
-
-    const RenderTarget* GetCurrentRenderTarget() const { return &m_renderTargets[m_pRenderEngine->GetCurrentFrameIdx()]; }
 };
 } // namespace aln

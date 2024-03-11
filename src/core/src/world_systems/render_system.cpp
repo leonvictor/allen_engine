@@ -54,15 +54,23 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
 
 void GraphicsSystem::Shutdown(const ServiceProvider& serviceProvider)
 {
+    // Notify the rendering service that we can release this world's resources
+    m_pRenderingService->ShutdownWorldResources(m_gpuResources);
+    m_pRenderingService = nullptr;
+
     // TODO
-    //m_linesRenderState.Shutdown();
+    // m_linesRenderState.Shutdown();
 }
 
 void GraphicsSystem::Initialize(const ServiceProvider& serviceProvider)
 {
     // Debug resources
     // TODO: Rework line debugging
-    //m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
+    // m_linesRenderState.Initialize(m_pRenderer->GetDevice(), m_pRenderer);
+
+    // Acquire per-world graphics ressources from the rendering service
+    m_pRenderingService = serviceProvider.GetService<RenderingService>();
+    m_pRenderingService->InitializeWorldResources(m_gpuResources);
 }
 
 void GraphicsSystem::Update(const UpdateContext& context)
@@ -80,21 +88,8 @@ void GraphicsSystem::Update(const UpdateContext& context)
         return; // Camera is the only necessary component, return if it's not loaded yet
     }
 
-    // TODO: The graphics system is merely responsible for culling, the true rendering command
-    // recording is done by the graphics service. 
-    // How do the two communicate ?
-    // Conceptually it would be better if Systems were clients of services
-    // So set the things to render from here to the service
-    // Problem is we might have multiple worlds that should be rendered by different renderers
-    // (i.e. editor preview windows)
-    // Previews can have their own world, but the service should be shared
-    auto pRenderingService = context.GetService<RenderingService>();
-
     // Update viewport info
     m_aspectRatio = context.GetDisplayWidth() / context.GetDisplayHeight();
-
-    //aln::RenderContext ctx = {.backgroundColor = m_pCameraComponent->m_backgroundColor};
-    //m_pRenderer->StartFrame(ctx);
 
     m_renderData.m_visibleStaticMeshComponents.clear();
     for (auto& meshInstance : m_staticMeshRenderInstances)
@@ -116,29 +111,6 @@ void GraphicsSystem::Update(const UpdateContext& context)
             m_renderData.m_visibleSkeletalMeshComponents.push_back(pSkeletalMeshComponent);
         }
     }
-
-    /// @todo Keep cb inside the renderer once we've moved debug rendering
-    //auto& cb = m_pRenderer->GetActiveRenderTarget().commandBuffer.get();
-    //m_pRenderer->Render(data, cb);
-
-    // Debug drawing
-    /// @todo: Move to a dedicated renderer
-    //DrawingContext drawingContext;
-    //for (auto& meshInstance : m_skeletalMeshRenderInstances)
-    //{
-    //    for (const auto& pSkeletalMeshComponent : meshInstance.m_components)
-    //    {
-    //        if (pSkeletalMeshComponent->m_drawDebugSkeleton)
-    //        {
-    //            pSkeletalMeshComponent->DrawPose(drawingContext);
-    //        }
-    //        // pSkeletalMeshComponent->DrawBindPose(drawingContext);
-    //    }
-    //}
-
-    //RenderDebugLines(cb, drawingContext);
-
-    //m_pRenderer->EndFrame();
 }
 
 void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pComponent)
@@ -223,5 +195,10 @@ const UpdatePriorities& GraphicsSystem::GetUpdatePriorities()
     UpdatePriorities up;
     return up;
 };
+
+const GraphicsSystem::GPUResources& GraphicsSystem::GetGPUResources() const
+{
+    return m_gpuResources[m_pRenderingService->GetRenderEngine()->GetCurrentFrameIdx()];
+}
 
 } // namespace aln
