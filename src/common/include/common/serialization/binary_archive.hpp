@@ -46,8 +46,8 @@ struct ArchiveAccess
 
 template <typename T>
 concept CustomSerializable = requires(T a, BinaryMemoryArchive archive) {
-                                 a.Serialize<BinaryMemoryArchive>(archive);
-                                 a.Deserialize<BinaryMemoryArchive>(archive);
+                                 a.Serialize(archive);
+                                 a.Deserialize(archive);
                              };
 
 template <typename T>
