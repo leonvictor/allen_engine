@@ -171,6 +171,7 @@ void PropertiesWindow::BeginComponentEditing(const TypeEditedEventDetails& editi
     if (editingEventDetails.m_action == TypeEditedEventDetails::Action::EditRequiresReload)
     {
         auto pWorldEntity = GetWorldEntity();
+        assert(pWorldEntity != nullptr);
         auto pComponent = dynamic_cast<IComponent*>(editingEventDetails.m_pEditedTypeInstance);
 
         pWorldEntity->StartComponentEditing(pComponent);
