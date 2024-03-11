@@ -56,9 +56,23 @@ class GraphicsSystem : public IWorldSystem
         uint32_t GetID() const { return m_pMesh->GetID(); }
     };
 
+  public:
+    /// @brief Per-frame GPU Resources
+    struct GPUResources
+    {
+        GPUImage m_multisamplingImage;
+        GPUImage m_depthImage;
+        GPUImage m_resolveImage;
+        vk::Framebuffer m_framebuffer;
+    };
+
   private:
+    /// @todo Rename
     RenderData m_renderData;
      
+    // Per-world per-frame GPU resources. Acquired/Released from the global service
+    Vector<GPUResources> m_gpuResources;
+
     // Viewport info
     /// @todo: Move to a specific Viewport class that get passed around
     float m_aspectRatio = 1.0f;
@@ -69,6 +83,8 @@ class GraphicsSystem : public IWorldSystem
     // Registered components
     IDVector<SkeletalMeshRenderInstance> m_skeletalMeshRenderInstances;
     IDVector<StaticMeshRenderInstance> m_staticMeshRenderInstances;
+
+    RenderingService* m_pRenderingService = nullptr;
 
   private:
     // -------------------------------------------------
@@ -92,5 +108,9 @@ class GraphicsSystem : public IWorldSystem
     }
 
     const RenderData& GetRenderData() const { return m_renderData; }
+
+    bool IsReadyToRender() const { return m_renderData.m_pCameraComponent != nullptr; }
+    const GPUResources& GetGPUResources() const;
+
 };
 } // namespace aln
