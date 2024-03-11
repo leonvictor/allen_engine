@@ -39,16 +39,16 @@ class AnimationPlayerComponent : public IComponent
 
     void Update(Seconds deltaTime);
 
-    void SetSkeleton(const std::string& path)
+    void SetSkeleton(const AssetHandle<Skeleton>& handle)
     {
         assert(IsUnloaded());
-        m_pSkeleton = AssetHandle<Skeleton>(path);
+        m_pSkeleton = handle;
     }
 
-    void SetAnimationClip(const std::string& path)
+    void SetAnimationClip(const AssetHandle<AnimationClip>& handle)
     {
         assert(IsUnloaded());
-        m_pAnimationClip = AssetHandle<AnimationClip>(path);
+        m_pAnimationClip = handle;
     }
 
     void Initialize() override

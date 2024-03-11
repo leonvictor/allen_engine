@@ -48,13 +48,14 @@ class AnimationClip : public IAsset
     uint32_t m_frameCount = 0;
     Seconds m_duration = 0.0f; // Duration in seconds
 
+    AssetHandle<Skeleton> m_pSkeleton;
+
     FrameTime GetFrameTime(float percentageThroughAnimation) const
     {
         float frameIndex;
         float percentageThroughFrame = Maths::Modf(percentageThroughAnimation * (m_frameCount - 1), frameIndex);
         return FrameTime(frameIndex, percentageThroughFrame);
     }
-
 
     /// @brief Get the difference in root motion between two points in the animation (does not handle looping)
     inline Transform GetRootMotionDeltaNoLooping(float fromPercentageThroughAnimation, float toPercentageThroughAnimation) const

@@ -34,6 +34,8 @@ class WorldsService : public IService
     WorldEntity* GetGameWorld() { return m_worlds[m_gameWorldIdx]; }
     const WorldEntity* GetGameWorld() const { return m_worlds[m_gameWorldIdx]; }
 
+    /// @brief Create a new world entity. Only one game world can exist at once
+    /// @todo Prevent creation of world entities in any other way
     WorldEntity* CreateWorld(bool isGameWorld)
     {
         // Only one game world allowed

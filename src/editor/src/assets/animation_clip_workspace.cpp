@@ -1,10 +1,11 @@
 #include "assets/animation_clip_workspace.hpp"
 #include "aln_imgui_widgets.hpp"
 
+#include <common/maths/maths.hpp>
+#include <core/components/animation_player_component.hpp>
 #include <core/components/camera.hpp>
 #include <core/entity_systems/camera_controller.hpp>
 #include <core/world_systems/world_rendering_system.hpp>
-#include <common/maths/maths.hpp>
 
 #include <IconsFontAwesome6.h>
 #include <imgui.h>
@@ -464,14 +465,14 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
         if (ImGui::BeginChild("Animation Preview", {contentWidth, previewHeight}, true))
         {
             // TODO: Animation preview
-            
+
             // Update current scene preview dims
             auto dim = ImGui::GetContentRegionAvail();
             m_pPreviewWorld->UpdateViewportSize(dim.x, dim.y);
 
             auto& descriptor = m_pPreviewWorld->GetSystem<WorldRenderingSystem>()->GetGPUResources().m_resolveImage.GetDescriptorSet();
             ImGui::Image((ImTextureID) descriptor, dim);
-            
+
             ImGui::EndChild();
         }
 
@@ -493,25 +494,41 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
 {
     IAssetWorkspace::Initialize(pContext, id, readAssetFile);
 
-    // TODO: Prevent creation of world entities in any other way
+    // TODO: This does not mean loading anything so we don't have access to the skeleton right away
+    // m_pAnimationClip = AssetHandle<AnimationClip>(id);
+
+    if (readAssetFile)
+    {
+        // TODO: Start loading the anim asset
+        // TODO: Find a related mesh
+        // TODO: Set resources to the preview world
+    }
+
     IAssetWorkspace::CreatePreviewWorld();
     m_pPreviewWorld->CreateSystem<WorldRenderingSystem>();
 
+    // -- Camera
     m_pPreviewCameraEntity = m_pPreviewWorld->CreateEntity("Camera");
-    
     auto pCameraComponent = aln::New<CameraComponent>();
     m_pPreviewCameraEntity->AddComponent(pCameraComponent);
-    // TODO: Place the camera a lil bit better
+    // TODO: Place the camera a lil bit better by default
+
     m_pPreviewCameraEntity->CreateSystem<EditorCameraController>();
 
+    // -- Floor
     auto pFloorEntity = m_pPreviewWorld->CreateEntity("Floor");
     auto pFloorMeshComponent = aln::New<StaticMeshComponent>();
-    
     pFloorMeshComponent->SetMesh(AssetHandle<StaticMesh>(PreviewSceneFloorMeshAssetFilepath));
     pFloorEntity->AddComponent(pFloorMeshComponent);
-    
+
     // TODO: Add lights
-    // TODO: Add a character mesh that fits the current anim's skeleton
+
+    // -- Preview character
+    auto pCharacterEntity = m_pPreviewWorld->CreateEntity("Character");
+    auto pSkeletalMeshComponent = aln::New<SkeletalMeshComponent>();
+    pCharacterEntity->AddComponent(pSkeletalMeshComponent);
+    auto pAnimComponent = aln::New<AnimationPlayerComponent>();
+    pCharacterEntity->AddComponent(pAnimComponent);
 }
 
 void aln::AnimationClipWorkspace::Shutdown()
