@@ -49,6 +49,14 @@ class AnimationLoader : public IAssetLoader
         pRecord->SetAsset(pAnim);
         return true;
     }
-};
 
+    void InstallDependencies(AssetRecord* pAssetRecord, const Vector<IAssetHandle>& dependencies) override
+    {
+        assert(dependencies.size() == 1);
+        auto pAnimClip = pAssetRecord->GetAsset<AnimationClip>();
+
+        auto pSkeletonRecord = GetDependencyRecord(dependencies, 0);
+        pAnimClip->m_pSkeleton.m_pAssetRecord = pSkeletonRecord;
+    }
+};
 } // namespace aln

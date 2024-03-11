@@ -43,11 +43,13 @@ class IAssetWorkspace : public IEditorWindow
     // Preview world
     void CreatePreviewWorld()
     {
+        assert(m_pPreviewWorld == nullptr);
         m_pPreviewWorld = m_pWorldsService->CreateWorld(false);
     }
 
     void DeletePreviewWorld()
     {
+        assert(m_pPreviewWorld != nullptr);
         m_pWorldsService->DestroyWorld(m_pPreviewWorld);
         m_pPreviewWorld = nullptr;
     }
