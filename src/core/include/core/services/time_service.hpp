@@ -12,6 +12,7 @@ namespace aln
 class TimeService : public IService
 {
     friend class Engine;
+    friend class ServiceProvider;
 
   private:
     using Clock = std::chrono::steady_clock;
@@ -29,7 +30,14 @@ class TimeService : public IService
     /// @brief Notify the time system that we changed frames. Get the current time and update internal fields accordingly.
     void Update();
 
-    TimeService() : m_startTime(std::chrono::time_point_cast<Duration>(Clock::now())), m_frameTime(m_startTime), m_frameCount(0) {}
+    void Initialize(ServiceProvider* pProvider) override
+    {
+        IService::Initialize(pProvider);
+
+        m_startTime = std::chrono::time_point_cast<Duration>(Clock::now());
+        m_frameTime = m_startTime;
+        m_frameCount = 0;
+    }
 
   public:
     /// @brief Interval since last frame (in seconds).

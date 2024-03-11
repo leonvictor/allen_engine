@@ -8,6 +8,7 @@
 
 #include <common/containers/array.hpp>
 #include <common/containers/hash_map.hpp>
+#include <common/services/service_provider.hpp>
 #include <common/threading/task_service.hpp>
 #include <graphics/render_engine.hpp>
 
@@ -30,6 +31,7 @@ class AssetService : public IService
 {
     friend class Engine;
     friend struct AssetRequest;
+    friend class ServiceProvider;
 
   private:
     HashMap<AssetTypeID, std::unique_ptr<IAssetLoader>> m_loaders;
@@ -53,26 +55,12 @@ class AssetService : public IService
     StagingBuffer m_stagingBuffer;
 
   private:
-    /// @brief Find an existing record. The record must have already been created !
-    AssetRecord* FindRecord(const AssetID& assetID);
-    AssetRecord* GetOrCreateRecord(const AssetID& assetID);
-    AssetRequest* FindActiveRequest(const AssetID id);
-
-    /// @brief Handle pending requests
-    void Update();
-    void HandleActiveRequests(uint32_t threadIdx);
-
-    inline bool IsIdle() const { return m_pendingRequests.empty() && m_activeRequests.empty() && !m_isLoadingTaskRunning; }
-    inline bool IsBusy() const { return !IsIdle(); }
-
-  public:
-    AssetService() : m_loadingTask([this](TaskSetPartition range, uint32_t threadIdx)
-                         { HandleActiveRequests(threadIdx); }) {}
-
-    void Initialize(TaskService& taskService, RenderEngine& renderEngine)
+    void Initialize(ServiceProvider* pProvider) override
     {
-        m_pTaskService = &taskService;
-        m_pRenderDevice = &renderEngine;
+        IService::Initialize(pProvider);
+
+        m_pTaskService = pProvider->GetService<TaskService>();
+        m_pRenderDevice = pProvider->GetRenderEngine();
 
         static constexpr size_t STAGING_BUFFER_SIZE = 256 * 1024 * 1024; // 256MiB
         m_stagingBuffer.Initialize(m_pRenderDevice, STAGING_BUFFER_SIZE);
@@ -90,7 +78,26 @@ class AssetService : public IService
         // TODO: Properly remove cache entries when the last reference is unloaded
         // assert(m_assetCache.empty());
         m_loaders.clear();
+
+        m_pRenderDevice = nullptr;
+        m_pTaskService = nullptr;
     }
+
+    /// @brief Find an existing record. The record must have already been created !
+    AssetRecord* FindRecord(const AssetID& assetID);
+    AssetRecord* GetOrCreateRecord(const AssetID& assetID);
+    AssetRequest* FindActiveRequest(const AssetID id);
+
+    /// @brief Handle pending requests
+    void Update();
+    void HandleActiveRequests(uint32_t threadIdx);
+
+    inline bool IsIdle() const { return m_pendingRequests.empty() && m_activeRequests.empty() && !m_isLoadingTaskRunning; }
+    inline bool IsBusy() const { return !IsIdle(); }
+
+  public:
+    AssetService() : m_loadingTask([this](TaskSetPartition range, uint32_t threadIdx)
+                         { HandleActiveRequests(threadIdx); }) {}
 
     /// @brief Register a new loader
     /// @tparam T: Asset type
