@@ -15,8 +15,6 @@
 #include <input/input_service.hpp>
 #include <reflection/services/type_registry_service.hpp>
 
-#include <core/renderers/scene_renderer.hpp>
-#include <core/renderers/ui_renderer.hpp>
 #include <graphics/render_engine.hpp>
 #include <graphics/window.hpp>
 
@@ -27,7 +25,7 @@
 #include <core/asset_loaders/skeleton_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
 
-#include <core/world_systems/render_system.hpp>
+#include <core/world_systems/world_rendering_system.hpp>
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
 
@@ -118,7 +116,7 @@ class Engine
         m_pAssetService->RegisterAssetLoader<AnimationGraphDefinition, AnimationGraphDefinitionLoader>(m_pTypeRegistryService);
 
         auto pGameWorld = m_pWorldsService->CreateWorld(true);
-        pGameWorld->CreateSystem<GraphicsSystem>();
+        pGameWorld->CreateSystem<WorldRenderingSystem>();
 
         m_editor.Initialize(m_serviceProvider, "scene.aln");
 

@@ -15,8 +15,8 @@ namespace aln
 
 class SkeletalMeshComponent : public MeshComponent
 {
-    friend class GraphicsSystem;
-    friend class SceneRenderer;
+    friend class WorldRenderingSystem;
+    friend class WorldRenderer;
 
     ALN_REGISTER_TYPE();
 

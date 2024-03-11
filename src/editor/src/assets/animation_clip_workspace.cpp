@@ -3,7 +3,7 @@
 
 #include <core/components/camera.hpp>
 #include <core/entity_systems/camera_controller.hpp>
-#include <core/world_systems/render_system.hpp>
+#include <core/world_systems/world_rendering_system.hpp>
 #include <common/maths/maths.hpp>
 
 #include <IconsFontAwesome6.h>
@@ -469,7 +469,7 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
             auto dim = ImGui::GetContentRegionAvail();
             m_pPreviewWorld->UpdateViewportSize(dim.x, dim.y);
 
-            auto& descriptor = m_pPreviewWorld->GetSystem<GraphicsSystem>()->GetGPUResources().m_resolveImage.GetDescriptorSet();
+            auto& descriptor = m_pPreviewWorld->GetSystem<WorldRenderingSystem>()->GetGPUResources().m_resolveImage.GetDescriptorSet();
             ImGui::Image((ImTextureID) descriptor, dim);
             
             ImGui::EndChild();
@@ -495,7 +495,7 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
 
     // TODO: Prevent creation of world entities in any other way
     IAssetWorkspace::CreatePreviewWorld();
-    m_pPreviewWorld->CreateSystem<GraphicsSystem>();
+    m_pPreviewWorld->CreateSystem<WorldRenderingSystem>();
 
     m_pPreviewCameraEntity = m_pPreviewWorld->CreateEntity("Camera");
     

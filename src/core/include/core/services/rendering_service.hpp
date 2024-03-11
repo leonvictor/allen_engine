@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../renderers/scene_renderer.hpp"
+#include "../renderers/world_renderer.hpp"
 #include "../renderers/ui_renderer.hpp"
 
 #include <common/services/service.hpp>
@@ -17,7 +17,7 @@ class RenderingService : public IService
     WorldsService* m_pWorldsService = nullptr;
 
     EditorRenderer m_editorRenderer;
-    SceneRenderer m_sceneRenderer;
+    WorldRenderer m_worldRenderer;
 
     RenderContext m_context;
 
@@ -31,7 +31,7 @@ class RenderingService : public IService
         assert(m_pWorldsService != nullptr);
 
         m_editorRenderer.Initialize(m_pRenderEngine);
-        m_sceneRenderer.Initialize(m_pRenderEngine);
+        m_worldRenderer.Initialize(m_pRenderEngine);
 
         m_pImguiService = pProvider->GetService<ImGUIService>();
         if (m_pImguiService != nullptr)
@@ -43,7 +43,7 @@ class RenderingService : public IService
     void Shutdown()
     {
         m_pImguiService->ShutdownRendering();
-        m_sceneRenderer.Shutdown();
+        m_worldRenderer.Shutdown();
         m_editorRenderer.Shutdown();
     }
 
@@ -57,7 +57,7 @@ class RenderingService : public IService
         // Render all worlds
         for (const auto* pWorld : m_pWorldsService->GetWorlds())
         {
-            m_sceneRenderer.Render(pWorld, cb);
+            m_worldRenderer.Render(pWorld, cb);
         }
 
         // Editor / UI
@@ -75,7 +75,7 @@ class RenderingService : public IService
         m_pRenderEngine->EndFrame();
     }
 
-    void AcquireWorldGPUResources(Vector<GraphicsSystem::GPUResources>& resources)
+    void AcquireWorldGPUResources(Vector<WorldRenderingSystem::GPUResources>& resources)
     {
         auto colorImageFormat = m_pRenderEngine->GetWindow()->GetSwapchain().GetImageFormat();
         // TODO: Update the viewport based on the imgui scene window size
@@ -85,7 +85,7 @@ class RenderingService : public IService
 
         constexpr auto frameCount = RenderEngine::GetFrameQueueSize();
         resources.reserve(frameCount);
-        for (auto renderTargetIdx = 0; renderTargetIdx < frameCount; ++renderTargetIdx)
+        for (auto frameIdx = 0; frameIdx < frameCount; ++frameIdx)
         {
             auto& frameResources = resources.emplace_back();
 
@@ -104,7 +104,7 @@ class RenderingService : public IService
             frameResources.m_resolveImage.AddSampler();
             frameResources.m_resolveImage.TransitionLayout((vk::CommandBuffer) cb, vk::ImageLayout::eGeneral);
             frameResources.m_resolveImage.CreateDescriptorSet();
-            frameResources.m_resolveImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Resolve");
+            frameResources.m_resolveImage.SetDebugName("Scene Renderer Target (" + std::to_string(frameIdx) + ") - Resolve");
 
             // Multisampling image
             frameResources.m_multisamplingImage.Initialize(
@@ -119,7 +119,7 @@ class RenderingService : public IService
 
             frameResources.m_multisamplingImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
             frameResources.m_multisamplingImage.AddView(vk::ImageAspectFlagBits::eColor);
-            frameResources.m_multisamplingImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Multisampling");
+            frameResources.m_multisamplingImage.SetDebugName("Scene Renderer Target (" + std::to_string(frameIdx) + ") - Multisampling");
 
             // Depth image
             frameResources.m_depthImage.Initialize(
@@ -132,7 +132,7 @@ class RenderingService : public IService
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
             frameResources.m_depthImage.Allocate(vk::MemoryPropertyFlagBits::eDeviceLocal);
             frameResources.m_depthImage.AddView(vk::ImageAspectFlagBits::eDepth);
-            frameResources.m_depthImage.SetDebugName("Scene Renderer Target (" + std::to_string(renderTargetIdx) + ") - Depth");
+            frameResources.m_depthImage.SetDebugName("Scene Renderer Target (" + std::to_string(frameIdx) + ") - Depth");
 
             // Framebuffer
             Vector<vk::ImageView> attachments = {
@@ -142,7 +142,7 @@ class RenderingService : public IService
             };
 
             vk::FramebufferCreateInfo framebufferInfo = {
-                .renderPass = m_sceneRenderer.GetRenderPass().GetVkRenderPass(),
+                .renderPass = m_worldRenderer.GetRenderPass().GetVkRenderPass(),
                 .attachmentCount = static_cast<uint32_t>(attachments.size()),
                 .pAttachments = attachments.data(),
                 .width = windowSize.width,
@@ -159,7 +159,7 @@ class RenderingService : public IService
         m_pRenderEngine->GetGraphicsQueue().Submit(request, vk::Fence());
     }
 
-    void ReleaseWorldGPUResources(Vector<GraphicsSystem::GPUResources>& resources)
+    void ReleaseWorldGPUResources(Vector<WorldRenderingSystem::GPUResources>& resources)
     {
         constexpr auto frameCount = RenderEngine::GetFrameQueueSize();
         for (auto frameIdx = 0; frameIdx < frameCount; ++frameIdx)

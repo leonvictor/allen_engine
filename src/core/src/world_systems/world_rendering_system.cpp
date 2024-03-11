@@ -1,8 +1,8 @@
-#include "world_systems/render_system.hpp"
+#include "world_systems/world_rendering_system.hpp"
 
 #include "components/camera.hpp"
 #include "components/light.hpp"
-#include "renderers/scene_renderer.hpp"
+#include "renderers/world_renderer.hpp"
 #include "services/rendering_service.hpp"
 
 #include <common/maths/matrix4x4.hpp>
@@ -16,7 +16,7 @@
 namespace aln
 {
 
-void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext)
+void WorldRenderingSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& drawingContext)
 {
     const auto& vertexBuffer = drawingContext.m_vertices;
     auto vertexCount = vertexBuffer.size();
@@ -52,7 +52,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     cb.draw(vertexBuffer.size(), 1, 0, 0);
 }
 
-void GraphicsSystem::Shutdown(const ServiceProvider& serviceProvider)
+void WorldRenderingSystem::Shutdown(const ServiceProvider& serviceProvider)
 {
     // Notify the rendering service that we can release this world's resources
     m_pRenderingService->ReleaseWorldGPUResources(m_gpuResources);
@@ -62,7 +62,7 @@ void GraphicsSystem::Shutdown(const ServiceProvider& serviceProvider)
     // m_linesRenderState.Shutdown();
 }
 
-void GraphicsSystem::Initialize(const ServiceProvider& serviceProvider)
+void WorldRenderingSystem::Initialize(const ServiceProvider& serviceProvider)
 {
     // Debug resources
     // TODO: Rework line debugging
@@ -73,7 +73,7 @@ void GraphicsSystem::Initialize(const ServiceProvider& serviceProvider)
     m_pRenderingService->AcquireWorldGPUResources(m_gpuResources);
 }
 
-void GraphicsSystem::Update(const UpdateContext& context)
+void WorldRenderingSystem::Update(const UpdateContext& context)
 {
     if (context.GetUpdateStage() != UpdateStage::FrameEnd)
     {
@@ -113,7 +113,7 @@ void GraphicsSystem::Update(const UpdateContext& context)
     }
 }
 
-void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pComponent)
+void WorldRenderingSystem::RegisterComponent(const Entity* pEntity, IComponent* pComponent)
 {
     // Set the first registered camera as the active one
     auto pCamera = dynamic_cast<CameraComponent*>(pComponent);
@@ -147,7 +147,7 @@ void GraphicsSystem::RegisterComponent(const Entity* pEntity, IComponent* pCompo
     }
 }
 
-void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pComponent)
+void WorldRenderingSystem::UnregisterComponent(const Entity* pEntity, IComponent* pComponent)
 {
     auto pCamera = dynamic_cast<CameraComponent*>(pComponent);
     if (pCamera != nullptr)
@@ -189,14 +189,14 @@ void GraphicsSystem::UnregisterComponent(const Entity* pEntity, IComponent* pCom
     }
 }
 
-const UpdatePriorities& GraphicsSystem::GetUpdatePriorities()
+const UpdatePriorities& WorldRenderingSystem::GetUpdatePriorities()
 {
     // TODO
     UpdatePriorities up;
     return up;
 };
 
-const GraphicsSystem::GPUResources& GraphicsSystem::GetGPUResources() const
+const WorldRenderingSystem::GPUResources& WorldRenderingSystem::GetGPUResources() const
 {
     return m_gpuResources[m_pRenderingService->GetRenderEngine()->GetCurrentFrameIdx()];
 }

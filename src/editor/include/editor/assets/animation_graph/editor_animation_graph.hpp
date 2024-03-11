@@ -11,7 +11,6 @@ class AnimationGraphDefinition;
 class AnimationGraphDataset;
 class AnimationGraphCompilationContext;
 
-/// @todo Rename to Blend Tree
 class EditorAnimationGraph : public EditorGraph
 {
     ALN_REGISTER_TYPE()

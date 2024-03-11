@@ -16,7 +16,7 @@ class MeshComponent : public SpatialComponent
 {
     ALN_REGISTER_TYPE()
 
-    friend class GraphicsSystem;
+    friend class WorldRenderingSystem;
 
   protected:
     MeshComponent() = default;

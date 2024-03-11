@@ -11,7 +11,7 @@ namespace aln
 
 class LinesRenderState
 {
-    friend class GraphicsSystem;
+    friend class WorldRenderingSystem;
 
     static constexpr uint32_t MaxLinesPerDrawCall = 10000;
 
