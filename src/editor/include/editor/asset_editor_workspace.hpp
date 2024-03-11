@@ -20,7 +20,6 @@ class IAssetWorkspace : public IEditorWindow
   protected:
     WorldEntity* m_pPreviewWorld = nullptr;
 
-    // TODO: Bundle editor assets during the build process
     // TODO: Find a better way to keep the hardcoded editor asset paths. Probably after AssetID is refactored to not use strings everywhere...
     static constexpr const char* PreviewSceneFloorMeshAssetFilepath = "assets/editor/floor/Floor_Plane.mesh";
 

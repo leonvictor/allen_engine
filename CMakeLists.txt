@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.17)
 
 include(FetchContent)
 
-project(ALLEN VERSION 0.1)
-cmake_policy(SET CMP0077 NEW)
-
 set(CMAKE_CXX_STANDARD 20) 
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+project(ALLEN VERSION 0.1)
+cmake_policy(SET CMP0077 NEW)
 
 set(SOURCE 
     src/applications/glfw_application.cpp)
@@ -59,6 +59,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ALLEN_BINARY_DIR})
 
 # TODO: ?
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
+# Copy editor assets from the source directory to the build one
+file(COPY assets/editor DESTINATION assets)
 
 # Add Imgui to sources
 file(GLOB IMGUI_SOURCE ${CMAKE_SOURCE_DIR}/external/imgui/*.cpp)
