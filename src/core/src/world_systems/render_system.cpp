@@ -55,7 +55,7 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
 void GraphicsSystem::Shutdown(const ServiceProvider& serviceProvider)
 {
     // Notify the rendering service that we can release this world's resources
-    m_pRenderingService->ShutdownWorldResources(m_gpuResources);
+    m_pRenderingService->ReleaseWorldGPUResources(m_gpuResources);
     m_pRenderingService = nullptr;
 
     // TODO
@@ -70,7 +70,7 @@ void GraphicsSystem::Initialize(const ServiceProvider& serviceProvider)
 
     // Acquire per-world graphics ressources from the rendering service
     m_pRenderingService = serviceProvider.GetService<RenderingService>();
-    m_pRenderingService->InitializeWorldResources(m_gpuResources);
+    m_pRenderingService->AcquireWorldGPUResources(m_gpuResources);
 }
 
 void GraphicsSystem::Update(const UpdateContext& context)

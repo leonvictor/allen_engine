@@ -5,6 +5,7 @@
 
 #include <anim/animation_clip.hpp>
 #include <common/containers/vector.hpp>
+#include <entities/world_entity.hpp>
 
 namespace aln
 {
@@ -40,13 +41,17 @@ class AnimationClipWorkspace : public IAssetWorkspace
     Vector<EditorEventTrack*> m_eventTracks;
     EditorEventTrack* m_pSyncTrack = nullptr;
     EditorAnimationEvent* m_pCurrentlyEditedEvent = nullptr;
-    
+
     State m_state;
 
     std::filesystem::path m_compiledAnimationClipPath;
     std::filesystem::path m_statePath;
 
     bool m_waitingForAssetLoad = true;
+
+    // Preview
+    Entity* m_pPreviewCameraEntity = nullptr;
+    Entity* m_pCharacterEntity = nullptr;
 
     // Sequencer state
     float m_animationTime = 0.0f;
@@ -56,17 +61,17 @@ class AnimationClipWorkspace : public IAssetWorkspace
     void DrawAnimationEventsEditor();
 
   public:
-    // ----- Window lifetime
 
+    // ----- Window lifetime
     void Update(const UpdateContext& context) override;
-    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
-    virtual void Shutdown() override;
+    void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
+    void Shutdown() override;
     void Clear();
 
-    // ----- Saving/Loading
-
+    // ----- Compilation
     AnimationClip* Compile();
 
+    // ----- Saving/Loading
     virtual void SaveState(JSON& json) const override
     {
         // TODO

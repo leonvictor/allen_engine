@@ -20,6 +20,12 @@ class StaticMeshComponent : public MeshComponent
   public:
     inline const StaticMesh* GetMesh() const { return m_pMesh.get(); }
 
+    void SetMesh(AssetHandle<StaticMesh> pMesh)
+    {
+        assert(IsUnloaded());
+        m_pMesh = pMesh;
+    }
+
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
         Vector<vk::DescriptorSetLayoutBinding> bindings{
