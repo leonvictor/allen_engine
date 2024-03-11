@@ -23,8 +23,10 @@ namespace aln
 class ImGUIService : public IService
 {
   public:
-    void Initialize()
+    void Initialize(ServiceProvider* pProvider) override
     {
+        IService::Initialize(pProvider);
+
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImNodes::CreateContext();
