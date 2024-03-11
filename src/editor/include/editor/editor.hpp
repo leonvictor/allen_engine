@@ -7,9 +7,11 @@
 #include "properties_window.hpp"
 
 #include <common/containers/hash_map.hpp>
+#include <common/maths/vec2.hpp>
 #include <entities/entity_descriptors.hpp>
 #include <entities/world_entity.hpp>
-#include <common/maths/vec2.hpp>
+
+#include <config/path.h>
 
 #include <filesystem>
 
@@ -59,7 +61,7 @@ class Editor
   private:
     std::filesystem::path m_scenePath;
 
-    WorldEntity& m_worldEntity;
+    WorldEntity* m_pGameWorld = nullptr;
     Entity* m_pEditorEntity = nullptr;
     CameraComponent* m_pCamera = nullptr;
 
@@ -74,13 +76,14 @@ class Editor
     HashMap<AssetID, IAssetWorkspace*> m_assetWindows;
 
     // TODO: Handle widget lifetime. For now they're always here !
-    AssetsBrowser m_assetsBrowser;
+    AssetsBrowser m_assetsBrowser = AssetsBrowser(DEFAULT_ASSETS_DIR);
     EntityInspector m_entityInspector;
     PropertiesWindow m_propertiesInspector;
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;
 
+  private:
     void EntityOutlinePopup(Entity* pEntity = nullptr);
     void RecurseEntityTree(Entity* pEntity);
 
@@ -91,7 +94,7 @@ class Editor
     {
         Vector<ComponentSearchResult> results;
         auto pTypeInfo = T::GetStaticTypeInfo();
-        for (auto pEntity : m_worldEntity.GetEntities())
+        for (auto pEntity : m_pGameWorld->GetEntities())
         {
             for (auto pComponent : pEntity->GetComponents())
             {
@@ -105,8 +108,6 @@ class Editor
     }
 
   public:
-    Editor(WorldEntity& worldEntity);
-
     // -------------------
     // Editor Lifetime
     //--------------------

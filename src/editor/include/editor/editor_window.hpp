@@ -13,11 +13,13 @@ class TypeRegistryService;
 class IAssetHandle;
 class UpdateContext;
 class AssetService;
+class WorldsService;
 
 class EditorWindowContext
 {
     friend class Editor;
     friend class IEditorWindow;
+    friend class IAssetWorkspace;
 
     // TODO: Shouldnt be here
     friend class AnimationGraphWorkspace;
@@ -28,6 +30,7 @@ class EditorWindowContext
     Entity* m_pSelectedEntity = nullptr;
     reflect::IReflected* m_pInspectedObject = nullptr;
 
+    WorldsService* m_pWorldsService = nullptr;
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
     // TODO: should be const
     AssetService* m_pAssetService = nullptr;

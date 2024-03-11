@@ -2,8 +2,9 @@
 
 #include "editor_window.hpp"
 
-#include "assets/asset_id.hpp"
 #include "assets/asset.hpp"
+#include "assets/asset_id.hpp"
+#include "entities/services/worlds_service.hpp"
 
 namespace aln
 {
@@ -11,13 +12,26 @@ namespace aln
 class IAssetWorkspace : public IEditorWindow
 {
     friend class Editor;
+
+  private:
     AssetID m_id;
+    WorldsService* m_pWorldsService = nullptr;
+
+  protected:
+    WorldEntity* m_pPreviewWorld = nullptr;
+
+    // TODO: Bundle editor assets during the build process
+    // TODO: Find a better way to keep the hardcoded editor asset paths. Probably after AssetID is refactored to not use strings everywhere...
+    static constexpr const char* PreviewSceneFloorMeshAssetFilepath = "assets/editor/floor/Floor_Plane.mesh";
 
   protected:
     virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile = true)
     {
         assert(id.IsValid());
         IEditorWindow::Initialize(pContext);
+
+        m_pWorldsService = pContext->m_pWorldsService;
+
         m_id = id;
     }
 
@@ -26,6 +40,20 @@ class IAssetWorkspace : public IEditorWindow
         IEditorWindow::Shutdown();
         m_id = AssetID();
     }
+
+    // Preview world
+    void CreatePreviewWorld()
+    {
+        m_pPreviewWorld = m_pWorldsService->CreateWorld(false);
+    }
+
+    void DeletePreviewWorld()
+    {
+        m_pWorldsService->DestroyWorld(m_pPreviewWorld);
+        m_pPreviewWorld = nullptr;
+    }
+
+    bool HasPreviewWorld() const { return m_pPreviewWorld != nullptr; }
 
   public:
     const AssetID& GetID() { return m_id; }
@@ -98,14 +126,14 @@ class AssetEditorWindowsFactories
     }
 };
 
-#define ALN_ASSET_WORKSPACE_FACTORY(assetType, workspaceType)                      \
+#define ALN_ASSET_WORKSPACE_FACTORY(assetType, workspaceType)             \
     class assetType##EditorWindowFactory : public IAssetWorkspacesFactory \
-    {                                                                        \
-      public:                                                                \
-        virtual IAssetWorkspace* CreateWorkspace() override final      \
-        {                                                                    \
-            return aln::New<workspaceType>();                                   \
-        }                                                                    \
+    {                                                                     \
+      public:                                                             \
+        virtual IAssetWorkspace* CreateWorkspace() override final         \
+        {                                                                 \
+            return aln::New<workspaceType>();                             \
+        }                                                                 \
     };
 
 } // namespace aln

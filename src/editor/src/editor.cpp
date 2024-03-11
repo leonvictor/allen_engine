@@ -34,13 +34,14 @@ void SetImGuiContext(const EditorImGuiContext& context)
 }
 } // namespace editor
 
-Editor::Editor(WorldEntity& worldEntity)
-    : m_worldEntity(worldEntity),
-      m_assetsBrowser(DEFAULT_ASSETS_DIR) {}
-
 void Editor::Update(const UpdateContext& context)
 {
     ZoneScoped;
+
+    // Process requests by child windows
+    ResolveAssetWindowRequests();
+
+    m_pGameWorld = context.GetService<WorldsService>()->GetGameWorld();
 
     // Draw ImGUI components
     ImGuiViewportP* viewport = (ImGuiViewportP*) (void*) ImGui::GetMainViewport();
@@ -133,7 +134,7 @@ void Editor::Update(const UpdateContext& context)
                 {
                     if (ImGui::MenuItem((camera.m_pOwningEntity->GetName() + "::" + camera.m_pComponent->GetTypeInfo()->GetPrettyName()).c_str()))
                     {
-                        auto pRenderingSystem = m_worldEntity.GetSystem<GraphicsSystem>();
+                        auto pRenderingSystem = m_pGameWorld->GetSystem<GraphicsSystem>();
                         pRenderingSystem->SetRenderCamera(static_cast<const CameraComponent*>(camera.m_pComponent));
                     }
                     // TODO: Tooltip with component ID to disambiguate an entity having mutliple cameras of the same type
@@ -145,10 +146,10 @@ void Editor::Update(const UpdateContext& context)
 
         // Update current scene preview dims
         auto dim = ImGui::GetContentRegionAvail();
-        m_worldEntity.m_viewport.m_size.width = dim.x;
-        m_worldEntity.m_viewport.m_size.height = dim.y;
+        m_pGameWorld->m_viewport.m_size.width = dim.x;
+        m_pGameWorld->m_viewport.m_size.height = dim.y;
 
-        auto& descriptor = m_pRenderingService->GetRenderTarget()->m_resolveImage.GetDescriptorSet();
+        auto& descriptor = m_pGameWorld->GetSystem<GraphicsSystem>()->GetGPUResources().m_resolveImage.GetDescriptorSet();
         ImGui::Image((ImTextureID) descriptor, dim);
     }
 
@@ -171,7 +172,7 @@ void Editor::Update(const UpdateContext& context)
     // Outline panel
     if (ImGui::Begin(ICON_FA_LIST " Outline"))
     {
-        auto& entities = m_worldEntity.GetEntities();
+        auto& entities = m_pGameWorld->GetEntities();
         for (auto pEntity : entities)
         {
             if (!pEntity->HasParentEntity())
@@ -209,9 +210,6 @@ void Editor::Update(const UpdateContext& context)
     {
         pWindow->Update(context);
     }
-
-    // Process requests by child windows
-    ResolveAssetWindowRequests();
 }
 
 void Editor::RecurseEntityTree(Entity* pEntity)
@@ -307,13 +305,13 @@ void Editor::EntityOutlinePopup(Entity* pContextEntity)
                 {
                     m_editorWindowContext.m_pSelectedEntity = nullptr;
                 }
-                m_worldEntity.m_entityMap.RemoveEntity(pContextEntity);
+                m_pGameWorld->m_entityMap.RemoveEntity(pContextEntity);
             }
         }
 
         if (ImGui::MenuItem("Create Empty Entity", "", false, pContextEntity == nullptr))
         {
-            auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("Entity");
+            auto pNewEntity = m_pGameWorld->m_entityMap.CreateEntity("Entity");
         }
 
         ImGui::Separator();
@@ -331,7 +329,7 @@ void Editor::EntityOutlinePopup(Entity* pContextEntity)
                 {
                     m_editorWindowContext.m_pSelectedEntity = nullptr;
                 }
-                m_worldEntity.m_entityMap.RemoveEntity(pContextEntity);
+                m_pGameWorld->m_entityMap.RemoveEntity(pContextEntity);
             }
 
             if (ImGui::MenuItem("Copy", "Ctrl + C"))
@@ -343,7 +341,7 @@ void Editor::EntityOutlinePopup(Entity* pContextEntity)
         if (ImGui::MenuItem("Paste", "Ctrl + V", false, m_entityClipboard.IsValid()))
         {
             // TODO: Disable paste on non-spatial entities
-            auto pNewEntity = m_worldEntity.m_entityMap.CreateEntity("");
+            auto pNewEntity = m_pGameWorld->m_entityMap.CreateEntity("");
             m_entityClipboard.InstanciateEntity(pNewEntity, m_pTypeRegistryService);
             if (pContextEntity != nullptr)
             {
@@ -408,7 +406,8 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
     m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
     m_editorWindowContext.m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
-    m_editorWindowContext.m_pWorldEntity = &m_worldEntity;
+    m_editorWindowContext.m_pWorldsService = serviceProvider.GetService<WorldsService>();
+    m_editorWindowContext.m_pWorldEntity = m_pGameWorld;
 
     m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
     // TODO: Animation clips can't be created from scratch in the editor. Remove them from the list
@@ -420,6 +419,8 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
 
     m_scenePath = scenePath;
 
+    m_pGameWorld = serviceProvider.GetService<WorldsService>()->GetGameWorld();
+
     // TODO: Usability stuff: automatically load last used scene etc
     if (std::filesystem::exists(scenePath))
     {
@@ -429,7 +430,7 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     else
     {
         m_pCamera = aln::New<CameraComponent>();
-        m_pEditorEntity = m_worldEntity.m_entityMap.CreateEntity("Editor");
+        m_pEditorEntity = m_pGameWorld->m_entityMap.CreateEntity("Editor");
         m_pEditorEntity->AddComponent(m_pCamera);
         m_pEditorEntity->CreateSystem<EditorCameraController>();
     }
@@ -453,19 +454,21 @@ void Editor::Shutdown()
 
 void Editor::SaveScene() const
 {
-    EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_worldEntity.m_entityMap, *m_pTypeRegistryService);
+    EntityMapDescriptor mapDescriptor = EntityMapDescriptor(m_pGameWorld->m_entityMap, *m_pTypeRegistryService);
     BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Write);
     archive << mapDescriptor;
 }
 
 void Editor::LoadScene()
 {
+    assert(m_pGameWorld != nullptr);
+
     // TODO
     EntityMapDescriptor mapDescriptor;
     BinaryFileArchive archive(m_scenePath, IBinaryArchive::IOMode::Read);
     archive >> mapDescriptor;
 
-    mapDescriptor.InstanciateEntityMap(m_worldEntity.m_entityMap, m_worldEntity.m_loadingContext, *m_pTypeRegistryService);
+    mapDescriptor.InstanciateEntityMap(m_pGameWorld->m_entityMap, m_pGameWorld->m_loadingContext, *m_pTypeRegistryService);
 }
 
 void Editor::SaveState() const
