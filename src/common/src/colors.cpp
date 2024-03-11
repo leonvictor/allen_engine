@@ -82,28 +82,35 @@ RGBUnitColor::RGBUnitColor(const HSVColor& hsvColor)
         m_red = hsvColor.m_value;
         m_green = t;
         m_blue = p;
+        break;
     case 1:
         m_red = q;
         m_green = hsvColor.m_value;
         m_blue = p;
+        break;
     case 2:
         m_red = p;
         m_green = hsvColor.m_value;
         m_blue = t;
+        break;
     case 3:
         m_red = p;
         m_green = q;
         m_blue = hsvColor.m_value;
+        break;
     case 4:
         m_red = t;
         m_green = p;
         m_blue = hsvColor.m_value;
+        break;
     case 5:
         m_red = hsvColor.m_value;
         m_green = p;
         m_blue = q;
+        break;
+    default:
+        assert(false);
     }
-    assert(false);
 }
 
 RGBColor::RGBColor(const HSVColor& hsvColor) : RGBColor(RGBUnitColor(hsvColor)) {}
