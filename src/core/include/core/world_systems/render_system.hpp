@@ -22,6 +22,7 @@ class Entity;
 class IComponent;
 class SkeletalMesh;
 class StaticMesh;
+class RenderingService;
 
 struct RenderData
 {
@@ -33,6 +34,8 @@ struct RenderData
 
 class GraphicsSystem : public IWorldSystem
 {
+    friend class SceneRenderer;
+
     // Mesh components are grouped by mesh instance so that we can have one descriptor per mesh instance
     // This also allows us to decouple rendering stuff from the base mesh classes
     struct SkeletalMeshRenderInstance
@@ -71,8 +74,8 @@ class GraphicsSystem : public IWorldSystem
     // -------------------------------------------------
     // System Methods
     // -------------------------------------------------
-    void Shutdown() override;
-    void Initialize() override;
+    void Shutdown(const ServiceProvider& serviceProvider) override;
+    void Initialize(const ServiceProvider& serviceProvider) override;
     void Update(const UpdateContext& context) override;
     void RegisterComponent(const Entity* pEntity, IComponent* pComponent) override;
     void UnregisterComponent(const Entity* pEntity, IComponent* pComponent) override;

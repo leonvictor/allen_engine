@@ -1,21 +1,23 @@
 #include "world_system.hpp"
 
+#include "common/services/service_provider.hpp"
+
 #include <assert.h>
 
 namespace aln
 {
 
-void IWorldSystem::InitializeSystem()
+void IWorldSystem::InitializeSystem(const ServiceProvider& serviceProvider)
 {
     assert(m_status == Status::Uninitialized);
-    Initialize();
+    Initialize(serviceProvider);
     m_status = Status::Initialized;
 }
 
-void IWorldSystem::ShutdownSystem()
+void IWorldSystem::ShutdownSystem(const ServiceProvider& serviceProvider)
 {
     assert(m_status == Status::Initialized);
-    Shutdown();
+    Shutdown(serviceProvider);
     m_status = Status::Uninitialized;
 }
 

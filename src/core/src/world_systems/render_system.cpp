@@ -5,11 +5,11 @@
 #include "renderers/scene_renderer.hpp"
 #include "services/rendering_service.hpp"
 
-#include <graphics/rendering/renderer.hpp>
+#include <common/maths/matrix4x4.hpp>
 #include <entities/entity.hpp>
 #include <entities/update_context.hpp>
 #include <entities/world_system.hpp>
-#include <common/maths/matrix4x4.hpp>
+#include <graphics/rendering/renderer.hpp>
 
 #include <tracy/Tracy.hpp>
 
@@ -52,13 +52,13 @@ void GraphicsSystem::RenderDebugLines(vk::CommandBuffer& cb, DrawingContext& dra
     cb.draw(vertexBuffer.size(), 1, 0, 0);
 }
 
-void GraphicsSystem::Shutdown()
+void GraphicsSystem::Shutdown(const ServiceProvider& serviceProvider)
 {
     // TODO
     //m_linesRenderState.Shutdown();
 }
 
-void GraphicsSystem::Initialize()
+void GraphicsSystem::Initialize(const ServiceProvider& serviceProvider)
 {
     // Debug resources
     // TODO: Rework line debugging
