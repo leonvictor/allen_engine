@@ -4,7 +4,7 @@
 #include "../components/light.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 #include "../components/static_mesh_component.hpp"
-#include "../world_systems/render_system.hpp"
+#include "../world_systems/world_rendering_system.hpp"
 
 #include <entities/world_entity.hpp>
 #include <graphics/render_engine.hpp>
@@ -21,9 +21,8 @@
 
 namespace aln
 {
-/// @brief Holds resources and routines to render a world and its entities
-/// @todo Rename "WorldRenderer"
-class SceneRenderer : public IRenderer
+
+class WorldRenderer : public IRenderer
 {
   public:
     struct SceneGPUData
@@ -456,7 +455,7 @@ class SceneRenderer : public IRenderer
 
         ZoneScoped;
 
-        const auto pWorldGraphicsSystem = pWorld->GetSystem<GraphicsSystem>();
+        const auto pWorldGraphicsSystem = pWorld->GetSystem<WorldRenderingSystem>();
         if (!pWorldGraphicsSystem->IsReadyToRender())
         {
             return;

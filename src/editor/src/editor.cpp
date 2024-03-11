@@ -8,9 +8,8 @@
 #include <config/path.h>
 #include <core/components/camera.hpp>
 #include <core/entity_systems/camera_controller.hpp>
-#include <core/renderers/scene_renderer.hpp>
 #include <core/services/rendering_service.hpp>
-#include <core/world_systems/render_system.hpp>
+#include <core/world_systems/world_rendering_system.hpp>
 #include <entities/world_entity.hpp>
 #include <reflection/services/type_registry_service.hpp>
 
@@ -134,7 +133,7 @@ void Editor::Update(const UpdateContext& context)
                 {
                     if (ImGui::MenuItem((camera.m_pOwningEntity->GetName() + "::" + camera.m_pComponent->GetTypeInfo()->GetPrettyName()).c_str()))
                     {
-                        auto pRenderingSystem = m_pGameWorld->GetSystem<GraphicsSystem>();
+                        auto pRenderingSystem = m_pGameWorld->GetSystem<WorldRenderingSystem>();
                         pRenderingSystem->SetRenderCamera(static_cast<const CameraComponent*>(camera.m_pComponent));
                     }
                     // TODO: Tooltip with component ID to disambiguate an entity having mutliple cameras of the same type
@@ -149,7 +148,7 @@ void Editor::Update(const UpdateContext& context)
         m_pGameWorld->m_viewport.m_size.width = dim.x;
         m_pGameWorld->m_viewport.m_size.height = dim.y;
 
-        auto& descriptor = m_pGameWorld->GetSystem<GraphicsSystem>()->GetGPUResources().m_resolveImage.GetDescriptorSet();
+        auto& descriptor = m_pGameWorld->GetSystem<WorldRenderingSystem>()->GetGPUResources().m_resolveImage.GetDescriptorSet();
         ImGui::Image((ImTextureID) descriptor, dim);
     }
 

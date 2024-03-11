@@ -1,7 +1,6 @@
 set(LIB_NAME core)
 
 add_library(${LIB_NAME}
-    src/world_systems/render_system.cpp
 
     src/services/time_service.cpp
     src/mesh.cpp
@@ -17,7 +16,9 @@ add_library(${LIB_NAME}
     src/entity_systems/script.cpp
     src/entity_systems/camera_controller.cpp
     src/entity_systems/animation_system.cpp
-    src/entity_systems/player_controller.cpp    
+    src/entity_systems/player_controller.cpp
+
+    src/world_systems/world_rendering_system.cpp
     
     src/module/module.cpp
 )

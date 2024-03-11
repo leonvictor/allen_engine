@@ -27,7 +27,7 @@ class Mesh : public IAsset
     ALN_REGISTER_ASSET_TYPE("mesh");
 
     friend class MeshLoader;
-    friend class GraphicsSystem;
+    friend class WorldRenderingSystem;
 
   private:
     Vector<std::byte> m_vertices;

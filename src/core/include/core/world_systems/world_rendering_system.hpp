@@ -32,9 +32,9 @@ struct RenderData
     const CameraComponent* m_pCameraComponent;
 };
 
-class GraphicsSystem : public IWorldSystem
+class WorldRenderingSystem : public IWorldSystem
 {
-    friend class SceneRenderer;
+    friend class WorldRenderer;
 
     // Mesh components are grouped by mesh instance so that we can have one descriptor per mesh instance
     // This also allows us to decouple rendering stuff from the base mesh classes
@@ -69,7 +69,7 @@ class GraphicsSystem : public IWorldSystem
   private:
     /// @todo Rename
     RenderData m_renderData;
-     
+
     // Per-world per-frame GPU resources. Acquired/Released from the global service
     Vector<GPUResources> m_gpuResources;
 

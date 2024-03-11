@@ -92,7 +92,7 @@ class WorldEntity
     }
 
     template <typename T>
-    T* GetSystem() 
+    T* GetSystem()
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
 
@@ -114,8 +114,14 @@ class WorldEntity
     const Vector<Entity*>& GetEntities() const { return m_entityMap.m_entities; }
 
     void InitializeViewport(const Rectangle& size) { m_viewport.m_size = size; }
+    void UpdateViewportSize(float width, float height)
+    {
+        m_viewport.m_size.width = width;
+        m_viewport.m_size.height = height;
+    }
+
     const Viewport* GetViewport() const { return &m_viewport; }
-    
+
     // -------- Editing
     // TODO: Disable in prod
 

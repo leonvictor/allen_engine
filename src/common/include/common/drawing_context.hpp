@@ -12,7 +12,7 @@ namespace aln
 /// @todo Support multiple threads drawing at the same time
 class DrawingContext
 {
-    friend class GraphicsSystem;
+    friend class WorldRenderingSystem;
 
   private:
     Vector<DebugVertex> m_vertices; // CPU debug lines data
