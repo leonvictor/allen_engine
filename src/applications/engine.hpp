@@ -6,7 +6,6 @@
 #include <editor/module/module.hpp>
 #include <entities/module/module.hpp>
 
-#include <assets/asset_service.hpp>
 #include <common/services/service_provider.hpp>
 
 #include <assets/asset_service.hpp>
@@ -59,11 +58,11 @@ class Engine
     RenderingService* m_pRenderingService = nullptr;
     ImGUIService* m_pImguiService = nullptr;
 
+    WorldsService* m_pWorldsService = nullptr;
+
     // Editor
     Editor m_editor;
-    ImGUIService m_imguiService;
 
-    WorldEntity m_worldEntity;
     UpdateContext m_updateContext;
 
     // Modules
@@ -74,8 +73,6 @@ class Engine
     Entities::Module m_entitiesModule;
 
   public:
-    Engine() : m_editor(m_worldEntity) {}
-
     // TODO: Get rid of the glfwWindow
     void Initialize(IWindow* pWindow)
     {
@@ -87,8 +84,7 @@ class Engine
         // Initialize services and provider
         m_serviceProvider.Initialize(&m_renderEngine);
 
-        m_serviceProvider.RegisterService(&m_taskService);
-        m_serviceProvider.RegisterService(&m_assetService);
+        m_pWorldsService = m_serviceProvider.AddService<WorldsService>();
         m_pTaskService = m_serviceProvider.AddService<TaskService>();
         m_pAssetService = m_serviceProvider.AddService<AssetService>();
         m_pTimeService = m_serviceProvider.AddService<TimeService>();
@@ -121,8 +117,8 @@ class Engine
         m_pAssetService->RegisterAssetLoader<AnimationGraphDataset, AnimationGraphDatasetLoader>();
         m_pAssetService->RegisterAssetLoader<AnimationGraphDefinition, AnimationGraphDefinitionLoader>(m_pTypeRegistryService);
 
-        m_worldEntity.Initialize(m_serviceProvider);
-        m_worldEntity.CreateSystem<GraphicsSystem>();
+        auto pGameWorld = m_pWorldsService->CreateWorld(true);
+        pGameWorld->CreateSystem<GraphicsSystem>();
 
         m_editor.Initialize(m_serviceProvider, "scene.aln");
 
@@ -137,10 +133,6 @@ class Engine
 
         m_editor.Shutdown();
 
-        // TODO: Destroy world entity
-        m_worldEntity.Shutdown();
-
-
         EngineModuleContext moduleContext = {
             .m_pTypeRegistryService = m_pTypeRegistryService,
         };
@@ -151,7 +143,7 @@ class Engine
         m_toolingModule.Shutdown(moduleContext);
         m_entitiesModule.Shutdown(moduleContext);
 
-        m_serviceProvider.UnregisterAllServices();
+        m_serviceProvider.RemoveService<WorldsService>();
         m_serviceProvider.RemoveService<RenderingService>();
         m_serviceProvider.RemoveService<ImGUIService>();
         m_serviceProvider.RemoveService<TypeRegistryService>();
@@ -200,7 +192,7 @@ class Engine
         // context.displayHeight = m_window.GetHeight();
 
         // Loading stage
-        m_worldEntity.UpdateLoading();
+        m_pWorldsService->UpdateLoading();
 
         // Object model: Update systems at various points in the frame.
         // TODO: Handle sync points here ?
@@ -209,7 +201,7 @@ class Engine
             ZoneScoped;
 
             m_updateContext.m_updateStage = static_cast<UpdateStage>(stage);
-            m_worldEntity.Update(m_updateContext);
+            m_pWorldsService->Update(m_updateContext);
         }
 
         m_pImguiService->StartFrame();
