@@ -16,11 +16,11 @@ namespace aln
 
 void WorldEntity::Initialize(ServiceProvider& serviceProvider)
 {
-    m_pTaskService = serviceProvider.GetService<TaskService>();
-    assert(m_pTaskService != nullptr);
+    m_pServiceProvider = &serviceProvider;
 
+    m_pTaskService = serviceProvider.GetService<TaskService>();
     auto pAssetService = serviceProvider.GetService<AssetService>();
-    assert(pAssetService != nullptr);
+    assert(pAssetService != nullptr && m_pTaskService != nullptr);
 
     m_loadingContext = LoadingContext(m_pTaskService, pAssetService);
 
@@ -40,7 +40,7 @@ void WorldEntity::Shutdown()
 {
     for (auto& [id, pSystem] : m_systems)
     {
-        pSystem->Shutdown();
+        pSystem->Shutdown(*m_pServiceProvider);
         aln::Delete(pSystem);
     }
     m_systems.clear();

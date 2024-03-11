@@ -15,7 +15,7 @@ namespace aln
 
 class IComponent;
 
-/// @brief The one entity that represents the world. Holds entities and world systems.
+/// @brief Holds entities and world systems.
 class WorldEntity
 {
     friend class Engine;
@@ -26,6 +26,7 @@ class WorldEntity
     EntityMap m_entityMap;
     HashMap<std::type_index, IWorldSystem*, std::hash<std::type_index>> m_systems;
 
+    ServiceProvider* m_pServiceProvider = nullptr;
     TaskService* m_pTaskService = nullptr;
     Viewport m_viewport;
 
@@ -53,6 +54,10 @@ class WorldEntity
     /// @brief Run the world's loading step, handling entities that were modified during the last frame
     void UpdateLoading();
 
+    /// @brief Create a new entity and add it to the world
+    /// @todo Replace the string name parameter
+    Entity* CreateEntity(std::string entityName) { return m_entityMap.CreateEntity(entityName); }
+
     /// @brief Turn on an entity in the world.
     void ActivateEntity(Entity* pEntity);
 
@@ -63,9 +68,11 @@ class WorldEntity
     void CreateSystem(Args... args)
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
+        assert(m_pServiceProvider != nullptr);
+
         // TODO: Prevent creating multiple systems of the same type
         auto pSystem = aln::New<T>(args...);
-        pSystem->InitializeSystem();
+        pSystem->InitializeSystem(*m_pServiceProvider);
         m_systems.emplace(std::type_index(typeid(T)), pSystem);
     }
 
@@ -73,12 +80,13 @@ class WorldEntity
     void RemoveSystem()
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
+        assert(m_pServiceProvider != nullptr);
 
         auto& iter = m_systems.find(std::type_index(typeid(T)));
         if (iter != m_systems.end())
         {
             auto pSystem = iter->second;
-            pSystem->ShutdownSystem();
+            pSystem->ShutdownSystem(*m_pServiceProvider);
             aln::Delete(pSystem);
             m_systems.erase(iter->first);
         }
@@ -86,6 +94,16 @@ class WorldEntity
 
     template <typename T>
     T* GetSystem() 
+    {
+        static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
+
+        auto iter = m_systems.find(std::type_index(typeid(T)));
+        assert(iter != m_systems.end());
+        return static_cast<T*>(iter->second);
+    }
+
+    template <typename T>
+    const T* GetSystem() const
     {
         static_assert(std::is_base_of_v<IWorldSystem, T>, "Invalid system type");
 
