@@ -402,6 +402,8 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
     m_pRenderingService = serviceProvider.GetService<RenderingService>();
 
+    m_pGameWorld = serviceProvider.GetService<WorldsService>()->GetGameWorld();
+
     // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
     m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
     m_editorWindowContext.m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
@@ -418,7 +420,6 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
 
     m_scenePath = scenePath;
 
-    m_pGameWorld = serviceProvider.GetService<WorldsService>()->GetGameWorld();
 
     // TODO: Usability stuff: automatically load last used scene etc
     if (std::filesystem::exists(scenePath))
