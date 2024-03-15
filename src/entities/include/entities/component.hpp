@@ -24,11 +24,8 @@ class IComponent : public reflect::IReflected
     bool m_registeredWithEntitySystems = false;
     bool m_registeredWithWorldSystems = false;
 
-    std::future<bool> m_loadingTask;
-
     // Private state management methods. Use verbose naming to differentiate with the inner virtual ones.
     void LoadComponent(const LoadingContext& loadingContext);
-    bool LoadComponentAsync(const LoadingContext& loadingContext);
     void UnloadComponent(const LoadingContext& loadingContext);
     void InitializeComponent();
     void ShutdownComponent();
@@ -52,7 +49,6 @@ class IComponent : public reflect::IReflected
     virtual void Shutdown() = 0;
 
     /// @brief Load all ressources.
-    /// @return Whether loading was successful.
     virtual void Load(const LoadingContext& loadingContext) = 0;
 
     /// @brief Unload all ressources.

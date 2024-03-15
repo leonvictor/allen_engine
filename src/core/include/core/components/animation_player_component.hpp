@@ -65,24 +65,27 @@ class AnimationPlayerComponent : public IComponent
 
     void Load(const LoadingContext& loadingContext) override
     {
+        if (m_pAnimationClip.IsValid())
+        {
         loadingContext.m_pAssetService->Load(m_pAnimationClip);
-        loadingContext.m_pAssetService->Load(m_pSkeleton);
+        }
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
+        if (m_pAnimationClip.IsValid())
+        {
         loadingContext.m_pAssetService->Unload(m_pAnimationClip);
-        loadingContext.m_pAssetService->Unload(m_pSkeleton);
+        }
     }
 
     bool UpdateLoadingStatus() override
     {
-        if (m_pAnimationClip.IsLoaded() && m_pSkeleton.IsLoaded())
+        if (m_pAnimationClip.IsLoaded())
         {
             m_status = Status::Loaded;
         }
-        else if (!m_pAnimationClip.IsValid() || m_pAnimationClip.HasFailedLoading() ||
-                 !m_pSkeleton.IsValid() || m_pSkeleton.HasFailedLoading())
+        else if (m_pAnimationClip.HasFailedLoading())
         {
             m_status = Status::LoadingFailed;
         }

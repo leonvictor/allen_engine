@@ -21,7 +21,7 @@ void IComponent::InitializeComponent()
 
 void IComponent::UnloadComponent(const LoadingContext& loadingContext)
 {
-    assert(m_status == Status::Loaded || m_status == Status::LoadingFailed);
+    assert(m_status != Status::Unloaded);
     Unload(loadingContext);
     m_status = Status::Unloaded;
 }
