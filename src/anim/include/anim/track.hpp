@@ -10,6 +10,9 @@
 
 namespace aln
 {
+
+class FrameTime;
+
 // struct QuantizationRange
 // {
 //     float low;
@@ -47,7 +50,7 @@ class Track
     friend class AnimationLoader;
 
   public:
-    Transform Sample(uint32_t frameIndex, float frameProgress) const;
+    Transform Sample(const FrameTime& frameTime) const;
 
   private:
     // TODO: Compress !!

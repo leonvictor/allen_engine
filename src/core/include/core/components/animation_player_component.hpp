@@ -15,32 +15,19 @@ class AnimationPlayerComponent : public IComponent
 {
     ALN_REGISTER_TYPE();
 
+    friend class AnimationSystem;
+
   private:
     AssetHandle<AnimationClip> m_pAnimationClip;
 
     Pose* m_pPose = nullptr;
-    Percentage m_previousAnimTime = 0.0f;
-    Percentage m_animTime = 0.0f;
+    Percentage m_previousAnimTime = 0.0f; // Previus percentage through the animation
+    Percentage m_animTime = 0.0f; // Percentage through the animation
 
     // Editor
-    // TODO: Move out / Pause the whole world rather than just an anim player
     bool m_pause = false;
 
-  public:
-    inline const Pose* GetPose()
-    {
-        assert(m_pPose != nullptr);
-        return m_pPose;
-    }
-
-    inline const AnimationClip* GetAnimationClip() const { return m_pAnimationClip.get(); }
-
-    void SetAnimationClip(const AssetID& animationClipID)
-    {
-        assert(IsUnloaded());
-        m_pAnimationClip = AssetHandle<AnimationClip>(animationClipID);
-    }
-
+  private:
     void Update(Seconds deltaTime);
 
     void Initialize() override
@@ -83,5 +70,25 @@ class AnimationPlayerComponent : public IComponent
 
         return IsLoaded();
     }
+
+  public:
+    inline const Pose* GetPose()
+    {
+        assert(m_pPose != nullptr);
+        return m_pPose;
+    }
+
+    inline const AnimationClip* GetAnimationClip() const { return m_pAnimationClip.get(); }
+
+    void SetAnimationClip(const AssetID& animationClipID)
+    {
+        assert(IsUnloaded());
+        m_pAnimationClip = AssetHandle<AnimationClip>(animationClipID);
+    }
+
+    inline void SetPaused(bool paused) { m_pause = paused; }
+    inline bool IsPaused() const { return m_pause; }
+    inline void SetAnimTime(Percentage percentageThroughAnimation) { m_animTime = percentageThroughAnimation; }
+    inline Percentage GetAnimTime() const { return m_animTime; }
 };
 } // namespace aln

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "frame_time.hpp"
 #include "pose.hpp"
 #include "skeleton.hpp"
 #include "sync_track.hpp"
@@ -16,20 +17,6 @@ namespace aln
 {
 
 class AnimationEvent;
-
-class FrameTime
-{
-  private:
-    uint32_t m_frameIndex = 0;
-    float m_percentageThroughFrame = 0.0f;
-
-  public:
-    FrameTime(uint32_t frameIndex, float percentageThroughFrame) : m_frameIndex(frameIndex), m_percentageThroughFrame(percentageThroughFrame) {}
-
-    uint32_t GetFrameIndex() const { return m_frameIndex; }
-    float GetPercentageThroughFrame() const { return m_percentageThroughFrame; }
-    bool IsOnKeyFrame() const { return m_percentageThroughFrame == 0.0f || m_percentageThroughFrame == 1.0f; }
-};
 
 class AnimationClip : public IAsset
 {
@@ -50,15 +37,15 @@ class AnimationClip : public IAsset
 
     AssetHandle<Skeleton> m_pSkeleton;
 
-    FrameTime GetFrameTime(float percentageThroughAnimation) const
+    FrameTime GetFrameTime(Percentage percentageThroughAnimation) const
     {
         float frameIndex;
-        float percentageThroughFrame = Maths::Modf(percentageThroughAnimation * (m_frameCount - 1), frameIndex);
+        Percentage percentageThroughFrame = Maths::Modf(percentageThroughAnimation * (m_frameCount - 1), frameIndex);
         return FrameTime(frameIndex, percentageThroughFrame);
     }
 
     /// @brief Get the difference in root motion between two points in the animation (does not handle looping)
-    inline Transform GetRootMotionDeltaNoLooping(float fromPercentageThroughAnimation, float toPercentageThroughAnimation) const
+    inline Transform GetRootMotionDeltaNoLooping(Percentage fromPercentageThroughAnimation, Percentage toPercentageThroughAnimation) const
     {
         assert(fromPercentageThroughAnimation <= toPercentageThroughAnimation);
 
@@ -68,31 +55,28 @@ class AnimationClip : public IAsset
     }
 
   public:
-
     const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
 
     /// @brief Sample the clip at a specific time
-    /// @param time: Time to sample at
-    /// @param pOutPose: Buffer to populate with the sampled pose
-    /// @todo Use frametime
-    void GetPose(float time, Pose* pOutPose) const
+    void GetPose(const FrameTime& frameTime, Pose* pOutPose) const
     {
-        assert(time <= m_duration && pOutPose != nullptr);
+        assert(frameTime.GetFrameIndex() < GetFrameCount() && pOutPose != nullptr);
         assert(pOutPose->GetSkeleton() == m_pSkeleton.get());
 
         // TODO: Only sample tracks related to the pose's skeleton
         const auto pSkeleton = pOutPose->GetSkeleton();
         const auto boneCount = pSkeleton->GetBonesCount();
 
-        float frameIndex;
-        float frameProgress = Maths::Modf(time / GetFramesPerSecond(), frameIndex);
-
         for (BoneIndex boneIndex = 0; boneIndex < boneCount; ++boneIndex)
         {
             const auto& track = m_tracks[boneIndex];
-            pOutPose->SetTransform(boneIndex, track.Sample((uint32_t) frameIndex, frameProgress));
+            pOutPose->SetTransform(boneIndex, track.Sample(frameTime));
         }
     }
+
+    /// @brief Sample the clip at a specific percentage through
+    /// @param pOutPose: Buffer to populate with the sampled pose
+    void GetPose(Percentage percentageThroughAnimation, Pose* pOutPose) const { GetPose(GetFrameTime(percentageThroughAnimation), pOutPose); }
 
     /// @brief Sample the root motion transform at a specific time
     Transform GetRootMotion(const FrameTime& frameTime) const
@@ -113,7 +97,7 @@ class AnimationClip : public IAsset
     }
 
     /// @brief Get the difference in root motion between two points in the animation
-    Transform GetRootMotionDelta(float fromPercentageThroughAnimation, float toPercentageThroughAnimation) const
+    Transform GetRootMotionDelta(Percentage fromPercentageThroughAnimation, Percentage toPercentageThroughAnimation) const
     {
         if (fromPercentageThroughAnimation <= toPercentageThroughAnimation)
         {

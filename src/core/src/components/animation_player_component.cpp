@@ -17,10 +17,10 @@ void AnimationPlayerComponent::Update(Seconds deltaTime)
     {
         // TODO switch on play mode
         m_previousAnimTime = m_animTime;
-        m_animTime += deltaTime;
+        m_animTime += (deltaTime / m_pAnimationClip->GetDuration());
 
         // Loop
-        m_animTime = Maths::Mod(m_animTime, m_pAnimationClip->GetDuration());
+        m_animTime = Maths::Mod(m_animTime, 1.0f);
     }
 
     m_pAnimationClip->GetPose(m_animTime, m_pPose);
