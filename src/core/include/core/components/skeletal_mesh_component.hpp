@@ -4,11 +4,11 @@
 #include "mesh_component.hpp"
 
 #include <anim/skeleton.hpp>
+#include <assets/asset_service.hpp>
 #include <common/drawing_context.hpp>
+#include <common/maths/matrix4x4.hpp>
 #include <common/transform.hpp>
 #include <entities/spatial_component.hpp>
-#include <common/maths/matrix4x4.hpp>
-#include <assets/asset_service.hpp>
 
 namespace aln
 {
@@ -41,6 +41,19 @@ class SkeletalMeshComponent : public MeshComponent
   public:
     inline const SkeletalMesh* GetMesh() const { return m_pMesh.get(); }
     inline const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
+    inline bool HasSkeletonSet() const { return m_pSkeleton.IsValid(); }
+
+    void SetMesh(const AssetID& meshID)
+    {
+        assert(IsUnloaded());
+        m_pMesh = AssetHandle<SkeletalMesh>(meshID);
+    }
+
+    void SetSkeleton(const AssetID& skeletonID)
+    {
+        assert(IsUnloaded());
+        m_pSkeleton = AssetHandle<Skeleton>(skeletonID);
+    }
 
     void SetPose(const Pose* pPose)
     {
@@ -110,24 +123,24 @@ class SkeletalMeshComponent : public MeshComponent
     {
         if (m_pMesh.IsValid())
         {
-        loadingContext.m_pAssetService->Load(m_pMesh);
+            loadingContext.m_pAssetService->Load(m_pMesh);
         }
         if (m_pSkeleton.IsValid())
         {
-        loadingContext.m_pAssetService->Load(m_pSkeleton);
-    }
+            loadingContext.m_pAssetService->Load(m_pSkeleton);
+        }
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
         if (m_pMesh.IsValid())
         {
-        loadingContext.m_pAssetService->Unload(m_pMesh);
+            loadingContext.m_pAssetService->Unload(m_pMesh);
         }
         if (m_pSkeleton.IsValid())
         {
-        loadingContext.m_pAssetService->Unload(m_pSkeleton);
-    }
+            loadingContext.m_pAssetService->Unload(m_pSkeleton);
+        }
     }
 
     bool UpdateLoadingStatus() override

@@ -46,6 +46,10 @@ inline T Clamp(const T& a, const T& low, const T& high) { return glm::clamp(a, l
 template <typename T>
 inline T Modf(const T& a, T& integralPart) { return glm::modf(a, integralPart); }
 
+/// @brief Modulo. Returns the remainder of a/b
+template<typename T>
+inline T Mod(const T& a, const T& b) { return glm::mod(a, b); }
+
 template <typename T>
 inline T Log2(const T& a) { return glm::log2(a); }
 

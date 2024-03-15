@@ -1,5 +1,7 @@
 #include "components/animation_player_component.hpp"
 
+#include <common/maths/maths.hpp>
+
 namespace aln
 {
 
@@ -7,7 +9,6 @@ ALN_REGISTER_IMPL_BEGIN(COMPONENTS, AnimationPlayerComponent)
 ALN_REFLECT_MEMBER(m_animTime)
 ALN_REFLECT_MEMBER(m_pause)
 ALN_REFLECT_MEMBER(m_pAnimationClip)
-ALN_REFLECT_MEMBER(m_pSkeleton)
 ALN_REGISTER_IMPL_END()
 
 void AnimationPlayerComponent::Update(Seconds deltaTime)
@@ -19,7 +20,7 @@ void AnimationPlayerComponent::Update(Seconds deltaTime)
         m_animTime += deltaTime;
 
         // Loop
-        m_animTime = std::fmod(m_animTime, m_pAnimationClip->GetDuration());
+        m_animTime = Maths::Mod(m_animTime, m_pAnimationClip->GetDuration());
     }
 
     m_pAnimationClip->GetPose(m_animTime, m_pPose);

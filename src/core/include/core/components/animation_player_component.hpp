@@ -3,16 +3,10 @@
 #include <anim/animation_clip.hpp>
 #include <anim/pose.hpp>
 #include <anim/skeleton.hpp>
-
-#include <assets/handle.hpp>
-#include <entities/component.hpp>
-
-#include <common/types.hpp>
-
-#include <math.h>
-#include <memory>
-
 #include <assets/asset_service.hpp>
+#include <assets/handle.hpp>
+#include <common/types.hpp>
+#include <entities/component.hpp>
 
 namespace aln
 {
@@ -22,7 +16,6 @@ class AnimationPlayerComponent : public IComponent
     ALN_REGISTER_TYPE();
 
   private:
-    AssetHandle<Skeleton> m_pSkeleton; // Animation skeleton
     AssetHandle<AnimationClip> m_pAnimationClip;
 
     Pose* m_pPose = nullptr;
@@ -34,28 +27,26 @@ class AnimationPlayerComponent : public IComponent
     bool m_pause = false;
 
   public:
-    inline const Pose* GetPose() { return m_pPose; }
-    inline const AssetHandle<AnimationClip>& GetAnimationClip() const { return m_pAnimationClip; }
+    inline const Pose* GetPose()
+    {
+        assert(m_pPose != nullptr);
+        return m_pPose;
+    }
+
+    inline const AnimationClip* GetAnimationClip() const { return m_pAnimationClip.get(); }
+
+    void SetAnimationClip(const AssetID& animationClipID)
+    {
+        assert(IsUnloaded());
+        m_pAnimationClip = AssetHandle<AnimationClip>(animationClipID);
+    }
 
     void Update(Seconds deltaTime);
-
-    void SetSkeleton(const AssetHandle<Skeleton>& handle)
-    {
-        assert(IsUnloaded());
-        m_pSkeleton = handle;
-    }
-
-    void SetAnimationClip(const AssetHandle<AnimationClip>& handle)
-    {
-        assert(IsUnloaded());
-        m_pAnimationClip = handle;
-    }
 
     void Initialize() override
     {
         assert(m_pAnimationClip.IsLoaded());
-        assert(m_pSkeleton.IsLoaded());
-        m_pPose = aln::New<Pose>(m_pSkeleton.get()); // TODO
+        m_pPose = aln::New<Pose>(m_pAnimationClip->GetSkeleton());
     }
 
     void Shutdown() override
@@ -67,7 +58,7 @@ class AnimationPlayerComponent : public IComponent
     {
         if (m_pAnimationClip.IsValid())
         {
-        loadingContext.m_pAssetService->Load(m_pAnimationClip);
+            loadingContext.m_pAssetService->Load(m_pAnimationClip);
         }
     }
 
@@ -75,7 +66,7 @@ class AnimationPlayerComponent : public IComponent
     {
         if (m_pAnimationClip.IsValid())
         {
-        loadingContext.m_pAssetService->Unload(m_pAnimationClip);
+            loadingContext.m_pAssetService->Unload(m_pAnimationClip);
         }
     }
 

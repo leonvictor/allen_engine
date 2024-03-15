@@ -3,7 +3,7 @@
 #include "../static_mesh.hpp"
 #include "mesh_component.hpp"
 
-#include "assets/asset_service.hpp"
+#include <assets/asset_service.hpp>
 
 namespace aln
 {
@@ -20,10 +20,10 @@ class StaticMeshComponent : public MeshComponent
   public:
     inline const StaticMesh* GetMesh() const { return m_pMesh.get(); }
 
-    void SetMesh(AssetHandle<StaticMesh> pMesh)
+    void SetMesh(const AssetID& meshID)
     {
         assert(IsUnloaded());
-        m_pMesh = pMesh;
+        m_pMesh = AssetHandle<StaticMesh>(meshID);
     }
 
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
@@ -63,16 +63,16 @@ class StaticMeshComponent : public MeshComponent
     {
         if (m_pMesh.IsValid())
         {
-        loadingContext.m_pAssetService->Load(m_pMesh);
-    }
+            loadingContext.m_pAssetService->Load(m_pMesh);
+        }
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
         if (m_pMesh.IsValid())
         {
-        loadingContext.m_pAssetService->Unload(m_pMesh);
-    }
+            loadingContext.m_pAssetService->Unload(m_pMesh);
+        }
     }
 
     bool UpdateLoadingStatus() override

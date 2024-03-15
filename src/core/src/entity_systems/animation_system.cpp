@@ -79,6 +79,6 @@ void AnimationSystem::UnregisterComponent(IComponent* pComponent)
     }
 }
 
-ALN_REGISTER_IMPL_BEGIN(SYSTEMS, aln::AnimationSystem)
+ALN_REGISTER_IMPL_BEGIN(SYSTEMS, AnimationSystem)
 ALN_REGISTER_IMPL_END()
 } // namespace aln
