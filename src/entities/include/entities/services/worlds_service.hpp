@@ -60,7 +60,6 @@ class WorldsService : public IService
         aln::Delete(pWorld);
     }
 
-
     void UpdateLoading()
     {
         for (auto& pWorld : m_worlds)

@@ -7,10 +7,10 @@
 
 #include <assets/asset.hpp>
 #include <assets/handle.hpp>
-#include <common/types.hpp>
+#include <common/containers/vector.hpp>
 #include <common/drawing_context.hpp>
 #include <common/maths/maths.hpp>
-#include <common/containers/vector.hpp>
+#include <common/types.hpp>
 
 namespace aln
 {
@@ -68,15 +68,18 @@ class AnimationClip : public IAsset
     }
 
   public:
+
+    const Skeleton* GetSkeleton() const { return m_pSkeleton.get(); }
+
     /// @brief Sample the clip at a specific time
     /// @param time: Time to sample at
     /// @param pOutPose: Buffer to populate with the sampled pose
     /// @todo Use frametime
-      void GetPose(float time, Pose* pOutPose) const
+    void GetPose(float time, Pose* pOutPose) const
     {
-        assert(time <= m_duration);
-        assert(pOutPose != nullptr);
-        // TODO: Assert pose->skeleton == animClip->skeleton
+        assert(time <= m_duration && pOutPose != nullptr);
+        assert(pOutPose->GetSkeleton() == m_pSkeleton.get());
+
         // TODO: Only sample tracks related to the pose's skeleton
         const auto pSkeleton = pOutPose->GetSkeleton();
         const auto boneCount = pSkeleton->GetBonesCount();
@@ -129,16 +132,17 @@ class AnimationClip : public IAsset
     inline float GetFramesPerSecond() const { return m_framesPerSecond; }
     inline const SyncTrack& GetSyncTrack() const { return m_syncTrack; }
 
+    /// @todo Editor only / Move to an editor class ? Maybe Anim Clip Workspace ? We could use it in importer as well
     void DrawRootMotionPath(DrawingContext& drawingContext, const Transform& worldTransform) const
     {
         assert(m_rootMotionTrack.size() > 0);
-        
+
         auto transformCount = m_rootMotionTrack.size();
         for (auto transformIdx = 0; transformIdx < transformCount - 1; ++transformIdx)
         {
-            const auto startTransform = worldTransform * m_rootMotionTrack[transformIdx];    
-            const auto endTransform = worldTransform * m_rootMotionTrack[transformIdx + 1];    
-            
+            const auto startTransform = worldTransform * m_rootMotionTrack[transformIdx];
+            const auto endTransform = worldTransform * m_rootMotionTrack[transformIdx + 1];
+
             drawingContext.DrawLine(startTransform.GetTranslation(), endTransform.GetTranslation(), RGBColor::Blue);
         }
     }

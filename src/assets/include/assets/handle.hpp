@@ -11,6 +11,7 @@
 namespace aln
 {
 
+/// @brief Non-owning handle to an asset
 class IAssetHandle
 {
     friend class IAssetLoader;
