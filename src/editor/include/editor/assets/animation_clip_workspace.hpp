@@ -1,14 +1,19 @@
 #pragma once
 
 #include "asset_editor_workspace.hpp"
+#include "preview_scene_settings_window.hpp"
+#include "preview_scene_settings.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <anim/animation_clip.hpp>
 #include <common/containers/vector.hpp>
+#include <core/components/skeletal_mesh_component.hpp>
 #include <entities/world_entity.hpp>
 
 namespace aln
 {
+
+class AnimationPlayerComponent;
 
 struct EditorAnimationEvent
 {
@@ -50,8 +55,11 @@ class AnimationClipWorkspace : public IAssetWorkspace
     bool m_waitingForAssetLoad = true;
 
     // Preview
+    PreviewSceneSettings m_previewSceneSettings;
     Entity* m_pPreviewCameraEntity = nullptr;
     Entity* m_pCharacterEntity = nullptr;
+    SkeletalMeshComponent* m_pPreviewCharacterSkeletalMeshComponent = nullptr;
+    AnimationPlayerComponent* m_pAnimationPlayerComponent = nullptr;
 
     // Sequencer state
     float m_animationTime = 0.0f;
@@ -61,12 +69,34 @@ class AnimationClipWorkspace : public IAssetWorkspace
     void DrawAnimationEventsEditor();
 
   public:
-
     // ----- Window lifetime
     void Update(const UpdateContext& context) override;
     void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
     void Shutdown() override;
     void Clear();
+
+    PreviewSceneSettings* GetPreviewSceneSettings() override { return &m_previewSceneSettings; }
+    
+    void StartEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails) override
+    {
+        assert(HasPreviewWorld());
+
+        if (editingEventDetails.m_pEditedMember == &m_previewSceneSettings.m_pSkeletalMesh)
+        {
+            m_pPreviewWorld->StartComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
+        }
+    }
+
+    void EndEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails) override
+    {
+        assert(HasPreviewWorld());
+
+        if (editingEventDetails.m_pEditedMember == &m_previewSceneSettings.m_pSkeletalMesh)
+        {
+            m_pPreviewCharacterSkeletalMeshComponent->SetMesh(m_previewSceneSettings.m_pSkeletalMesh.GetAssetID());
+            m_pPreviewWorld->EndComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
+        }
+    }
 
     // ----- Compilation
     AnimationClip* Compile();
@@ -76,6 +106,7 @@ class AnimationClipWorkspace : public IAssetWorkspace
     {
         // TODO
     }
+
     virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override
     {
         // TODO

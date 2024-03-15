@@ -25,6 +25,7 @@ struct TypeEditedEventDetails
 
     Action m_action = Action::Invalid;
     reflect::IReflected* m_pEditedTypeInstance;
+    void* m_pEditedMember;
     const reflect::ClassMemberInfo* m_pEditedMemberInfo;
 };
 

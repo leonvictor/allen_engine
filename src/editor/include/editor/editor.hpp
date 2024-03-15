@@ -5,6 +5,7 @@
 #include "assets_browser.hpp"
 #include "editor_window.hpp"
 #include "entity_inspector.hpp"
+#include "preview_scene_settings_window.hpp"
 #include "properties_window.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
@@ -81,6 +82,7 @@ class Editor
     AssetsBrowser m_assetsBrowser = AssetsBrowser(DEFAULT_ASSETS_DIR);
     EntityInspector m_entityInspector;
     PropertiesWindow m_propertiesInspector;
+    PreviewSceneSettingsWindow m_previewSceneSettingsWindow;
 
     float m_scenePreviewWidth = 1.0f;
     float m_scenePreviewHeight = 1.0f;

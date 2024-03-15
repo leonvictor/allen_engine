@@ -18,6 +18,8 @@ void PropertiesWindow::Initialize(EditorWindowContext* pEditorWindowContext)
 {
     IEditorWindow::Initialize(pEditorWindowContext);
 
+    m_reflectedTypeEditor.Initialize();
+
     m_propertyEditingStartedEventID = m_reflectedTypeEditor.OnTypeEditingStarted().BindListener([this](const TypeEditedEventDetails& eventDetails)
         { BeginComponentEditing(eventDetails); });
     m_propertyEditingCompletedEventID = m_reflectedTypeEditor.OnTypeEditingCompleted().BindListener([this](const TypeEditedEventDetails& eventDetails)
@@ -44,7 +46,7 @@ void PropertiesWindow::Update(const UpdateContext& context)
     if (pInspectedObject != m_pInspectedObject)
     {
         m_pInspectedObject = pInspectedObject;
-        
+
         auto pSpatialComponent = dynamic_cast<SpatialComponent*>(m_pInspectedObject);
         if (pSpatialComponent != nullptr)
         {

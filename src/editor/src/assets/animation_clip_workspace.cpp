@@ -6,6 +6,7 @@
 #include <core/components/camera.hpp>
 #include <core/entity_systems/camera_controller.hpp>
 #include <core/world_systems/world_rendering_system.hpp>
+#include <core/entity_systems/animation_system.hpp>
 
 #include <IconsFontAwesome6.h>
 #include <imgui.h>
@@ -457,6 +458,13 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
     static float previewHeight = 300;
     static float trackHeight = 300;
 
+    if (m_pAnimationClip.IsLoaded() && !m_pPreviewCharacterSkeletalMeshComponent->HasSkeletonSet())
+    {
+        m_pPreviewWorld->StartComponentEditing((IComponent*) m_pPreviewCharacterSkeletalMeshComponent);
+        m_pPreviewCharacterSkeletalMeshComponent->SetSkeleton(m_pAnimationClip->GetSkeleton()->GetID());
+        m_pPreviewWorld->EndComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
+    }
+
     if (ImGui::Begin("Animation Clip", &m_isOpen))
     {
         float contentWidth = ImGui::GetContentRegionAvail().x;
@@ -494,14 +502,10 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
 {
     IAssetWorkspace::Initialize(pContext, id, readAssetFile);
 
-    // TODO: This does not mean loading anything so we don't have access to the skeleton right away
-    // m_pAnimationClip = AssetHandle<AnimationClip>(id);
-
+    m_pAnimationClip = AssetHandle<AnimationClip>(id);
     if (readAssetFile)
     {
-        // TODO: Start loading the anim asset
-        // TODO: Find a related mesh
-        // TODO: Set resources to the preview world
+        RequestAssetLoad(m_pAnimationClip);
     }
 
     IAssetWorkspace::CreatePreviewWorld();
@@ -509,6 +513,7 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
 
     // -- Camera
     m_pPreviewCameraEntity = m_pPreviewWorld->CreateEntity("Camera");
+    
     auto pCameraComponent = aln::New<CameraComponent>();
     m_pPreviewCameraEntity->AddComponent(pCameraComponent);
     // TODO: Place the camera a lil bit better by default
@@ -517,23 +522,36 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
 
     // -- Floor
     auto pFloorEntity = m_pPreviewWorld->CreateEntity("Floor");
+
     auto pFloorMeshComponent = aln::New<StaticMeshComponent>();
-    pFloorMeshComponent->SetMesh(AssetHandle<StaticMesh>(PreviewSceneFloorMeshAssetFilepath));
+    pFloorMeshComponent->SetMesh(AssetID(PreviewSceneFloorMeshAssetFilepath));
     pFloorEntity->AddComponent(pFloorMeshComponent);
 
     // TODO: Add lights
 
     // -- Preview character
     auto pCharacterEntity = m_pPreviewWorld->CreateEntity("Character");
-    auto pSkeletalMeshComponent = aln::New<SkeletalMeshComponent>();
-    pCharacterEntity->AddComponent(pSkeletalMeshComponent);
-    auto pAnimComponent = aln::New<AnimationPlayerComponent>();
-    pCharacterEntity->AddComponent(pAnimComponent);
+
+    m_pPreviewCharacterSkeletalMeshComponent = aln::New<SkeletalMeshComponent>();
+    //m_pPreviewCharacterSkeletalMeshComponent->SetMesh(m_previewSceneSettings.m_pSkeletalMesh.GetAssetID());
+    pCharacterEntity->AddComponent(m_pPreviewCharacterSkeletalMeshComponent);
+
+    m_pAnimationPlayerComponent = aln::New<AnimationPlayerComponent>();
+    m_pAnimationPlayerComponent->SetAnimationClip(m_pAnimationClip.GetAssetID());
+    pCharacterEntity->AddComponent(m_pAnimationPlayerComponent);
+
+    pCharacterEntity->CreateSystem<AnimationSystem>();
 }
 
 void aln::AnimationClipWorkspace::Shutdown()
 {
     DeletePreviewWorld();
+
+    m_pPreviewCameraEntity = nullptr;
+    m_pAnimationPlayerComponent = nullptr;
+    m_pPreviewCharacterSkeletalMeshComponent = nullptr;
+    m_pAnimationPlayerComponent = nullptr;
+
     IAssetWorkspace::Shutdown();
 }
 
@@ -543,6 +561,7 @@ void aln::AnimationClipWorkspace::Clear()
 
 AnimationClip* aln::AnimationClipWorkspace::Compile()
 {
+    assert(false); // TODO
     return nullptr;
 }
 } // namespace aln
