@@ -1,21 +1,28 @@
 #pragma once
 
 #include "editor_window.hpp"
+#include "reflected_types/reflected_type_editor.hpp"
 
-#include "assets/asset.hpp"
-#include "assets/asset_id.hpp"
-#include "entities/services/worlds_service.hpp"
+#include <assets/asset.hpp>
+#include <assets/asset_id.hpp>
+#include <entities/services/worlds_service.hpp>
+#include <assets/asset_service.hpp>
 
 namespace aln
 {
+
+struct PreviewSceneSettings;
+
 /// @brief Abstract base class for all editor windows related to an asset type
 class IAssetWorkspace : public IEditorWindow
 {
     friend class Editor;
+    friend class PreviewSceneSettingsWindow;
 
   private:
     AssetID m_id;
     WorldsService* m_pWorldsService = nullptr;
+    AssetService* m_pAssetService = nullptr;
 
   protected:
     WorldEntity* m_pPreviewWorld = nullptr;
@@ -30,6 +37,7 @@ class IAssetWorkspace : public IEditorWindow
         IEditorWindow::Initialize(pContext);
 
         m_pWorldsService = pContext->m_pWorldsService;
+        m_pAssetService = pContext->m_pAssetService;
 
         m_id = id;
     }
@@ -55,6 +63,21 @@ class IAssetWorkspace : public IEditorWindow
     }
 
     bool HasPreviewWorld() const { return m_pPreviewWorld != nullptr; }
+
+    void RequestAssetLoad(IAssetHandle& handle) const { m_pAssetService->Load(handle); }
+    void RequestAssetUnload(IAssetHandle& handle) const { m_pAssetService->Unload(handle); }
+
+    virtual void StartEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails)
+    {
+        assert(HasPreviewWorld());
+    }
+
+    virtual void EndEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails)
+    {
+        assert(HasPreviewWorld());
+    }
+
+    virtual PreviewSceneSettings* GetPreviewSceneSettings() { return nullptr; }
 
   public:
     const AssetID& GetID() { return m_id; }

@@ -63,6 +63,7 @@ void ReflectedTypeEditor::Draw(const reflect::TypeInfo* pTypeInfo, void* pTypeIn
                 details.m_action = pEditor->RequireEntityReload() ? TypeEditedEventDetails::Action::EditRequiresReload : TypeEditedEventDetails::Action::Edit;
                 details.m_pEditedMemberInfo = &memberInfo;
                 details.m_pEditedTypeInstance = reinterpret_cast<reflect::IReflected*>(pTypeInstance);
+                details.m_pEditedMember = pMemberInstance;
 
                 m_typeEditionStartedEvent.Fire(details);
                 pEditor->UpdateValue();

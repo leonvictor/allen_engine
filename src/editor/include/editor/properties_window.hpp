@@ -1,11 +1,10 @@
 #pragma once
 
 #include "editor_window.hpp"
-
-#include <reflection/reflected_type.hpp>
-#include <common/maths/angles.hpp>
-
 #include "reflected_types/reflected_type_editor.hpp"
+
+#include <common/maths/angles.hpp>
+#include <reflection/reflected_type.hpp>
 
 namespace aln
 {
@@ -20,7 +19,7 @@ class PropertiesWindow : public IEditorWindow
     // TODO: Move to the quaternion widget directly
     EulerAnglesDegrees m_currentEulerRotation; // Inspector's rotation is stored separately to avoid going back and forth between quat and euler
     bool m_uniformScale = true;
-    
+
     ReflectedTypeEditor m_reflectedTypeEditor;
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
 

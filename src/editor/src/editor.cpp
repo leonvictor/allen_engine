@@ -204,6 +204,7 @@ void Editor::Update(const UpdateContext& context)
     m_assetsBrowser.Update(context);
     m_entityInspector.Update(context);
     m_propertiesInspector.Update(context);
+    m_previewSceneSettingsWindow.Update(context);
 
     for (auto& [id, pWindow] : m_assetWindows)
     {
@@ -368,6 +369,8 @@ void Editor::CreateAssetWindow(const AssetID& id, bool readAssetFile)
         it->second = m_assetWindowsFactory.CreateWorkspace(id.GetAssetTypeID());
         it->second->Initialize(&m_editorWindowContext, id, readAssetFile);
     }
+    
+    m_editorWindowContext.m_pFocusedWorkspace = it->second;
 }
 
 void Editor::RemoveAssetWindow(const AssetID& id)
@@ -376,6 +379,12 @@ void Editor::RemoveAssetWindow(const AssetID& id)
 
     auto it = m_assetWindows.find(id);
     assert(it != m_assetWindows.end());
+    
+    if (m_editorWindowContext.m_pFocusedWorkspace == it->second)
+    {
+        m_editorWindowContext.m_pFocusedWorkspace = nullptr;
+    }
+    
     it->second->Shutdown();
     aln::Delete(it->second);
     m_assetWindows.erase(it);
@@ -417,9 +426,9 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     m_assetsBrowser.Initialize(&m_editorWindowContext);
     m_entityInspector.Initialize(&m_editorWindowContext);
     m_propertiesInspector.Initialize(&m_editorWindowContext);
+    m_previewSceneSettingsWindow.Initialize(&m_editorWindowContext);
 
     m_scenePath = scenePath;
-
 
     // TODO: Usability stuff: automatically load last used scene etc
     if (std::filesystem::exists(scenePath))
@@ -445,6 +454,7 @@ void Editor::Shutdown()
     }
     m_assetWindows.clear();
 
+    m_previewSceneSettingsWindow.Shutdown();
     m_assetsBrowser.Shutdown();
     m_entityInspector.Shutdown();
     m_propertiesInspector.Shutdown();

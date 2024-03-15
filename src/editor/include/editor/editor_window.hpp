@@ -14,6 +14,7 @@ class IAssetHandle;
 class UpdateContext;
 class AssetService;
 class WorldsService;
+class IAssetWorkspace;
 
 class EditorWindowContext
 {
@@ -29,6 +30,8 @@ class EditorWindowContext
     WorldEntity* m_pWorldEntity = nullptr;
     Entity* m_pSelectedEntity = nullptr;
     reflect::IReflected* m_pInspectedObject = nullptr;
+
+    IAssetWorkspace* m_pFocusedWorkspace = nullptr;
 
     WorldsService* m_pWorldsService = nullptr;
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
@@ -50,6 +53,7 @@ class IEditorWindow
 
     virtual void Initialize(EditorWindowContext* pEditorWindowContext);
     virtual void Shutdown();
+    
     void LoadAsset(IAssetHandle& assetHandle);
     void UnloadAsset(IAssetHandle& assetHandle);
 
@@ -60,6 +64,8 @@ class IEditorWindow
     void SetSelectedEntity(Entity* pEntity) { m_pEditorWindowContext->m_pSelectedEntity = pEntity; }
     Entity* GetSelectedEntity() const { return m_pEditorWindowContext->m_pSelectedEntity; }
     WorldEntity* GetWorldEntity() const { return m_pEditorWindowContext->m_pWorldEntity; }
+
+    IAssetWorkspace* GetFocusedWorkspace() const { return m_pEditorWindowContext->m_pFocusedWorkspace; }
 
     // Reflected type properties
     void SetInspectedObject(reflect::IReflected* pObjectToInspect) { m_pEditorWindowContext->m_pInspectedObject = pObjectToInspect; }

@@ -9,7 +9,8 @@ add_library(${LIB_NAME}
     src/entity_inspector.cpp
     src/properties_window.cpp
     src/editor_window.cpp
- 
+    src/preview_scene_settings.cpp
+
     src/assets/animation_clip_workspace.cpp
 
     src/assets/animation_graph/animation_graph_workspace.cpp
