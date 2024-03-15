@@ -4,9 +4,9 @@
 #include <common/maths/maths.hpp>
 #include <core/components/animation_player_component.hpp>
 #include <core/components/camera.hpp>
+#include <core/entity_systems/animation_system.hpp>
 #include <core/entity_systems/camera_controller.hpp>
 #include <core/world_systems/world_rendering_system.hpp>
-#include <core/entity_systems/animation_system.hpp>
 
 #include <IconsFontAwesome6.h>
 #include <imgui.h>
@@ -139,17 +139,62 @@ void AnimationClipWorkspace::DrawAnimationPreview()
 
 void AnimationClipWorkspace::DrawAnimationEventsEditor()
 {
-    float animDuration = 5; // TMP. Animation duration in seconds
+    auto animDuration = m_pAnimationClip->GetDuration();
+    auto percentageThroughAnimation = m_pAnimationPlayerComponent->GetAnimTime();
+    auto animTime = percentageThroughAnimation * animDuration;
 
     /// --------- Header
     // Anim player control
+    // TODO: What do step forward/backward buttons actually do ?
     ImGui::Text(ICON_FA_BACKWARD_STEP);
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("Step Backward");
+    }
+    if (ImGui::IsItemClicked())
+    {
+        // TODO
+    }
+
     ImGui::SameLine();
-    ImGui::Text(ICON_FA_PLAY);
+    if (m_pAnimationPlayerComponent->IsPaused())
+    {
+        ImGui::Text(ICON_FA_PLAY);
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Play");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_pAnimationPlayerComponent->SetPaused(false);
+        }
+    }
+    else
+    {
+        ImGui::Text(ICON_FA_PAUSE);
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Pause");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_pAnimationPlayerComponent->SetPaused(true);
+        }
+    }
+
     ImGui::SameLine();
     ImGui::Text(ICON_FA_FORWARD_STEP);
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("Step Forward");
+    }
+    if (ImGui::IsItemClicked())
+    {
+        // TODO
+    }
+
     ImGui::SameLine();
-    ImGui::Text("%.2f / %.2fs", m_animationTime, animDuration);
+    ImGui::Text("%.2f / %.2fs", animTime, animDuration);
 
     ImVec2 timelineCursorPos;
     ImRect timelineDrawingArea;
@@ -172,7 +217,9 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         // Timeline
         ImGui::TableNextColumn();
         {
-            SliderTimeline(ImGui::GetID("Animation Event Timeline"), &m_animationTime, animDuration, &timelineDrawingArea, &timelineCursorPos);
+            SliderTimeline(ImGui::GetID("Animation Event Timeline"), &animTime, animDuration, &timelineDrawingArea, &timelineCursorPos);
+            percentageThroughAnimation = animTime / animDuration;
+            m_pAnimationPlayerComponent->SetAnimTime(percentageThroughAnimation);
         }
     }
 
@@ -211,8 +258,8 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                 if (ImGui::MenuItem("Add event"))
                 {
                     auto pEvent = aln::New<EditorAnimationEvent>();
-                    pEvent->m_startTime = m_animationTime;
-                    pEvent->m_endTime = m_animationTime;
+                    pEvent->m_startTime = animTime;
+                    pEvent->m_endTime = animTime;
                     pEventTrack->m_events.push_back(pEvent);
                 }
 
@@ -486,7 +533,10 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
 
         if (ImGui::BeginChild("Event Tracks", {contentWidth, -1}, true))
         {
-            DrawAnimationEventsEditor();
+            if (m_pAnimationClip.IsLoaded())
+            {
+                DrawAnimationEventsEditor();
+            }
             ImGui::EndChild();
         }
     }
@@ -513,7 +563,7 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
 
     // -- Camera
     m_pPreviewCameraEntity = m_pPreviewWorld->CreateEntity("Camera");
-    
+
     auto pCameraComponent = aln::New<CameraComponent>();
     m_pPreviewCameraEntity->AddComponent(pCameraComponent);
     // TODO: Place the camera a lil bit better by default
@@ -533,11 +583,11 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
     auto pCharacterEntity = m_pPreviewWorld->CreateEntity("Character");
 
     m_pPreviewCharacterSkeletalMeshComponent = aln::New<SkeletalMeshComponent>();
-    //m_pPreviewCharacterSkeletalMeshComponent->SetMesh(m_previewSceneSettings.m_pSkeletalMesh.GetAssetID());
     pCharacterEntity->AddComponent(m_pPreviewCharacterSkeletalMeshComponent);
 
     m_pAnimationPlayerComponent = aln::New<AnimationPlayerComponent>();
     m_pAnimationPlayerComponent->SetAnimationClip(m_pAnimationClip.GetAssetID());
+    m_pAnimationPlayerComponent->SetPaused(true);
     pCharacterEntity->AddComponent(m_pAnimationPlayerComponent);
 
     pCharacterEntity->CreateSystem<AnimationSystem>();
