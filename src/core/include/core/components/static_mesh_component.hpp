@@ -61,12 +61,18 @@ class StaticMeshComponent : public MeshComponent
   private:
     void Load(const LoadingContext& loadingContext) override
     {
+        if (m_pMesh.IsValid())
+        {
         loadingContext.m_pAssetService->Load(m_pMesh);
+    }
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
+        if (m_pMesh.IsValid())
+        {
         loadingContext.m_pAssetService->Unload(m_pMesh);
+    }
     }
 
     bool UpdateLoadingStatus() override
@@ -75,7 +81,7 @@ class StaticMeshComponent : public MeshComponent
         {
             m_status = Status::Loaded;
         }
-        else if (!m_pMesh.IsValid() || m_pMesh.HasFailedLoading())
+        else if (m_pMesh.HasFailedLoading())
         {
             m_status = Status::LoadingFailed;
         }

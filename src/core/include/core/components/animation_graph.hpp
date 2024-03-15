@@ -49,24 +49,24 @@ class AnimationGraphComponent : public IComponent
         return m_pGraphInstance->GetControlParameterIndex(parameterName);
     }
 
-    template<typename T>
+    template <typename T>
     void SetControlParameterValue(NodeIndex parameterIndex, const T& value)
     {
         m_pGraphInstance->SetControlParameterValue(m_graphContext, parameterIndex, value);
     }
 
-    template<typename T>
+    template <typename T>
     const T& GetControlParameterValue(NodeIndex parameterIndex) const
     {
         return m_pGraphInstance->GetControlParameterValue<T>(m_graphContext, parameterIndex);
     }
 
     // ---- Events
-    const SampledEventsBuffer& GetSampledEventsBuffer() const { return m_graphContext.m_sampledEventsBuffer; } 
+    const SampledEventsBuffer& GetSampledEventsBuffer() const { return m_graphContext.m_sampledEventsBuffer; }
 
     // --------- Evaluation/Execution
     /// @todo Maybe this could only be accessed by the animation system ?
-    
+
     /// @brief Run through the animation graph recording tasks
     /// @param deltaTime
     void Evaluate(float deltaTime, const Transform& characterWorldTransform)
@@ -79,7 +79,7 @@ class AnimationGraphComponent : public IComponent
         m_graphContext.Update(deltaTime, characterWorldTransform);
 
         m_pTaskSystem->Reset();
-     
+
         const auto result = m_pGraphInstance->Update(m_graphContext);
         m_rootMotionDelta = result.m_rootMotionDelta;
     }
@@ -93,16 +93,34 @@ class AnimationGraphComponent : public IComponent
     // --------- Component methods
     void Load(const LoadingContext& loadingContext) override
     {
-        loadingContext.m_pAssetService->Load(m_pSkeleton);
-        loadingContext.m_pAssetService->Load(m_pGraphDefinition);
-        loadingContext.m_pAssetService->Load(m_pGraphDataset);
+        if (m_pSkeleton.IsValid())
+        {
+            loadingContext.m_pAssetService->Load(m_pSkeleton);
+        }
+        if (m_pGraphDefinition.IsValid())
+        {
+            loadingContext.m_pAssetService->Load(m_pGraphDefinition);
+        }
+        if (m_pGraphDataset.IsValid())
+        {
+            loadingContext.m_pAssetService->Load(m_pGraphDataset);
+        }
     }
 
     void Unload(const LoadingContext& loadingContext) override
     {
-        loadingContext.m_pAssetService->Unload(m_pGraphDataset);
-        loadingContext.m_pAssetService->Unload(m_pGraphDefinition);
-        loadingContext.m_pAssetService->Unload(m_pSkeleton);
+        if (m_pGraphDataset.IsValid())
+        {
+            loadingContext.m_pAssetService->Unload(m_pGraphDataset);
+        }
+        if (m_pGraphDefinition.IsValid())
+        {
+            loadingContext.m_pAssetService->Unload(m_pGraphDefinition);
+        }
+        if (m_pSkeleton.IsValid())
+        {
+            loadingContext.m_pAssetService->Unload(m_pSkeleton);
+        }
     }
 
     bool UpdateLoadingStatus() override
@@ -111,9 +129,7 @@ class AnimationGraphComponent : public IComponent
         {
             m_status = Status::Loaded;
         }
-        else if (!m_pSkeleton.IsValid() || m_pSkeleton.HasFailedLoading() ||
-                 !m_pGraphDataset.IsValid() || m_pGraphDataset.HasFailedLoading() ||
-                 !m_pGraphDefinition.IsValid() || m_pGraphDefinition.HasFailedLoading())
+        else if (m_pSkeleton.HasFailedLoading() || m_pGraphDataset.HasFailedLoading() || m_pGraphDefinition.HasFailedLoading())
         {
             m_status = Status::LoadingFailed;
         }

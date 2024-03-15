@@ -1,14 +1,12 @@
 #include "entity.hpp"
 
-#include "entity_system.hpp"
 #include "component.hpp"
+#include "entity_system.hpp"
 #include "spatial_component.hpp"
 
 #include <reflection/services/type_registry_service.hpp>
 
 #include <EASTL/sort.h>
-
-#include <future>
 
 namespace aln
 {
@@ -118,10 +116,8 @@ void Entity::LoadComponents(const LoadingContext& loadingContext)
 
     for (auto pComponent : m_components)
     {
-        if (pComponent->IsUnloaded())
-        {
-            pComponent->LoadComponent(loadingContext);
-        }
+        assert(pComponent->IsUnloaded());
+        pComponent->LoadComponent(loadingContext);
     }
 
     m_status = Status::Loaded;
