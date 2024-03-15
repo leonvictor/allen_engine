@@ -61,9 +61,6 @@ class AnimationClipWorkspace : public IAssetWorkspace
     SkeletalMeshComponent* m_pPreviewCharacterSkeletalMeshComponent = nullptr;
     AnimationPlayerComponent* m_pAnimationPlayerComponent = nullptr;
 
-    // Sequencer state
-    float m_animationTime = 0.0f;
-
   private:
     void DrawAnimationPreview();
     void DrawAnimationEventsEditor();
