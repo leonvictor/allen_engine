@@ -1,4 +1,4 @@
-#include "components/camera.hpp"
+#include "components/camera_component.hpp"
 
 #include <common/transform.hpp>
 

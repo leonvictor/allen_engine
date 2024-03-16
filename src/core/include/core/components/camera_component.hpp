@@ -15,7 +15,7 @@ class CameraComponent : public SpatialComponent
 {
     ALN_REGISTER_TYPE();
 
-    friend class EditorCameraController;
+    friend class EditorCameraControllerSystem;
 
     enum class Type
     {

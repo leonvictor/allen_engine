@@ -1,7 +1,7 @@
 #include "world_systems/world_rendering_system.hpp"
 
-#include "components/camera.hpp"
-#include "components/light.hpp"
+#include "components/camera_component.hpp"
+#include "components/light_component.hpp"
 #include "renderers/world_renderer.hpp"
 #include "services/rendering_service.hpp"
 
@@ -139,10 +139,10 @@ void WorldRenderingSystem::RegisterComponent(const Entity* pEntity, IComponent* 
         return;
     }
 
-    auto pLight = dynamic_cast<Light*>(pComponent);
-    if (pLight != nullptr)
+    auto pLightComponent = dynamic_cast<LightComponent*>(pComponent);
+    if (pLightComponent != nullptr)
     {
-        m_renderData.m_lightComponents.PushBack(pLight);
+        m_renderData.m_lightComponents.PushBack(pLightComponent);
         return;
     }
 }
@@ -181,10 +181,10 @@ void WorldRenderingSystem::UnregisterComponent(const Entity* pEntity, IComponent
         return;
     }
 
-    auto pLight = dynamic_cast<Light*>(pComponent);
-    if (pLight != nullptr)
+    auto pLightComponent = dynamic_cast<LightComponent*>(pComponent);
+    if (pLightComponent != nullptr)
     {
-        m_renderData.m_lightComponents.Erase(pLight);
+        m_renderData.m_lightComponents.Erase(pLightComponent);
         return;
     }
 }

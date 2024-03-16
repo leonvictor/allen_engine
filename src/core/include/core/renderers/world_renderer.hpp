@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../components/camera.hpp"
-#include "../components/light.hpp"
+#include "../components/camera_component.hpp"
+#include "../components/light_component.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 #include "../components/static_mesh_component.hpp"
 #include "../world_systems/world_rendering_system.hpp"
@@ -16,8 +16,6 @@
 
 #include <tracy/Tracy.hpp>
 #include <vulkan/vulkan.hpp>
-
-#include <functional>
 
 namespace aln
 {
@@ -149,7 +147,7 @@ class WorldRenderer : public IRenderer
 
         m_pRenderEngine->SetDebugUtilsObjectName(m_lightComponentsBuffer.GetVkBuffer(), "Renderer Lights Buffer");
 
-        m_lightsDescriptorSet = pRenderEngine->AllocateDescriptorSet<Light>();
+        m_lightsDescriptorSet = pRenderEngine->AllocateDescriptorSet<LightComponent>();
         pRenderEngine->SetDebugUtilsObjectName(m_lightsDescriptorSet, "Lights Descriptor Set");
 
         // TODO: How do we update the lights array ?
@@ -276,7 +274,7 @@ class WorldRenderer : public IRenderer
         m_staticMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
         m_staticMeshesPipeline.AddPushConstant(vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant)); // Note: This is necessary for now so that static/skinned meshes pipelines are compatible and we can bind descriptor sets once for both
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_sceneDataDescriptorSetLayout);
-        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Light>());
+        m_staticMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::LightComponent>());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Mesh>());
         m_staticMeshesPipeline.RegisterDescriptorLayout(m_modelTransformsDescriptorSetLayout);
 
@@ -295,7 +293,7 @@ class WorldRenderer : public IRenderer
         m_skeletalMeshesPipeline.RegisterShader(std::string(DEFAULT_SHADERS_DIR) + "/shader.frag", vk::ShaderStageFlagBits::eFragment);
         m_skeletalMeshesPipeline.AddPushConstant(vk::ShaderStageFlagBits::eVertex, 0, sizeof(SkinnedMeshPushConstant));
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_sceneDataDescriptorSetLayout);
-        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Light>());
+        m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::LightComponent>());
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_pRenderEngine->GetDescriptorSetLayout<aln::Mesh>());
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_modelTransformsDescriptorSetLayout);
         m_skeletalMeshesPipeline.RegisterDescriptorLayout(m_skinningBufferDescriptorSetLayout);

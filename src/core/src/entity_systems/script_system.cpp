@@ -1,4 +1,4 @@
-#include "entity_systems/script.hpp"
+#include "entity_systems/script_system.hpp"
 
 namespace aln
 {

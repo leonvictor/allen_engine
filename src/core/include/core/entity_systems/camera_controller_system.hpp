@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../components/camera.hpp"
+#include "../components/camera_component.hpp"
 
 #include <entities/entity_system.hpp>
 #include <input/callback_context.hpp>
@@ -12,12 +12,12 @@ namespace aln
 
 class IComponent;
 
-class EditorCameraController : IEntitySystem
+class EditorCameraControllerSystem : IEntitySystem
 {
     ALN_REGISTER_TYPE();
 
   public:
-    EditorCameraController()
+    EditorCameraControllerSystem()
     {
         m_requiredUpdatePriorities.SetPriorityForStage(UpdateStage::FrameStart, 1);
     }

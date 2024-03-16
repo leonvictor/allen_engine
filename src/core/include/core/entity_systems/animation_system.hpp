@@ -4,7 +4,7 @@
 #include <entities/spatial_component.hpp>
 #include <reflection/type_info.hpp>
 
-#include "../components/animation_graph.hpp"
+#include "../components/animation_graph_component.hpp"
 #include "../components/animation_player_component.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 

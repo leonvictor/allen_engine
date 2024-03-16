@@ -3,9 +3,9 @@
 
 #include <common/maths/maths.hpp>
 #include <core/components/animation_player_component.hpp>
-#include <core/components/camera.hpp>
+#include <core/components/camera_component.hpp>
 #include <core/entity_systems/animation_system.hpp>
-#include <core/entity_systems/camera_controller.hpp>
+#include <core/entity_systems/camera_controller_system.hpp>
 #include <core/world_systems/world_rendering_system.hpp>
 
 #include <IconsFontAwesome6.h>
@@ -568,7 +568,7 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
     m_pPreviewCameraEntity->AddComponent(pCameraComponent);
     // TODO: Place the camera a lil bit better by default
 
-    m_pPreviewCameraEntity->CreateSystem<EditorCameraController>();
+    m_pPreviewCameraEntity->CreateSystem<EditorCameraControllerSystem>();
 
     // -- Floor
     auto pFloorEntity = m_pPreviewWorld->CreateEntity("Floor");

@@ -1,7 +1,7 @@
-#include "entity_systems/player_controller.hpp"
+#include "entity_systems/player_controller_system.hpp"
 
-#include "components/animation_graph.hpp"
-#include "components/camera.hpp"
+#include "components/animation_graph_component.hpp"
+#include "components/camera_component.hpp"
 #include "components/skeletal_mesh_component.hpp"
 
 #include <input/input_service.hpp>
