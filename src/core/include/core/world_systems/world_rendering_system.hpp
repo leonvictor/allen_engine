@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../components/light.hpp"
+#include "../components/light_component.hpp"
 #include "../components/skeletal_mesh_component.hpp"
 #include "../components/static_mesh_component.hpp"
 #include "../debug_render_states.hpp"
@@ -28,7 +28,7 @@ struct RenderData
 {
     Vector<const SkeletalMeshComponent*> m_visibleSkeletalMeshComponents;
     Vector<const StaticMeshComponent*> m_visibleStaticMeshComponents;
-    IDVector<Light*> m_lightComponents;
+    IDVector<LightComponent*> m_lightComponents;
     const CameraComponent* m_pCameraComponent;
 };
 

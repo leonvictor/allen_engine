@@ -6,8 +6,8 @@
 #include <assets/asset_service.hpp>
 #include <common/memory.hpp>
 #include <config/path.h>
-#include <core/components/camera.hpp>
-#include <core/entity_systems/camera_controller.hpp>
+#include <core/components/camera_component.hpp>
+#include <core/entity_systems/camera_controller_system.hpp>
 #include <core/services/rendering_service.hpp>
 #include <core/world_systems/world_rendering_system.hpp>
 #include <entities/world_entity.hpp>
@@ -441,7 +441,7 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
         m_pCamera = aln::New<CameraComponent>();
         m_pEditorEntity = m_pGameWorld->m_entityMap.CreateEntity("Editor");
         m_pEditorEntity->AddComponent(m_pCamera);
-        m_pEditorEntity->CreateSystem<EditorCameraController>();
+        m_pEditorEntity->CreateSystem<EditorCameraControllerSystem>();
     }
 }
 

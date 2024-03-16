@@ -1,6 +1,6 @@
 #pragma once
 
-#include "script.hpp"
+#include "script_system.hpp"
 
 #include <anim/types.hpp>
 

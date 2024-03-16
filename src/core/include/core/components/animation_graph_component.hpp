@@ -14,8 +14,6 @@
 #include <assets/handle.hpp>
 #include <entities/component.hpp>
 
-#include <memory>
-
 namespace aln
 {
 

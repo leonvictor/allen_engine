@@ -1,16 +1,16 @@
-#include "components/light.hpp"
+#include "components/light_component.hpp"
 
 #include <common/transform.hpp>
 
 namespace aln
 {
 
-ALN_REGISTER_IMPL_BEGIN(COMPONENTS, Light)
+ALN_REGISTER_IMPL_BEGIN(COMPONENTS, LightComponent)
 ALN_REFLECT_MEMBER(m_color)
 ALN_REFLECT_MEMBER(m_intensity)
 ALN_REGISTER_IMPL_END()
 
-LightUniform Light::GetUniform()
+LightUniform LightComponent::GetUniform()
 {
     Transform t = GetWorldTransform();
 
@@ -22,7 +22,7 @@ LightUniform Light::GetUniform()
     return u;
 }
 
-Vector<vk::DescriptorSetLayoutBinding> Light::GetDescriptorSetLayoutBindings()
+Vector<vk::DescriptorSetLayoutBinding> LightComponent::GetDescriptorSetLayoutBindings()
 {
     Vector<vk::DescriptorSetLayoutBinding> bindings{
         vk::DescriptorSetLayoutBinding{

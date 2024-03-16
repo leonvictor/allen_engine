@@ -1,4 +1,4 @@
-#include "entity_systems/camera_controller.hpp "
+#include "entity_systems/camera_controller_system.hpp"
 
 #include <input/devices/mouse.hpp>
 #include <input/input_service.hpp>
@@ -12,12 +12,12 @@
 namespace aln
 {
 
-ALN_REGISTER_IMPL_BEGIN(SYSTEMS, EditorCameraController)
+ALN_REGISTER_IMPL_BEGIN(SYSTEMS, EditorCameraControllerSystem)
 ALN_REFLECT_MEMBER(m_rotationSensitivity)
 ALN_REFLECT_MEMBER(m_translationSensitivity)
 ALN_REGISTER_IMPL_END()
 
-void EditorCameraController::Update(const UpdateContext& context)
+void EditorCameraControllerSystem::Update(const UpdateContext& context)
 {
     auto pInputService = context.GetService<InputService>();
     auto pMouse = pInputService->GetMouse();
@@ -47,7 +47,7 @@ void EditorCameraController::Update(const UpdateContext& context)
     }
 }
 
-void EditorCameraController::RegisterComponent(IComponent* pComponent)
+void EditorCameraControllerSystem::RegisterComponent(IComponent* pComponent)
 {
     // Associate the controlled camera
     auto pCameraComponent = dynamic_cast<CameraComponent*>(pComponent);
@@ -60,7 +60,7 @@ void EditorCameraController::RegisterComponent(IComponent* pComponent)
     m_pCameraInstance = pCameraComponent;
 }
 
-void EditorCameraController::UnregisterComponent(IComponent* pComponent)
+void EditorCameraControllerSystem::UnregisterComponent(IComponent* pComponent)
 {
     if (pComponent == m_pCameraInstance)
     {

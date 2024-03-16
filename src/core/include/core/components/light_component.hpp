@@ -18,7 +18,7 @@ struct LightUniform
     // TODO: Add inner and outer cutoff for spot lights
 };
 
-class Light : public SpatialComponent
+class LightComponent : public SpatialComponent
 {
     ALN_REGISTER_TYPE();
 

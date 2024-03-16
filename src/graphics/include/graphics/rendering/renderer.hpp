@@ -24,7 +24,7 @@ namespace aln
 // fwd
 class StaticMeshComponent;
 class SkeletalMeshComponent;
-class Light;
+class LightComponent;
 class Mesh;
 
 struct RenderContext
