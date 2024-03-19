@@ -15,9 +15,11 @@ class FrameTime
 
   public:
     FrameTime(uint32_t frameIndex, Percentage percentageThroughFrame) : m_frameIndex(frameIndex), m_percentageThroughFrame(percentageThroughFrame) {}
-
+    
     uint32_t GetFrameIndex() const { return m_frameIndex; }
     Percentage GetPercentageThroughFrame() const { return m_percentageThroughFrame; }
     bool IsOnKeyFrame() const { return m_percentageThroughFrame == 0.0f || m_percentageThroughFrame == 1.0f; }
+    
+    explicit operator float() const { return m_percentageThroughFrame + m_frameIndex; }
 };
 }

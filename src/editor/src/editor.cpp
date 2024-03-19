@@ -89,7 +89,7 @@ void Editor::Update(const UpdateContext& context)
                 {
                     for (auto pFactory : m_assetWindowsFactory.m_factories)
                     {
-                        if (ImGui::MenuItem(pFactory->m_assetEditorName.c_str()))
+                        if (pFactory->m_canBeCreatedByUser && ImGui::MenuItem(pFactory->m_assetEditorName.c_str()))
                         {
                             // TODO: Handle default asset name better
                             AssetID id = AssetID(std::string(DEFAULT_ASSETS_DIR) + "/default." + pFactory->m_supportedAssetType.ToString());
@@ -419,9 +419,8 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     m_editorWindowContext.m_pWorldsService = serviceProvider.GetService<WorldsService>();
     m_editorWindowContext.m_pWorldEntity = m_pGameWorld;
 
-    m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph");
-    // TODO: Animation clips can't be created from scratch in the editor. Remove them from the list
-    m_assetWindowsFactory.RegisterFactory<AnimationClip, AnimationClipEditorWindowFactory>("Animation Clip");
+    m_assetWindowsFactory.RegisterFactory<AnimationGraphDefinition, AnimationGraphDefinitionEditorWindowFactory>("Animation Graph", true);
+    m_assetWindowsFactory.RegisterFactory<AnimationClip, AnimationClipEditorWindowFactory>("Animation Clip", false);
 
     m_assetsBrowser.Initialize(&m_editorWindowContext);
     m_entityInspector.Initialize(&m_editorWindowContext);

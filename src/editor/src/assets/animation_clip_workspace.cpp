@@ -1,6 +1,7 @@
 #include "assets/animation_clip_workspace.hpp"
 #include "aln_imgui_widgets.hpp"
 
+#include <common/containers/algo.hpp>
 #include <common/maths/maths.hpp>
 #include <core/components/animation_player_component.hpp>
 #include <core/components/camera_component.hpp>
@@ -16,7 +17,83 @@
 namespace aln
 {
 
-static bool SliderTimeline(ImGuiID id, float* pCurrentTime, const float animDuration, ImRect* pOutSliderDrawingArea, ImVec2* pOutSliderCursorPosition)
+/// @note adapted from UE source
+/// @note We make a distinction between the value range that is being displayed and the actual graduations that will be drawn, and might have a different resolution
+static bool GetTimelineGraduationsParameters(float availableWidth, float valueRangeMin, float valueRangeMax, float minGraduationIntervalPixels, float desiredMajorGraduationPixels, float& outMajorGraduationInterval, uint32_t& outMinorDivisions)
+{
+    float pixelPerValue = availableWidth / (valueRangeMax - valueRangeMin); // tmp : = pixelpersec
+
+    Vector<uint32_t> commonBases;
+    // Divide the rounded frame rate by 2s, 3s or 5s recursively
+    {
+        constexpr uint32_t denominators[] = {2, 3, 5};
+        uint32_t lowestBase = 300; // TODO: ?
+        while (true)
+        {
+            commonBases.push_back(lowestBase);
+
+            if (lowestBase % 2 == 0)
+            {
+                lowestBase = lowestBase / 2;
+            }
+            else if (lowestBase % 3 == 0)
+            {
+                lowestBase = lowestBase / 3;
+            }
+            else if (lowestBase % 5 == 0)
+            {
+                lowestBase = lowestBase / 5;
+            }
+            else
+            {
+                uint32_t lowestResult = lowestBase;
+                for (uint32_t denominator : denominators)
+                {
+                    uint32_t result = lowestBase / denominator;
+                    if (result > 0 && result < lowestResult)
+                    {
+                        lowestResult = result;
+                    }
+                }
+
+                if (lowestResult < lowestBase)
+                {
+                    lowestBase = lowestResult;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    Algo::Reverse(commonBases);
+
+    const uint32_t scale = static_cast<uint32_t>(Maths::Ceil(desiredMajorGraduationPixels / pixelPerValue));
+    const uint32_t baseIndex = Maths::Min(Algo::LowerBoundIndex(commonBases, scale), static_cast<uint32_t>(commonBases.size() - 1));
+    const uint32_t base = commonBases[baseIndex];
+
+    outMajorGraduationInterval = Maths::Ceil(scale / static_cast<float>(base)) * base;
+
+    // Find the lowest number of divisions we can show that's larger than the minimum tick size
+    for (uint32_t divIndex = 0; divIndex < baseIndex; ++divIndex)
+    {
+        if (base % commonBases[divIndex] == 0)
+        {
+            const uint32_t minorDivisions = outMajorGraduationInterval / commonBases[divIndex];
+            if (outMajorGraduationInterval / minorDivisions * pixelPerValue >= minGraduationIntervalPixels)
+            {
+                outMinorDivisions = minorDivisions;
+                break;
+            }
+        }
+    }
+
+    return outMajorGraduationInterval != 0;
+}
+
+static bool SliderTimeline(ImGuiID id, float* pValue, const float minViewValue, const float maxViewValue, float minActualValue, float maxActualValue, ImRect* pOutSliderDrawingArea, ImVec2* pOutSliderKnobPosition)
 {
     ImGuiWindow* pWindow = ImGui::GetCurrentWindow();
     if (pWindow->SkipItems)
@@ -26,27 +103,22 @@ static bool SliderTimeline(ImGuiID id, float* pCurrentTime, const float animDura
 
     auto pContext = ImGui::GetCurrentContext();
 
-    const auto windowPos = ImGui::GetWindowPos();
-    const auto cursorPos = ImGui::GetCursorPos();
-    const auto contentRegionAvail = ImGui::GetContentRegionAvail();
+    const auto timelineHeight = 20;
+    const auto timelineTopLeft = ImGui::GetWindowPos() + ImGui::GetCursorPos();
+    const auto timelineBottomRight = timelineTopLeft + ImVec2(ImGui::GetContentRegionAvail().x, timelineHeight);
 
-    const auto timelineHeight = 40;
-
-    const auto timelineTL = windowPos + cursorPos;
-    const auto timelineBR = timelineTL + ImVec2(contentRegionAvail.x, timelineHeight);
-
-    const ImRect timelineBB = {
-        timelineTL,
-        timelineBR,
+    const ImRect timelineBoundingBox = {
+        timelineTopLeft,
+        timelineBottomRight,
     };
 
-    ImGui::ItemSize(timelineBB);
-    if (!ImGui::ItemAdd(timelineBB, id, &timelineBB))
+    ImGui::ItemSize(timelineBoundingBox);
+    if (!ImGui::ItemAdd(timelineBoundingBox, id, &timelineBoundingBox))
     {
         return false;
     }
 
-    const bool hovered = ImGui::ItemHoverable(timelineBB, id, ImGuiItemFlags_None);
+    const bool hovered = ImGui::ItemHoverable(timelineBoundingBox, id, ImGuiItemFlags_None);
     // TODO: Not focusable ?
     // TMP: Temporary fix for newer ImGui version. It wasnt functionnal in the first place !
     // const bool focusRequested = (pWindow->DC.LastItemStatusFlags & ImGuiItemStatusFlags_Focused) != 0;
@@ -63,89 +135,81 @@ static bool SliderTimeline(ImGuiID id, float* pCurrentTime, const float animDura
 
     // Slider behavior
     ImRect cursorGrabBB;
-    const bool valueChanged = ImGui::SliderBehaviorT<float, float, float>(timelineBB, id, ImGuiDataType_Float, pCurrentTime, 0, animDuration, "", ImGuiSliderFlags_None, &cursorGrabBB);
+    bool valueChanged = ImGui::SliderBehaviorT<float, float, float>(timelineBoundingBox, id, ImGuiDataType_Float, pValue, minViewValue, maxViewValue, "", ImGuiSliderFlags_None, &cursorGrabBB);
     if (valueChanged)
     {
         ImGui::MarkItemEdited(id);
     }
 
-    // ImGui::GetForegroundDrawList()->AddRect(timelineBB.Min, timelineBB.Max, RGBColor::Pink.ToU32());
-    // ImGui::GetForegroundDrawList()->AddRect(cursorGrabBB.Min, cursorGrabBB.Max, RGBColor::Red.ToU32());
-
-    // Draw timeline
+    *pValue = Maths::Clamp(*pValue, minActualValue, maxActualValue);
     auto pDrawList = ImGui::GetWindowDrawList();
 
-    float horizontalPadding = cursorGrabBB.GetWidth() / 2.0f;
+    // --- Draw timeline graduations
+    const float availableDisplayWidth = timelineBoundingBox.GetWidth();
 
-    ImRect drawingArea = {
-        {timelineBB.Min.x + horizontalPadding + 1.0f, timelineBB.Min.y},
-        {timelineBB.Max.x - horizontalPadding - 2.0f, timelineBB.Max.y},
-    };
+    auto biggestGraduationTextSize = ImGui::CalcTextSize(std::to_string(static_cast<uint32_t>(maxViewValue)).c_str()).x;
+    auto minGraduationSize = biggestGraduationTextSize + 5.0f;
+    auto desiredGraduationSize = biggestGraduationTextSize * 2.0f;
+    float majorGraduationInterval = 0;
+    uint32_t minorGraduationDivision = 0;
+    GetTimelineGraduationsParameters(availableDisplayWidth, minViewValue, maxViewValue, minGraduationSize, desiredGraduationSize, majorGraduationInterval, minorGraduationDivision);
 
-    const auto majorGraduationOffset = drawingArea.GetWidth() / animDuration;
-    const auto minorGraduationOffset = majorGraduationOffset / 10.0f;
+    const float firstMajorGraduation = Maths::Floor(minViewValue / majorGraduationInterval) * majorGraduationInterval;
+    const float lastMajorGraduation = Maths::Ceil(maxViewValue / majorGraduationInterval) * majorGraduationInterval;
 
-    for (auto seconds = 0; seconds <= animDuration; ++seconds)
+    const float pixelsPerValue = availableDisplayWidth / (maxViewValue - minViewValue);
+    const float pixelsPerMajorGraduation = pixelsPerValue * majorGraduationInterval;
+    float majorGraduationPosX = timelineBoundingBox.Min.x + (firstMajorGraduation - minViewValue) * pixelsPerValue;
+    for (int majorGraduation = firstMajorGraduation; majorGraduation < lastMajorGraduation; majorGraduation += majorGraduationInterval)
     {
         // Major graduations
-        const auto majorGraduationPosX = drawingArea.Min.x + (seconds * majorGraduationOffset);
-        const auto majorGraduationPosY = drawingArea.Min.y;
+        const auto majorGraduationPosY = timelineBoundingBox.Min.y;
         pDrawList->AddLine({majorGraduationPosX, majorGraduationPosY}, {majorGraduationPosX, majorGraduationPosY + timelineHeight}, IM_COL32_WHITE);
-        pDrawList->AddText(ImGui::GetFont(), ImGui::GetFontSize(), {majorGraduationPosX + 5.0f, majorGraduationPosY}, IM_COL32_WHITE, std::to_string(seconds).c_str());
+        pDrawList->AddText(ImGui::GetFont(), ImGui::GetFontSize(), {majorGraduationPosX + 5.0f, majorGraduationPosY}, IM_COL32_WHITE, std::to_string(majorGraduation).c_str());
 
         // Minor graduations
-        for (auto ms = 1; ms < 10; ++ms)
+        for (uint32_t minorGraduation = 1; minorGraduation < minorGraduationDivision; ++minorGraduation)
         {
-            if (seconds + (ms * 0.1f) > animDuration)
-            {
-                break;
-            }
-
-            const auto minorGraduationPosX = majorGraduationPosX + (ms * minorGraduationOffset);
+            const auto minorGraduationPosX = majorGraduationPosX + (minorGraduation * pixelsPerMajorGraduation / minorGraduationDivision);
             pDrawList->AddLine({minorGraduationPosX, majorGraduationPosY + timelineHeight / 2}, {minorGraduationPosX, majorGraduationPosY + timelineHeight}, IM_COL32_WHITE);
         }
+
+        majorGraduationPosX += pixelsPerMajorGraduation;
     }
 
-    // Render slider cursor
-    const auto sliderCursorWidth = 10.0f;
-    const auto sliderCursorHeight = timelineHeight / 2;
-    const auto sliderCursorPos = cursorGrabBB.GetCenter();
+    // --- Draw slider knob
+    ImVec2 sliderKnobPosition = {
+        Maths::Remap(minViewValue, maxViewValue, timelineBoundingBox.Min.x, timelineBoundingBox.Max.x, *pValue),
+        (timelineBoundingBox.Min.y + timelineBoundingBox.Max.y) / 2,
+    };
 
-    const ImVec2 cursorPoints[] = {
-        {sliderCursorPos.x - sliderCursorWidth / 2, sliderCursorPos.y},
-        {sliderCursorPos.x + sliderCursorWidth / 2, sliderCursorPos.y},
-        {sliderCursorPos.x + sliderCursorWidth / 2, sliderCursorPos.y + sliderCursorHeight / 2},
-        {sliderCursorPos.x, sliderCursorPos.y + sliderCursorHeight},
-        {sliderCursorPos.x - sliderCursorWidth / 2, sliderCursorPos.y + sliderCursorHeight / 2}};
-
-    pDrawList->AddConvexPolyFilled(cursorPoints, 5, IM_COL32_WHITE);
-
-    if (pOutSliderCursorPosition != nullptr)
+    if (*pValue >= minViewValue && *pValue <= maxViewValue)
     {
-        *pOutSliderCursorPosition = sliderCursorPos;
+        const auto sliderKnobWidth = 11.0f;
+        const auto sliderKnobHeight = timelineHeight / 2;
+
+        const ImVec2 knobPoints[] = {
+            {sliderKnobPosition.x - (sliderKnobWidth - 1) / 2, sliderKnobPosition.y},                         // Top left
+            {sliderKnobPosition.x + (sliderKnobWidth - 1) / 2, sliderKnobPosition.y},                         // Top right
+            {sliderKnobPosition.x + (sliderKnobWidth - 1) / 2, sliderKnobPosition.y + sliderKnobHeight / 2},  // Bottom right
+            {sliderKnobPosition.x, sliderKnobPosition.y + sliderKnobHeight},                                  // Pointy end
+            {sliderKnobPosition.x - (sliderKnobWidth - 1) / 2, sliderKnobPosition.y + sliderKnobHeight / 2}}; // Bottom left
+
+        pDrawList->AddConvexPolyFilled(knobPoints, 5, IM_COL32_WHITE);
     }
 
-    if (pOutSliderDrawingArea != nullptr)
-    {
-        *pOutSliderDrawingArea = drawingArea;
-    }
+    // --- Set output ptrs
+    *pOutSliderKnobPosition = sliderKnobPosition;
+    *pOutSliderDrawingArea = timelineBoundingBox;
 
     return valueChanged;
 }
 
-void AnimationClipWorkspace::DrawAnimationPreview()
-{
-}
-
 void AnimationClipWorkspace::DrawAnimationEventsEditor()
 {
-    auto animDuration = m_pAnimationClip->GetDuration();
-    auto percentageThroughAnimation = m_pAnimationPlayerComponent->GetAnimTime();
-    auto animTime = percentageThroughAnimation * animDuration;
-
     /// --------- Header
+
     // Anim player control
-    // TODO: What do step forward/backward buttons actually do ?
     ImGui::Text(ICON_FA_BACKWARD_STEP);
     if (ImGui::IsItemHovered())
     {
@@ -153,7 +217,10 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
     }
     if (ImGui::IsItemClicked())
     {
-        // TODO
+        // Step to previous frame mark
+        const auto frameTime = m_pAnimationPlayerComponent->GetFrameTime();
+        const auto frameIdx = Maths::Clamp(Maths::Ceil((float) frameTime) - 1, 0.0f, m_pAnimationClip->GetFrameCount() - 1.0f);
+        m_pAnimationPlayerComponent->SetFrameTime(FrameTime(frameIdx, 0.0f));
     }
 
     ImGui::SameLine();
@@ -190,20 +257,27 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
     }
     if (ImGui::IsItemClicked())
     {
-        // TODO
+        // Step to next frame mark
+        const auto frameTime = m_pAnimationPlayerComponent->GetFrameTime();
+        const auto frameIdx = Maths::Clamp(Maths::Floor((float) frameTime) + 1, 0.0f, m_pAnimationClip->GetFrameCount() - 1.0f);
+        m_pAnimationPlayerComponent->SetFrameTime(FrameTime(frameIdx, 0.0f));
     }
 
     ImGui::SameLine();
-    ImGui::Text("%.2f / %.2fs", animTime, animDuration);
+    ImGui::Text("%.2f/%.2fs", m_pAnimationPlayerComponent->GetPercentageThroughAnimation() * m_pAnimationClip->GetDuration(), m_pAnimationClip->GetDuration());
+    ImGui::SameLine();
+    ImGui::Text("- %i/%i", m_pAnimationPlayerComponent->GetFrameTime().GetFrameIndex(), m_pAnimationClip->GetFrameCount() - 1);
+    ImGui::SameLine();
+    ImGui::Text("(%.2f%%)", m_pAnimationPlayerComponent->GetPercentageThroughAnimation() * 100);
 
     ImVec2 timelineCursorPos;
     ImRect timelineDrawingArea;
 
-    auto TimelineDeltaToAnimTime = [&](float timelineDelta)
-    { return (animDuration / timelineDrawingArea.GetWidth()) * timelineDelta; };
+    auto TimelineDeltaToAnimTime = [&](float timelineDelta) -> Seconds
+    { return (m_pAnimationClip->GetDuration() / timelineDrawingArea.GetWidth()) * timelineDelta; };
 
-    auto AnimTimeToTimelinePosition = [&](float animTime)
-    { return timelineDrawingArea.Min.x + animTime * (timelineDrawingArea.GetWidth() / animDuration); };
+    auto AnimTimeToTimelinePosition = [&](Seconds animTime) -> float
+    { return Maths::Remap(m_viewRange.m_start, m_viewRange.m_end, timelineDrawingArea.Min.x, timelineDrawingArea.Max.x, animTime / m_pAnimationClip->GetFramesPerSecond()); };
 
     ImGui::BeginTable("EventTable", 2, ImGuiTableFlags_Resizable);
 
@@ -217,9 +291,15 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         // Timeline
         ImGui::TableNextColumn();
         {
-            SliderTimeline(ImGui::GetID("Animation Event Timeline"), &animTime, animDuration, &timelineDrawingArea, &timelineCursorPos);
-            percentageThroughAnimation = animTime / animDuration;
-            m_pAnimationPlayerComponent->SetAnimTime(percentageThroughAnimation);
+            // Hack: Ensure the draw commands in the timeline editor will always be clipped
+            ImGui::Dummy({ImGui::GetContentRegionAvail().x + ImGui::GetStyle().CellPadding.x + 1.0f, 0.0f});
+
+            float sliderValue = (float) m_pAnimationPlayerComponent->GetFrameTime();
+            SliderTimeline(ImGui::GetID("Animation Event Timeline"), &sliderValue, m_viewRange.m_start, m_viewRange.m_end, m_playbackRange.m_start, m_playbackRange.m_end, &timelineDrawingArea, &timelineCursorPos);
+
+            float frameIndex;
+            Percentage percentageThroughFrame = Maths::Modf(sliderValue, frameIndex);
+            m_pAnimationPlayerComponent->SetFrameTime(FrameTime(frameIndex, percentageThroughFrame));
         }
     }
 
@@ -248,18 +328,21 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         {
             constexpr float trackRowHeight = 20;
             auto columnCursorPos = ImGui::GetCursorScreenPos();
-            auto columnRegion = ImGui::GetContentRegionAvail();
 
             ImGui::SetNextItemAllowOverlap();
             ImGui::InvisibleButton("track details", {ImGui::GetContentRegionAvail().x, trackRowHeight});
+
             if (ImGui::BeginPopupContextItem())
             {
                 // TODO: Prevent adding event at the same time
                 if (ImGui::MenuItem("Add event"))
                 {
+                    auto timelineAnimTime = m_pAnimationPlayerComponent->GetPercentageThroughAnimation() * m_pAnimationClip->GetDuration();
+
                     auto pEvent = aln::New<EditorAnimationEvent>();
-                    pEvent->m_startTime = animTime;
-                    pEvent->m_endTime = animTime;
+                    pEvent->m_startTime = timelineAnimTime;
+                    pEvent->m_endTime = timelineAnimTime;
+
                     pEventTrack->m_events.push_back(pEvent);
                 }
 
@@ -267,6 +350,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
             }
 
             uint32_t eventToEraseIdx = InvalidIndex;
+
             const auto eventCount = pEventTrack->m_events.size();
             for (auto eventIdx = 0; eventIdx < eventCount; ++eventIdx)
             {
@@ -274,6 +358,8 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
 
                 auto pEvent = pEventTrack->m_events[eventIdx];
                 ImGui::PushID(pEvent);
+
+                // --- Draw Event Start Icon
                 ImGui::PushID("Start Event");
 
                 ImVec2 startEventPosition = {
@@ -332,6 +418,15 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
 
                 if (ImGui::BeginPopupContextItem())
                 {
+                    if (pEvent->IsDurable())
+                    {
+                        ImGui::Text("Start: %.2fs", pEvent->m_startTime);
+                        ImGui::Text("End: %.2fs", pEvent->m_endTime);
+                    }
+                    else
+                    {
+                        ImGui::Text("Time: %.2fs", pEvent->m_startTime);
+                    }
                     if (ImGui::MenuItem("Delete"))
                     {
                         if (pEvent->IsDurable())
@@ -348,8 +443,9 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
 
                 ImGui::PopID(); // Start Event
 
-                if (!Maths::IsNearEqual(pEvent->m_startTime, pEvent->m_endTime, EditorAnimationEvent::MinDurationEpsilon))
+                if (pEvent->IsDurable())
                 {
+                    // --- Draw Event End Icon
                     ImGui::PushID("End Event");
 
                     ImVec2 endEventPosition = {
@@ -357,61 +453,6 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                         columnCursorPos.y + trackRowHeight * 0.5f,
                     };
 
-                    // Draw durable event bar
-                    ImVec2* pFirstEventPosition = nullptr;
-                    ImVec2* pSecondEventPosition = nullptr;
-                    if (pEvent->m_startTime < pEvent->m_endTime)
-                    {
-                        pFirstEventPosition = &startEventPosition;
-                        pSecondEventPosition = &endEventPosition;
-                    }
-                    else
-                    {
-                        pFirstEventPosition = &endEventPosition;
-                        pSecondEventPosition = &startEventPosition;
-                    }
-
-                    ImRect durableEventBarBB = {
-                        *pFirstEventPosition + ImVec2(0, -2),
-                        *pSecondEventPosition + ImVec2(0, 2),
-                    };
-
-                    ImGui::GetWindowDrawList()->AddRectFilled(durableEventBarBB.Min, durableEventBarBB.Max, static_cast<uint32_t>(RGBColor::Green));
-                    ImGui::SetCursorScreenPos(durableEventBarBB.Min);
-                    ImGui::InvisibleButton("Durable Event Bar", durableEventBarBB.GetSize());
-
-                    if (ImGui::IsItemActivated())
-                    {
-                        m_state.m_initialStartTime = pEvent->m_startTime;
-                        m_state.m_initialEndTime = pEvent->m_endTime;
-                    }
-
-                    if (ImGui::IsItemActive())
-                    {
-                        auto delta = ImGui::GetIO().MouseDelta.x;
-                        auto deltaTime = TimelineDeltaToAnimTime(delta);
-
-                        pEvent->m_startTime += deltaTime;
-                        pEvent->m_endTime += deltaTime;
-
-                        // Clamp ranges
-                        auto minTime = Maths::Min(pEvent->m_startTime, pEvent->m_endTime);
-                        if (minTime < 0.0f)
-                        {
-                            pEvent->m_startTime -= minTime;
-                            pEvent->m_endTime -= minTime;
-                        }
-
-                        auto maxTime = Maths::Max(pEvent->m_startTime, pEvent->m_endTime);
-                        if (maxTime > animDuration)
-                        {
-                            auto diff = maxTime - animDuration;
-                            pEvent->m_startTime -= diff;
-                            pEvent->m_endTime -= diff;
-                        }
-                    }
-
-                    // Draw event knob
                     ImGui::GetWindowDrawList()->AddQuadFilled(
                         endEventPosition + ImVec2(eventIconWidth * 0.5f, 0.0f),
                         endEventPosition + ImVec2(0.0f, eventIconWidth * 0.5f),
@@ -449,14 +490,74 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                         ImGui::EndPopup();
                     }
 
-                    ImGui::PopID();
+                    ImGui::PopID(); // End Event
+
+                    // --- Draw durable event bar
+
+                    ImGui::PushID("Durable Event Bar");
+
+                    ImVec2* pFirstEventPosition = nullptr;
+                    ImVec2* pSecondEventPosition = nullptr;
+                    if (pEvent->m_startTime < pEvent->m_endTime)
+                    {
+                        pFirstEventPosition = &startEventPosition;
+                        pSecondEventPosition = &endEventPosition;
+                    }
+                    else
+                    {
+                        pFirstEventPosition = &endEventPosition;
+                        pSecondEventPosition = &startEventPosition;
+                    }
+
+                    ImRect durableEventBarBB = {
+                        *pFirstEventPosition + ImVec2(0, -2),
+                        *pSecondEventPosition + ImVec2(0, 2),
+                    };
+
+                    ImGui::GetWindowDrawList()->AddRectFilled(durableEventBarBB.Min, durableEventBarBB.Max, static_cast<uint32_t>(RGBColor::Green));
+
+                    ImGui::SetCursorScreenPos(durableEventBarBB.Min);
+                    ImGui::InvisibleButton("Durable Event Bar", durableEventBarBB.GetSize());
+
+                    if (ImGui::IsItemActivated())
+                    {
+                        m_state.m_initialStartTime = pEvent->m_startTime;
+                        m_state.m_initialEndTime = pEvent->m_endTime;
+                    }
+
+                    if (ImGui::IsItemActive())
+                    {
+                        auto delta = ImGui::GetIO().MouseDelta.x;
+                        auto deltaTime = TimelineDeltaToAnimTime(delta);
+
+                        pEvent->m_startTime += deltaTime;
+                        pEvent->m_endTime += deltaTime;
+
+                        // Clamp ranges
+                        auto minTime = Maths::Min(pEvent->m_startTime, pEvent->m_endTime);
+                        if (minTime < 0.0f)
+                        {
+                            pEvent->m_startTime -= minTime;
+                            pEvent->m_endTime -= minTime;
+                        }
+
+                        auto maxTime = Maths::Max(pEvent->m_startTime, pEvent->m_endTime);
+                        if (maxTime > m_pAnimationClip->GetDuration())
+                        {
+                            auto diff = maxTime - m_pAnimationClip->GetDuration();
+                            pEvent->m_startTime -= diff;
+                            pEvent->m_endTime -= diff;
+                        }
+                    }
+
+                    ImGui::PopID(); // Durable event bar
                 }
 
                 // Enforce anim duration boundaries
-                pEvent->m_startTime = Maths::Clamp(pEvent->m_startTime, 0.0f, animDuration);
-                pEvent->m_endTime = Maths::Clamp(pEvent->m_endTime, 0.0f, animDuration);
+                pEvent->m_startTime = Maths::Clamp(pEvent->m_startTime, 0.0f, m_pAnimationClip->GetDuration());
+                pEvent->m_endTime = Maths::Clamp(pEvent->m_endTime, 0.0f, m_pAnimationClip->GetDuration());
 
-                ImGui::PopID();
+                ImGui::PopID(); // Event
             }
 
             if (eventToEraseIdx != InvalidIndex)
@@ -465,8 +566,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                 pEventTrack->m_events.erase(pEventTrack->m_events.begin() + eventToEraseIdx);
             }
         }
-
-        ImGui::PopID();
+        ImGui::PopID(); // Event track
     }
 
     ImGui::TableNextRow();
@@ -483,11 +583,40 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         }
     }
 
+    if (ImGui::TableGetHoveredColumn() == 1)
+    {
+        if (ImGui::GetIO().KeyCtrl)
+        {
+            constexpr float zoomSpeed = 2.0f;
+
+            auto zoom = ImGui::GetIO().MouseWheel;
+            auto mousePosX = ImGui::GetMousePos().x;
+
+            auto relativeMousePosX = Maths::InverseLerp(timelineDrawingArea.Min.x, timelineDrawingArea.Max.x, mousePosX);
+            m_viewRange.m_start += zoom * zoomSpeed * relativeMousePosX;
+            m_viewRange.m_end -= zoom * zoomSpeed * (1.0f - relativeMousePosX);
+        }
+
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            m_isScrollingTimeline = true;
+        }
+    }
     ImGui::EndTable();
 
-    // Cursor line
-    auto lineEnd = ImVec2(timelineCursorPos.x, ImGui::GetWindowPos().y + ImGui::GetCursorPosY() - (ImGui::GetStyle().FramePadding.y * 2));
-    ImGui::GetWindowDrawList()->AddLine(timelineCursorPos, lineEnd, static_cast<uint32_t>(RGBColor::Blue));
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+    {
+        m_isScrollingTimeline = false;
+    }
+
+    if (m_isScrollingTimeline)
+    {
+        constexpr float scrollSpeed = 0.2f;
+
+        const auto mouseDeltaX = ImGui::GetIO().MouseDelta.x;
+        m_viewRange.m_start -= mouseDeltaX * scrollSpeed;
+        m_viewRange.m_end -= mouseDeltaX * scrollSpeed;
+    }
 
     // Handle requests
     if (trackToEraseIdx != InvalidIndex)
@@ -495,6 +624,14 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         aln::Delete(m_eventTracks[trackToEraseIdx]);
         m_eventTracks.erase(m_eventTracks.begin() + trackToEraseIdx);
     }
+
+    // --- Draw vertical indicators
+    // Slider knob line
+    auto windowBottom = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y;
+    auto lineEnd = ImVec2(timelineCursorPos.x, windowBottom);
+    ImGui::GetWindowDrawList()->AddLine(timelineCursorPos, lineEnd, (uint32_t) RGBColor::Blue);
+    // TODO: Clip start line
+    // TODO: Clip end line
 
     // TODO: Draw grid
     // TODO: Highlight selected
@@ -505,22 +642,24 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
     static float previewHeight = 300;
     static float trackHeight = 300;
 
+    // Late initialization after the anim clip is loaded
     if (m_pAnimationClip.IsLoaded() && !m_pPreviewCharacterSkeletalMeshComponent->HasSkeletonSet())
     {
         m_pPreviewWorld->StartComponentEditing((IComponent*) m_pPreviewCharacterSkeletalMeshComponent);
         m_pPreviewCharacterSkeletalMeshComponent->SetSkeleton(m_pAnimationClip->GetSkeleton()->GetID());
         m_pPreviewWorld->EndComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
+
+        m_playbackRange = {0.0f, (float) m_pAnimationClip->GetFrameCount() - 1};
+        m_viewRange = m_playbackRange;
     }
 
-    if (ImGui::Begin("Animation Clip", &m_isOpen))
+    if (ImGui::Begin((std::string(ICON_FA_PERSON_RUNNING " ") + GetID().GetAssetName() + "##" + GetID().GetAssetPath()).c_str(), &m_isOpen))
     {
         float contentWidth = ImGui::GetContentRegionAvail().x;
         ImGuiWidgets::Splitter(false, 2, &previewHeight, &trackHeight, 8, 8, contentWidth);
 
         if (ImGui::BeginChild("Animation Preview", {contentWidth, previewHeight}, true))
         {
-            // TODO: Animation preview
-
             // Update current scene preview dims
             auto dim = ImGui::GetContentRegionAvail();
             m_pPreviewWorld->UpdateViewportSize(dim.x, dim.y);
@@ -583,6 +722,7 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
     auto pCharacterEntity = m_pPreviewWorld->CreateEntity("Character");
 
     m_pPreviewCharacterSkeletalMeshComponent = aln::New<SkeletalMeshComponent>();
+    // TODO: Auto-select a matching skeletal mesh from the asset db (when there's an asset db)
     pCharacterEntity->AddComponent(m_pPreviewCharacterSkeletalMeshComponent);
 
     m_pAnimationPlayerComponent = aln::New<AnimationPlayerComponent>();
