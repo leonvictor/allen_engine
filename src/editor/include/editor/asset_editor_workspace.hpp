@@ -91,6 +91,7 @@ class IAssetWorkspacesFactory
   public:
     std::string m_assetEditorName;
     AssetTypeID m_supportedAssetType;
+    bool m_canBeCreatedByUser;
     virtual IAssetWorkspace* CreateWorkspace() = 0;
 };
 
@@ -103,7 +104,7 @@ class AssetEditorWindowsFactories
     Vector<IAssetWorkspacesFactory*> m_factories;
 
     template <typename AssetType, typename FactoryType>
-    void RegisterFactory(std::string_view name)
+    void RegisterFactory(std::string_view name, bool canBeCreatedByUser)
     {
         static_assert(std::is_base_of_v<IAsset, AssetType>);
         static_assert(std::is_base_of_v<IAssetWorkspacesFactory, FactoryType>);
@@ -111,6 +112,7 @@ class AssetEditorWindowsFactories
         auto& pFactory = m_factories.emplace_back(aln::New<FactoryType>());
         pFactory->m_assetEditorName = name;
         pFactory->m_supportedAssetType = AssetType::GetStaticAssetTypeID();
+        pFactory->m_canBeCreatedByUser = canBeCreatedByUser;
     }
 
     IAssetWorkspacesFactory* FindFactory(const AssetTypeID& assetTypeID) const

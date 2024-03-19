@@ -18,10 +18,10 @@ class AnimationPlayerComponent;
 struct EditorAnimationEvent
 {
     /// @brief Events below this duration will be fused into a single immediate event
-    static constexpr float MinDurationEpsilon = 0.01;
+    static constexpr Seconds MinDurationEpsilon = 0.01;
 
-    float m_startTime = 0.0f;
-    float m_endTime = 0.0f;
+    Seconds m_startTime = 0.0f;
+    Seconds m_endTime = 0.0f;
 
     bool IsImmediate() const { return Maths::IsNearEqual(m_startTime, m_endTime, MinDurationEpsilon); }
     bool IsDurable() const { return !Maths::IsNearEqual(m_startTime, m_endTime, MinDurationEpsilon); }
@@ -41,6 +41,12 @@ class AnimationClipWorkspace : public IAssetWorkspace
         float m_initialEndTime = 0.0f;
     };
 
+    struct TimelineRange
+    {
+        float m_start = 0.0f;
+        float m_end = 0.0f;
+    };
+
   private:
     AssetHandle<AnimationClip> m_pAnimationClip;
     Vector<EditorEventTrack*> m_eventTracks;
@@ -48,6 +54,10 @@ class AnimationClipWorkspace : public IAssetWorkspace
     EditorAnimationEvent* m_pCurrentlyEditedEvent = nullptr;
 
     State m_state;
+
+    TimelineRange m_viewRange; // Visible range of values in the timeline editor
+    TimelineRange m_playbackRange; // Range of values contained in the edited clip
+    bool m_isScrollingTimeline = false;
 
     std::filesystem::path m_compiledAnimationClipPath;
     std::filesystem::path m_statePath;
@@ -62,10 +72,9 @@ class AnimationClipWorkspace : public IAssetWorkspace
     AnimationPlayerComponent* m_pAnimationPlayerComponent = nullptr;
 
   private:
-    void DrawAnimationPreview();
     void DrawAnimationEventsEditor();
 
-  public:
+public:
     // ----- Window lifetime
     void Update(const UpdateContext& context) override;
     void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;

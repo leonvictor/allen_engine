@@ -21,8 +21,8 @@ class AnimationPlayerComponent : public IComponent
     AssetHandle<AnimationClip> m_pAnimationClip;
 
     Pose* m_pPose = nullptr;
-    Percentage m_previousAnimTime = 0.0f; // Previus percentage through the animation
-    Percentage m_animTime = 0.0f; // Percentage through the animation
+    Percentage m_previousPercentageThroughAnimation = 0.0f; // Previous percentage through the animation
+    Percentage m_percentageThroughAnimation = 0.0f;         // Percentage through the animation
 
     // Editor
     bool m_pause = false;
@@ -88,7 +88,21 @@ class AnimationPlayerComponent : public IComponent
 
     inline void SetPaused(bool paused) { m_pause = paused; }
     inline bool IsPaused() const { return m_pause; }
-    inline void SetAnimTime(Percentage percentageThroughAnimation) { m_animTime = percentageThroughAnimation; }
-    inline Percentage GetAnimTime() const { return m_animTime; }
+    
+    inline void SetPercentageThroughAnimation(Percentage percentageThroughAnimation)
+    {
+        m_previousPercentageThroughAnimation = m_percentageThroughAnimation;
+        m_percentageThroughAnimation = percentageThroughAnimation;
+    }
+    inline Percentage GetPercentageThroughAnimation() const { return m_percentageThroughAnimation; }
+
+    inline FrameTime GetFrameTime() const { return m_pAnimationClip->GetFrameTime(m_percentageThroughAnimation); }
+    void SetFrameTime(const FrameTime& frameTime)
+    {
+        assert(m_pAnimationClip.IsValid());
+
+        const auto percentageAtFrameTime = m_pAnimationClip->GetPercentageThrough(frameTime);
+        SetPercentageThroughAnimation(percentageAtFrameTime);
+    }
 };
 } // namespace aln
