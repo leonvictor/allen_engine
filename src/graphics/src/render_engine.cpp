@@ -10,6 +10,7 @@
 
 #include <assert.h>
 #include <set>
+#include <thread>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
