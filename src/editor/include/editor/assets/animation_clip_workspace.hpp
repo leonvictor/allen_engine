@@ -42,6 +42,17 @@ class AnimationClipWorkspace : public IAssetWorkspace
     };
 
   public:
+    struct TimelineGraduationsMetrics
+    {
+        float m_majorGraduationInterval = 0.0f;
+        float m_firstMajorGraduation = 0.0f;
+        float m_lastMajorGraduation = 0.0f;
+        float m_pixelsPerMajorGraduation = 0.0f;
+        float m_pixelsPerValue = 0.0f;
+
+        uint32_t m_minorGraduationDivisions = 0;
+    };
+
     struct TimelineRange
     {
         float m_start = 0.0f;
@@ -58,7 +69,7 @@ class AnimationClipWorkspace : public IAssetWorkspace
 
     TimelineRange m_viewRange;     // Visible range of values in the timeline editor
     TimelineRange m_playbackRange; // Range of values contained in the edited clip
-    bool m_isScrollingTimeline = false;
+    bool m_timelinePanningActive = false;
 
     std::filesystem::path m_compiledAnimationClipPath;
     std::filesystem::path m_statePath;
@@ -74,6 +85,7 @@ class AnimationClipWorkspace : public IAssetWorkspace
 
   private:
     void DrawAnimationEventsEditor();
+    void DrawAnimationPlaybackController();
 
   public:
     // ----- Window lifetime
