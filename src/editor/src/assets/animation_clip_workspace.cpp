@@ -93,7 +93,31 @@ static bool GetTimelineGraduationsParameters(float availableWidth, float valueRa
     return outMajorGraduationInterval != 0;
 }
 
-static bool SliderTimeline(ImGuiID id, float* pValue, const float minViewValue, const float maxViewValue, float minActualValue, float maxActualValue, ImRect* pOutSliderDrawingArea, ImVec2* pOutSliderKnobPosition)
+static void DrawTimelineMarker(const ImRect& timelineDrawArea, const AnimationClipWorkspace::TimelineRange& viewRange, float markerValue, const RGBColor& color)
+{
+    ImVec2 markerPosition = {
+        Maths::Remap(viewRange.m_start, viewRange.m_end, timelineDrawArea.Min.x, timelineDrawArea.Max.x, markerValue),
+        timelineDrawArea.Min.y,
+    };
+
+    const float markerWidth = 11.0f;
+    const float pointyEndHeight = 5.0f;
+
+    const ImVec2 markerPoints[] = {
+        {markerPosition.x - (markerWidth - 1) / 2, markerPosition.y},                          // Top left
+        {markerPosition.x + (markerWidth - 1) / 2, markerPosition.y},                          // Top right
+        {markerPosition.x + (markerWidth - 1) / 2, timelineDrawArea.Max.y - pointyEndHeight},  // Bottom right
+        {markerPosition.x, timelineDrawArea.Max.y},                                            // Pointy end
+        {markerPosition.x - (markerWidth - 1) / 2, timelineDrawArea.Max.y - pointyEndHeight}}; // Bottom left
+
+    ImGui::GetWindowDrawList()->AddConvexPolyFilled(markerPoints, 5, (uint32_t) color);
+
+    auto windowBottom = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y;
+    auto lineEnd = ImVec2(markerPosition.x, windowBottom);
+    ImGui::GetWindowDrawList()->AddLine(markerPosition, lineEnd, (uint32_t) color);
+}
+
+static bool SliderTimeline(ImGuiID id, float* pValue, const float minViewValue, const float maxViewValue, float minActualValue, float maxActualValue, ImRect* pOutSliderDrawingArea, ImVec2* pOutmarkerPosition)
 {
     ImGuiWindow* pWindow = ImGui::GetCurrentWindow();
     if (pWindow->SkipItems)
@@ -177,29 +201,7 @@ static bool SliderTimeline(ImGuiID id, float* pValue, const float minViewValue, 
         majorGraduationPosX += pixelsPerMajorGraduation;
     }
 
-    // --- Draw slider knob
-    ImVec2 sliderKnobPosition = {
-        Maths::Remap(minViewValue, maxViewValue, timelineBoundingBox.Min.x, timelineBoundingBox.Max.x, *pValue),
-        (timelineBoundingBox.Min.y + timelineBoundingBox.Max.y) / 2,
-    };
-
-    if (*pValue >= minViewValue && *pValue <= maxViewValue)
-    {
-        const auto sliderKnobWidth = 11.0f;
-        const auto sliderKnobHeight = timelineHeight / 2;
-
-        const ImVec2 knobPoints[] = {
-            {sliderKnobPosition.x - (sliderKnobWidth - 1) / 2, sliderKnobPosition.y},                         // Top left
-            {sliderKnobPosition.x + (sliderKnobWidth - 1) / 2, sliderKnobPosition.y},                         // Top right
-            {sliderKnobPosition.x + (sliderKnobWidth - 1) / 2, sliderKnobPosition.y + sliderKnobHeight / 2},  // Bottom right
-            {sliderKnobPosition.x, sliderKnobPosition.y + sliderKnobHeight},                                  // Pointy end
-            {sliderKnobPosition.x - (sliderKnobWidth - 1) / 2, sliderKnobPosition.y + sliderKnobHeight / 2}}; // Bottom left
-
-        pDrawList->AddConvexPolyFilled(knobPoints, 5, IM_COL32_WHITE);
-    }
-
     // --- Set output ptrs
-    *pOutSliderKnobPosition = sliderKnobPosition;
     *pOutSliderDrawingArea = timelineBoundingBox;
 
     return valueChanged;
@@ -581,6 +583,15 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                 m_eventTracks.push_back(pTrack);
             }
         }
+
+        ImGui::TableNextColumn();
+        {
+            // --- Draw vertical indicators
+            // They are drawn in a column to take advantage of the auto-clipping
+            DrawTimelineMarker(timelineDrawingArea, m_viewRange, 0.0f, RGBColor::Green);
+            DrawTimelineMarker(timelineDrawingArea, m_viewRange, m_pAnimationClip->GetFrameCount() - 1, RGBColor::Red);
+            DrawTimelineMarker(timelineDrawingArea, m_viewRange, m_pAnimationPlayerComponent->GetPercentageThroughAnimation() * (m_pAnimationClip->GetFrameCount() - 1), RGBColor::Blue);
+        }
     }
 
     if (ImGui::TableGetHoveredColumn() == 1)
@@ -625,11 +636,6 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         m_eventTracks.erase(m_eventTracks.begin() + trackToEraseIdx);
     }
 
-    // --- Draw vertical indicators
-    // Slider knob line
-    auto windowBottom = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y;
-    auto lineEnd = ImVec2(timelineCursorPos.x, windowBottom);
-    ImGui::GetWindowDrawList()->AddLine(timelineCursorPos, lineEnd, (uint32_t) RGBColor::Blue);
     // TODO: Clip start line
     // TODO: Clip end line
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "asset_editor_workspace.hpp"
-#include "preview_scene_settings_window.hpp"
 #include "preview_scene_settings.hpp"
+#include "preview_scene_settings_window.hpp"
 #include "reflected_types/reflected_type_editor.hpp"
 
 #include <anim/animation_clip.hpp>
@@ -41,6 +41,7 @@ class AnimationClipWorkspace : public IAssetWorkspace
         float m_initialEndTime = 0.0f;
     };
 
+  public:
     struct TimelineRange
     {
         float m_start = 0.0f;
@@ -55,7 +56,7 @@ class AnimationClipWorkspace : public IAssetWorkspace
 
     State m_state;
 
-    TimelineRange m_viewRange; // Visible range of values in the timeline editor
+    TimelineRange m_viewRange;     // Visible range of values in the timeline editor
     TimelineRange m_playbackRange; // Range of values contained in the edited clip
     bool m_isScrollingTimeline = false;
 
@@ -74,7 +75,7 @@ class AnimationClipWorkspace : public IAssetWorkspace
   private:
     void DrawAnimationEventsEditor();
 
-public:
+  public:
     // ----- Window lifetime
     void Update(const UpdateContext& context) override;
     void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
@@ -82,7 +83,7 @@ public:
     void Clear();
 
     PreviewSceneSettings* GetPreviewSceneSettings() override { return &m_previewSceneSettings; }
-    
+
     void StartEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails) override
     {
         assert(HasPreviewWorld());
