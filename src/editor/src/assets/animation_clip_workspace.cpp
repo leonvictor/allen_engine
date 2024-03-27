@@ -19,15 +19,16 @@ namespace aln
 
 /// @note adapted from UE source
 /// @note We make a distinction between the value range that is being displayed and the actual graduations that will be drawn, and might have a different resolution
-static bool GetTimelineGraduationsParameters(float availableWidth, float valueRangeMin, float valueRangeMax, float minGraduationIntervalPixels, float desiredMajorGraduationPixels, float& outMajorGraduationInterval, uint32_t& outMinorDivisions)
+static AnimationClipWorkspace::TimelineGraduationsMetrics GetTimelineGraduationsParameters(float availableWidth, const AnimationClipWorkspace::TimelineRange& viewRange, float minGraduationIntervalPixels, float desiredMajorGraduationPixels)
 {
-    float pixelPerValue = availableWidth / (valueRangeMax - valueRangeMin); // tmp : = pixelpersec
+    AnimationClipWorkspace::TimelineGraduationsMetrics metrics;
+    metrics.m_pixelsPerValue = availableWidth / (viewRange.m_end - viewRange.m_start);
 
     Vector<uint32_t> commonBases;
     // Divide the rounded frame rate by 2s, 3s or 5s recursively
     {
         constexpr uint32_t denominators[] = {2, 3, 5};
-        uint32_t lowestBase = 300; // TODO: ?
+        uint32_t lowestBase = 700; // TODO ?
         while (true)
         {
             commonBases.push_back(lowestBase);
@@ -70,27 +71,70 @@ static bool GetTimelineGraduationsParameters(float availableWidth, float valueRa
 
     Algo::Reverse(commonBases);
 
-    const uint32_t scale = static_cast<uint32_t>(Maths::Ceil(desiredMajorGraduationPixels / pixelPerValue));
+    const uint32_t scale = static_cast<uint32_t>(Maths::Ceil(desiredMajorGraduationPixels / metrics.m_pixelsPerValue));
     const uint32_t baseIndex = Maths::Min(Algo::LowerBoundIndex(commonBases, scale), static_cast<uint32_t>(commonBases.size() - 1));
     const uint32_t base = commonBases[baseIndex];
 
-    outMajorGraduationInterval = Maths::Ceil(scale / static_cast<float>(base)) * base;
+    metrics.m_majorGraduationInterval = Maths::Ceil(scale / static_cast<float>(base)) * base;
+    metrics.m_pixelsPerMajorGraduation = metrics.m_pixelsPerValue * metrics.m_majorGraduationInterval;
 
     // Find the lowest number of divisions we can show that's larger than the minimum tick size
     for (uint32_t divIndex = 0; divIndex < baseIndex; ++divIndex)
     {
         if (base % commonBases[divIndex] == 0)
         {
-            const uint32_t minorDivisions = outMajorGraduationInterval / commonBases[divIndex];
-            if (outMajorGraduationInterval / minorDivisions * pixelPerValue >= minGraduationIntervalPixels)
+            const uint32_t minorDivisions = metrics.m_majorGraduationInterval / commonBases[divIndex];
+            if (metrics.m_majorGraduationInterval / minorDivisions * metrics.m_pixelsPerValue >= minGraduationIntervalPixels)
             {
-                outMinorDivisions = minorDivisions;
+                metrics.m_minorGraduationDivisions = minorDivisions;
                 break;
             }
         }
     }
 
-    return outMajorGraduationInterval != 0;
+    metrics.m_firstMajorGraduation = Maths::Floor(viewRange.m_start / metrics.m_majorGraduationInterval) * metrics.m_majorGraduationInterval;
+    metrics.m_lastMajorGraduation = Maths::Ceil(viewRange.m_end / metrics.m_majorGraduationInterval) * metrics.m_majorGraduationInterval;
+    return metrics;
+}
+
+static void DrawTimelineGraduations(const ImRect& timelineDrawArea, const AnimationClipWorkspace::TimelineRange& viewRange, const AnimationClipWorkspace::TimelineGraduationsMetrics& metrics)
+{
+    auto pDrawList = ImGui::GetWindowDrawList();
+
+    float majorGraduationPosX = timelineDrawArea.Min.x + (metrics.m_firstMajorGraduation - viewRange.m_start) * metrics.m_pixelsPerValue;
+    for (int majorGraduation = metrics.m_firstMajorGraduation; majorGraduation < metrics.m_lastMajorGraduation; majorGraduation += metrics.m_majorGraduationInterval)
+    {
+        // Major graduations
+        const auto majorGraduationPosY = timelineDrawArea.Min.y;
+        pDrawList->AddLine({majorGraduationPosX, majorGraduationPosY}, {majorGraduationPosX, majorGraduationPosY + timelineDrawArea.GetHeight() + 1.0f}, IM_COL32_WHITE);
+        pDrawList->AddText(ImGui::GetFont(), ImGui::GetFontSize(), {majorGraduationPosX + 5.0f, majorGraduationPosY}, IM_COL32_WHITE, std::to_string(majorGraduation).c_str());
+
+        // Minor graduations
+        for (uint32_t minorGraduation = 1; minorGraduation < metrics.m_minorGraduationDivisions; ++minorGraduation)
+        {
+            const auto minorGraduationPosX = majorGraduationPosX + (minorGraduation * metrics.m_pixelsPerMajorGraduation / metrics.m_minorGraduationDivisions);
+            pDrawList->AddLine({minorGraduationPosX, majorGraduationPosY + timelineDrawArea.GetHeight() / 2}, {minorGraduationPosX, majorGraduationPosY + timelineDrawArea.GetHeight()}, IM_COL32_WHITE);
+        }
+
+        majorGraduationPosX += metrics.m_pixelsPerMajorGraduation;
+    }
+}
+
+/// @brief Draw vertical grid lines on major graduations
+static void DrawVerticalGridLines(const ImRect& timelineDrawArea, const AnimationClipWorkspace::TimelineRange& viewRange, const AnimationClipWorkspace::TimelineGraduationsMetrics& metrics)
+{
+    auto pDrawList = ImGui::GetWindowDrawList();
+
+    const float windowBottomPosY = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y;
+    float majorGraduationPosX = timelineDrawArea.Min.x + (metrics.m_firstMajorGraduation - viewRange.m_start) * metrics.m_pixelsPerValue;
+    for (int majorGraduation = metrics.m_firstMajorGraduation; majorGraduation < metrics.m_lastMajorGraduation; majorGraduation += metrics.m_majorGraduationInterval)
+    {
+        const ImVec2 gridLineStart = {majorGraduationPosX, timelineDrawArea.Min.y};
+        const ImVec2 gridLineEnd = {majorGraduationPosX, windowBottomPosY - 2.0f};
+        pDrawList->AddLine(gridLineStart, gridLineEnd, ImGui::GetColorU32(ImGuiCol_Button));
+
+        majorGraduationPosX += metrics.m_pixelsPerMajorGraduation;
+    }
 }
 
 static void DrawTimelineMarker(const ImRect& timelineDrawArea, const AnimationClipWorkspace::TimelineRange& viewRange, float markerValue, const RGBColor& color)
@@ -101,19 +145,20 @@ static void DrawTimelineMarker(const ImRect& timelineDrawArea, const AnimationCl
     };
 
     const float markerWidth = 11.0f;
+    const float markerHalfWidth = (markerWidth - 1) / 2;
     const float pointyEndHeight = 5.0f;
 
     const ImVec2 markerPoints[] = {
-        {markerPosition.x - (markerWidth - 1) / 2, markerPosition.y},                          // Top left
-        {markerPosition.x + (markerWidth - 1) / 2, markerPosition.y},                          // Top right
-        {markerPosition.x + (markerWidth - 1) / 2, timelineDrawArea.Max.y - pointyEndHeight},  // Bottom right
-        {markerPosition.x, timelineDrawArea.Max.y},                                            // Pointy end
-        {markerPosition.x - (markerWidth - 1) / 2, timelineDrawArea.Max.y - pointyEndHeight}}; // Bottom left
+        {markerPosition.x - markerHalfWidth, markerPosition.y},                          // Top left
+        {markerPosition.x + markerHalfWidth, markerPosition.y},                          // Top right
+        {markerPosition.x + markerHalfWidth, timelineDrawArea.Max.y - pointyEndHeight},  // Bottom right
+        {markerPosition.x, timelineDrawArea.Max.y},                                      // Pointy end
+        {markerPosition.x - markerHalfWidth, timelineDrawArea.Max.y - pointyEndHeight}}; // Bottom left
 
     ImGui::GetWindowDrawList()->AddConvexPolyFilled(markerPoints, 5, (uint32_t) color);
 
     auto windowBottom = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y;
-    auto lineEnd = ImVec2(markerPosition.x, windowBottom);
+    auto lineEnd = ImVec2(markerPosition.x, windowBottom - 2.0f);
     ImGui::GetWindowDrawList()->AddLine(markerPosition, lineEnd, (uint32_t) color);
 }
 
@@ -127,9 +172,9 @@ static bool SliderTimeline(ImGuiID id, float* pValue, const float minViewValue, 
 
     auto pContext = ImGui::GetCurrentContext();
 
-    const auto timelineHeight = 20;
-    const auto timelineTopLeft = ImGui::GetWindowPos() + ImGui::GetCursorPos();
-    const auto timelineBottomRight = timelineTopLeft + ImVec2(ImGui::GetContentRegionAvail().x, timelineHeight);
+    const float timelineHeight = 20;
+    const ImVec2 timelineTopLeft = ImGui::GetWindowPos() + ImGui::GetCursorPos();
+    const ImVec2 timelineBottomRight = timelineTopLeft + ImVec2(ImGui::GetContentRegionAvail().x, timelineHeight);
 
     const ImRect timelineBoundingBox = {
         timelineTopLeft,
@@ -168,50 +213,14 @@ static bool SliderTimeline(ImGuiID id, float* pValue, const float minViewValue, 
     *pValue = Maths::Clamp(*pValue, minActualValue, maxActualValue);
     auto pDrawList = ImGui::GetWindowDrawList();
 
-    // --- Draw timeline graduations
-    const float availableDisplayWidth = timelineBoundingBox.GetWidth();
-
-    auto biggestGraduationTextSize = ImGui::CalcTextSize(std::to_string(static_cast<uint32_t>(maxViewValue)).c_str()).x;
-    auto minGraduationSize = biggestGraduationTextSize + 5.0f;
-    auto desiredGraduationSize = biggestGraduationTextSize * 2.0f;
-    float majorGraduationInterval = 0;
-    uint32_t minorGraduationDivision = 0;
-    GetTimelineGraduationsParameters(availableDisplayWidth, minViewValue, maxViewValue, minGraduationSize, desiredGraduationSize, majorGraduationInterval, minorGraduationDivision);
-
-    const float firstMajorGraduation = Maths::Floor(minViewValue / majorGraduationInterval) * majorGraduationInterval;
-    const float lastMajorGraduation = Maths::Ceil(maxViewValue / majorGraduationInterval) * majorGraduationInterval;
-
-    const float pixelsPerValue = availableDisplayWidth / (maxViewValue - minViewValue);
-    const float pixelsPerMajorGraduation = pixelsPerValue * majorGraduationInterval;
-    float majorGraduationPosX = timelineBoundingBox.Min.x + (firstMajorGraduation - minViewValue) * pixelsPerValue;
-    for (int majorGraduation = firstMajorGraduation; majorGraduation < lastMajorGraduation; majorGraduation += majorGraduationInterval)
-    {
-        // Major graduations
-        const auto majorGraduationPosY = timelineBoundingBox.Min.y;
-        pDrawList->AddLine({majorGraduationPosX, majorGraduationPosY}, {majorGraduationPosX, majorGraduationPosY + timelineHeight}, IM_COL32_WHITE);
-        pDrawList->AddText(ImGui::GetFont(), ImGui::GetFontSize(), {majorGraduationPosX + 5.0f, majorGraduationPosY}, IM_COL32_WHITE, std::to_string(majorGraduation).c_str());
-
-        // Minor graduations
-        for (uint32_t minorGraduation = 1; minorGraduation < minorGraduationDivision; ++minorGraduation)
-        {
-            const auto minorGraduationPosX = majorGraduationPosX + (minorGraduation * pixelsPerMajorGraduation / minorGraduationDivision);
-            pDrawList->AddLine({minorGraduationPosX, majorGraduationPosY + timelineHeight / 2}, {minorGraduationPosX, majorGraduationPosY + timelineHeight}, IM_COL32_WHITE);
-        }
-
-        majorGraduationPosX += pixelsPerMajorGraduation;
-    }
-
     // --- Set output ptrs
     *pOutSliderDrawingArea = timelineBoundingBox;
 
     return valueChanged;
 }
 
-void AnimationClipWorkspace::DrawAnimationEventsEditor()
+void AnimationClipWorkspace::DrawAnimationPlaybackController()
 {
-    /// --------- Header
-
-    // Anim player control
     ImGui::Text(ICON_FA_BACKWARD_STEP);
     if (ImGui::IsItemHovered())
     {
@@ -271,7 +280,10 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
     ImGui::Text("- %i/%i", m_pAnimationPlayerComponent->GetFrameTime().GetFrameIndex(), m_pAnimationClip->GetFrameCount() - 1);
     ImGui::SameLine();
     ImGui::Text("(%.2f%%)", m_pAnimationPlayerComponent->GetPercentageThroughAnimation() * 100);
+}
 
+void AnimationClipWorkspace::DrawAnimationEventsEditor()
+{
     ImVec2 timelineCursorPos;
     ImRect timelineDrawingArea;
 
@@ -281,27 +293,55 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
     auto AnimTimeToTimelinePosition = [&](Seconds animTime) -> float
     { return Maths::Remap(m_viewRange.m_start, m_viewRange.m_end, timelineDrawingArea.Min.x, timelineDrawingArea.Max.x, animTime / m_pAnimationClip->GetFramesPerSecond()); };
 
+    const auto sequencerHeaderBgColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+    const auto sequencerBodyBgColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_Header));
+    const auto sequencerHoveredTrackBgColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_HeaderHovered));
+    const auto sequencerGridLinesColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_Button));
+
+    ImGui::PushStyleColor(ImGuiCol_TableBorderStrong, sequencerHeaderBgColor);
+    ImGui::PushStyleColor(ImGuiCol_TableBorderLight, sequencerHeaderBgColor);
+
     ImGui::BeginTable("EventTable", 2, ImGuiTableFlags_Resizable);
 
-    ImGui::TableNextRow();
+    ImGui::TableSetupColumn("Track Headers");
+    ImGui::TableSetupColumn("Track Details");
+
+    ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
     {
         ImGui::TableNextColumn();
         {
-            // TODO: Header
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg)));
+            
+            // TODO: Header : track filtering ?
         }
 
         // Timeline
         ImGui::TableNextColumn();
         {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, sequencerHeaderBgColor);
+            
             // Hack: Ensure the draw commands in the timeline editor will always be clipped
             ImGui::Dummy({ImGui::GetContentRegionAvail().x + ImGui::GetStyle().CellPadding.x + 1.0f, 0.0f});
 
+            // Handle slider behavior and update playback value
             float sliderValue = (float) m_pAnimationPlayerComponent->GetFrameTime();
             SliderTimeline(ImGui::GetID("Animation Event Timeline"), &sliderValue, m_viewRange.m_start, m_viewRange.m_end, m_playbackRange.m_start, m_playbackRange.m_end, &timelineDrawingArea, &timelineCursorPos);
 
             float frameIndex;
             Percentage percentageThroughFrame = Maths::Modf(sliderValue, frameIndex);
             m_pAnimationPlayerComponent->SetFrameTime(FrameTime(frameIndex, percentageThroughFrame));
+
+            // Compute and draw graduations
+            auto biggestGraduationTextSize = Maths::Max(
+                ImGui::CalcTextSize(std::to_string(static_cast<int>(m_viewRange.m_end)).c_str()).x,
+                ImGui::CalcTextSize(std::to_string(static_cast<int>(m_viewRange.m_start)).c_str()).x);
+            auto minGraduationSize = biggestGraduationTextSize + 5.0f;
+            auto desiredGraduationSize = biggestGraduationTextSize * 2.0f;
+
+            auto graduationsMetrics = GetTimelineGraduationsParameters(timelineDrawingArea.GetWidth(), m_viewRange, minGraduationSize, desiredGraduationSize);
+
+            DrawTimelineGraduations(timelineDrawingArea, m_viewRange, graduationsMetrics);
+            DrawVerticalGridLines(timelineDrawingArea, m_viewRange, graduationsMetrics);
         }
     }
 
@@ -311,6 +351,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
     {
         ImGui::PushID(trackIndex);
         ImGui::TableNextRow();
+
         auto pEventTrack = m_eventTracks[trackIndex];
 
         // Track list
@@ -323,14 +364,25 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
             {
                 trackToEraseIdx = trackIndex;
             }
+
+            // TODO: Add color picker for the event track
         }
 
         // Track details
         ImGui::TableNextColumn();
         {
-            constexpr float trackRowHeight = 20;
-            auto columnCursorPos = ImGui::GetCursorScreenPos();
+            const auto sequencerRowBgColor = ImGui::TableGetHoveredRow() == (trackIndex + 1) ? sequencerHoveredTrackBgColor : sequencerBodyBgColor;
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, sequencerRowBgColor);
 
+            constexpr float trackRowHeight = 20;
+            ImVec2 columnCursorPos = ImGui::GetCursorScreenPos();
+
+            // Draw horizontal grid lines
+            const ImVec2 gridLineStart = {timelineDrawingArea.Min.x - 4.0f, columnCursorPos.y + trackRowHeight + 1};
+            const ImVec2 gridLineEnd = {timelineDrawingArea.Max.x - 1.0f, columnCursorPos.y + trackRowHeight + 1};
+            ImGui::GetWindowDrawList()->AddLine(gridLineStart, gridLineEnd, sequencerGridLinesColor);
+
+            // Enable click interactions
             ImGui::SetNextItemAllowOverlap();
             ImGui::InvisibleButton("track details", {ImGui::GetContentRegionAvail().x, trackRowHeight});
 
@@ -568,9 +620,11 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
                 pEventTrack->m_events.erase(pEventTrack->m_events.begin() + eventToEraseIdx);
             }
         }
+
         ImGui::PopID(); // Event track
     }
 
+    // -- Last row
     ImGui::TableNextRow();
     {
         ImGui::TableNextColumn();
@@ -586,11 +640,16 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
 
         ImGui::TableNextColumn();
         {
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, sequencerBodyBgColor);
+            
             // --- Draw vertical indicators
             // They are drawn in a column to take advantage of the auto-clipping
             DrawTimelineMarker(timelineDrawingArea, m_viewRange, 0.0f, RGBColor::Green);
             DrawTimelineMarker(timelineDrawingArea, m_viewRange, m_pAnimationClip->GetFrameCount() - 1, RGBColor::Red);
             DrawTimelineMarker(timelineDrawingArea, m_viewRange, m_pAnimationPlayerComponent->GetPercentageThroughAnimation() * (m_pAnimationClip->GetFrameCount() - 1), RGBColor::Blue);
+
+            auto remainingY = ImGui::GetWindowContentRegionMax().y - ImGui::GetCursorPosY() - ImGui::GetStyle().FramePadding.y;
+            ImGui::Dummy({0, remainingY});
         }
     }
 
@@ -599,32 +658,37 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         if (ImGui::GetIO().KeyCtrl)
         {
             constexpr float zoomSpeed = 2.0f;
+            // TODO: Scale with timeline view range
 
-            auto zoom = ImGui::GetIO().MouseWheel;
-            auto mousePosX = ImGui::GetMousePos().x;
+            const float zoom = ImGui::GetIO().MouseWheel;
+            const float mousePosX = ImGui::GetMousePos().x;
 
-            auto relativeMousePosX = Maths::InverseLerp(timelineDrawingArea.Min.x, timelineDrawingArea.Max.x, mousePosX);
+            const float relativeMousePosX = Maths::InverseLerp(timelineDrawingArea.Min.x, timelineDrawingArea.Max.x, mousePosX);
             m_viewRange.m_start += zoom * zoomSpeed * relativeMousePosX;
             m_viewRange.m_end -= zoom * zoomSpeed * (1.0f - relativeMousePosX);
         }
 
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
         {
-            m_isScrollingTimeline = true;
+            m_timelinePanningActive = true;
         }
     }
     ImGui::EndTable();
 
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
     {
-        m_isScrollingTimeline = false;
+        m_timelinePanningActive = false;
     }
 
-    if (m_isScrollingTimeline)
+    if (m_timelinePanningActive)
     {
         constexpr float scrollSpeed = 0.2f;
+        // TODO: Scale with timeline view range
 
-        const auto mouseDeltaX = ImGui::GetIO().MouseDelta.x;
+        const float mouseDeltaX = ImGui::GetIO().MouseDelta.x;
         m_viewRange.m_start -= mouseDeltaX * scrollSpeed;
         m_viewRange.m_end -= mouseDeltaX * scrollSpeed;
     }
@@ -635,12 +699,6 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         aln::Delete(m_eventTracks[trackToEraseIdx]);
         m_eventTracks.erase(m_eventTracks.begin() + trackToEraseIdx);
     }
-
-    // TODO: Clip start line
-    // TODO: Clip end line
-
-    // TODO: Draw grid
-    // TODO: Highlight selected
 }
 
 void AnimationClipWorkspace::Update(const UpdateContext& context)
@@ -664,7 +722,7 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
         float contentWidth = ImGui::GetContentRegionAvail().x;
         ImGuiWidgets::Splitter(false, 2, &previewHeight, &trackHeight, 8, 8, contentWidth);
 
-        if (ImGui::BeginChild("Animation Preview", {contentWidth, previewHeight}, true))
+        if (ImGui::BeginChild("Animation Preview", {contentWidth, previewHeight}, false))
         {
             // Update current scene preview dims
             auto dim = ImGui::GetContentRegionAvail();
@@ -676,10 +734,11 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
             ImGui::EndChild();
         }
 
-        if (ImGui::BeginChild("Event Tracks", {contentWidth, -1}, true))
+        if (ImGui::BeginChild("Event Tracks", {contentWidth, -1}, false))
         {
             if (m_pAnimationClip.IsLoaded())
             {
+                DrawAnimationPlaybackController();
                 DrawAnimationEventsEditor();
             }
             ImGui::EndChild();
