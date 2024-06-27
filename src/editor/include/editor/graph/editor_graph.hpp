@@ -1,12 +1,13 @@
 #pragma once
 
-#include "asset_editor_workspace.hpp"
 #include "graph/link.hpp"
 
 #include <common/containers/vector.hpp>
 #include <common/hash_vector.hpp>
 #include <reflection/reflected_type.hpp>
 #include <reflection/services/type_registry_service.hpp>
+
+#include <common/serialization/json.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>

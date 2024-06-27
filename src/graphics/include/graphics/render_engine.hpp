@@ -9,7 +9,6 @@
 #include <common/containers/array.hpp>
 #include <common/containers/hash_map.hpp>
 
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
 #include <assert.h>

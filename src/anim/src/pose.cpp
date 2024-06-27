@@ -1,5 +1,3 @@
-#pragma once
-
 #include "pose.hpp"
 #include "skeleton.hpp"
 

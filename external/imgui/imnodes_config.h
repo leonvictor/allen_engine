@@ -1,6 +1,9 @@
 #pragma once
 
 #include <common/uuid.hpp>
+
+#include <imgui.h>
+
 #include <string>
 
 namespace IMNODES_NAMESPACE

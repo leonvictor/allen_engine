@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <string>
+#include <cstring>
 
 namespace aln
 {

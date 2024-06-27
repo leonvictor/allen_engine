@@ -8,7 +8,6 @@
 #include <graphics/viewport.hpp>
 
 #include <typeindex>
-#include <typeinfo>
 
 namespace aln
 {

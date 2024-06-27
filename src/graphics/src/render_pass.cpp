@@ -15,10 +15,7 @@ RenderPass::RenderPass(RenderEngine* pDevice, uint32_t width, uint32_t height)
     // Default clear values.
     // TODO: Make it possible to customize clear values
     m_clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    m_clearValues[1].depthStencil = {
-        .depth = 1.0f,
-        .stencil = 0,
-    };
+    m_clearValues[1].depthStencil = vk::ClearDepthStencilValue {1.0f, 0};
 }
 
 void RenderPass::Create()

@@ -52,14 +52,14 @@ class Mesh : public IAsset
     static Vector<vk::DescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings()
     {
         Vector<vk::DescriptorSetLayoutBinding> bindings = {
-            {
+            vk::DescriptorSetLayoutBinding {
                 // Sampler
                 .binding = 0,
                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
             },
-            {
+            vk::DescriptorSetLayoutBinding  {
                 // Material
                 .binding = 1,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,

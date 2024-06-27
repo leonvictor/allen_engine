@@ -5,10 +5,12 @@
 
 #include <aln_graphics_export.h>
 
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
 #include <assert.h>
 #include <set>
+#include <thread>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -286,18 +288,18 @@ vk::PhysicalDevice RenderEngine::PickPhysicalDevice()
     const auto& surface = m_pWindow->GetSurface();
 
     // TODO: core::Instance could wrap this call and keep a list of devices cached... but it's not necessary right now
-    auto devices = m_instance.GetVkInstance().enumeratePhysicalDevices().value;
+    auto availableDevices = m_instance.GetVkInstance().enumeratePhysicalDevices().value;
 
-    if (devices.empty())
+    if (availableDevices.empty())
     {
         throw std::runtime_error("Failed to find GPUs w/ Vulkan support.");
     }
 
-    for (const auto d : devices)
+    for (const auto& candidateDevice : availableDevices)
     {
-        if (RenderEngine::IsDeviceSuitable(d, surface, m_extensions))
+        if (RenderEngine::IsDeviceSuitable(candidateDevice, surface, m_extensions))
         {
-            return d;
+            return candidateDevice;
         }
     }
 

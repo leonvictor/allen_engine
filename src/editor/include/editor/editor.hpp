@@ -1,12 +1,10 @@
 #pragma once
 
 #include "asset_editor_workspace.hpp"
-#include "assets/animation_graph/animation_graph_workspace.hpp"
 #include "assets_browser.hpp"
 #include "editor_window.hpp"
 #include "entity_inspector.hpp"
 #include "properties_window.hpp"
-#include "reflected_types/reflected_type_editor.hpp"
 
 #include <common/containers/hash_map.hpp>
 #include <entities/entity_descriptors.hpp>

@@ -8,7 +8,6 @@
 #include <tracy/Tracy.hpp>
 
 #include <assert.h>
-#include <execution>
 #include <functional>
 
 namespace aln

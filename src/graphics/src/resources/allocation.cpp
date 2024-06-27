@@ -1,5 +1,3 @@
-#pragma once
-
 #include "resources/allocation.hpp"
 
 #include "render_engine.hpp"

@@ -16,6 +16,8 @@
 namespace aln
 {
 
+class EditorGraph;
+
 /// @brief Base class for editor graphs' nodes
 class EditorGraphNode : public reflect::IReflected
 {

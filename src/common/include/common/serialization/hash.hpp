@@ -2,7 +2,8 @@
 
 #include <xxhash.h>
 
-#include <cctype>
+#include <cstdint>
+#include <cstring>
 #include <string>
 
 namespace aln
