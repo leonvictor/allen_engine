@@ -7,6 +7,9 @@
 # CMake generated stuff
 build
 
+# CMake user configuration
+CMakeUserPresets.json
+
 # ImgUI cache
 imgui.ini
 debug.ppm
