@@ -146,25 +146,22 @@ set_target_properties(TracyClient
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
-# TODO: Make a vulkan target
-add_compile_definitions(
+find_package(Vulkan 
+    REQUIRED 
+    COMPONENTS
+        shaderc_combined
+        glslang
+        SPIRV-Tools
+)
+
+target_compile_definitions(Vulkan::Vulkan INTERFACE
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
     VULKAN_HPP_NO_EXCEPTIONS
     VULKAN_HPP_NO_NODISCARD_WARNINGS
     VULKAN_HPP_NO_SETTERS
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
-    VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL
+    VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=1
 )
-
-find_package(Vulkan REQUIRED)
-target_include_directories(main PUBLIC ${Vulkan_INCLUDE_DIRS})
-
-# shaderc
-add_library(Vulkan::shaderc UNKNOWN IMPORTED)
-file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_SDK) # Translate env path to CMake style 
-set_target_properties(Vulkan::shaderc PROPERTIES 
-    IMPORTED_LOCATION ${VULKAN_SDK}/Lib/shaderc_shared.lib
-    INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}/Include)
 
 # GSL
 set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/gsl)
