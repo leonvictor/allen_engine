@@ -42,7 +42,7 @@ set(LIB_DEPENDENCIES
 FetchContent_Declare(
     vma
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/
-    GIT_TAG a6bfc237255a6bac1513f7c1ebde6d8aed6b5191 # v3.0.1 https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.0.1
+    GIT_TAG 009ecd192c1289c7529bff248a16cfe896254816 # v3.1.0 https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.1.0
 )
 
 FetchContent_MakeAvailable(vma)
