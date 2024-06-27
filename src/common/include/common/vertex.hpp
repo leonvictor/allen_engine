@@ -13,7 +13,6 @@ namespace aln
 
 struct Vertex
 {
-  public:
     alignas(16) Vec3 pos;
     alignas(16) Vec3 color;
     alignas(16) Vec2 texCoord;
@@ -30,7 +29,7 @@ struct Vertex
     }
 };
 
-struct SkinnedVertex : public Vertex
+struct SkinnedVertex
 {
     alignas(16) Vec3 pos;
     alignas(16) Vec3 color;
@@ -38,6 +37,16 @@ struct SkinnedVertex : public Vertex
     alignas(16) Vec3 normal;
     alignas(16) Vec4 weights;
     alignas(16) Array<uint32_t, 4> boneIndices;
+
+    bool operator==(const Vertex& other) const
+    {
+        return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
+    }
+
+    bool operator!=(const Vertex& other) const
+    {
+        return !operator==(other);
+    }
 };
 
 struct DebugVertex

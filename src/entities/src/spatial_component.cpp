@@ -1,9 +1,10 @@
+
+
 #include "spatial_component.hpp"
 
 #include <common/maths/angles.hpp>
 
 #include <algorithm>
-#include <stdexcept>
 
 namespace aln
 {

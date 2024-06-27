@@ -3,7 +3,7 @@
 #include <common/containers/vector.hpp>
 #include <common/vertex.hpp>
 
-#include "vulkan/vulkan.hpp"
+#include <vulkan/vulkan.hpp>
 
 namespace aln
 {
@@ -11,8 +11,8 @@ namespace aln
 template <typename T>
 struct VertexDescriptor
 {
-    static vk::VertexInputBindingDescription GetBindingDescription() {}
-    static Vector<vk::VertexInputAttributeDescription> GetAttributeDescription() {}
+    static vk::VertexInputBindingDescription GetBindingDescription() { return {}; }
+    static Vector<vk::VertexInputAttributeDescription> GetAttributeDescription() { return {}; }
 };
 
 // TODO: Maybe specialize the template on Mesh type rather than Vertex type
