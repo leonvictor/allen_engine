@@ -16,10 +16,6 @@ add_library(${LIB_NAME}
     src/maths/matrix4x4.cpp
 )
 
-target_compile_definitions(${LIB_NAME} PUBLIC 
-    UUID_SYSTEM_GENERATOR
-)
-
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
 
 target_include_directories(${LIB_NAME} 
@@ -29,11 +25,10 @@ target_include_directories(${LIB_NAME}
         include
     PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR} 
-        ${STDUUID_INCLUDE_DIRS} # TODO: Make STUUID a target
 )
 
 target_link_libraries(${LIB_NAME} PUBLIC 
-    glm enkiTS lz4_static xxHash::xxhash TracyClient
+    glm enkiTS lz4_static xxHash::xxhash TracyClient stduuid
 )
 
 generate_export_header(${LIB_NAME}

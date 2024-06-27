@@ -203,9 +203,18 @@ set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
 target_include_directories(main PUBLIC ${STB_INCLUDE_DIR})
 
 # stduuids
-set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
-# add_compile_definitions(UUID_SYSTEM_GENERATOR)
-# target_include_directories(main PUBLIC ${STDUUID_INCLUDE_DIR})
+set(UUID_SYSTEM_GENERATOR ON CACHE INTERNAL "")
+set(UUID_USING_CXX20_SPAN ON CACHE INTERNAL "")
+
+# FIXME: Use base branch when/if PR is merged
+# https://github.com/mariusbancila/stduuid/pull/89
+FetchContent_Declare(
+    stduuid
+    GIT_REPOSITORY https://github.com/leonvictor/stduuid
+    SYSTEM
+)
+
+FetchContent_MakeAvailable(stduuid)
 
 # json
 SET(JSON_BuildTests OFF)
