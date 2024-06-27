@@ -105,7 +105,7 @@ void Pipeline::Create(std::string cachePath)
     m_pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
     // TODO: Generate different pipeline cache path depending on the options
-    vk::PipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                               // TODO
+    vk::PipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                                   // TODO
     m_pipeline = m_pRenderEngine->GetVkDevice().createGraphicsPipeline(pipelineCache, m_pipelineCreateInfo).value; // TODO
 
     // Store away the cache that we've populated.  This could conceivably happen
@@ -356,7 +356,7 @@ vk::PipelineCache Pipeline::LoadCachedPipeline(std::string& path)
             std::cout << "  UUID mismatch in " << path << ".\n";
             std::cout << "    Cache contains: " << UUID(pipelineCacheUUID) << "\n";
             auto expectedID = m_pRenderEngine->GetPhysicalDeviceProperties().pipelineCacheUUID;
-            std::cout << "    Driver expects: " << UUID(expectedID) << "\n";
+            std::cout << "    Driver expects: " << UUID(Span<uint8_t>(expectedID.begin(), expectedID.end())) << "\n";
         }
         if (badCache)
         {
