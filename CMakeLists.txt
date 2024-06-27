@@ -91,7 +91,7 @@ add_compile_definitions(${IMGUI_COMPILE_DEFINITIONS})
 add_executable(main ${SOURCE})
 
 add_compile_definitions(
-        $<$<CONFIG:Debug>:ALN_DEBUG>
+    $<$<CONFIG:Debug>:ALN_DEBUG>
 )
 
 # fmt
@@ -99,6 +99,7 @@ FetchContent_Declare(
     fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt
     GIT_TAG a33701196adfad74917046096bf5a2aa0ab0bb50 # https://github.com/fmtlib/fmt/releases/tag/9.1.0
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(fmt)
@@ -111,9 +112,10 @@ set(ENKITS_INSTALL OFF CACHE INTERNAL "")
 
 # TODO: Use a fixed release when the CMakeFile patch makes it there
 FetchContent_Declare(
-  enkiTS
-  GIT_REPOSITORY https://github.com/dougbinks/enkiTS
-  GIT_TAG fd5a2603a0adf1884eee40dd081e30733a3b46dd # (https://github.com/dougbinks/enkiTS/pull/76)
+    enkiTS
+    GIT_REPOSITORY https://github.com/dougbinks/enkiTS
+    GIT_TAG fd5a2603a0adf1884eee40dd081e30733a3b46dd # (https://github.com/dougbinks/enkiTS/pull/76)
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(enkiTS)
@@ -126,6 +128,7 @@ FetchContent_Declare(
     TracyClient
     GIT_REPOSITORY https://github.com/wolfpld/tracy
     GIT_TAG 897aec5b062664d2485f4f9a213715d2e527e0ca # v0.9.1
+    SYSTEM
 )
 
 #add_compile_definitions(
@@ -176,6 +179,7 @@ FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw
     GIT_TAG 7482de6071d21db77a7236155da44c172a7f6c9e # https://github.com/glfw/glfw/releases/tag/3.3.8
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(glfw)
@@ -185,6 +189,7 @@ FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm
     GIT_TAG bf71a834948186f4097caa076cd2663c69a10e1e # https://github.com/g-truc/glm/releases/tag/0.9.9.8
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(glm)
@@ -195,8 +200,6 @@ target_compile_definitions(glm INTERFACE
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     GLM_GTX_hash
 )
-
-target_compile_options(glm INTERFACE /wd26495)
 
 # stb
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
@@ -222,6 +225,7 @@ SET(JSON_BuildTests OFF)
 FetchContent_Declare(
     json
     URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(json)
@@ -244,6 +248,7 @@ FetchContent_Declare(
     assimp
     GIT_REPOSITORY https://github.com/assimp/assimp
     GIT_TAG 9519a62dd20799c5493c638d1ef5a6f484e5faf1 # v5.2.5
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(assimp)
@@ -254,31 +259,25 @@ set(LZ4_BUILD_CLI OFF CACHE INTERNAL "")
 set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE INTERNAL "")
 
 FetchContent_Declare(
-  lz4
-  GIT_REPOSITORY https://github.com/lz4/lz4
-  GIT_TAG 5ff839680134437dbf4678f3d0c7b371d84f4964 #  v1.9.4 
-  SOURCE_SUBDIR build/cmake
+    lz4
+    GIT_REPOSITORY https://github.com/lz4/lz4
+    GIT_TAG 5ff839680134437dbf4678f3d0c7b371d84f4964 #  v1.9.4 
+    SOURCE_SUBDIR build/cmake
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(lz4)
-
-target_compile_options(lz4_static PRIVATE 
-    /wd5045
-    /wd4820
-)
 
 # xxhash
 FetchContent_Declare(
     xxhash
     URL https://github.com/Cyan4973/xxHash/archive/refs/tags/v0.8.1.tar.gz
     SOURCE_SUBDIR cmake_unofficial
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(xxhash)
 
-target_compile_options(xxhash PRIVATE 
-    /wd4820
-)
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})
@@ -298,8 +297,6 @@ add_subdirectory(src/anim)
 # target_include_directories(main PUBLIC TracyClient)
 target_link_libraries(main PUBLIC 
     # $<$<CONFIG:ReleaseWithTracing>:TracyClient>
-    fmt::fmt
-    enkiTS
     common 
     reflection 
     glfw 
@@ -309,15 +306,14 @@ target_link_libraries(main PUBLIC
     core
     editor
     anim
-    assimp::assimp
-    Vulkan::Vulkan
-    Vulkan::shaderc
 )
 
-# note: Those are MSVC-only flags
-target_compile_options(main PRIVATE 
-    /wd4244 # 'argument': narrowing conversion, possible loss of data
-    /wd4505 # unreferenced function with internal linkage has been removed
-    /wd4267 # 'return': narrowing conversion, possible loss of data
-    /wd4100 # unreferenced formal parameter
-)
+# todo: linux equivalent ?
+if (MSVC)
+    target_compile_options(main PRIVATE 
+        /wd4244 # 'argument': narrowing conversion, possible loss of data
+        /wd4505 # unreferenced function with internal linkage has been removed
+        /wd4267 # 'return': narrowing conversion, possible loss of data
+        /wd4100 # unreferenced formal parameter
+    )
+endif()

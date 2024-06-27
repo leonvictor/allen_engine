@@ -27,8 +27,16 @@ target_include_directories(${LIB_NAME}
         ${CMAKE_CURRENT_BINARY_DIR} 
 )
 
-target_link_libraries(${LIB_NAME} PUBLIC 
-    glm enkiTS lz4_static xxHash::xxhash TracyClient stduuid
+target_link_libraries(${LIB_NAME} 
+    PUBLIC 
+        glm
+        TracyClient
+        enkiTS 
+        nlohmann_json::nlohmann_json
+        stduuid
+        lz4_static # TODO: move uses to .cpp and move to private
+    PRIVATE 
+        xxHash::xxhash
 )
 
 generate_export_header(${LIB_NAME}
@@ -47,12 +55,15 @@ FetchContent_Declare(
     GIT_SUBMODULES_RECURSE off
     GIT_SHALLOW on
     GIT_PROGRESS on
+    SYSTEM
 )
+
 FetchContent_MakeAvailable(eastl)
 
 target_compile_definitions(EASTL PUBLIC 
     EASTL_USER_DEFINED_ALLOCATOR
     EASTL_ASSERT_ENABLED=0
+    EASTL_DEPRECATIONS_FOR_2024_APRIL=EA_DISABLED
 )
 
 target_sources(${LIB_NAME} PRIVATE external/EASTL/aln_eastl.cpp) # Custom allocator
@@ -63,9 +74,10 @@ set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_GLOBAL_VALUE})
 # ---- Tests
 
 FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.0.1
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        4e8d92bf02f7d1c8006a0e7a5ecabd8e62d98502 # V3.6.0 https://github.com/catchorg/Catch2/releases/tag/v3.6.0
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(Catch2)
