@@ -201,6 +201,8 @@ void GPUImage::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
     case vk::ImageLayout::ePresentSrcKHR:
         memoryBarrier.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
         break;
+    default:
+        assert(false);
     }
 
     switch (newLayout)
@@ -239,6 +241,8 @@ void GPUImage::TransitionLayout(vk::CommandBuffer cb, vk::ImageLayout newLayout)
     case vk::ImageLayout::ePresentSrcKHR:
         memoryBarrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
         break;
+    default:
+        assert(false);
     }
 
     cb.pipelineBarrier(
