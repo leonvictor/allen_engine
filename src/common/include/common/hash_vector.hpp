@@ -121,15 +121,12 @@ class HashVector
 };
 
 // TODO: Clients do no need this
-namespace
-{
 template <typename T>
 struct IDCompare
 {
     auto operator()(const T& t) { return t.GetID(); }
     auto operator()(const T* ptr) { return ptr->GetID(); }
 };
-}; // namespace
 
 /// @brief Specialization of HashVector for ID'ed types. Expects the contained type to have a GetID() method returning a unique identifier
 template <typename T>
