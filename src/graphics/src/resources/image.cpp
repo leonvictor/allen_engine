@@ -6,7 +6,9 @@
 #include <common/containers/array.hpp>
 #include <config/path.h>
 
+#include <cstdint>
 #include <fstream>
+#include <limits>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -256,7 +258,9 @@ void GPUImage::Blit(vk::CommandBuffer cb, GPUImage& dstImage)
 
 void GPUImage::Blit(vk::CommandBuffer cb, GPUImage& dstImage, uint32_t width, uint32_t height)
 {
-    vk::Offset3D blitSize = {width, height, 1};
+    assert(width <= std::numeric_limits<int32_t>::max() && height <= std::numeric_limits<int32_t>::max());
+    
+    vk::Offset3D blitSize = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
     vk::Offset3D defaultOffset = {0, 0, 0};
     vk::ImageBlit imageBlitRegion = {
         .srcSubresource = {
