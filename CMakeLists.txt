@@ -161,9 +161,7 @@ endif()
 find_package(Vulkan 
     REQUIRED 
     COMPONENTS
-        shaderc_combined
-        glslang
-        SPIRV-Tools
+        ${ALN_REQUIRED_VULKAN_COMPONENTS}
 )
 
 target_compile_definitions(Vulkan::Vulkan INTERFACE
