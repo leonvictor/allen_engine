@@ -1,6 +1,5 @@
 #pragma once
 
-#include "resources/image.hpp"
 #include "subpass.hpp"
 
 #include <common/colors.hpp>
@@ -8,10 +7,11 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <assert.h>
-
 namespace aln
 {
+
+class RenderEngine;
+
 /// @brief Wrapper around the vulkan render pass object. Also acts as a sort of factory.
 class RenderPass
 {

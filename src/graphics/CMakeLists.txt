@@ -19,7 +19,7 @@ add_library(
     src/resources/allocation.cpp
     src/descriptor_allocator.cpp
 
-     src/external/vma.cpp
+    src/external/vma.cpp
 
     ${IMGUI_SOURCE}
 )
@@ -30,19 +30,12 @@ set(LIB_INCLUDE_DIRS
     ${IMGUI_INCLUDE_DIRS}
 )
 
-set(LIB_DEPENDENCIES
-    glfw
-    common
-    Vulkan::Vulkan
-    Vulkan::shaderc 
-    TracyClient
-)
-
 # Vulkan Memory Allocator
 FetchContent_Declare(
     vma
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/
-    GIT_TAG a6bfc237255a6bac1513f7c1ebde6d8aed6b5191 # v3.0.1 https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.0.1
+    GIT_TAG 009ecd192c1289c7529bff248a16cfe896254816 # v3.1.0 https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.1.0
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(vma)
@@ -56,9 +49,21 @@ target_compile_definitions(${LIB_NAME}
 
 target_link_libraries(${LIB_NAME} 
     PUBLIC
-        ${LIB_DEPENDENCIES}
         VulkanMemoryAllocator
+        Vulkan::Vulkan
+        Vulkan::shaderc_combined
+        Vulkan::SPIRV-Tools 
+    PRIVATE
+        common
+        glfw
+        TracyClient
 )
+
+# Workaround: Vulkan shipping has some differences between platforms
+# *not* using FindVulkan would be a good idea
+if (NOT MSVC)
+    target_link_libraries(graphics PUBLIC Vulkan::glslang)
+endif()
 
 target_include_directories(${LIB_NAME}
     PRIVATE # Include directories inside this lib access the headers directly

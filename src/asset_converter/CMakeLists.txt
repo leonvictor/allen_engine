@@ -38,5 +38,7 @@ target_link_libraries(asset_converter
     PUBLIC
         common
         assets
+        graphics
+        Vulkan::shaderc_combined
     PRIVATE 
         assimp::assimp)

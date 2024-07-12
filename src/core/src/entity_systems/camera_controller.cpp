@@ -1,4 +1,4 @@
-#include "entity_systems/camera_controller.hpp "
+#include "entity_systems/camera_controller.hpp"
 
 #include <input/devices/mouse.hpp>
 #include <input/input_service.hpp>
@@ -6,8 +6,6 @@
 #include <common/maths/angles.hpp>
 
 #include <GLFW/glfw3.h>
-
-#include <functional>
 
 namespace aln
 {

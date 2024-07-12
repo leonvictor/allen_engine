@@ -21,7 +21,7 @@ class IAssetWorkspace : public IEditorWindow
         m_id = id;
     }
 
-    virtual void Shutdown()
+    virtual void Shutdown() override
     {
         IEditorWindow::Shutdown();
         m_id = AssetID();

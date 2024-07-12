@@ -20,7 +20,7 @@ target_compile_features(input PUBLIC cxx_std_20)
 
 set(LIB_DEPENDENCIES
     glfw
-    imm32
+    # imm32 # TODO: Win32 only ?
     common
 )
 

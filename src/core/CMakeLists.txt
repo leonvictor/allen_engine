@@ -22,16 +22,6 @@ add_library(${LIB_NAME}
     src/module/module.cpp
 )
 
-set(LIB_LINK_DEPENDENCIES 
-    common 
-    entities 
-    graphics 
-    input 
-    anim
-    assets 
-    reflection 
-    TracyClient)
-
 target_include_directories(${LIB_NAME} 
     PRIVATE
         $<BUILD_INTERFACE:include/${LIB_NAME} >
@@ -41,4 +31,15 @@ target_include_directories(${LIB_NAME}
         $<INSTALL_INTERFACE:include >
 )
 
-target_link_libraries(${LIB_NAME} PUBLIC ${LIB_LINK_DEPENDENCIES})
+target_link_libraries(${LIB_NAME} 
+    PUBLIC 
+        input
+    PRIVATE
+        common 
+        entities 
+        graphics 
+        anim
+        assets 
+        reflection 
+        TracyClient
+)

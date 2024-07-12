@@ -11,8 +11,6 @@
 #include <tracy/Tracy.hpp>
 
 #include <algorithm>
-#include <execution>
-#include <functional>
 
 namespace aln
 {

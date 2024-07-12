@@ -91,7 +91,7 @@ add_compile_definitions(${IMGUI_COMPILE_DEFINITIONS})
 add_executable(main ${SOURCE})
 
 add_compile_definitions(
-        $<$<CONFIG:Debug>:ALN_DEBUG>
+    $<$<CONFIG:Debug>:ALN_DEBUG>
 )
 
 # fmt
@@ -99,6 +99,7 @@ FetchContent_Declare(
     fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt
     GIT_TAG a33701196adfad74917046096bf5a2aa0ab0bb50 # https://github.com/fmtlib/fmt/releases/tag/9.1.0
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(fmt)
@@ -111,9 +112,10 @@ set(ENKITS_INSTALL OFF CACHE INTERNAL "")
 
 # TODO: Use a fixed release when the CMakeFile patch makes it there
 FetchContent_Declare(
-  enkiTS
-  GIT_REPOSITORY https://github.com/dougbinks/enkiTS
-  GIT_TAG fd5a2603a0adf1884eee40dd081e30733a3b46dd # (https://github.com/dougbinks/enkiTS/pull/76)
+    enkiTS
+    GIT_REPOSITORY https://github.com/dougbinks/enkiTS
+    GIT_TAG fd5a2603a0adf1884eee40dd081e30733a3b46dd # (https://github.com/dougbinks/enkiTS/pull/76)
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(enkiTS)
@@ -126,6 +128,7 @@ FetchContent_Declare(
     TracyClient
     GIT_REPOSITORY https://github.com/wolfpld/tracy
     GIT_TAG 897aec5b062664d2485f4f9a213715d2e527e0ca # v0.9.1
+    SYSTEM
 )
 
 #add_compile_definitions(
@@ -146,28 +149,31 @@ set_target_properties(TracyClient
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
-# TODO: Make a vulkan target
-add_compile_definitions(
+set(ALN_REQUIRED_VULKAN_COMPONENTS
+    shaderc_combined
+    SPIRV-Tools
+)
+
+if (NOT MSVC)
+    set(ALN_REQUIRED_VULKAN_COMPONENTS ${ALN_REQUIRED_VULKAN_COMPONENTS} glslang)
+endif()
+
+find_package(Vulkan 
+    REQUIRED 
+    COMPONENTS
+        shaderc_combined
+        glslang
+        SPIRV-Tools
+)
+
+target_compile_definitions(Vulkan::Vulkan INTERFACE
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
     VULKAN_HPP_NO_EXCEPTIONS
     VULKAN_HPP_NO_NODISCARD_WARNINGS
     VULKAN_HPP_NO_SETTERS
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
-    VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL
+    VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL=1
 )
-
-find_package(Vulkan REQUIRED)
-target_include_directories(main PUBLIC ${Vulkan_INCLUDE_DIRS})
-
-# shaderc
-add_library(Vulkan::shaderc UNKNOWN IMPORTED)
-file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_SDK) # Translate env path to CMake style 
-set_target_properties(Vulkan::shaderc PROPERTIES 
-    IMPORTED_LOCATION ${VULKAN_SDK}/Lib/shaderc_shared.lib
-    INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_SDK}/Include)
-
-# GSL
-set(GSL_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/gsl)
 
 # GLFW
 set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "")
@@ -179,6 +185,7 @@ FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw
     GIT_TAG 7482de6071d21db77a7236155da44c172a7f6c9e # https://github.com/glfw/glfw/releases/tag/3.3.8
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(glfw)
@@ -188,6 +195,7 @@ FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm
     GIT_TAG bf71a834948186f4097caa076cd2663c69a10e1e # https://github.com/g-truc/glm/releases/tag/0.9.9.8
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(glm)
@@ -199,16 +207,23 @@ target_compile_definitions(glm INTERFACE
     GLM_GTX_hash
 )
 
-target_compile_options(glm INTERFACE /wd26495)
-
 # stb
 set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/stb)
 target_include_directories(main PUBLIC ${STB_INCLUDE_DIR})
 
 # stduuids
-set(STDUUID_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/external/stduuids)
-# add_compile_definitions(UUID_SYSTEM_GENERATOR)
-# target_include_directories(main PUBLIC ${STDUUID_INCLUDE_DIR})
+set(UUID_SYSTEM_GENERATOR ON CACHE INTERNAL "")
+set(UUID_USING_CXX20_SPAN ON CACHE INTERNAL "")
+
+# FIXME: Use base branch when/if PR is merged
+# https://github.com/mariusbancila/stduuid/pull/89
+FetchContent_Declare(
+    stduuid
+    GIT_REPOSITORY https://github.com/leonvictor/stduuid
+    SYSTEM
+)
+
+FetchContent_MakeAvailable(stduuid)
 
 # json
 SET(JSON_BuildTests OFF)
@@ -216,6 +231,7 @@ SET(JSON_BuildTests OFF)
 FetchContent_Declare(
     json
     URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(json)
@@ -238,6 +254,7 @@ FetchContent_Declare(
     assimp
     GIT_REPOSITORY https://github.com/assimp/assimp
     GIT_TAG 9519a62dd20799c5493c638d1ef5a6f484e5faf1 # v5.2.5
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(assimp)
@@ -248,31 +265,25 @@ set(LZ4_BUILD_CLI OFF CACHE INTERNAL "")
 set(LZ4_BUILD_LEGACY_LZ4C OFF CACHE INTERNAL "")
 
 FetchContent_Declare(
-  lz4
-  GIT_REPOSITORY https://github.com/lz4/lz4
-  GIT_TAG 5ff839680134437dbf4678f3d0c7b371d84f4964 #  v1.9.4 
-  SOURCE_SUBDIR build/cmake
+    lz4
+    GIT_REPOSITORY https://github.com/lz4/lz4
+    GIT_TAG 5ff839680134437dbf4678f3d0c7b371d84f4964 #  v1.9.4 
+    SOURCE_SUBDIR build/cmake
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(lz4)
-
-target_compile_options(lz4_static PRIVATE 
-    /wd5045
-    /wd4820
-)
 
 # xxhash
 FetchContent_Declare(
     xxhash
     URL https://github.com/Cyan4973/xxHash/archive/refs/tags/v0.8.1.tar.gz
     SOURCE_SUBDIR cmake_unofficial
+    SYSTEM
 )
 
 FetchContent_MakeAvailable(xxhash)
 
-target_compile_options(xxhash PRIVATE 
-    /wd4820
-)
 # Other external headers
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 target_include_directories(main SYSTEM INTERFACE ${EXTERNAL_DIR})
@@ -292,8 +303,6 @@ add_subdirectory(src/anim)
 # target_include_directories(main PUBLIC TracyClient)
 target_link_libraries(main PUBLIC 
     # $<$<CONFIG:ReleaseWithTracing>:TracyClient>
-    fmt::fmt
-    enkiTS
     common 
     reflection 
     glfw 
@@ -303,15 +312,14 @@ target_link_libraries(main PUBLIC
     core
     editor
     anim
-    assimp::assimp
-    Vulkan::Vulkan
-    Vulkan::shaderc
 )
 
-# note: Those are MSVC-only flags
-target_compile_options(main PRIVATE 
-    /wd4244 # 'argument': narrowing conversion, possible loss of data
-    /wd4505 # unreferenced function with internal linkage has been removed
-    /wd4267 # 'return': narrowing conversion, possible loss of data
-    /wd4100 # unreferenced formal parameter
-)
+# todo: linux equivalent ?
+if (MSVC)
+    target_compile_options(main PRIVATE 
+        /wd4244 # 'argument': narrowing conversion, possible loss of data
+        /wd4505 # unreferenced function with internal linkage has been removed
+        /wd4267 # 'return': narrowing conversion, possible loss of data
+        /wd4100 # unreferenced formal parameter
+    )
+endif()

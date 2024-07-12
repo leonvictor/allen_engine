@@ -1,9 +1,11 @@
 #pragma once
 
-#include <TaskScheduler.h>
-#include <cstdint>
-
 #include "../services/service.hpp"
+#include "../memory.hpp"
+
+#include <TaskScheduler.h>
+
+#include <cstdint>
 
 namespace aln
 {

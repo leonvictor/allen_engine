@@ -105,7 +105,7 @@ void Pipeline::Create(std::string cachePath)
     m_pipelineCreateInfo.basePipelineHandle = vk::Pipeline();
 
     // TODO: Generate different pipeline cache path depending on the options
-    vk::PipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                           // TODO
+    vk::PipelineCache pipelineCache = LoadCachedPipeline(cachePath);                                               // TODO
     m_pipeline = m_pRenderEngine->GetVkDevice().createGraphicsPipeline(pipelineCache, m_pipelineCreateInfo).value; // TODO
 
     // Store away the cache that we've populated.  This could conceivably happen
@@ -185,8 +185,8 @@ void Pipeline::AddDynamicState(vk::DynamicState state)
 void Pipeline::SetDepthTestWriteEnable(bool testEnable, bool writeEnable, vk::CompareOp compareOp)
 {
     assert(!IsInitialized());
-    m_depthStencil.depthTestEnable = testEnable ? vk::True: vk::False;
-    m_depthStencil.depthWriteEnable = writeEnable ? vk::True: vk::False;
+    m_depthStencil.depthTestEnable = testEnable ? vk::True : vk::False;
+    m_depthStencil.depthWriteEnable = writeEnable ? vk::True : vk::False;
     m_depthStencil.depthCompareOp = compareOp;
 }
 
@@ -237,8 +237,10 @@ void Pipeline::InitializeInternal()
         .minSampleShading = 0.2f,
     };
 
-    m_scissor.offset = {0, 0};
-    m_scissor.extent = {0, 0};
+    m_scissor = vk::Rect2D{
+        .offset = {.x = 0, .y = 0},
+        .extent = {.width = 0, .height = 0},
+    };
 
     // Initialize some parts with default values. We can modify them before calling create()
     // in order to specify some options.
@@ -354,7 +356,7 @@ vk::PipelineCache Pipeline::LoadCachedPipeline(std::string& path)
             std::cout << "  UUID mismatch in " << path << ".\n";
             std::cout << "    Cache contains: " << UUID(pipelineCacheUUID) << "\n";
             auto expectedID = m_pRenderEngine->GetPhysicalDeviceProperties().pipelineCacheUUID;
-            std::cout << "    Driver expects: " << UUID({expectedID.begin(), expectedID.end()}) << "\n";
+            std::cout << "    Driver expects: " << UUID(expectedID) << "\n";
         }
         if (badCache)
         {
@@ -376,9 +378,9 @@ vk::PipelineCache Pipeline::LoadCachedPipeline(std::string& path)
         .initialDataSize = startCacheSize,
         .pInitialData = startCacheData,
     };
-    
+
     auto pipelineCache = m_pRenderEngine->GetVkDevice().createPipelineCache(cacheCreateInfo).value;
-    
+
     // Free our initialData now that pipeline cache has been created
     free(startCacheData);
     startCacheData = NULL;

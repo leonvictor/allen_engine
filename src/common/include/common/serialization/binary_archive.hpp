@@ -22,7 +22,7 @@ concept TriviallyCopyableType = std::is_trivially_copyable_v<T>;
 
 template <typename T>
 concept ContiguousContainer = requires(T a) {
-                                  std::contiguous_iterator<typename T::iterator>;
+                                  requires std::contiguous_iterator<typename T::iterator>;
                               };
 
 /// @brief Access point for types whose serialization methods need to be private. Set as friend in class definitions
@@ -46,8 +46,8 @@ struct ArchiveAccess
 
 template <typename T>
 concept CustomSerializable = requires(T a, BinaryMemoryArchive archive) {
-                                 a.Serialize<BinaryMemoryArchive>(archive);
-                                 a.Deserialize<BinaryMemoryArchive>(archive);
+                                 a.Serialize(archive);
+                                 a.Deserialize(archive);
                              };
 
 template <typename T>
@@ -196,7 +196,7 @@ class BinaryFileArchive : public IBinaryArchive
         auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
 
         auto size = container.size();
-        pFileStream->write(reinterpret_cast<const char*>(&size), sizeof(T::size_type));
+        pFileStream->write(reinterpret_cast<const char*>(&size), sizeof(typename T::size_type));
         for (const auto& item : container)
         {
             *this << item;
@@ -212,7 +212,7 @@ class BinaryFileArchive : public IBinaryArchive
         auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
 
         typename T::size_type size;
-        pFileStream->read(reinterpret_cast<char*>(&size), sizeof(T::size_type));
+        pFileStream->read(reinterpret_cast<char*>(&size), sizeof(typename T::size_type));
 
         container.resize(size);
         for (auto i = 0; i < size; ++i)
@@ -231,8 +231,8 @@ class BinaryFileArchive : public IBinaryArchive
         auto pFileStream = reinterpret_cast<std::ofstream*>(m_pFileStream);
 
         auto size = container.size();
-        pFileStream->write(reinterpret_cast<const char*>(&size), sizeof(T::size_type));
-        pFileStream->write(reinterpret_cast<const char*>(container.data()), size * sizeof(T::value_type));
+        pFileStream->write(reinterpret_cast<const char*>(&size), sizeof(typename T::size_type));
+        pFileStream->write(reinterpret_cast<const char*>(container.data()), size * sizeof(typename T::value_type));
 
         return *this;
     }
@@ -245,10 +245,10 @@ class BinaryFileArchive : public IBinaryArchive
         auto pFileStream = reinterpret_cast<std::ifstream*>(m_pFileStream);
 
         typename T::size_type size;
-        pFileStream->read(reinterpret_cast<char*>(&size), sizeof(T::size_type));
+        pFileStream->read(reinterpret_cast<char*>(&size), sizeof(typename T::size_type));
 
         container.resize(size);
-        pFileStream->read(reinterpret_cast<char*>(container.data()), size * sizeof(T::value_type));
+        pFileStream->read(reinterpret_cast<char*>(container.data()), size * sizeof(typename T::value_type));
 
         return *this;
     }
@@ -387,7 +387,7 @@ class BinaryMemoryArchive : public IBinaryArchive
         *this << containerSize;
 
         auto pData = reinterpret_cast<const std::byte*>(container.data());
-        m_memory.insert(m_memory.end(), pData, pData + (containerSize * sizeof(T::value_type)));
+        m_memory.insert(m_memory.end(), pData, pData + (containerSize * sizeof(typename T::value_type)));
 
         return *this;
     }
@@ -399,13 +399,13 @@ class BinaryMemoryArchive : public IBinaryArchive
         assert(IsReading());
 
         typename T::size_type containerSize;
-        memcpy(&containerSize, &*m_pReader, sizeof(T::size_type));
-        m_pReader += sizeof(T::size_type);
+        memcpy(&containerSize, &*m_pReader, sizeof(typename T::size_type));
+        m_pReader += sizeof(typename T::size_type);
 
-        auto pDataTypePtr = reinterpret_cast<T::value_type*>(&*m_pReader);
+        auto pDataTypePtr = reinterpret_cast<typename T::value_type*>(&*m_pReader);
         container.assign(pDataTypePtr, pDataTypePtr + containerSize);
 
-        m_pReader += (containerSize * sizeof(T::value_type));
+        m_pReader += (containerSize * sizeof(typename T::value_type));
         return *this;
     }
 

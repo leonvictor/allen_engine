@@ -4,7 +4,7 @@
 
 #include <aln_common_export.h>
 
-#include <stduuids.h>
+#include <uuid.h>
 
 #include <assert.h>
 #include <iostream>
@@ -21,9 +21,9 @@ class ALN_COMMON_EXPORT UUID
   public:
     /// @brief Default construct an invalid id
     UUID() { assert(!IsValid()); }
-    UUID(const Span<uint8_t, 16>& data) : m_ID(data.begin(), data.end()) {}
+    UUID(const Span<uint8_t, 16> data) : m_ID(data.begin(), data.end()) {}
     UUID(const std::string& str) : m_ID(uuids::uuid::from_string(str).value()) {}
-    
+
     static UUID Generate()
     {
         UUID id;

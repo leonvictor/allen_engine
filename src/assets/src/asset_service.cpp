@@ -1,5 +1,3 @@
-#pragma once
-
 #include "asset_service.hpp"
 
 #include <graphics/command_buffer.hpp>

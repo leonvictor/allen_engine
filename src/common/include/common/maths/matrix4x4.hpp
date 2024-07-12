@@ -10,6 +10,8 @@
 namespace aln
 {
 class Transform;
+class Vec3;
+class Quaternion;
 
 class ALN_COMMON_EXPORT Matrix4x4
 {
