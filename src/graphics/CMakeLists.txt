@@ -52,13 +52,18 @@ target_link_libraries(${LIB_NAME}
         VulkanMemoryAllocator
         Vulkan::Vulkan
         Vulkan::shaderc_combined
-        Vulkan::glslang
         Vulkan::SPIRV-Tools 
     PRIVATE
         common
         glfw
         TracyClient
 )
+
+# Workaround: Vulkan shipping has some differences between platforms
+# *not* using FindVulkan would be a good idea
+if (NOT MSVC)
+    target_link_libraries(graphics PUBLIC Vulkan::glslang)
+endif()
 
 target_include_directories(${LIB_NAME}
     PRIVATE # Include directories inside this lib access the headers directly

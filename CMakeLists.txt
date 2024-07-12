@@ -149,6 +149,15 @@ set_target_properties(TracyClient
 target_include_directories(main SYSTEM PUBLIC ${IMGUI_INCLUDE_DIRS})
 
 # Vulkan
+set(ALN_REQUIRED_VULKAN_COMPONENTS
+    shaderc_combined
+    SPIRV-Tools
+)
+
+if (NOT MSVC)
+    set(ALN_REQUIRED_VULKAN_COMPONENTS ${ALN_REQUIRED_VULKAN_COMPONENTS} glslang)
+endif()
+
 find_package(Vulkan 
     REQUIRED 
     COMPONENTS
