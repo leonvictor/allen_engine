@@ -40,9 +40,10 @@ option(ALLEN_EDITOR "Build the editor" ON)
 
 # Configure the config files
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
-set(DEFAULT_SHADERS_DIR ${PROJECT_SOURCE_DIR}/shaders)
+set(DEFAULT_SHADERS_DIR ${PROJECT_SOURCE_DIR}/assets/shaders)
 set(DEFAULT_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
-set(FONTS_DIR ${PROJECT_SOURCE_DIR}/fonts)
+set(DEFAULT_EDITOR_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
+set(FONTS_DIR ${PROJECT_SOURCE_DIR}/assets/fonts)
 
 configure_file(
     "${CONFIG_INCLUDE_DIRS}/config/path.h.in"
@@ -161,9 +162,7 @@ endif()
 find_package(Vulkan 
     REQUIRED 
     COMPONENTS
-        shaderc_combined
-        glslang
-        SPIRV-Tools
+        ${ALN_REQUIRED_VULKAN_COMPONENTS}
 )
 
 target_compile_definitions(Vulkan::Vulkan INTERFACE
