@@ -45,7 +45,7 @@ class AnimationLoader : public IAssetLoader
         pAnim->m_syncTrack = SyncTrack::Default;
 
         // TODO: Add a dependency on the skeleton, and ensure it is loaded correctly
-        
+
         pRecord->SetAsset(pAnim);
         return true;
     }
@@ -57,7 +57,7 @@ class AnimationLoader : public IAssetLoader
 
         auto pSkeletonRecord = GetDependencyRecord(dependencies, 0);
         pAnimClip->m_pSkeleton = AssetHandle<Skeleton>(pSkeletonRecord->GetAssetID());
-        pAnimClip->m_pSkeleton.m_pAssetRecord = pSkeletonRecord;
+        UpdateDependencyRecord(pAnimClip->m_pSkeleton, pSkeletonRecord);
     }
 };
 } // namespace aln
