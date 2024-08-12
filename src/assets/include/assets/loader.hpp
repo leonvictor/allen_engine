@@ -77,7 +77,7 @@ class IAssetLoader
   protected:
     // Virtual loading functions, overload in specialized loader classes to implement asset-specific behavior
     virtual bool Load(AssetRequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive) = 0;
-    virtual void Unload(AssetRecord* pRecord){};
+    virtual void Unload(AssetRecord* pRecord) {};
     virtual void InstallDependencies(AssetRecord* pRecord, const Vector<IAssetHandle>& dependencies) {}
 
     const AssetRecord* GetDependencyRecord(const Vector<IAssetHandle>& dependencies, size_t dependencyIndex)
@@ -86,7 +86,7 @@ class IAssetLoader
         return dependencies[dependencyIndex].GetRecord();
     }
 
-    void UpdateDependencyRecord(IAssetHandle handle, const AssetRecord* pRecord)
+    void UpdateDependencyRecord(IAssetHandle& handle, const AssetRecord* pRecord)
     {
         handle.m_pAssetRecord = pRecord;
     }
@@ -105,6 +105,6 @@ class IAssetLoader
     }
 
   public:
-    virtual ~IAssetLoader(){};
+    virtual ~IAssetLoader() {};
 };
 } // namespace aln

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../renderers/world_renderer.hpp"
 #include "../renderers/ui_renderer.hpp"
+#include "../renderers/world_renderer.hpp"
 
-#include <common/services/service.hpp>
 #include <entities/services/worlds_service.hpp>
 #include <entities/world_entity.hpp>
 #include <graphics/render_engine.hpp>
@@ -168,7 +167,7 @@ class RenderingService : public IService
             // TODO: This is not good, we're waiting for a full cycle of the frame queue from the main thread
             const auto& fence = m_pRenderEngine->GetFrameRenderingFence(frameIdx);
             m_pRenderEngine->GetVkDevice().waitForFences(1, &fence, vk::True, UINT64_MAX);
-        
+
             auto& frameResources = resources[frameIdx];
             m_pRenderEngine->GetVkDevice().destroyFramebuffer(frameResources.m_framebuffer);
             frameResources.m_depthImage.Shutdown();

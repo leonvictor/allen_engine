@@ -36,8 +36,8 @@ class AssetID
 
   public:
     AssetID() = default;
-    AssetID(std::string assetPath) : m_path(assetPath),
-                                     m_typeID(assetPath.substr(assetPath.size() - 4)) {}
+    AssetID(const std::string& assetPath) : m_path(assetPath),
+                                            m_typeID(assetPath.substr(assetPath.size() - 4)) {}
 
     AssetID(const AssetID& other) : m_path(other.m_path), m_typeID(other.m_typeID) {}
 
