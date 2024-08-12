@@ -2,6 +2,7 @@
 
 #include <assets/asset_id.hpp>
 #include <common/serialization/json.hpp>
+#include <common/services/settings_registry_service.hpp>
 #include <reflection/reflected_type.hpp>
 
 namespace aln
@@ -35,11 +36,21 @@ class EditorWindowContext
 
     WorldsService* m_pWorldsService = nullptr;
     const TypeRegistryService* m_pTypeRegistryService = nullptr;
+    SettingsRegistryService* m_pSettingsRegistryService = nullptr;
+
     // TODO: should be const
     AssetService* m_pAssetService = nullptr;
 
     Vector<AssetID> m_requestedAssetWindowsCreations;
     Vector<AssetID> m_requestedAssetWindowsDeletions;
+
+  public:
+    template <typename T>
+    const T* GetSettings() const
+    {
+        auto pSettings = m_pSettingsRegistryService->GetSettings<T>();
+        return pSettings;
+    }
 };
 
 /// @brief Interface for all editor windows
@@ -53,12 +64,20 @@ class IEditorWindow
 
     virtual void Initialize(EditorWindowContext* pEditorWindowContext);
     virtual void Shutdown();
-    
+
     void LoadAsset(IAssetHandle& assetHandle);
     void UnloadAsset(IAssetHandle& assetHandle);
 
-    void RequestAssetWindowCreation(const AssetID& id) { m_pEditorWindowContext->m_requestedAssetWindowsCreations.emplace_back(id); }
-    void RequestAssetWindowDeletion(const AssetID& id) { m_pEditorWindowContext->m_requestedAssetWindowsDeletions.emplace_back(id); }
+    void RequestAssetWindowCreation(const AssetID& id)
+    {
+        assert(m_pEditorWindowContext != nullptr);
+        m_pEditorWindowContext->m_requestedAssetWindowsCreations.emplace_back(id);
+    }
+    void RequestAssetWindowDeletion(const AssetID& id)
+    {
+        assert(m_pEditorWindowContext != nullptr);
+        m_pEditorWindowContext->m_requestedAssetWindowsDeletions.emplace_back(id);
+    }
 
     // Entity specific ?
     void SetSelectedEntity(Entity* pEntity) { m_pEditorWindowContext->m_pSelectedEntity = pEntity; }

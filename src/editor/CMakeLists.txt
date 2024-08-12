@@ -10,7 +10,8 @@ add_library(${LIB_NAME}
     src/properties_window.cpp
     src/editor_window.cpp
     src/preview_scene_settings.cpp
-
+    src/asset_editor_workspace.cpp
+    
     src/assets/animation_clip_workspace.cpp
 
     src/assets/animation_graph/animation_graph_workspace.cpp

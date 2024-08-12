@@ -369,7 +369,7 @@ void Editor::CreateAssetWindow(const AssetID& id, bool readAssetFile)
         it->second = m_assetWindowsFactory.CreateWorkspace(id.GetAssetTypeID());
         it->second->Initialize(&m_editorWindowContext, id, readAssetFile);
     }
-    
+
     m_editorWindowContext.m_pFocusedWorkspace = it->second;
 }
 
@@ -379,12 +379,12 @@ void Editor::RemoveAssetWindow(const AssetID& id)
 
     auto it = m_assetWindows.find(id);
     assert(it != m_assetWindows.end());
-    
+
     if (m_editorWindowContext.m_pFocusedWorkspace == it->second)
     {
         m_editorWindowContext.m_pFocusedWorkspace = nullptr;
     }
-    
+
     it->second->Shutdown();
     aln::Delete(it->second);
     m_assetWindows.erase(it);
@@ -416,6 +416,7 @@ void Editor::Initialize(ServiceProvider& serviceProvider, const std::filesystem:
     // TODO: we could register type editor service to the provider here but for it shouldnt be required elsewhere
     m_editorWindowContext.m_pAssetService = serviceProvider.GetService<AssetService>();
     m_editorWindowContext.m_pTypeRegistryService = serviceProvider.GetService<TypeRegistryService>();
+    m_editorWindowContext.m_pSettingsRegistryService = serviceProvider.GetService<SettingsRegistryService>();
     m_editorWindowContext.m_pWorldsService = serviceProvider.GetService<WorldsService>();
     m_editorWindowContext.m_pWorldEntity = m_pGameWorld;
 

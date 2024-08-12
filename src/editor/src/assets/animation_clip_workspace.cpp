@@ -1,8 +1,10 @@
 #include "assets/animation_clip_workspace.hpp"
 #include "aln_imgui_widgets.hpp"
 
+#include <assets/assets_settings.hpp>
 #include <common/containers/algo.hpp>
 #include <common/maths/maths.hpp>
+#include <common/services/settings_registry_service.hpp>
 #include <core/components/animation_player_component.hpp>
 #include <core/components/camera_component.hpp>
 #include <core/entity_systems/animation_system.hpp>
@@ -311,7 +313,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         ImGui::TableNextColumn();
         {
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg)));
-            
+
             // TODO: Header : track filtering ?
         }
 
@@ -319,7 +321,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         ImGui::TableNextColumn();
         {
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, sequencerHeaderBgColor);
-            
+
             // Hack: Ensure the draw commands in the timeline editor will always be clipped
             ImGui::Dummy({ImGui::GetContentRegionAvail().x + ImGui::GetStyle().CellPadding.x + 1.0f, 0.0f});
 
@@ -641,7 +643,7 @@ void AnimationClipWorkspace::DrawAnimationEventsEditor()
         ImGui::TableNextColumn();
         {
             ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, sequencerBodyBgColor);
-            
+
             // --- Draw vertical indicators
             // They are drawn in a column to take advantage of the auto-clipping
             DrawTimelineMarker(timelineDrawingArea, m_viewRange, 0.0f, RGBColor::Green);
@@ -709,7 +711,7 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
     // Late initialization after the anim clip is loaded
     if (m_pAnimationClip.IsLoaded() && !m_pPreviewCharacterSkeletalMeshComponent->HasSkeletonSet())
     {
-        m_pPreviewWorld->StartComponentEditing((IComponent*) m_pPreviewCharacterSkeletalMeshComponent);
+        m_pPreviewWorld->StartComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
         m_pPreviewCharacterSkeletalMeshComponent->SetSkeleton(m_pAnimationClip->GetSkeleton()->GetID());
         m_pPreviewWorld->EndComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
 
@@ -730,9 +732,8 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
 
             auto& descriptor = m_pPreviewWorld->GetSystem<WorldRenderingSystem>()->GetGPUResources().m_resolveImage.GetDescriptorSet();
             ImGui::Image((ImTextureID) descriptor, dim);
-
-            ImGui::EndChild();
         }
+        ImGui::EndChild();
 
         if (ImGui::BeginChild("Event Tracks", {contentWidth, -1}, false))
         {
@@ -741,8 +742,8 @@ void AnimationClipWorkspace::Update(const UpdateContext& context)
                 DrawAnimationPlaybackController();
                 DrawAnimationEventsEditor();
             }
-            ImGui::EndChild();
         }
+        ImGui::EndChild();
     }
     ImGui::End();
 
@@ -777,9 +778,11 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
     // -- Floor
     auto pFloorEntity = m_pPreviewWorld->CreateEntity("Floor");
 
-    auto pFloorMeshComponent = aln::New<StaticMeshComponent>();
-    pFloorMeshComponent->SetMesh(AssetID(PreviewSceneFloorMeshAssetFilepath));
-    pFloorEntity->AddComponent(pFloorMeshComponent);
+    // auto pFloorMeshComponent = aln::New<StaticMeshComponent>();
+    // TODO: Disabled until asset ids/paths/dependencies are relative to the asset directory
+    // auto floorMeshPath = m_editorAssetsDirectory / s_previewSceneFloorMeshAssetFilepath;
+    // pFloorMeshComponent->SetMesh(AssetID(floorMeshPath.string()));
+    // pFloorEntity->AddComponent(pFloorMeshComponent);
 
     // TODO: Add lights
 

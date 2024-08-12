@@ -77,7 +77,7 @@ class Editor
     HashMap<AssetID, IAssetWorkspace*> m_assetWindows;
 
     // TODO: Handle widget lifetime. For now they're always here !
-    AssetsBrowser m_assetsBrowser = AssetsBrowser(DEFAULT_ASSETS_DIR);
+    AssetsBrowser m_assetsBrowser;
     EntityInspector m_entityInspector;
     PropertiesWindow m_propertiesInspector;
     PreviewSceneSettingsWindow m_previewSceneSettingsWindow;

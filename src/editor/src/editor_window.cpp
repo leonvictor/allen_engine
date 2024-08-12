@@ -6,25 +6,25 @@
 
 namespace aln
 {
-    void IEditorWindow::Initialize(EditorWindowContext* pEditorWindowContext)
-    {
-        m_pEditorWindowContext = pEditorWindowContext;
-    }
+void IEditorWindow::Initialize(EditorWindowContext* pEditorWindowContext)
+{
+    m_pEditorWindowContext = pEditorWindowContext;
+}
 
-    void IEditorWindow::Shutdown()
-    {
-        m_pEditorWindowContext = nullptr;
-    }
+void IEditorWindow::Shutdown()
+{
+    m_pEditorWindowContext = nullptr;
+}
 
-    void IEditorWindow::LoadAsset(IAssetHandle& assetHandle)
-    {
-        assert(assetHandle.IsUnloaded() && assetHandle.GetAssetID().IsValid());
-        m_pEditorWindowContext->m_pAssetService->Load(assetHandle);
-    }
+void IEditorWindow::LoadAsset(IAssetHandle& assetHandle)
+{
+    assert(assetHandle.IsUnloaded() && assetHandle.GetAssetID().IsValid());
+    m_pEditorWindowContext->m_pAssetService->Load(assetHandle);
+}
 
-    void IEditorWindow::UnloadAsset(IAssetHandle& assetHandle)
-    {
-        assert(assetHandle.IsLoaded() && assetHandle.GetAssetID().IsValid());
-        m_pEditorWindowContext->m_pAssetService->Unload(assetHandle);
-    }
+void IEditorWindow::UnloadAsset(IAssetHandle& assetHandle)
+{
+    assert(assetHandle.IsLoaded() && assetHandle.GetAssetID().IsValid());
+    m_pEditorWindowContext->m_pAssetService->Unload(assetHandle);
+}
 } // namespace aln

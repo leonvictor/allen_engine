@@ -1,13 +1,24 @@
 #include "assets_browser.hpp"
 
-#include "imgui.h"
-#include "misc/cpp/imgui_stdlib.h"
+#include <assets/assets_settings.hpp>
+#include <common/services/settings_registry_service.hpp>
+
+#include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 namespace aln
 {
 
 // TODO: This should be infered automatically from registered asset types
 const Vector<std::string> AssetsBrowser::AssetExtensionsFilter = {".anim", ".skel", ".mesh", ".smsh", ".text", ".agdf", ".agds"};
+
+void AssetsBrowser::Initialize(EditorWindowContext* pContext)
+{
+    IEditorWindow::Initialize(pContext);
+
+    auto pSettings = pContext->GetSettings<AssetsSettings>();
+    m_currentFilePath = pSettings->m_projectAssetsDirectory;
+}
 
 void AssetsBrowser::RecursiveDrawDirectory(const std::filesystem::directory_entry& directoryEntry)
 {

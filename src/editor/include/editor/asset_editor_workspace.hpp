@@ -5,8 +5,8 @@
 
 #include <assets/asset.hpp>
 #include <assets/asset_id.hpp>
-#include <entities/services/worlds_service.hpp>
 #include <assets/asset_service.hpp>
+#include <entities/services/worlds_service.hpp>
 
 namespace aln
 {
@@ -28,19 +28,11 @@ class IAssetWorkspace : public IEditorWindow
     WorldEntity* m_pPreviewWorld = nullptr;
 
     // TODO: Find a better way to keep the hardcoded editor asset paths. Probably after AssetID is refactored to not use strings everywhere...
-    static constexpr const char* PreviewSceneFloorMeshAssetFilepath = "assets/editor/floor/Floor_Plane.mesh";
+    std::filesystem::path m_editorAssetsDirectory;
+    static constexpr const char* s_previewSceneFloorMeshAssetFilepath = "floor/Floor_Plane.mesh";
 
   protected:
-    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile = true)
-    {
-        assert(id.IsValid());
-        IEditorWindow::Initialize(pContext);
-
-        m_pWorldsService = pContext->m_pWorldsService;
-        m_pAssetService = pContext->m_pAssetService;
-
-        m_id = id;
-    }
+    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile = true);
 
     virtual void Shutdown() override
     {

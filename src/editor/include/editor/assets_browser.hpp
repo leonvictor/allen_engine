@@ -26,15 +26,11 @@ class AssetsBrowser : public IEditorWindow
     void RecursiveDrawDirectory(const std::filesystem::directory_entry& directoryEntry);
 
   public:
-    AssetsBrowser(std::string folderPath) : m_currentFilePath(folderPath)
-    {
-        // TMP
-        m_currentFilePath.make_preferred();
-    }
+    void Initialize(EditorWindowContext* pContext) override;
 
     void Update(const UpdateContext& context) override;
 
-    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override{};
-    virtual void SaveState(JSON& json) const override{};
+    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override {};
+    virtual void SaveState(JSON& json) const override {};
 };
 } // namespace aln
