@@ -41,7 +41,7 @@ option(ALLEN_EDITOR "Build the editor" ON)
 # Configure the config files
 set(CONFIG_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 set(DEFAULT_SHADERS_DIR ${PROJECT_SOURCE_DIR}/assets/shaders)
-set(DEFAULT_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
+set(DEFAULT_ASSETS_DIR ${PROJECT_SOURCE_DIR}/working-assets)
 set(DEFAULT_EDITOR_ASSETS_DIR ${PROJECT_SOURCE_DIR}/assets)
 set(FONTS_DIR ${PROJECT_SOURCE_DIR}/assets/fonts)
 

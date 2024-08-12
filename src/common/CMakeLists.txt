@@ -14,6 +14,7 @@ add_library(${LIB_NAME}
     src/maths/vec4.cpp
     src/maths/quaternion.cpp
     src/maths/matrix4x4.cpp
+    src/services/settings_registry_service.cpp
 )
 
 target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)

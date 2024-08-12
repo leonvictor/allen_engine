@@ -1,14 +1,16 @@
 #pragma once
 
-#include <common/engine_module.hpp>
+#include "../assets_settings.hpp"
 
-#include <reflection/services/type_registry_service.hpp>
-#include <reflection/type_info.hpp>
+#include <common/engine_module.hpp>
 
 namespace aln::Assets
 {
 class Module : public IEngineModule
 {
+  private:
+    AssetsSettings m_settings;
+
   public:
     void Initialize(EngineModuleContext& context) override;
     void Shutdown(EngineModuleContext& context) override;

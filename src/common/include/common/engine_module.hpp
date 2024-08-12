@@ -3,10 +3,12 @@
 namespace aln
 {
 class TypeRegistryService;
+class SettingsRegistryService;
 
 struct EngineModuleContext
 {
-    TypeRegistryService* m_pTypeRegistryService;
+    TypeRegistryService* m_pTypeRegistryService = nullptr;
+    SettingsRegistryService* m_pSettingsRegistryService = nullptr;
 };
 
 class IEngineModule

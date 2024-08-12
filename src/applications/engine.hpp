@@ -9,6 +9,7 @@
 #include <common/services/service_provider.hpp>
 
 #include <assets/asset_service.hpp>
+#include <common/services/settings_registry_service.hpp>
 #include <common/threading/task_service.hpp>
 #include <core/services/rendering_service.hpp>
 #include <core/services/time_service.hpp>
@@ -55,6 +56,7 @@ class Engine
     TypeRegistryService* m_pTypeRegistryService = nullptr;
     RenderingService* m_pRenderingService = nullptr;
     ImGUIService* m_pImguiService = nullptr;
+    SettingsRegistryService* m_pSettingsRegistryService = nullptr;
 
     WorldsService* m_pWorldsService = nullptr;
 
@@ -90,12 +92,14 @@ class Engine
         m_pTypeRegistryService = m_serviceProvider.AddService<TypeRegistryService>();
         m_pImguiService = m_serviceProvider.AddService<ImGUIService>();
         m_pRenderingService = m_serviceProvider.AddService<RenderingService>();
+        m_pSettingsRegistryService = m_serviceProvider.AddService<SettingsRegistryService>();
 
         m_updateContext.m_pServiceProvider = &m_serviceProvider;
 
         // Initialize modules
         EngineModuleContext moduleContext = {
             .m_pTypeRegistryService = m_pTypeRegistryService,
+            .m_pSettingsRegistryService = m_pSettingsRegistryService,
         };
 
         m_coreModule.Initialize(moduleContext);
@@ -133,6 +137,7 @@ class Engine
 
         EngineModuleContext moduleContext = {
             .m_pTypeRegistryService = m_pTypeRegistryService,
+            .m_pSettingsRegistryService = m_pSettingsRegistryService,
         };
 
         m_coreModule.Shutdown(moduleContext);
