@@ -12,7 +12,7 @@
 #include <imnodes.h>
 #include <imnodes_internal.h>
 
-#include <assert.h>
+#include <cassert>
 
 namespace aln
 {

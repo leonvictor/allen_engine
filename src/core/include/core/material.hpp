@@ -8,7 +8,7 @@
 #include <entities/component.hpp>
 #include <graphics/resources/buffer.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace aln
 {
@@ -31,7 +31,7 @@ class Material : public IAsset
     inline const GPUBuffer& GetBuffer() const { return m_buffer; }
 };
 
-#pragma warning(disable:4324)
+#pragma warning(disable : 4324)
 // TODO: This is never used. Refactor the material system
 struct MaterialBufferObject
 {
@@ -40,6 +40,6 @@ struct MaterialBufferObject
     alignas(16) Vec3 specular = Vec3(0.5f, 0.5f, 0.5f);
     alignas(4) float shininess = 8.0f;
 };
-#pragma warning(default: 4324)
+#pragma warning(default : 4324)
 
 } // namespace aln

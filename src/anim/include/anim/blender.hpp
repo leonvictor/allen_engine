@@ -4,7 +4,7 @@
 #include "pose.hpp"
 #include "skeleton.hpp"
 
-#include <assert.h>
+#include <cassert>
 #include <common/maths/vec3.hpp>
 
 namespace aln

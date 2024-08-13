@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 
 #include "update_context.hpp"
 #include "world_update.hpp"

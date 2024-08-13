@@ -1,9 +1,9 @@
 #pragma once
 
-#include <common/update_stages.hpp>
 #include <common/containers/hash_map.hpp>
+#include <common/update_stages.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace aln
 {
@@ -32,4 +32,4 @@ struct UpdatePriorities
 
     // TODO: allow systems to add and (maybe) update their priorities
 };
-}
+} // namespace aln

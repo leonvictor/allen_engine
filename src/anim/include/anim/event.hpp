@@ -1,10 +1,10 @@
 #pragma once
 
-#include <common/string_id.hpp>
 #include "types.hpp"
+#include <common/string_id.hpp>
 
+#include <cassert>
 #include <cstdint>
-#include <assert.h>
 
 namespace aln
 {
@@ -17,7 +17,7 @@ class AnimationEvent
     enum class Type : uint8_t
     {
         Immediate, // Fired exactly once
-        Durable, // Fired every frame over their duration
+        Durable,   // Fired every frame over their duration
     };
 
     Type m_type = Type::Immediate;
@@ -49,7 +49,7 @@ class SampledEvent
     SampledEvent(NodeIndex sourceNodeIndex, const StringID& stateEventID) : m_sourceNodeIndex(sourceNodeIndex), m_stateEventID(stateEventID) {}
 
     /// @brief Construct a sampled animation event
-    SampledEvent (NodeIndex sourceNodeIndex, AnimationEvent* pEvent) { assert(false); } // TODO
+    SampledEvent(NodeIndex sourceNodeIndex, AnimationEvent* pEvent) { assert(false); } // TODO
 
     bool IsStateEvent() const { return m_pEvent == nullptr && m_stateEventID != StringID::InvalidID; }
     bool IsAnimationEvent() const { return m_pEvent != nullptr && m_stateEventID == StringID::InvalidID; }

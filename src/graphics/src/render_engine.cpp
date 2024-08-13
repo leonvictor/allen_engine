@@ -8,7 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <set>
 #include <thread>
 

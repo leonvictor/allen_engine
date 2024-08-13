@@ -4,15 +4,15 @@
 #include "loading_context.hpp"
 #include "update_context.hpp"
 
-#include <common/containers/vector.hpp>
 #include <common/containers/array.hpp>
+#include <common/containers/vector.hpp>
 #include <common/event.hpp>
 #include <common/uuid.hpp>
 #include <reflection/type_info.hpp>
 
 #include <tracy/Tracy.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <stdexcept>
 #include <string>
 
@@ -72,7 +72,7 @@ class Entity
     SpatialComponent* m_pRootSpatialComponent = nullptr;
     Entity* m_pParentSpatialEntity = nullptr; // A spatial entity may request to be attached to another spatial entity
     Vector<Entity*> m_attachedEntities;       // Children spatial entities
-    UUID m_parentAttachmentSocketID;     // TODO: ?
+    UUID m_parentAttachmentSocketID;          // TODO: ?
     bool m_isAttachedToParent = false;
 
     static Event<Entity*> EntityStateUpdatedEvent;
@@ -109,7 +109,7 @@ class Entity
 
   public:
     /// @todo: Constructor is private to prevent extending this class
-    Entity(){};
+    Entity() {};
     ~Entity();
 
     const UUID& GetID() const { return m_ID; };

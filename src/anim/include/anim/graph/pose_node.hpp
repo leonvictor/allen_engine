@@ -8,7 +8,7 @@
 
 #include <common/transform.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace aln
 {

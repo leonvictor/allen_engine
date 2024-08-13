@@ -1,8 +1,7 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 #include <cstdlib>
-#include <malloc.h>
 #include <memory>
 
 #ifdef ALN_DEBUG

@@ -6,7 +6,7 @@
 
 #include <uuid.h>
 
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 
 namespace aln

@@ -11,7 +11,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <typeindex>
 #include <typeinfo>
 

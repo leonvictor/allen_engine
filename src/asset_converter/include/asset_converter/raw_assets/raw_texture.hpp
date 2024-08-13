@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 #include <filesystem>
 
 #include <assets/asset_archive_header.hpp>

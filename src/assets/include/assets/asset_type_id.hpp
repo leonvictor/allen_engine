@@ -2,9 +2,9 @@
 
 #include <EASTL/functional.h>
 
-#include <assert.h>
-#include <string>
+#include <cassert>
 #include <cstring>
+#include <string>
 
 namespace aln
 {

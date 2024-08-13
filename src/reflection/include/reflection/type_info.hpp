@@ -6,7 +6,7 @@
 #include <common/serialization/binary_archive.hpp>
 #include <common/string_id.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <concepts>
 #include <functional>
 #include <string>

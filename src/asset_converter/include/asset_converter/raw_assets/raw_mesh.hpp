@@ -10,7 +10,7 @@
 #include <common/serialization/binary_archive.hpp>
 #include <common/vertex.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <filesystem>
 
 namespace aln::assets::converter

@@ -9,7 +9,7 @@
 #include <common/serialization/binary_archive.hpp>
 #include <graphics/command_buffer.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <memory>
 
 namespace aln

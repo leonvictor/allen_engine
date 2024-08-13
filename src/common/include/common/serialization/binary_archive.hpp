@@ -1,13 +1,12 @@
 #pragma once
 
-#include "../memory.hpp"
 #include "../containers/vector.hpp"
+#include "../memory.hpp"
 
-#include <assert.h>
+#include <cassert>
 #include <concepts>
 #include <filesystem>
 #include <fstream>
-
 
 namespace aln
 {
@@ -22,8 +21,8 @@ concept TriviallyCopyableType = std::is_trivially_copyable_v<T>;
 
 template <typename T>
 concept ContiguousContainer = requires(T a) {
-                                  requires std::contiguous_iterator<typename T::iterator>;
-                              };
+    requires std::contiguous_iterator<typename T::iterator>;
+};
 
 /// @brief Access point for types whose serialization methods need to be private. Set as friend in class definitions
 /// to allow the serialization system to access them.
@@ -46,9 +45,9 @@ struct ArchiveAccess
 
 template <typename T>
 concept CustomSerializable = requires(T a, BinaryMemoryArchive archive) {
-                                 a.Serialize(archive);
-                                 a.Deserialize(archive);
-                             };
+    a.Serialize(archive);
+    a.Deserialize(archive);
+};
 
 template <typename T>
 concept Serializable = TriviallyCopyableType<T> || CustomSerializable<T>;
