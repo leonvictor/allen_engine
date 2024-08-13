@@ -73,9 +73,6 @@ class IAssetWorkspace : public IEditorWindow
 
   public:
     const AssetID& GetID() { return m_id; }
-
-    virtual void SaveState(JSON& json) const override = 0;
-    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override = 0;
 };
 
 class IAssetWorkspacesFactory

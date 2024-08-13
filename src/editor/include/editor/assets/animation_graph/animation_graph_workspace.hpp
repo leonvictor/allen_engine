@@ -4,8 +4,8 @@
 #include "assets/animation_graph/editor_animation_graph.hpp"
 #include "graph/graph_view.hpp"
 
-#include <reflection/services/type_registry_service.hpp>
 #include <anim/graph/graph_definition.hpp>
+#include <reflection/services/type_registry_service.hpp>
 
 namespace aln
 {
@@ -65,8 +65,8 @@ class AnimationGraphWorkspace : public IAssetWorkspace
     void SetClean() { m_dirty = false; }
 
     // -------------- Serialization
-    virtual void SaveState(JSON& json) const override;
-    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override;
+    void SaveState(JSON& json) const override;
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override;
 
     // -------------- Asset compilation
     void Compile();

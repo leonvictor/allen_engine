@@ -21,8 +21,7 @@ class EntityInspector : public IEditorWindow
     virtual void Update(const UpdateContext& context);
 
     // ------- State management
-    // The editor's state is saved to disk and loaded back
-    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) {}
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) {}
     virtual void SaveState(JSON& json) const {}
 };
 } // namespace aln

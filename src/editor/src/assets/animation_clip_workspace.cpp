@@ -801,7 +801,7 @@ void AnimationClipWorkspace::Initialize(EditorWindowContext* pContext, const Ass
     pCharacterEntity->CreateSystem<AnimationSystem>();
 }
 
-void aln::AnimationClipWorkspace::Shutdown()
+void AnimationClipWorkspace::Shutdown()
 {
     DeletePreviewWorld();
 
@@ -813,11 +813,21 @@ void aln::AnimationClipWorkspace::Shutdown()
     IAssetWorkspace::Shutdown();
 }
 
-void aln::AnimationClipWorkspace::Clear()
+void AnimationClipWorkspace::Clear()
 {
 }
 
-AnimationClip* aln::AnimationClipWorkspace::Compile()
+void AnimationClipWorkspace::SaveState(JSON& json) const
+{
+    // TODO
+}
+
+void AnimationClipWorkspace::LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
+{
+    // TODO
+}
+
+AnimationClip* AnimationClipWorkspace::Compile()
 {
     assert(false); // TODO
     return nullptr;

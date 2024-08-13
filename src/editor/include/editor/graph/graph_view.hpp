@@ -8,8 +8,8 @@
 #include "assets/animation_graph/nodes/control_parameter_editor_nodes.hpp"
 #include "assets/animation_graph/nodes/parameter_reference_editor_node.hpp"
 #include "assets/animation_graph/nodes/state_editor_node.hpp"
-#include <common/maths/vec2.hpp>
 #include <common/event.hpp>
+#include <common/maths/vec2.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
@@ -384,7 +384,7 @@ class GraphView
             ImNodes::PushColorStyle(ImNodesCol_LinkSelected, static_cast<uint32_t>(colorScheme.m_selectedColor));
 
             ImNodes::Link(link.m_id, link.m_inputPinID, link.m_outputPinID);
-            
+
             ImNodes::PopColorStyle();
             ImNodes::PopColorStyle();
             ImNodes::PopColorStyle();
@@ -573,7 +573,7 @@ class GraphView
     Event<const Conduit*>& OnConduitDoubleClicked() { return m_conduitDoubleClickedEvent; }
 
     // ------ Serialization
-    void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService)
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
     {
     }
 

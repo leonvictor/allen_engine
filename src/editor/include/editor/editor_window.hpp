@@ -95,7 +95,7 @@ class IEditorWindow
 
     // ------- State management
     // The editor's state is saved to disk and loaded back
-    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) = 0;
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) = 0;
     virtual void SaveState(JSON& json) const = 0;
 };
 } // namespace aln

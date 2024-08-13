@@ -121,15 +121,8 @@ class AnimationClipWorkspace : public IAssetWorkspace
     AnimationClip* Compile();
 
     // ----- Saving/Loading
-    virtual void SaveState(JSON& json) const override
-    {
-        // TODO
-    }
-
-    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override
-    {
-        // TODO
-    }
+    void SaveState(JSON& json) const override;
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override;
 };
 
 ALN_ASSET_WORKSPACE_FACTORY(AnimationClip, AnimationClipWorkspace)

@@ -111,7 +111,7 @@ void AnimationGraphWorkspace::SaveState(JSON& json) const
     m_secondaryGraphView.SaveState(json["secondary_view"]);
 }
 
-void AnimationGraphWorkspace::LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService)
+void AnimationGraphWorkspace::LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
 {
     m_rootGraph.LoadState(json["graph"], pTypeRegistryService);
     m_primaryGraphView.LoadState(json["main_view"], pTypeRegistryService);

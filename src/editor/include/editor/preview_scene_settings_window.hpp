@@ -58,7 +58,7 @@ class PreviewSceneSettingsWindow : public IEditorWindow
     {
         m_reflectedTypeEditor.OnTypeEditingStarted().UnbindListener(m_settingEditingStartedEventID);
         m_reflectedTypeEditor.OnTypeEditingCompleted().UnbindListener(m_settingEditingCompletedEventID);
-        
+
         m_reflectedTypeEditor.Shutdown();
 
         IEditorWindow::Shutdown();
@@ -87,7 +87,7 @@ class PreviewSceneSettingsWindow : public IEditorWindow
         ImGui::End();
     }
 
-    virtual void LoadState(JSON& json, const TypeRegistryService* pTypeRegistryService) override{};
-    virtual void SaveState(JSON& json) const override{};
+    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override {};
+    virtual void SaveState(JSON& json) const override {};
 };
 } // namespace aln
