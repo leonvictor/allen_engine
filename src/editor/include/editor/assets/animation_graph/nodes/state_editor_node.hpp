@@ -21,17 +21,17 @@ class StateEditorNode : public EditorAnimationGraphNode
     }
 
   protected:
-    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
     {
     }
 
-    virtual void SaveState(JSON& json) const override
+    void SaveState(JSON& json) const override
     {
     }
 
   public:
-    virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
-    virtual bool IsRenamable() const override { return true; }
+    void Initialize() override;
+    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
+    bool IsRenamable() const override { return true; }
 };
 } // namespace aln

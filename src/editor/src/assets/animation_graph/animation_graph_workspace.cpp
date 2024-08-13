@@ -2,8 +2,10 @@
 
 #include "aln_imgui_widgets.hpp"
 #include "assets/animation_graph/animation_graph_compilation_context.hpp"
+#include "graph/conduit.hpp"
 
 #include <assets/asset_archive_header.hpp>
+#include <common/serialization/json.hpp>
 #include <entities/update_context.hpp>
 
 #include <imgui.h>

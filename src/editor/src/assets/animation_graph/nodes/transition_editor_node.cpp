@@ -3,6 +3,7 @@
 #include "assets/animation_graph/animation_graph_compilation_context.hpp"
 
 #include <anim/graph/nodes/transition.hpp>
+#include <common/serialization/json.hpp>
 
 namespace aln
 {
@@ -21,5 +22,15 @@ NodeIndex TransitionEditorNode::Compile(AnimationGraphCompilationContext& contex
 {
     assert(false); // Transition nodes compilation happens in their parent state machine's compilation method
     return InvalidIndex;
-};
+}
+
+void TransitionEditorNode::LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
+{
+    m_duration = json["duration"];
+}
+
+void TransitionEditorNode::SaveState(JSON& json) const
+{
+    json["duration"] = m_duration;
+}
 } // namespace aln

@@ -1,16 +1,16 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
-
 #include "../containers/vector.hpp"
+
+#include <nlohmann/json.hpp>
 
 namespace aln
 {
+
 using JSON = nlohmann::json;
 
-// Vector
 template <typename T>
-void to_json(JSON& json, const Vector<T>& v)
+static void ToJSON(JSON& json, const Vector<T>& v)
 {
     for (auto& e : v)
     {
@@ -19,7 +19,7 @@ void to_json(JSON& json, const Vector<T>& v)
 }
 
 template <typename T>
-static void from_json(const JSON& json, Vector<T>& v)
+static void FromJSON(const JSON& json, Vector<T>& v)
 {
     v.reserve(json.size());
     for (auto& elementJson : json)

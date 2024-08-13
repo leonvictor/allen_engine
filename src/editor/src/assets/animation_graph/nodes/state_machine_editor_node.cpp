@@ -2,8 +2,13 @@
 
 #include "assets/animation_graph/animation_graph_compilation_context.hpp"
 #include "assets/animation_graph/editor_animation_state_machine.hpp"
+#include "assets/animation_graph/nodes/event_condition_editor_node.hpp"
+#include "assets/animation_graph/nodes/state_editor_node.hpp"
+#include "assets/animation_graph/nodes/transition_editor_node.hpp"
+#include "graph/conduit.hpp"
 
 #include <anim/graph/nodes/state_machine.hpp>
+#include <common/serialization/json.hpp>
 
 namespace aln
 {
