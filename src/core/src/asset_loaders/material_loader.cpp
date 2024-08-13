@@ -1,0 +1,50 @@
+#include "asset_loaders/material_loader.hpp"
+
+#include "material.hpp"
+
+#include <assets/asset.hpp>
+#include <graphics/render_engine.hpp>
+
+namespace aln
+{
+bool MaterialLoader::Load(AssetRequestContext& ctx, AssetRecord* pRecord, BinaryMemoryArchive& archive)
+{
+    assert(pRecord->IsUnloaded());
+    assert(pRecord->GetAssetTypeID() == Material::GetStaticAssetTypeID());
+
+    Material* pMaterial = aln::New<Material>();
+
+    // TODO: Extract directly to asset handles
+    AssetID id;
+    archive >> id;
+    pMaterial->m_albedoMap = AssetHandle<Texture>(id);
+
+    // TMP while materials are poopy
+    pMaterial->m_buffer.Initialize(m_pRenderEngine, sizeof(MaterialBufferObject), vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible);
+    m_pRenderEngine->SetDebugUtilsObjectName(pMaterial->m_buffer.GetVkBuffer(), "Material Buffer Object");
+
+    auto material = MaterialBufferObject();
+    pMaterial->m_buffer.Map(0, sizeof(material));
+    pMaterial->m_buffer.Copy(&material, sizeof(material));
+    pMaterial->m_buffer.Unmap();
+
+    pRecord->SetAsset(pMaterial);
+
+    return true;
+}
+
+void MaterialLoader::Unload(AssetRecord* pRecord)
+{
+    auto pMaterial = pRecord->GetAsset<Material>();
+    pMaterial->m_buffer.Shutdown();
+}
+
+void MaterialLoader::InstallDependencies(AssetRecord* pAssetRecord, const Vector<IAssetHandle>& dependencies)
+{
+    assert(dependencies.size() == 1);
+    auto pMaterial = pAssetRecord->GetAsset<Material>();
+
+    const auto pAlbedoMapRecord = GetDependencyRecord(dependencies, pMaterial->m_albedoMap.GetAssetID());
+    UpdateDependencyRecord(pMaterial->m_albedoMap, pAlbedoMapRecord);
+}
+} // namespace aln

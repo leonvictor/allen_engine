@@ -26,6 +26,10 @@
 #include <core/asset_loaders/skeleton_loader.hpp>
 #include <core/asset_loaders/texture_loader.hpp>
 
+#include <anim/animation_clip.hpp>
+#include <anim/graph/animation_graph_dataset.hpp>
+#include <anim/graph/graph_definition.hpp>
+
 #include <core/world_systems/world_rendering_system.hpp>
 #include <entities/world_entity.hpp>
 #include <entities/world_update.hpp>
@@ -154,6 +158,7 @@ class Engine
         m_serviceProvider.RemoveService<TimeService>();
         m_serviceProvider.RemoveService<AssetService>();
         m_serviceProvider.RemoveService<TaskService>();
+        m_serviceProvider.RemoveService<SettingsRegistryService>();
 
         m_serviceProvider.Shutdown();
 

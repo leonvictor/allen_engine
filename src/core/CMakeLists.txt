@@ -1,6 +1,12 @@
 set(LIB_NAME core)
 
 add_library(${LIB_NAME}
+    src/asset_loaders/animation_graph_loader.cpp
+    src/asset_loaders/animation_loader.cpp
+    src/asset_loaders/material_loader.cpp
+    src/asset_loaders/mesh_loader.cpp
+    src/asset_loaders/skeleton_loader.cpp
+    src/asset_loaders/texture_loader.cpp
 
     src/services/time_service.cpp
     
