@@ -1,8 +1,10 @@
 #include "graph/editor_graph.hpp"
 
+#include "assets/animation_graph/nodes/control_parameter_editor_nodes.hpp"
 #include "assets/animation_graph/nodes/parameter_reference_editor_node.hpp"
 #include "graph/editor_graph_node.hpp"
 
+#include <common/serialization/json.hpp>
 #include <config/path.h>
 #include <reflection/services/type_registry_service.hpp>
 #include <reflection/type_info.hpp>
@@ -48,7 +50,6 @@ void EditorGraph::RefreshParameterReferences()
                 pReference->m_parameterID = id;
                 break;
             }
-
         }
         // TODO: Handle cases where the paramter node is not found, if it has been removed for example
     }
@@ -371,5 +372,18 @@ void EditorGraph::Shutdown()
     m_pImNodesEditorContext = nullptr;
 
     m_pParentGraph = nullptr;
+}
+
+const reflect::TypeInfo* EditorGraph::AvailableNodeTypesMenuItems(const TypeRegistryService* pTypeRegistryService)
+{
+    auto& animGraphNodeTypes = pTypeRegistryService->GetTypesInScope("ANIM_GRAPH_EDITOR_NODES");
+    for (auto& pAnimGraphNodeType : animGraphNodeTypes)
+    {
+        if (ImGui::MenuItem(pAnimGraphNodeType->m_name.c_str()))
+        {
+            return pAnimGraphNodeType;
+        }
+    }
+    return nullptr;
 }
 } // namespace aln

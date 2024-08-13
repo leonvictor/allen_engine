@@ -17,18 +17,11 @@ class TransitionEditorNode : public EditorAnimationGraphNode
     float m_duration = 0.0f;
 
   protected:
-    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
-    {
-        m_duration = json["duration"];
-    }
-
-    virtual void SaveState(JSON& json) const override
-    {
-        json["duration"] = m_duration;
-    }
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService);
+    void SaveState(JSON& json) const override;
 
   public:
-    virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
+    void Initialize() override;
+    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 } // namespace aln

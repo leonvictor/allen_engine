@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <reflection/type_info.hpp>
 
 #include "assets/animation_graph/editor_animation_graph_node.hpp"
@@ -14,7 +12,7 @@ class PoseEditorNode : public EditorAnimationGraphNode
     ALN_REGISTER_TYPE();
 
   public:
-    virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
+    void Initialize() override;
+    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 } // namespace aln

@@ -3,6 +3,7 @@
 #include "assets/animation_graph/animation_graph_compilation_context.hpp"
 
 #include <anim/graph/nodes/blend_node.hpp>
+#include <common/serialization/json.hpp>
 
 namespace aln
 {
@@ -10,14 +11,41 @@ namespace aln
 ALN_REGISTER_IMPL_BEGIN(ANIM_GRAPH_EDITOR_NODES, BlendEditorNode)
 ALN_REGISTER_IMPL_END()
 
+void BlendEditorNode::LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService)
+{
+    FromJSON(json["blend_parameter_values"], m_blendParameterValues);
+}
+
+void BlendEditorNode::SaveState(JSON& json) const
+{
+    ToJSON(json["blend_parameter_values"], m_blendParameterValues);
+}
+
+bool BlendEditorNode::DrawPin(const Pin& pin, const GraphDrawingContext& ctx)
+{
+    EditorAnimationGraphNode::DrawPin(pin, ctx);
+    if (pin.IsInput() && pin.GetValueType() == NodeValueType::Pose)
+    {
+        auto pinIdx = GetInputPinIndex(pin.GetID());
+        auto blendParameterIdx = pinIdx - 1;
+        auto& blendParameterValue = m_blendParameterValues[blendParameterIdx];
+
+        ImGui::PushID(&pin);
+        ImGui::SetNextItemWidth(50);
+        ImGui::InputFloat("", &blendParameterValue, 0.0f, 0.0f, "%.2f");
+        ImGui::PopID();
+    }
+    return true;
+}
+
 void BlendEditorNode::Initialize()
 {
     m_name = "Blend";
     AddInputPin(NodeValueType::Float, "Blend Weight");
-    
+
     AddInputPin(NodeValueType::Pose, "Input");
     m_blendParameterValues.push_back(0.0f);
-    
+
     AddInputPin(NodeValueType::Pose, "Input");
     m_blendParameterValues.push_back(1.0f);
 
@@ -39,8 +67,8 @@ NodeIndex BlendEditorNode::Compile(AnimationGraphCompilationContext& context, An
             return InvalidIndex;
         }
         pSettings->m_blendWeightValueNodeIdx = pBlendWeightValueNode->Compile(context, graphDefinition);
-        
-        // Sources 
+
+        // Sources
         const auto inputPinsCount = GetInputPinsCount();
         pSettings->m_sourcePoseNodeIndices.reserve(inputPinsCount - 1);
 

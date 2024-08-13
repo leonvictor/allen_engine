@@ -1,10 +1,11 @@
 #pragma once
 
 #include "assets/animation_graph/editor_animation_graph_node.hpp"
-#include "control_parameter_editor_nodes.hpp"
 
 namespace aln
 {
+class IControlParameterEditorNode;
+
 /// @brief References an existing control parameter
 class ParameterReferenceEditorNode : public EditorAnimationGraphNode
 {
@@ -18,39 +19,16 @@ class ParameterReferenceEditorNode : public EditorAnimationGraphNode
 
   public:
     ParameterReferenceEditorNode() = default;
-    ParameterReferenceEditorNode(const IControlParameterEditorNode* pReferencedParameter) : m_pParameter(pReferencedParameter), m_parameterID(pReferencedParameter->GetName())
-    {
-        assert(pReferencedParameter != nullptr);
-    }
+    ParameterReferenceEditorNode(const IControlParameterEditorNode* pReferencedParameter);
 
-    void Initialize() override
-    {
-        assert(m_pParameter != nullptr);
-        for (auto& pin : m_pParameter->GetOutputPins())
-        {
-            AddOutputPin(pin.GetValueType(), pin.GetName(), pin.AllowsMultipleLinks());
-        }
-    }
+    void Initialize() override;
+    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 
-    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override
-    {
-        assert(m_pParameter != nullptr);
-        return m_pParameter->Compile(context, graphDefinition);
-    };
-
-    const std::string& GetName() const override { return m_pParameter->GetName(); }
+    const std::string& GetName() const override;
     const IControlParameterEditorNode* GetReferencedParameter() const { return m_pParameter; }
     const StringID& GetReferencedParameterID() const { return m_parameterID; }
 
-    void SaveState(JSON& json) const override
-    {
-        json["referenced_parameter"] = m_parameterID.GetHash();
-    }
-
-    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
-    {
-        uint32_t parameterIDHash = json["referenced_parameter"];
-        m_parameterID = StringID(parameterIDHash);
-    }
+    void SaveState(JSON& json) const override;
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override;
 };
 } // namespace aln

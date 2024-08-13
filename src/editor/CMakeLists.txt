@@ -30,10 +30,11 @@ add_library(${LIB_NAME}
     src/assets/animation_graph/editor_animation_graph.cpp   
     src/assets/animation_graph/editor_animation_state_machine.cpp
 
+    src/graph/conduit.cpp
     src/graph/editor_graph.cpp 
     src/graph/editor_graph_node.cpp
-    src/graph/conduit.cpp
-
+    src/graph/graph_view.cpp
+    
     src/module/module.cpp
     
     ${IMGUI_SOURCE}

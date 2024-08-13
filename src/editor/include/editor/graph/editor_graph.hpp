@@ -4,12 +4,10 @@
 
 #include <common/containers/vector.hpp>
 #include <common/hash_vector.hpp>
+#include <common/serialization/json.hpp>
 #include <reflection/reflected_type.hpp>
 #include <reflection/services/type_registry_service.hpp>
 
-#include <common/serialization/json.hpp>
-
-#include <imgui.h>
 #include <imnodes.h>
 
 namespace aln
@@ -176,18 +174,7 @@ class EditorGraph : public reflect::IReflected
     const Link* GetLinkToPin(const UUID& pinID) const;
 
     // TODO: Make virtual and specialize in derived classes
-    const reflect::TypeInfo* AvailableNodeTypesMenuItems(const TypeRegistryService* pTypeRegistryService)
-    {
-        auto& animGraphNodeTypes = pTypeRegistryService->GetTypesInScope("ANIM_GRAPH_EDITOR_NODES");
-        for (auto& pAnimGraphNodeType : animGraphNodeTypes)
-        {
-            if (ImGui::MenuItem(pAnimGraphNodeType->m_name.c_str()))
-            {
-                return pAnimGraphNodeType;
-            }
-        }
-        return nullptr;
-    }
+    const reflect::TypeInfo* AvailableNodeTypesMenuItems(const TypeRegistryService* pTypeRegistryService);
 
     /// @brief Clear the graph's content (nodes, links, etc.). Override in derived classes to clean up additional data
     virtual void Clear();

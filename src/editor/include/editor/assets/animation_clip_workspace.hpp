@@ -7,13 +7,12 @@
 
 #include <anim/animation_clip.hpp>
 #include <common/containers/vector.hpp>
-#include <core/components/skeletal_mesh_component.hpp>
-#include <entities/world_entity.hpp>
 
 namespace aln
 {
 
 class AnimationPlayerComponent;
+class SkeletalMeshComponent;
 
 struct EditorAnimationEvent
 {
@@ -95,27 +94,8 @@ class AnimationClipWorkspace : public IAssetWorkspace
     void Clear();
 
     PreviewSceneSettings* GetPreviewSceneSettings() override { return &m_previewSceneSettings; }
-
-    void StartEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails) override
-    {
-        assert(HasPreviewWorld());
-
-        if (editingEventDetails.m_pEditedMember == &m_previewSceneSettings.m_pSkeletalMesh)
-        {
-            m_pPreviewWorld->StartComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
-        }
-    }
-
-    void EndEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails) override
-    {
-        assert(HasPreviewWorld());
-
-        if (editingEventDetails.m_pEditedMember == &m_previewSceneSettings.m_pSkeletalMesh)
-        {
-            m_pPreviewCharacterSkeletalMeshComponent->SetMesh(m_previewSceneSettings.m_pSkeletalMesh.GetAssetID());
-            m_pPreviewWorld->EndComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
-        }
-    }
+    void StartEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails) override;
+    void EndEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails) override;
 
     // ----- Compilation
     AnimationClip* Compile();

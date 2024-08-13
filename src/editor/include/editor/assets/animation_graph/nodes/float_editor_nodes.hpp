@@ -16,10 +16,10 @@ class FloatClampEditorNode : public EditorAnimationGraphNode
     float m_max = 1.0f;
 
   public:
-    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override {}
-    virtual void SaveState(JSON& json) const override {}
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override {}
+    void SaveState(JSON& json) const override {}
 
-    virtual void Initialize() override;
-    virtual NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
+    void Initialize() override;
+    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 } // namespace aln

@@ -3,15 +3,10 @@
 #include "graph_drawing_context.hpp"
 #include "pin.hpp"
 
-#include <common/types.hpp>
+#include <common/serialization/json.hpp>
 #include <common/uuid.hpp>
 #include <reflection/reflected_type.hpp>
 #include <reflection/type_info.hpp>
-#include <common/serialization/json.hpp>
-
-#include <imgui.h>
-#include <imgui_stdlib.h>
-#include <imnodes.h>
 
 namespace aln
 {
@@ -37,95 +32,20 @@ class EditorGraphNode : public reflect::IReflected
     bool m_renamingStarted = false;
     bool m_renamingInProgress = false;
 
-    float CalcNodeWidth() const
-    {
-        constexpr float MIN_NODE_WIDTH = 120.0f;
+    float CalcNodeWidth() const;
 
-        float nodeWidth = Maths::Max(MIN_NODE_WIDTH, ImGui::CalcTextSize(GetName().c_str()).x);
-
-        for (const auto& pin : GetInputPins())
-        {
-            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
-        }
-
-        for (const auto& pin : GetOutputPins())
-        {
-            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(pin.GetName().c_str()).x);
-        }
-
-        const auto pTypeInfo = GetTypeInfo();
-        for (const auto& member : pTypeInfo->m_members)
-        {
-            nodeWidth = Maths::Max(nodeWidth, ImGui::CalcTextSize(member.GetPrettyName().c_str()).x + 100);
-        }
-
-        return nodeWidth;
-    }
-
-    virtual void PushNodeStyle(const GraphDrawingContext& ctx) const
-    {
-        auto colorScheme = ctx.GetTypeColorScheme(GetValueType());
-
-        ImNodes::PushColorStyle(ImNodesCol_TitleBar, static_cast<uint32_t>(colorScheme.m_defaultColor));
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, static_cast<uint32_t>(colorScheme.m_hoveredColor));
-        ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, static_cast<uint32_t>(colorScheme.m_selectedColor));
-    }
-
-    virtual void PopNodeStyle(const GraphDrawingContext& ctx) const
-    {
-        ImNodes::PopColorStyle();
-        ImNodes::PopColorStyle();
-        ImNodes::PopColorStyle();
-    }
+    virtual void PushNodeStyle(const GraphDrawingContext& ctx) const;
+    virtual void PopNodeStyle(const GraphDrawingContext& ctx) const;
 
   protected:
     std::string m_name;
 
     // ----
-    const Pin& AddInputPin(NodeValueType valueType, std::string name = "")
-    {
-        auto& pin = m_inputPins.emplace_back();
-        pin.m_type = Pin::Type::In;
-        pin.m_valueType = valueType;
-        pin.m_name = name;
-        pin.m_allowMultipleLinks = false;
+    const Pin& AddInputPin(NodeValueType valueType, std::string name = "");
+    const Pin& AddOutputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false);
 
-        return pin;
-    }
-
-    const Pin& AddOutputPin(NodeValueType valueType, std::string name = "", bool allowMultipleLinks = false)
-    {
-        auto& pin = m_outputPins.emplace_back();
-        pin.m_type = Pin::Type::Out;
-        pin.m_valueType = valueType;
-        pin.m_name = name;
-        pin.m_allowMultipleLinks = allowMultipleLinks;
-
-        return pin;
-    }
-
-    const Pin& AddDynamicInputPin(NodeValueType valueType, std::string name = "")
-    {
-        AddInputPin(valueType, name);
-
-        auto& pin = m_inputPins.back();
-        pin.m_dynamic = true;
-
-        return pin;
-    }
-
-    void RemoveDynamicInputPin(const UUID& pinID)
-    {
-        assert(pinID.IsValid());
-
-        OnDynamicInputPinRemoved(pinID);
-
-        auto it = std::find_if(m_inputPins.begin(), m_inputPins.end(), [&](const Pin& pin)
-            { return pin.GetID() == pinID; });
-        assert(it != m_inputPins.end());
-
-        m_inputPins.erase(it);
-    }
+    const Pin& AddDynamicInputPin(NodeValueType valueType, std::string name = "");
+    void RemoveDynamicInputPin(const UUID& pinID);
 
     // TODO: Dynamic output
 
@@ -136,99 +56,9 @@ class EditorGraphNode : public reflect::IReflected
     virtual void OnDynamicOuputPinRemoved(const UUID& pinID) {}
 
     // ---- Custom drawing
-    virtual void DrawNodeTitleBar(const GraphDrawingContext& ctx)
-    {
-        ImNodes::BeginNodeTitleBar();
-
-        if (IsRenamable())
-        {
-            if (m_renamingInProgress)
-            {
-                ImGui::PushItemWidth(ctx.m_currentNodeWidth);
-                ImGui::InputText("", &m_name);
-                ImGui::PopItemWidth();
-
-                if (m_renamingStarted)
-                {
-                    ImGui::SetKeyboardFocusHere(-1);
-                    m_renamingStarted = false;
-                }
-                if (ImGui::IsItemDeactivated())
-                {
-                    EndRenaming();
-                }
-            }
-            else
-            {
-                ImGui::Text(GetName().c_str());
-                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                {
-                    BeginRenaming();
-                }
-            }
-        }
-        else
-        {
-            ImGui::Text(GetName().c_str());
-        }
-
-        ImNodes::EndNodeTitleBar();
-    }
-
-    virtual bool DrawContent(const GraphDrawingContext& ctx)
-    {
-        auto pTypeInfo = GetTypeInfo();
-        ctx.m_nodeInspector.Draw(pTypeInfo, (void*) this, 100);
-        return pTypeInfo->GetMemberCount() > 0;
-    }
-
-    virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx)
-    {
-        auto colorScheme = ctx.GetTypeColorScheme(pin.GetValueType());
-        ImNodes::PushColorStyle(ImNodesCol_Pin, static_cast<uint32_t>(colorScheme.m_defaultColor));
-        ImNodes::PushColorStyle(ImNodesCol_PinHovered, static_cast<uint32_t>(colorScheme.m_hoveredColor));
-
-        if (pin.IsInput())
-        {
-            ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
-            ImNodes::BeginInputAttribute(pin.GetID());
-
-            const auto pPinName = pin.GetName().c_str();
-            const auto offset = ctx.m_currentNodeWidth - ImGui::CalcTextSize(pPinName).x;
-            ImGui::Text(pPinName);
-            ImGui::SameLine();
-            ImGui::Dummy({offset, 0.0f});
-
-            ImNodes::EndInputAttribute();
-            ImNodes::PopAttributeFlag();
-        }
-        else
-        {
-            const auto pinFlags = pin.AllowsMultipleLinks() ? ImNodesAttributeFlags_None : ImNodesAttributeFlags_EnableLinkDetachWithDragClick;
-            ImNodes::PushAttributeFlag(pinFlags);
-            ImNodes::BeginOutputAttribute(pin.GetID());
-
-            const char* pinName = pin.GetName().c_str();
-
-            /// @note : I'd like to align output pin labels to the right side of the node.
-            /// However, for now, the node's dimensions are only known after the ImNodes::EndNode() call
-            /// The following attempt result in forever growing node width:
-            const float labelWidth = ImGui::CalcTextSize(pinName).x;
-            // const float nodeWidth = ImNodes::GetNodeDimensions(GetID()).x;
-            auto offset = ctx.m_currentNodeWidth - labelWidth;
-            ImGui::Indent(offset);
-
-            ImGui::Text(pinName);
-
-            ImNodes::EndOutputAttribute();
-            ImNodes::PopAttributeFlag();
-        }
-
-        ImNodes::PopColorStyle();
-        ImNodes::PopColorStyle();
-
-        return true;
-    }
+    virtual void DrawNodeTitleBar(const GraphDrawingContext& ctx);
+    virtual bool DrawContent(const GraphDrawingContext& ctx);
+    virtual bool DrawPin(const Pin& pin, const GraphDrawingContext& ctx);
 
     // ---- Custom serialization
     virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) {}
@@ -240,29 +70,12 @@ class EditorGraphNode : public reflect::IReflected
 
     const UUID& GetID() const { return m_id; }
     virtual const std::string& GetName() const { return m_name; }
-
-    NodeValueType GetValueType() const
-    {
-        if (m_outputPins.size() > 0)
-        {
-            return GetOutputPin(0).m_valueType;
-        }
-        else if (m_inputPins.size() > 0)
-        {
-            return GetInputPin(0).m_valueType;
-        }
-        else
-        {
-            return NodeValueType::Unknown;
-        }
-    }
+    NodeValueType GetValueType() const;
 
     // ---- Graph hierarchy
     const EditorGraph* GetOwningGraph() const { return m_pOwningGraph; }
-
     bool HasChildGraph() const { return m_pChildGraph != nullptr; }
     EditorGraph* GetChildGraph() const { return m_pChildGraph; }
-
     /// @brief Set a graph as child, taking ownership of it
     void SetChildGraph(EditorGraph* pChildGraph);
 
@@ -284,33 +97,8 @@ class EditorGraphNode : public reflect::IReflected
         return m_outputPins[pinIdx];
     }
 
-    uint32_t GetInputPinIndex(const UUID& pinID) const
-    {
-        uint32_t pinCount = m_inputPins.size();
-        for (uint32_t pinIndex = 0; pinIndex < pinCount; ++pinIndex)
-        {
-            auto& pin = m_inputPins[pinIndex];
-            if (pin.GetID() == pinID)
-            {
-                return pinIndex;
-            }
-        }
-        return InvalidIndex;
-    }
-
-    uint32_t GetOutputPinIndex(const UUID& pinID) const
-    {
-        uint32_t pinCount = m_outputPins.size();
-        for (uint32_t pinIndex = 0; pinIndex < pinCount; ++pinIndex)
-        {
-            auto& pin = m_outputPins[pinIndex];
-            if (pin.GetID() == pinID)
-            {
-                return pinIndex;
-            }
-        }
-        return InvalidIndex;
-    }
+    uint32_t GetInputPinIndex(const UUID& pinID) const;
+    uint32_t GetOutputPinIndex(const UUID& pinID) const;
 
     virtual bool SupportsDynamicInputPins() const { return false; }
     virtual NodeValueType DynamicInputPinValueType() const { return NodeValueType::Unknown; }
@@ -346,32 +134,7 @@ class EditorGraphNode : public reflect::IReflected
     void LoadNodeState(const JSON& json, const TypeRegistryService* pTypeRegistryService);
 
     // ---- Drawing
-
-    void DrawNode(GraphDrawingContext& ctx)
-    {
-        ctx.m_currentNodeWidth = CalcNodeWidth();
-
-        PushNodeStyle(ctx);
-        ImNodes::BeginNode(GetID());
-
-        DrawNodeTitleBar(ctx);
-
-        for (auto& inputPin : m_inputPins)
-        {
-            DrawPin(inputPin, ctx);
-        }
-
-        // Display reflected fields
-        DrawContent(ctx);
-
-        for (auto& outputPin : m_outputPins)
-        {
-            DrawPin(outputPin, ctx);
-        }
-
-        ImNodes::EndNode();
-        PopNodeStyle(ctx);
-    }
+    void DrawNode(GraphDrawingContext& ctx);
 
     bool operator==(const EditorGraphNode& other) { return m_id == other.m_id; }
     bool operator!=(const EditorGraphNode& other) { return m_id != other.m_id; }

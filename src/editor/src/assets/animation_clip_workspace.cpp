@@ -832,4 +832,25 @@ AnimationClip* AnimationClipWorkspace::Compile()
     assert(false); // TODO
     return nullptr;
 }
+
+void AnimationClipWorkspace::StartEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails)
+{
+    assert(HasPreviewWorld());
+
+    if (editingEventDetails.m_pEditedMember == &m_previewSceneSettings.m_pSkeletalMesh)
+    {
+        m_pPreviewWorld->StartComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
+    }
+}
+
+void AnimationClipWorkspace::EndEditingScenePreviewSetting(const TypeEditedEventDetails& editingEventDetails)
+{
+    assert(HasPreviewWorld());
+
+    if (editingEventDetails.m_pEditedMember == &m_previewSceneSettings.m_pSkeletalMesh)
+    {
+        m_pPreviewCharacterSkeletalMeshComponent->SetMesh(m_previewSceneSettings.m_pSkeletalMesh.GetAssetID());
+        m_pPreviewWorld->EndComponentEditing(m_pPreviewCharacterSkeletalMeshComponent);
+    }
+}
 } // namespace aln

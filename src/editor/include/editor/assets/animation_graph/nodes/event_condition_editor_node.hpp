@@ -1,9 +1,6 @@
 #pragma once
 
-#include "assets/animation_graph/animation_graph_compilation_context.hpp"
-#include "graph/editor_graph_node.hpp"
-
-#include <anim/graph/nodes/event_condition_node.hpp>
+#include "assets/animation_graph/editor_animation_graph_node.hpp"
 
 namespace aln
 {
@@ -16,38 +13,11 @@ class EventConditionEditorNode : public EditorAnimationGraphNode
     std::string m_eventID;
 
   protected:
-    virtual void SaveState(JSON& json) const override
-    {
-        json["event_id"] = m_eventID;
-    }
-
-    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override
-    {
-        m_eventID = json["event_id"];
-    }
+    void SaveState(JSON& json) const override;
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override;
 
   public:
-    void Initialize() override
-    {
-        m_name = "Event Condition";
-        AddOutputPin(NodeValueType::Bool, "Result");
-    }
-
-    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const
-    {
-        EventConditionRuntimeNode::Settings* pSettings = nullptr;
-        if (!context.GetSettings<EventConditionRuntimeNode>(this, graphDefinition, pSettings))
-        {
-            auto eventID = StringID(m_eventID);
-            if (!eventID.IsValid())
-            {
-                context.LogError("Condition Event ID was invalid.");
-                return InvalidIndex;
-            }
-
-            pSettings->m_eventID = eventID;
-        }
-        return pSettings->GetNodeIndex();
-    }
+    void Initialize() override;
+    NodeIndex Compile(AnimationGraphCompilationContext& context, AnimationGraphDefinition& graphDefinition) const override;
 };
 } // namespace aln
