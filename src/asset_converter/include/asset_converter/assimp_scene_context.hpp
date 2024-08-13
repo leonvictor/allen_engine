@@ -2,18 +2,18 @@
 
 #include "raw_assets/raw_skeleton.hpp"
 
-#include <common/maths/quaternion.hpp>
+#include <common/containers/hash_map.hpp>
 #include <common/maths/matrix4x4.hpp>
+#include <common/maths/quaternion.hpp>
 #include <common/maths/vec2.hpp>
 #include <common/maths/vec3.hpp>
 #include <common/transform.hpp>
-#include <common/containers/hash_map.hpp>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include <assert.h>
+#include <cassert>
 #include <filesystem>
 
 namespace aln::assets::converter

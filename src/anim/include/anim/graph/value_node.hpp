@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 #include <string>
 
 #include "../bone_mask.hpp"

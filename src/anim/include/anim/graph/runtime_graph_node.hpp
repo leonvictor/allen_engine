@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 
 #include <common/serialization/binary_archive.hpp>
 #include <reflection/reflected_type.hpp>
@@ -62,7 +62,7 @@ class RuntimeGraphNode
         }
 
         /// @brief Set a node based on a given index, only if the index was set
-        template<typename T>
+        template <typename T>
         void SetOptionalNodePtrFromIndex(const Vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
         {
             if (nodeIndex == InvalidIndex)
@@ -71,12 +71,12 @@ class RuntimeGraphNode
             }
 
             assert(nodeIndex >= 0 && nodeIndex < nodePtrs.size());
-            
+
             pNode = reinterpret_cast<T*>(nodePtrs[nodeIndex]);
         }
 
         /// @brief Set a node based on a given index
-        template<typename T>
+        template <typename T>
         void SetNodePtrFromIndex(const Vector<RuntimeGraphNode*>& nodePtrs, const NodeIndex nodeIndex, T*& pNode) const
         {
             assert(nodeIndex != InvalidIndex);

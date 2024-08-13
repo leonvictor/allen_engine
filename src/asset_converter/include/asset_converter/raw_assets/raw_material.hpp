@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 
 #include <assets/asset_archive_header.hpp>
 #include <common/serialization/binary_archive.hpp>

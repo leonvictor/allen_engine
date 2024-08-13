@@ -7,7 +7,7 @@
 
 #include <tracy/Tracy.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <functional>
 
 namespace aln

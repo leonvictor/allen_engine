@@ -9,7 +9,7 @@
 
 #include <assimp/scene.h>
 
-#include <assert.h>
+#include <cassert>
 #include <string>
 
 namespace aln::assets::converter

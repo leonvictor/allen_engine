@@ -2,7 +2,7 @@
 
 #include <common/uuid.hpp>
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace aln
 {
@@ -20,7 +20,6 @@ class IInputControl
     UUID m_id = UUID::Generate();
 
   protected:
-
   public:
     inline const UUID& GetID() const { return m_id; }
     virtual bool IsActuated() const = 0;

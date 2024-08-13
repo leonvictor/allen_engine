@@ -2,7 +2,7 @@
 
 #include "common/services/service_provider.hpp"
 
-#include <assert.h>
+#include <cassert>
 
 namespace aln
 {

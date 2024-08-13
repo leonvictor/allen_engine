@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 
 #include "../../blender.hpp"
 #include "../../bone_mask.hpp"

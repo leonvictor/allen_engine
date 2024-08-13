@@ -11,7 +11,7 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
-#include <assert.h>
+#include <cassert>
 
 namespace aln
 {

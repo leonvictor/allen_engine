@@ -1,6 +1,6 @@
 #include "component.hpp"
 
-#include <assert.h>
+#include <cassert>
 #include <stdexcept>
 
 namespace aln

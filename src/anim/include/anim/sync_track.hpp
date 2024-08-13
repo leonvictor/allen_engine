@@ -8,7 +8,7 @@
 #include <common/maths/maths.hpp>
 #include <common/types.hpp>
 
-#include <assert.h>
+#include <cassert>
 #include <string>
 
 namespace aln

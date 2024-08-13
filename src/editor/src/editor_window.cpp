@@ -2,7 +2,7 @@
 
 #include <assets/asset_service.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace aln
 {
