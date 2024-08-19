@@ -56,7 +56,7 @@ void WorldEntity::Update(const UpdateContext& context)
         UpdateTask(const Vector<Entity*>& entities, const UpdateContext& updateContext)
             : ITaskSet(entities.size()), m_entities(entities), m_updateContext(updateContext) {}
 
-        virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) override
+        void ExecuteRange(TaskSetPartition range, uint32_t threadNum) override
         {
             for (auto i = range.start; i < range.end; ++i)
             {

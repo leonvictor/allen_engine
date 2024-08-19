@@ -18,13 +18,13 @@ class FloatClampRuntimeNode : public FloatValueNode
         ALN_REGISTER_TYPE();
 
         friend class FloatClampEditorNode;
-      
-    private:
+
+      private:
         NodeIndex m_inputValueNodeIdx = InvalidIndex;
         float m_min = 0.0f;
         float m_max = 0.0f;
 
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<FloatClampRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_inputValueNodeIdx, pNode->m_pInputValueNode);
@@ -33,7 +33,7 @@ class FloatClampRuntimeNode : public FloatValueNode
         }
     };
 
-    virtual void GetValueInternal(GraphContext& context, void* pValue) const override
+    void GetValueInternal(GraphContext& context, void* pValue) const override
     {
         assert(context.IsValid());
 
@@ -44,13 +44,13 @@ class FloatClampRuntimeNode : public FloatValueNode
         *((float*) pValue) = Maths::Clamp(inputValue, m_min, m_max);
     }
 
-    virtual void InitializeInternal(GraphContext& context) override
+    void InitializeInternal(GraphContext& context) override
     {
         FloatValueNode::InitializeInternal(context);
         m_pInputValueNode->Initialize(context);
     }
 
-    virtual void ShutdownInternal() override
+    void ShutdownInternal() override
     {
         m_pInputValueNode->Shutdown();
         FloatValueNode::ShutdownInternal();

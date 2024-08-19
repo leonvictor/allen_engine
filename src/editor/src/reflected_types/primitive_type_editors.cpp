@@ -168,7 +168,7 @@ class AssetIDEditor : public IPrimitiveTypeEditor
         *m_pInstanceValue = m_editingValue;
     }
 
-    virtual bool RequireEntityReload() const override { return true; }
+    bool RequireEntityReload() const override { return true; }
 };
 
 class AssetHandleEditor : public IPrimitiveTypeEditor
@@ -195,7 +195,7 @@ class AssetHandleEditor : public IPrimitiveTypeEditor
         *m_pInstanceValue = m_editingValue;
     }
 
-    virtual bool RequireEntityReload() const override { return true; }
+    bool RequireEntityReload() const override { return true; }
 };
 
 // ------ Factory

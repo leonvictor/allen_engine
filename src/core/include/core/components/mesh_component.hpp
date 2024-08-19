@@ -25,9 +25,9 @@ class MeshComponent : public SpatialComponent
     // Components Methods
     // -------------------------------------------------
 
-    virtual void Initialize() override;
-    virtual void Shutdown() override;
+    void Initialize() override;
+    void Shutdown() override;
 
-    virtual bool UpdateLoadingStatus() override = 0;
+    bool UpdateLoadingStatus() override = 0;
 };
 } // namespace aln

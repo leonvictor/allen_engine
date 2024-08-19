@@ -14,18 +14,18 @@ class FloatControlParameterNode : public FloatValueNode
     {
         ALN_REGISTER_TYPE();
 
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<FloatControlParameterNode>(nodePtrs, options);
         }
     };
 
-    virtual void GetValueInternal(GraphContext& context, void* pValue) const override
+    void GetValueInternal(GraphContext& context, void* pValue) const override
     {
         *((float*) pValue) = m_value;
     }
 
-    virtual void SetValueInternal(GraphContext& context, void const* pValue) override
+    void SetValueInternal(GraphContext& context, void const* pValue) override
     {
         m_value = *((float*) pValue);
     }
@@ -41,18 +41,18 @@ class BoolControlParameterNode : public BoolValueNode
     {
         ALN_REGISTER_TYPE();
 
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<BoolControlParameterNode>(nodePtrs, options);
         }
     };
 
-    virtual void GetValueInternal(GraphContext& context, void* pValue) const override
+    void GetValueInternal(GraphContext& context, void* pValue) const override
     {
         *((bool*) pValue) = m_value;
     }
 
-    virtual void SetValueInternal(GraphContext& context, void const* pValue) override
+    void SetValueInternal(GraphContext& context, void const* pValue) override
     {
         m_value = *((bool*) pValue);
     }
@@ -68,18 +68,18 @@ class IDControlParameterNode : public IDValueNode
     {
         ALN_REGISTER_TYPE();
 
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<IDControlParameterNode>(nodePtrs, options);
         }
     };
 
-    virtual void GetValueInternal(GraphContext& context, void* pValue) const override
+    void GetValueInternal(GraphContext& context, void* pValue) const override
     {
         *((StringID*) pValue) = m_value;
     }
 
-    virtual void SetValueInternal(GraphContext& context, void const* pValue) override
+    void SetValueInternal(GraphContext& context, void const* pValue) override
     {
         m_value = *((StringID*) pValue);
     }

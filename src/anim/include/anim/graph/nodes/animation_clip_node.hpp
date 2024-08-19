@@ -6,8 +6,8 @@
 #include "../tasks/sample_task.hpp"
 #include "../value_node.hpp"
 
-#include <common/maths/maths.hpp>
 #include <common/containers/vector.hpp>
+#include <common/maths/maths.hpp>
 
 namespace aln
 {
@@ -51,10 +51,10 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
             assert(false); // TODO
         }
 
-        const auto deltaPercentage = context.m_deltaTime / m_duration; 
+        const auto deltaPercentage = context.m_deltaTime / m_duration;
         m_previousTime = m_currentTime;
         m_currentTime += deltaPercentage;
-       
+
         // TODO: Handle looping (or not)
         float integralPart;
         m_currentTime = Maths::Modf(m_currentTime, integralPart);
@@ -72,20 +72,20 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
 
         m_previousTime = GetSyncTrack().GetPercentageThrough(updateRange.m_beginTime);
         m_currentTime = GetSyncTrack().GetPercentageThrough(updateRange.m_endTime);
-        
+
         PoseNodeResult result;
         result.m_taskIndex = context.m_pTaskSystem->RegisterTask<SampleTask>(GetNodeIndex(), m_pAnimationClip, m_currentTime);
         result.m_rootMotionDelta = m_pAnimationClip->GetRootMotionDelta(m_previousTime, m_currentTime);
-        
+
         return result;
     }
 
-    virtual const SyncTrack& GetSyncTrack() const override
+    const SyncTrack& GetSyncTrack() const override
     {
         return m_pAnimationClip->GetSyncTrack();
     };
 
-    virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
+    void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
         PoseRuntimeNode::InitializeInternal(context, initialTime);
         if (m_pPlayInReverseValueNode != nullptr)
@@ -97,7 +97,7 @@ class AnimationClipRuntimeNode : public PoseRuntimeNode
         // TODO: Initialize current time and previous time based on initialTime
     }
 
-    virtual void ShutdownInternal() override
+    void ShutdownInternal() override
     {
         if (m_pPlayInReverseValueNode != nullptr)
         {

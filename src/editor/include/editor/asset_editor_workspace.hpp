@@ -34,7 +34,7 @@ class IAssetWorkspace : public IEditorWindow
   protected:
     virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile = true);
 
-    virtual void Shutdown() override
+    void Shutdown() override
     {
         IEditorWindow::Shutdown();
         m_id = AssetID();
@@ -145,7 +145,7 @@ class AssetEditorWindowsFactories
     class assetType##EditorWindowFactory : public IAssetWorkspacesFactory \
     {                                                                     \
       public:                                                             \
-        virtual IAssetWorkspace* CreateWorkspace() override final         \
+        IAssetWorkspace* CreateWorkspace() override final                 \
         {                                                                 \
             return aln::New<workspaceType>();                             \
         }                                                                 \

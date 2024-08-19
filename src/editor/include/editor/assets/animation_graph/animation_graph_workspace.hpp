@@ -55,8 +55,8 @@ class AnimationGraphWorkspace : public IAssetWorkspace
 
   public:
     // ----------- Window lifetime
-    virtual void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
-    virtual void Shutdown() override;
+    void Initialize(EditorWindowContext* pContext, const AssetID& id, bool readAssetFile) override;
+    void Shutdown() override;
     void Clear();
     void Update(const UpdateContext& context) override;
 

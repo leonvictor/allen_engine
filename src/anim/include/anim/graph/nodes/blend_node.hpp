@@ -5,8 +5,8 @@
 #include "../tasks/blend_task.hpp"
 #include "../value_node.hpp"
 
-#include <common/maths/maths.hpp>
 #include <common/containers/vector.hpp>
+#include <common/maths/maths.hpp>
 
 namespace aln
 {
@@ -70,15 +70,15 @@ class BlendNode : public PoseRuntimeNode
         {
             auto pNode = CreateNode<BlendNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_blendWeightValueNodeIdx, pNode->m_pBlendWeightValueNode);
-            
-            auto sourceNodesCount = m_sourcePoseNodeIndices.size(); 
+
+            auto sourceNodesCount = m_sourcePoseNodeIndices.size();
             pNode->m_sourceNodes.resize(sourceNodesCount, nullptr);
             for (auto sourceNodeIdx = 0; sourceNodeIdx < sourceNodesCount; ++sourceNodeIdx)
             {
                 SetNodePtrFromIndex(nodePtrs, m_sourcePoseNodeIndices[sourceNodeIdx], pNode->m_sourceNodes[sourceNodeIdx]);
             }
         }
-    
+
         const Vector<BlendRange>& GetBlendRanges() const { return m_blendRanges; }
     };
 
@@ -91,7 +91,7 @@ class BlendNode : public PoseRuntimeNode
         // TODO: Avoid updating source nodes if it's not necessary (i.e. we're at 0 or 1)
         m_blendWeight = m_pBlendWeightValueNode->GetValue<float>(context);
         const auto& blendRange = SelectBlendRange(m_blendWeight);
-        auto scaledBlendWeight = (m_blendWeight - blendRange.m_startBlendWeightValue) / (blendRange.m_endBlendWeightValue - blendRange.m_startBlendWeightValue);  
+        auto scaledBlendWeight = (m_blendWeight - blendRange.m_startBlendWeightValue) / (blendRange.m_endBlendWeightValue - blendRange.m_startBlendWeightValue);
 
         auto pSourceNode = m_sourceNodes[blendRange.m_startNodeIndex];
         auto pTargetNode = m_sourceNodes[blendRange.m_endNodeIndex];
@@ -135,14 +135,14 @@ class BlendNode : public PoseRuntimeNode
         return result;
     }
 
-    virtual const SyncTrack& GetSyncTrack() const override { return m_blendedSyncTrack; };
+    const SyncTrack& GetSyncTrack() const override { return m_blendedSyncTrack; };
 
-    virtual void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
+    void InitializeInternal(GraphContext& context, const SyncTrackTime& initialTime) override
     {
         PoseRuntimeNode::InitializeInternal(context, initialTime);
 
         m_pBlendWeightValueNode->Initialize(context);
-        
+
         auto sourceNodesCount = m_sourceNodes.size();
         for (auto pSourceNode : m_sourceNodes)
         {
@@ -152,7 +152,7 @@ class BlendNode : public PoseRuntimeNode
         m_blendWeight = m_pBlendWeightValueNode->GetValue<float>(context);
     }
 
-    virtual void ShutdownInternal() override
+    void ShutdownInternal() override
     {
         for (auto pSourceNode : m_sourceNodes)
         {

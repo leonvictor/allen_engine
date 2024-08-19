@@ -44,7 +44,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
             NodeIndex m_stateNodeIndex = InvalidIndex;
             Vector<TransitionSettings> m_transitionSettings;
 
-            template<class Archive>
+            template <class Archive>
             void Serialize(Archive& archive) const
             {
                 archive << m_stateNodeIndex;
@@ -63,7 +63,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
         Vector<StateSettings> m_stateSettings;
 
       public:
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<StateMachineRuntimeNode>(nodePtrs, options);
 
@@ -194,7 +194,7 @@ class StateMachineRuntimeNode : public PoseRuntimeNode
     {
         // TODO
         PoseNodeResult result;
-        assert(false); 
+        assert(false);
         return result;
     }
 

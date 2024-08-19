@@ -87,7 +87,7 @@ class PreviewSceneSettingsWindow : public IEditorWindow
         ImGui::End();
     }
 
-    virtual void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override {};
-    virtual void SaveState(JSON& json) const override {};
+    void LoadState(const JSON& json, const TypeRegistryService* pTypeRegistryService) override {};
+    void SaveState(JSON& json) const override {};
 };
 } // namespace aln

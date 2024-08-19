@@ -22,7 +22,7 @@ class IAsset
     AssetID m_id;
 
   public:
-    virtual ~IAsset(){}
+    virtual ~IAsset() {}
 
     inline const AssetID& GetID() const { return m_id; }
     virtual AssetTypeID GetAssetTypeID() const = 0;

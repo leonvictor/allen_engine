@@ -233,7 +233,7 @@ class PrimitiveTypeInfo : public TypeInfo
         m_deserialize(archive, pTypeInstance);
     }
 
-    virtual bool IsPrimitive() const override { return true; }
+    bool IsPrimitive() const override { return true; }
 };
 
 // -----------------------
@@ -241,13 +241,13 @@ class PrimitiveTypeInfo : public TypeInfo
 // -----------------------
 
 /// @brief Register the current type for class reflection.
-#define ALN_REGISTER_TYPE()                                             \
-  public:                                                               \
-    static const aln::reflect::TypeInfo* GetStaticTypeInfo();           \
-    virtual const aln::reflect::TypeInfo* GetTypeInfo() const override; \
-                                                                        \
-  private:                                                              \
-    static aln::reflect::TypeInfo Reflection;                           \
+#define ALN_REGISTER_TYPE()                                     \
+  public:                                                       \
+    static const aln::reflect::TypeInfo* GetStaticTypeInfo();   \
+    const aln::reflect::TypeInfo* GetTypeInfo() const override; \
+                                                                \
+  private:                                                      \
+    static aln::reflect::TypeInfo Reflection;                   \
     static void InitReflection(aln::reflect::TypeInfo*);
 
 #define ALN_REGISTER_IMPL_BEGIN(scope, type)                               \

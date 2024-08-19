@@ -27,7 +27,7 @@ class StateRuntimeNode : public PassthroughRuntimeNode
         StringID m_inStateEventID = StringID::InvalidID;
 
       public:
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<StateRuntimeNode>(nodePtrs, options);
             PassthroughRuntimeNode::Settings::InstanciateNode(nodePtrs, pDataSet, options);
@@ -66,7 +66,7 @@ class StateRuntimeNode : public PassthroughRuntimeNode
     {
         auto result = PassthroughRuntimeNode::Update(context);
         m_timeSpentInState += context.m_deltaTime;
-        
+
         auto pSettings = GetSettings<StateRuntimeNode>();
 
         if (IsTransitioningIn())
@@ -109,7 +109,6 @@ class StateRuntimeNode : public PassthroughRuntimeNode
         PassthroughRuntimeNode::InitializeInternal(context, initialTime);
         m_transitionState = TransitionState::None;
         m_timeSpentInState = 0.0f;
-        
     }
 
     void ShutdownInternal() override

@@ -21,7 +21,7 @@ class IDComparisonRuntimeNode : public BoolValueNode
         NodeIndex m_inputValueNodeIdx = InvalidIndex;
         StringID m_compareToID = StringID::InvalidID;
 
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             auto pNode = CreateNode<IDComparisonRuntimeNode>(nodePtrs, options);
             SetNodePtrFromIndex(nodePtrs, m_inputValueNodeIdx, pNode->m_pInputValueNode);
@@ -31,7 +31,7 @@ class IDComparisonRuntimeNode : public BoolValueNode
         const StringID& GetCompareToID() const { return m_compareToID; }
     };
 
-    virtual void GetValueInternal(GraphContext& context, void* pValue) const override
+    void GetValueInternal(GraphContext& context, void* pValue) const override
     {
         assert(context.IsValid());
 
@@ -42,13 +42,13 @@ class IDComparisonRuntimeNode : public BoolValueNode
         *((bool*) pValue) = (pSettings->GetCompareToID() == inputValue);
     }
 
-    virtual void InitializeInternal(GraphContext& context) override
+    void InitializeInternal(GraphContext& context) override
     {
         BoolValueNode::InitializeInternal(context);
         m_pInputValueNode->Initialize(context);
     }
 
-    virtual void ShutdownInternal() override
+    void ShutdownInternal() override
     {
         m_pInputValueNode->Shutdown();
         BoolValueNode::ShutdownInternal();

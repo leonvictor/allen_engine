@@ -82,7 +82,7 @@ void EntityMap::Activate(const LoadingContext& loadingContext)
         ActivationTask(const Vector<Entity*>& entities, const LoadingContext& loadingContext)
             : ITaskSet(m_entities.size()), m_entities(entities), m_loadingContext(loadingContext) {}
 
-        virtual void ExecuteRange(TaskSetPartition range, uint32_t threadNum) final override
+        void ExecuteRange(TaskSetPartition range, uint32_t threadNum) final override
         {
             for (auto i = range.start; i < range.end; ++i)
             {

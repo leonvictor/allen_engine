@@ -19,7 +19,7 @@ class PassthroughRuntimeNode : public PoseRuntimeNode
         NodeIndex m_childNodeIdx = InvalidIndex;
 
       public:
-        virtual void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
+        void InstanciateNode(const Vector<RuntimeGraphNode*>& nodePtrs, AnimationGraphDataset const* pDataSet, InitOptions options) const override
         {
             // TODO: Make sure the node has already been created
             auto pNode = reinterpret_cast<PassthroughRuntimeNode*>(nodePtrs[GetNodeIndex()]);
@@ -78,7 +78,7 @@ class PassthroughRuntimeNode : public PoseRuntimeNode
     }
 
   public:
-    virtual const SyncTrack& GetSyncTrack() const override
+    const SyncTrack& GetSyncTrack() const override
     {
         assert(m_pChildNode != nullptr);
         return m_pChildNode->GetSyncTrack();
