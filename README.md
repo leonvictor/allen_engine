@@ -1,6 +1,6 @@
 # Allen Engine
 
-![](images/screenshot.png)
+![](assets/screenshot.png)
 Allen is a pet 3D game engine I started developing on my free time while in lockdown. 
 
 It's mostly a playground I use to learn, experiment and practice on a bunch of subjects:
